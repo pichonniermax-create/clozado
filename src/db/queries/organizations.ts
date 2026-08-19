@@ -1,14 +1,14 @@
 import { eq } from "drizzle-orm";
-import type { Session } from "next-auth";
 import { db } from "@/db";
 import { organizations } from "@/db/schema";
+import type { OrgScopeUser } from "@/lib/session";
 
 /**
  * Garde-fou d'isolation, LE modèle à reproduire pour toute future requête
  * métier : un super_admin voit tout, tout autre utilisateur ne voit jamais
  * que les données de sa propre organisation.
  */
-export async function getVisibleOrganizations(user: Session["user"]) {
+export async function getVisibleOrganizations(user: OrgScopeUser) {
   if (user.role === "super_admin") {
     return db.select().from(organizations);
   }
@@ -25,7 +25,7 @@ export async function getVisibleOrganizations(user: Session["user"]) {
 }
 
 /** L'organisation de l'utilisateur connecté (null pour un super_admin). */
-export async function getOwnOrganization(user: Session["user"]) {
+export async function getOwnOrganization(user: OrgScopeUser) {
   if (!user.organizationId) return null;
   const org = await db.query.organizations.findFirst({
     where: eq(organizations.id, user.organizationId),
@@ -48,7 +48,7 @@ export type BrandingInput = {
  * autre organisation ne peut jamais être modifiée.
  */
 export async function updateOrganizationBranding(
-  user: Session["user"],
+  user: OrgScopeUser,
   data: BrandingInput
 ) {
   if (user.role !== "admin" || !user.organizationId) {
