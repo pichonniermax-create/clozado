@@ -56,9 +56,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // ensuite comme garde-fou d'isolation.
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-        session.user.organizationId = token.organizationId;
+        // token.id/role sont posés par le callback jwt ci-dessus dès qu'un
+        // utilisateur valide se connecte : non-null assertion volontaire.
+        session.user.id = token.id!;
+        session.user.role = token.role!;
+        session.user.organizationId = token.organizationId ?? null;
       }
       return session;
     },
