@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { signOut } from "@/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,16 +29,21 @@ export default async function DashboardPage() {
           <h1 className="text-2xl font-semibold">Tableau de bord</h1>
           <p className="text-sm text-muted-foreground">{user.email}</p>
         </div>
-        <form
-          action={async () => {
-            "use server";
-            await signOut({ redirectTo: "/login" });
-          }}
-        >
-          <Button variant="outline" type="submit">
-            Se déconnecter
-          </Button>
-        </form>
+        <div className="flex items-center gap-2">
+          {user.organizationId && (
+            <Button variant="outline" render={<Link href="/settings">Marque & réglages</Link>} />
+          )}
+          <form
+            action={async () => {
+              "use server";
+              await signOut({ redirectTo: "/login" });
+            }}
+          >
+            <Button variant="outline" type="submit">
+              Se déconnecter
+            </Button>
+          </form>
+        </div>
       </div>
 
       <Card>
