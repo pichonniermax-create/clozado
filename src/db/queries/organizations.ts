@@ -1,27 +1,20 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { organizations } from "@/db/schema";
+import { orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
 
 /**
- * Garde-fou d'isolation, LE modèle à reproduire pour toute future requête
- * métier : un super_admin voit tout, tout autre utilisateur ne voit jamais
- * que les données de sa propre organisation.
+ * Première utilisation du garde-fou générique orgScope (src/db/scope.ts) :
+ * un super_admin voit tout, tout autre utilisateur ne voit jamais que sa
+ * propre organisation. C'est ce même helper que les futurs outils métier
+ * réutiliseront sur leurs propres tables.
  */
 export async function getVisibleOrganizations(user: OrgScopeUser) {
-  if (user.role === "super_admin") {
-    return db.select().from(organizations);
-  }
-
-  if (!user.organizationId) {
-    // Ne devrait jamais arriver (contrainte en base) : filet de sécurité.
-    return [];
-  }
-
-  return db
-    .select()
-    .from(organizations)
-    .where(eq(organizations.id, user.organizationId));
+  const scope = orgScope(user, organizations.id);
+  return scope
+    ? db.select().from(organizations).where(scope)
+    : db.select().from(organizations);
 }
 
 /** L'organisation de l'utilisateur connecté (null pour un super_admin). */
