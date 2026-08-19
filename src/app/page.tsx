@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -20,9 +22,10 @@ export default function Home() {
             Suite d&apos;outils d&apos;assistance marketing multi-clients.
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
+        <CardContent className="flex flex-col gap-4 text-sm text-muted-foreground">
           Le projet est initialisé. Les outils métier arriveront ensuite,
           brique par brique.
+          <Button render={<Link href="/login">Se connecter</Link>} className="w-fit" />
         </CardContent>
       </Card>
     </div>
