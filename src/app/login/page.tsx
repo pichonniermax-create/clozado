@@ -14,7 +14,11 @@ async function sendMagicLink(formData: FormData) {
   "use server";
   const email = formData.get("email");
   if (typeof email !== "string" || !email) return;
-  await signIn("nodemailer", { email, redirectTo: "/login/verifier" });
+  // Ce redirectTo s'applique une fois le lien magique VALIDÉ (pas avant) :
+  // c'est là qu'on veut atterrir sur /dashboard. La page "vérifie tes
+  // emails" s'affiche automatiquement juste après, via pages.verifyRequest
+  // dans src/auth.ts — pas besoin de la référencer ici.
+  await signIn("nodemailer", { email, redirectTo: "/dashboard" });
 }
 
 const errorMessages: Record<string, string> = {
