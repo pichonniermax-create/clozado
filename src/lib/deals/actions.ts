@@ -1,6 +1,6 @@
 "use server";
 
-import { markCommissionSettled } from "@/db/queries/commissions";
+import { confirmCommission, markCommissionSettled } from "@/db/queries/commissions";
 import { createDeal, type CreateDealInput } from "@/db/queries/deals";
 import { createDealType } from "@/db/queries/deal-types";
 import {
@@ -61,6 +61,12 @@ export async function revokeDealShareAction(shareId: string) {
 export async function reissueDealShareAction(shareId: string) {
   const user = await requireUser();
   return reissueDealShare(user, user.id, shareId);
+}
+
+/** Fiche affaire : prevue → confirmee, une fois l'affaire aboutie et le montant arrêté. */
+export async function confirmCommissionAction(commissionId: string) {
+  const user = await requireUser();
+  return confirmCommission(user, user.id, commissionId);
 }
 
 /** Écran de suivi, pile "commissions confirmées non réglées" — la seule action possible dessus. */
