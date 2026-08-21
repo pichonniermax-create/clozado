@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { eq, like } from "drizzle-orm";
 import { db } from "@/db";
 import { organizations, users } from "@/db/schema";
-import { buildDefaultDealStatusesInsert } from "./deal-statuses";
+import { buildDefaultPipelineInserts } from "./deal-statuses";
 
 /**
  * Inscription libre : crée une organisation ET son premier utilisateur,
@@ -78,12 +78,12 @@ export async function createOrganizationWithAdmin(input: {
   const slug = await availableSlug(name);
 
   // Un seul lot atomique — comme `createDealShare` : le driver neon-http ne
-  // supporte pas `db.transaction()`. Une organisation sans admin, ou sans
-  // ses statuts d'affaire, serait un état inutilisable.
+  // supporte pas `db.transaction()`. Une organisation sans admin, sans son
+  // pipeline ou sans ses statuts d'affaire, serait un état inutilisable.
   await db.batch([
     db.insert(organizations).values({ id: organizationId, name, slug }),
     db.insert(users).values({ email, role: "admin", organizationId }),
-    buildDefaultDealStatusesInsert(organizationId),
+    ...buildDefaultPipelineInserts(organizationId),
   ]);
 
   return { ok: true, organizationId, slug };

@@ -7,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 import { dealShares } from "./deal-shares";
@@ -48,6 +49,10 @@ export const commissions = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    // Cible de la FK composite de tasks (source_commission_id,
+    // organization_id) — absente jusqu'au module relationnel : la table
+    // n'avait jamais été référencée par une FK composite.
+    unique("commissions_id_org_unique").on(table.id, table.organizationId),
     check(
       "commissions_basis_fields_consistency",
       sql`(${table.basis} = 'percentage' AND ${table.rate} IS NOT NULL AND ${table.fixedAmount} IS NULL)

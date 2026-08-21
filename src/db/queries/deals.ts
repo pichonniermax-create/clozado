@@ -56,14 +56,16 @@ export async function createDeal(
     throw new Error("Type d'affaire introuvable pour cette organisation.");
   }
 
-  let statusId = input.statusId;
-  if (statusId) {
-    const status = await db.query.dealStatuses.findFirst({ where: eq(dealStatuses.id, statusId) });
+  // Le statut résolu porte aussi le pipeline : une affaire naît TOUJOURS
+  // dans le pipeline de son statut initial (FK composite en base).
+  let status;
+  if (input.statusId) {
+    status = await db.query.dealStatuses.findFirst({ where: eq(dealStatuses.id, input.statusId) });
     if (!status || status.organizationId !== user.organizationId) {
       throw new Error("Statut introuvable pour cette organisation.");
     }
   } else {
-    statusId = (await getDefaultDealStatus(user.organizationId)).id;
+    status = await getDefaultDealStatus(user.organizationId);
   }
 
   const [deal] = await db
@@ -73,7 +75,8 @@ export async function createDeal(
       title: input.title,
       clientName: input.clientName,
       typeId: input.typeId,
-      statusId,
+      statusId: status.id,
+      pipelineId: status.pipelineId,
       estimatedAmount: input.estimatedAmount ?? null,
       description: input.description ?? null,
       createdBy,
@@ -90,6 +93,13 @@ export async function updateDealStatus(user: OrgScopeUser, dealId: string, statu
   const status = await db.query.dealStatuses.findFirst({ where: eq(dealStatuses.id, statusId) });
   if (!status || status.organizationId !== deal.organizationId) {
     throw new Error("Statut introuvable pour cette organisation.");
+  }
+  // Un changement de statut reste DANS le pipeline de l'affaire (la FK
+  // composite deals_status_pipeline_fk le refuserait de toute façon —
+  // ici pour l'erreur claire). Changer de pipeline sera un geste dédié
+  // de l'écran pipeline, jamais un effet de bord.
+  if (status.pipelineId !== deal.pipelineId) {
+    throw new Error("Ce statut appartient à un autre pipeline que celui de l'affaire.");
   }
 
   const [updated] = await db

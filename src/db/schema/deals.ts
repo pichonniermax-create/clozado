@@ -1,7 +1,22 @@
-import { foreignKey, numeric, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+  check,
+  date,
+  foreignKey,
+  index,
+  numeric,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from "drizzle-orm/pg-core";
+import { contacts } from "./contacts";
 import { dealStatuses } from "./deal-statuses";
 import { dealTypes } from "./deal-types";
+import { lossReasons } from "./loss-reasons";
 import { organizations } from "./organizations";
+import { pipelines } from "./pipelines";
 import { users } from "./users";
 
 /**
@@ -9,6 +24,12 @@ import { users } from "./users";
  * transférée. Ce que le partage fait sortir, c'est une vue limitée sur
  * cette affaire via un jeton (`deal_shares`), jamais l'affaire elle-même ni
  * sa ligne en base.
+ *
+ * Depuis le module relationnel (décision A, docs/module-relationnel.md),
+ * l'affaire est AUSSI la carte du pipeline : même ligne, deux angles. Les
+ * champs pipeline ci-dessous sont NULL-ables sauf `pipeline_id` (chaque
+ * affaire vit dans un pipeline ; les affaires antérieures ont été
+ * rattachées au pipeline par défaut de leur organisation à la migration).
  */
 export const deals = pgTable(
   "deals",
@@ -18,13 +39,28 @@ export const deals = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
-    /** Nom simple du client concerné — pas de fiche contact complète pour l'instant. */
+    /**
+     * Libellé client affiché — notamment au partenaire via la vitrine PRM.
+     * Quand `contact_id` est posé, c'est une copie du nom du contact au
+     * moment du lien (récrite « Client supprimé » par la pierre tombale).
+     */
     clientName: text("client_name").notNull(),
+    /** Fiche contact liée — NULL pour les affaires d'avant le module relationnel ou saisies sans fiche. */
+    contactId: uuid("contact_id"),
     /** Pas de colonne .references() simple ici : voir la FK composite ci-dessous (deals_type_org_fk). */
     typeId: uuid("type_id").notNull(),
+    pipelineId: uuid("pipeline_id").notNull(),
     statusId: uuid("status_id").notNull(),
     /** Montant estimé de l'affaire, en euros. */
     estimatedAmount: numeric("estimated_amount", { precision: 12, scale: 2 }),
+    /** Dérogation à la probabilité de l'étape (0–100). NULL = celle de l'étape. */
+    probability: numeric("probability", { precision: 5, scale: 2 }),
+    /** Date de clôture attendue, pour trier/filtrer le pipeline. */
+    expectedCloseDate: date("expected_close_date"),
+    /** Conseiller responsable de l'affaire (distinct de created_by, qui ne change jamais). */
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    /** Motif de perte — posé quand l'affaire entre dans une étape `outcome = 'lost'`. */
+    lossReasonId: uuid("loss_reason_id"),
     description: text("description"),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -32,15 +68,15 @@ export const deals = pgTable(
   },
   (table) => [
     // Cible des FK composites des tables filles (deal_shares, commissions,
-    // deal_events) : garantit par la base, pas par convention, qu'une ligne
-    // fille ne peut jamais porter un organization_id différent de celui de
-    // l'affaire qu'elle référence.
+    // deal_events, tasks, activities…) : garantit par la base, pas par
+    // convention, qu'une ligne fille ne peut jamais porter un
+    // organization_id différent de celui de l'affaire qu'elle référence.
     unique("deals_id_org_unique").on(table.id, table.organizationId),
-    // Un type/statut ne peut être assigné à une affaire QUE s'il appartient
-    // à la même organisation — sans cette FK composite, type_id pourrait
-    // techniquement pointer vers le type d'une autre organisation ; ce
-    // n'est pas qu'une question de cohérence, c'est une fuite possible
-    // (deviner/énumérer des labels d'une autre organisation).
+    // Un type/statut/pipeline/contact/motif ne peut être assigné à une
+    // affaire QUE s'il appartient à la même organisation — sans ces FK
+    // composites, un id d'une autre organisation serait techniquement
+    // possible ; ce n'est pas qu'une question de cohérence, c'est une
+    // fuite possible (deviner/énumérer des labels d'une autre organisation).
     foreignKey({
       name: "deals_type_org_fk",
       columns: [table.typeId, table.organizationId],
@@ -51,6 +87,43 @@ export const deals = pgTable(
       columns: [table.statusId, table.organizationId],
       foreignColumns: [dealStatuses.id, dealStatuses.organizationId],
     }),
+    foreignKey({
+      name: "deals_pipeline_org_fk",
+      columns: [table.pipelineId, table.organizationId],
+      foreignColumns: [pipelines.id, pipelines.organizationId],
+    }),
+    // L'étape d'une affaire appartient à SON pipeline (pas seulement à son
+    // organisation) — changer une affaire de pipeline impose de choisir une
+    // étape du nouveau pipeline dans le même geste.
+    foreignKey({
+      name: "deals_status_pipeline_fk",
+      columns: [table.statusId, table.pipelineId],
+      foreignColumns: [dealStatuses.id, dealStatuses.pipelineId],
+    }),
+    foreignKey({
+      name: "deals_contact_org_fk",
+      columns: [table.contactId, table.organizationId],
+      foreignColumns: [contacts.id, contacts.organizationId],
+    }),
+    foreignKey({
+      name: "deals_loss_reason_org_fk",
+      columns: [table.lossReasonId, table.organizationId],
+      foreignColumns: [lossReasons.id, lossReasons.organizationId],
+    }),
+    check(
+      "deals_probability_range",
+      sql`${table.probability} IS NULL OR (${table.probability} >= 0 AND ${table.probability} <= 100)`
+    ),
+    // Kanban : les cartes d'un pipeline, groupées par étape.
+    index("deals_org_pipeline_status_idx").on(
+      table.organizationId,
+      table.pipelineId,
+      table.statusId
+    ),
+    // Liste : filtres et tris annoncés (responsable, clôture prévue, contact).
+    index("deals_org_owner_idx").on(table.organizationId, table.ownerId),
+    index("deals_org_close_date_idx").on(table.organizationId, table.expectedCloseDate),
+    index("deals_org_contact_idx").on(table.organizationId, table.contactId),
   ]
 );
 
