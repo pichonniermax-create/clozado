@@ -31,13 +31,24 @@ export default async function PartnerSharePage({
   return <PartnerShareView token={token} initialView={result.view} />;
 }
 
+/**
+ * Sobre, non brandée (aucun nom d'organisation ni de personne — quelqu'un
+ * tombant sur une vieille URL ne doit rien apprendre), mais utile : dit à
+ * la personne quoi faire, pas juste que ça ne marche pas.
+ *
+ * Deux catégories seulement, jamais plus finement distinguées :
+ * - révoqué/expiré : le partage a existé, invite à recontacter la personne
+ *   qui l'a envoyé (sans dire qui) ;
+ * - introuvable : message neutre, VOLONTAIREMENT identique quelle que soit
+ *   la raison exacte (jeton mal formé, jamais existé…) — ne jamais laisser
+ *   deviner "ce jeton n'existe pas" de "ce jeton existe mais n'est plus
+ *   valable" en testant des variantes en masse.
+ */
 function ErrorState({ reason }: { reason: string }) {
   const message =
-    reason === "revoked"
-      ? "Ce lien a été révoqué. Contactez directement votre interlocuteur pour en obtenir un nouveau."
-      : reason === "expired"
-        ? "Ce lien a expiré. Contactez directement votre interlocuteur pour en obtenir un nouveau."
-        : "Ce lien n'est pas valide.";
+    reason === "revoked" || reason === "expired"
+      ? "Ce lien n'est plus valable. Contactez directement la personne qui vous l'a envoyé pour en obtenir un nouveau."
+      : "Ce lien n'est pas valide. Vérifiez que vous l'avez copié en entier, ou contactez la personne qui vous l'a envoyé.";
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-3 p-8 text-center">

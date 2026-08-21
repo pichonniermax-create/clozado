@@ -47,9 +47,12 @@ const STATUS_BANNER: Record<
  * cette page. Repli générique pour tout code non prévu ici.
  */
 const ACTION_ERROR_MESSAGES: Record<string, string> = {
+  // Mêmes messages, mêmes deux catégories que la page d'erreur d'entrée
+  // (src/app/partage/[token]/page.tsx) : jamais de nom, jamais de détail
+  // qui distinguerait plus finement une raison d'une autre.
   not_found: "Ce lien n'est plus valide.",
-  revoked: "Ce lien a été révoqué.",
-  expired: "Ce lien a expiré.",
+  revoked: "Ce lien n'est plus valable. Contactez directement la personne qui vous l'a envoyé.",
+  expired: "Ce lien n'est plus valable. Contactez directement la personne qui vous l'a envoyé.",
   already_resolved: "Vous avez déjà répondu à ce partage.",
   rate_limited: "Trop de tentatives — réessayez dans une minute.",
   invalid_action: "Une erreur est survenue.",
