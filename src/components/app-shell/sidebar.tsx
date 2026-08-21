@@ -1,4 +1,5 @@
 import {
+  BookUser,
   Briefcase,
   LayoutDashboard,
   LogOut,
@@ -85,6 +86,7 @@ export function Sidebar({
         </NavSection>
 
         <NavSection label="Dossiers">
+          <NavLink href="/contacts" label="Contacts" icon={<BookUser />} />
           <NavLink href="/affaires" label="Affaires" icon={<Briefcase />} />
           <NavLink href="/partenaires" label="Partenaires" icon={<Users />} />
         </NavSection>

@@ -1,0 +1,166 @@
+/**
+ * Jeu de données de performance du module relationnel — dans une
+ * organisation de test DÉDIÉE, jamais dans une organisation existante.
+ *
+ * Usage :
+ *   npx tsx --env-file=.env.local scripts/perf-dataset.ts create   # 5 000 contacts, 500 affaires, 2 000 tâches
+ *   npx tsx --env-file=.env.local scripts/perf-dataset.ts status   # ce qui existe
+ *   npx tsx --env-file=.env.local scripts/perf-dataset.ts destroy  # supprime EXACTEMENT ce qui a été créé
+ *
+ * Réversibilité : tout appartient à l'organisation au slug réservé
+ * `_perf-test` ; `destroy` supprime cette organisation — les cascades
+ * emportent contacts, affaires, tâches, statuts, pipeline, utilisateur —
+ * puis vérifie qu'il ne reste rien.
+ */
+import { config } from "dotenv";
+config({ path: ".env.local" });
+
+const SLUG = "_perf-test";
+const N_CONTACTS = 5000;
+const N_DEALS = 500;
+const N_TASKS = 2000;
+
+const FIRST = ["Camille", "Julie", "Marc", "Sophie", "Éric", "Nadia", "Paul", "Inès", "Hugo", "Léa", "Karim", "Anne", "Louis", "Emma", "Yann", "Sarah", "Nicolas", "Chloé", "Pierre", "Manon"];
+const LAST = ["Marchand", "Dupont", "Bernard", "Petit", "Robert", "Richard", "Durand", "Moreau", "Laurent", "Simon", "Michel", "Lefebvre", "Leroy", "Roux", "David", "Bertrand", "Morel", "Fournier", "Girard", "Bonnet"];
+const COMPANIES = ["Cap Patrimoine", "Crédit Conseil", "Immo Horizon", "Alliance Courtage", "Fidelis Gestion", "Novapierre", "Axiome Finance", "Cabinet Delta", "Priméa", "Volta Invest"];
+const CITIES = ["Paris", "Lyon", "Bordeaux", "Nantes", "Lille", "Marseille", "Toulouse", "Rennes", "Strasbourg", "Nice"];
+
+function pick<T>(arr: T[], i: number): T {
+  return arr[i % arr.length];
+}
+
+async function main() {
+  const cmd = process.argv[2];
+  const { db } = await import("../src/db");
+  const { contacts, deals, dealTypes, organizations, tasks, users } = await import("../src/db/schema");
+  const { seedDefaultDealStatuses } = await import("../src/db/queries/deal-statuses");
+  const { eq, count } = await import("drizzle-orm");
+
+  const existing = await db.query.organizations.findFirst({ where: eq(organizations.slug, SLUG) });
+
+  if (cmd === "status") {
+    if (!existing) {
+      console.log("Aucune organisation de test — la base est dans son état normal.");
+      return;
+    }
+    const [[c], [d], [t]] = await Promise.all([
+      db.select({ n: count() }).from(contacts).where(eq(contacts.organizationId, existing.id)),
+      db.select({ n: count() }).from(deals).where(eq(deals.organizationId, existing.id)),
+      db.select({ n: count() }).from(tasks).where(eq(tasks.organizationId, existing.id)),
+    ]);
+    console.log(`Organisation ${SLUG} : ${c.n} contacts, ${d.n} affaires, ${t.n} tâches.`);
+    return;
+  }
+
+  if (cmd === "destroy") {
+    if (!existing) {
+      console.log("Rien à supprimer.");
+      return;
+    }
+    await db.delete(organizations).where(eq(organizations.id, existing.id));
+    const still = await db.query.organizations.findFirst({ where: eq(organizations.slug, SLUG) });
+    const [orphans] = await db.select({ n: count() }).from(contacts).where(eq(contacts.organizationId, existing.id));
+    if (still || orphans.n > 0) {
+      console.error("✗ La suppression n'est pas complète — à inspecter.");
+      process.exit(1);
+    }
+    console.log("✓ Organisation de test supprimée, cascades vérifiées : zéro contact restant.");
+    return;
+  }
+
+  if (cmd !== "create") {
+    console.log("Commande attendue : create | status | destroy");
+    process.exit(1);
+  }
+  if (existing) {
+    console.log(`L'organisation ${SLUG} existe déjà — lance d'abord destroy.`);
+    process.exit(1);
+  }
+
+  const [org] = await db.insert(organizations).values({ name: "Organisation de test (perf)", slug: SLUG }).returning();
+  const [user] = await db
+    .insert(users)
+    .values({ email: `perf-test@${SLUG}.invalid`, name: "Testeur Perf", role: "admin", organizationId: org.id })
+    .returning();
+  await seedDefaultDealStatuses(org.id);
+  const [type] = await db.insert(dealTypes).values({ organizationId: org.id, slug: "credit", label: "Crédit" }).returning();
+  const statuses = await db.query.dealStatuses.findMany({ where: eq((await import("../src/db/schema")).dealStatuses.organizationId, org.id) });
+
+  console.time(`insertion de ${N_CONTACTS} contacts`);
+  const CHUNK = 500;
+  const contactIds: string[] = [];
+  for (let i = 0; i < N_CONTACTS; i += CHUNK) {
+    const values = Array.from({ length: Math.min(CHUNK, N_CONTACTS - i) }, (_, j) => {
+      const n = i + j;
+      const first = pick(FIRST, n);
+      const last = pick(LAST, Math.floor(n / FIRST.length));
+      return {
+        organizationId: org.id,
+        kind: "person" as const,
+        name: `${first} ${last} ${n}`,
+        firstName: first,
+        lastName: `${last} ${n}`,
+        email: `${first.toLowerCase()}.${last.toLowerCase()}.${n}@exemple-perf.fr`,
+        phone: `06${String(10000000 + n).slice(0, 8)}`,
+        companyName: pick(COMPANIES, n),
+        city: pick(CITIES, n),
+        country: n % 7 === 0 ? "Suisse" : "France",
+        source: "import" as const,
+        createdBy: user.id,
+      };
+    });
+    const inserted = await db.insert(contacts).values(values).returning({ id: contacts.id });
+    contactIds.push(...inserted.map((r) => r.id));
+  }
+  console.timeEnd(`insertion de ${N_CONTACTS} contacts`);
+
+  console.time(`insertion de ${N_DEALS} affaires`);
+  for (let i = 0; i < N_DEALS; i += CHUNK) {
+    const values = Array.from({ length: Math.min(CHUNK, N_DEALS - i) }, (_, j) => {
+      const n = i + j;
+      const status = statuses[n % statuses.length];
+      return {
+        organizationId: org.id,
+        title: `Dossier ${pick(CITIES, n)} ${n}`,
+        clientName: `Client ${n}`,
+        contactId: contactIds[n * 7 % contactIds.length],
+        typeId: type.id,
+        pipelineId: status.pipelineId,
+        statusId: status.id,
+        estimatedAmount: String(50000 + (n % 40) * 12500),
+        expectedCloseDate: `2026-${String(1 + (n % 12)).padStart(2, "0")}-15`,
+        ownerId: user.id,
+        createdBy: user.id,
+      };
+    });
+    await db.insert(deals).values(values);
+  }
+  console.timeEnd(`insertion de ${N_DEALS} affaires`);
+
+  console.time(`insertion de ${N_TASKS} tâches`);
+  for (let i = 0; i < N_TASKS; i += CHUNK) {
+    const values = Array.from({ length: Math.min(CHUNK, N_TASKS - i) }, (_, j) => {
+      const n = i + j;
+      const done = n % 3 === 0;
+      return {
+        organizationId: org.id,
+        title: `Relancer le dossier ${n}`,
+        dueAt: new Date(Date.now() + (n % 60 - 20) * 24 * 3600 * 1000),
+        priority: (["low", "normal", "high"] as const)[n % 3],
+        status: (done ? "done" : "open") as "done" | "open",
+        completedAt: done ? new Date() : null,
+        assigneeId: user.id,
+        contactId: contactIds[n * 3 % contactIds.length],
+        createdBy: user.id,
+      };
+    });
+    await db.insert(tasks).values(values);
+  }
+  console.timeEnd(`insertion de ${N_TASKS} tâches`);
+  console.log(`✓ Jeu créé dans l'organisation ${SLUG} (${org.id}).`);
+}
+
+main().then(() => process.exit(0)).catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
