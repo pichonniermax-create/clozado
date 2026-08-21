@@ -28,15 +28,33 @@ export const BLOCK_TYPES = [
 
 export type BlockType = (typeof BLOCK_TYPES)[number];
 
-/** Libellés FR à l'usage de l'admin (UI, messages d'erreur) — pas de contenu de marque. */
+/**
+ * Libellés FR à l'usage de l'admin (UI, messages d'erreur) — pas de contenu
+ * de marque.
+ *
+ * Règle de rédaction : ces mots s'affichent tels quels dans l'éditeur, et
+ * doivent se comprendre sans explication par quelqu'un qui n'a jamais fait
+ * de mise en page. Pas de « CTA », pas de « séparateur » au sens graphiste.
+ */
 export const BLOCK_LABELS: Record<BlockType, string> = {
   titre: "Titre",
   texte: "Texte",
   chiffre_cle: "Chiffre clé",
   fiches: "Fiches",
-  cta: "Appel à l'action",
+  cta: "Encart d'action",
   bouton: "Bouton",
-  separateur: "Séparateur",
+  separateur: "Trait de séparation",
+};
+
+/** Une ligne qui dit à quoi sert le bloc, affichée au moment de le choisir. */
+export const BLOCK_HINTS: Record<BlockType, string> = {
+  titre: "Ouvre une section",
+  texte: "Un ou plusieurs paragraphes",
+  chiffre_cle: "Un chiffre marquant, affiché en gros",
+  fiches: "2 à 4 encadrés courts, côte à côte",
+  cta: "Un pavé qui pousse à cliquer",
+  bouton: "Un simple bouton",
+  separateur: "Sépare deux parties",
 };
 
 /**

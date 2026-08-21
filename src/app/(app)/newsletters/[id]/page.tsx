@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Composer } from "@/components/newsletter/composer";
+import { PageHeader } from "@/components/app-shell/page-header";
+import { NewsletterEditor } from "@/components/newsletter/editor/newsletter-editor";
+import { getRenderContext } from "@/db/queries/newsletters";
 import { listMailTargets } from "@/db/queries/mail-targets";
 import { loadNewsletter } from "@/lib/newsletter/actions";
 import { requireUser } from "@/lib/session";
@@ -15,27 +16,28 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
   }
 
   const targets = await listMailTargets(user);
+  const context = await getRenderContext(user, data.newsletter.targetId);
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 p-8">
-      <div>
-        <Link href="/newsletters" className="text-sm text-muted-foreground hover:underline">
-          ← Retour aux newsletters
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold">{data.newsletter.title}</h1>
-      </div>
-      <Composer
-        targets={targets}
+    <>
+      <PageHeader
+        title={data.newsletter.title}
+        backTo={{ href: "/newsletters", label: "Emails" }}
+      />
+      <NewsletterEditor
+        targets={targets.map((t) => ({ id: t.id, label: t.label }))}
+        brand={context.brand}
+        signatory={context.signatory}
         initial={{
           id: data.newsletter.id,
           targetId: data.newsletter.targetId,
           title: data.newsletter.title,
           subject: data.newsletter.subject ?? "",
           preheader: data.newsletter.preheader ?? "",
-          brief: data.newsletter.brief,
+          brief: data.newsletter.brief ?? "",
           blocks: data.blocks,
         }}
       />
-    </div>
+    </>
   );
 }

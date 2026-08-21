@@ -239,8 +239,27 @@ function blockAttrs(index: number): string {
   return `data-block="${index}"`;
 }
 
-function renderBlocks(blocks: AnyBlock[], brand: ResolvedBrand, editable: boolean): string {
-  const out: string[] = [];
+/**
+ * Une UNITÉ VISUELLE du corps de l'email, avec les index des blocs qu'elle
+ * représente. Presque toujours un bloc pour une unité — sauf les chiffres
+ * clés consécutifs, que le modèle email fusionne en une seule rangée de
+ * colonnes. L'éditeur a besoin de cette correspondance : il affiche des
+ * unités, mais il édite des blocs.
+ */
+export type RenderedUnit = { indices: number[]; html: string };
+
+/**
+ * Le découpage du corps en unités visuelles — la SEULE source du regroupement.
+ * `renderBlocks` n'en est que la concaténation, et l'éditeur consomme la même
+ * liste : impossible que l'écran et l'email regroupent différemment.
+ */
+export function renderBlockUnits(
+  blocks: AnyBlock[],
+  rawBrand: RenderBrand,
+  editable = false
+): RenderedUnit[] {
+  const brand = resolveBrand(rawBrand);
+  const out: RenderedUnit[] = [];
   let i = 0;
   while (i < blocks.length) {
     const block = blocks[i];
@@ -251,9 +270,10 @@ function renderBlocks(blocks: AnyBlock[], brand: ResolvedBrand, editable: boolea
         group.push(blocks[i] as Extract<AnyBlock, { type: "chiffre_cle" }>);
         i++;
       }
-      out.push(
-        box(renderKpiRow(group, brand, editable ? start : null), { padding: "8px 24px" })
-      );
+      out.push({
+        indices: group.map((_, n) => start + n),
+        html: box(renderKpiRow(group, brand, editable ? start : null), { padding: "8px 24px" }),
+      });
       continue;
     }
     const inner =
@@ -272,14 +292,50 @@ function renderBlocks(blocks: AnyBlock[], brand: ResolvedBrand, editable: boolea
     // Le séparateur n'est pas encadré en rendu normal (il porte ses propres
     // marges) : en mode éditeur il l'est quand même, sinon il n'aurait aucune
     // surface cliquable à laquelle accrocher son index.
-    out.push(
+    const html =
       block.type === "separateur" && !editable
         ? inner
-        : box(inner, { padding: block.type === "separateur" ? "0" : "8px 24px", attrs })
-    );
+        : box(inner, { padding: block.type === "separateur" ? "0" : "8px 24px", attrs });
+    out.push({ indices: [i], html });
     i++;
   }
-  return out.join("");
+  return out;
+}
+
+function renderBlocks(blocks: AnyBlock[], brand: RenderBrand, editable: boolean): string {
+  return renderBlockUnits(blocks, brand, editable)
+    .map((u) => u.html)
+    .join("");
+}
+
+/**
+ * De quoi reconstituer la feuille de l'email autour des unités, sans en
+ * réécrire une deuxième version : l'éditeur affiche ces fragments et ces
+ * valeurs tels quels. Tout vient de `resolveBrand`, comme le rendu d'envoi.
+ */
+export type DocumentShell = {
+  /** Fond de la page autour de la feuille. */
+  pageBackground: string;
+  /** Fond de la feuille elle-même — la valeur en dur du gabarit email. */
+  sheetBackground: string;
+  /** Largeur de la feuille, en pixels. */
+  width: number;
+  headerHtml: string;
+  signatureHtml: string;
+};
+
+export function renderDocumentShell(
+  rawBrand: RenderBrand,
+  signatory: RenderSignatory
+): DocumentShell {
+  const brand = resolveBrand(rawBrand);
+  return {
+    pageBackground: brand.background,
+    sheetBackground: "#ffffff",
+    width: 600,
+    headerHtml: renderHeader(brand),
+    signatureHtml: renderSignature(signatory, brand),
+  };
 }
 
 /** Span caché, complété par des caractères invisibles pour éviter que le corps ne "fuite" dans l'aperçu du préheader. */
@@ -290,7 +346,7 @@ function renderPreheader(preheader: string): string {
 
 export function renderNewsletterHtml(input: RenderInput): string {
   const brand = resolveBrand(input.brand);
-  const body = renderBlocks(input.blocks, brand, input.editable ?? false);
+  const body = renderBlocks(input.blocks, input.brand, input.editable ?? false);
 
   return `<!doctype html>
 <html lang="fr" xmlns="http://www.w3.org/1999/xhtml">
