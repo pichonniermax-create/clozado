@@ -39,6 +39,19 @@ export const organizations = pgTable("organizations", {
   toneOfVoice: text("tone_of_voice"),
   /** Règles/interdits/contexte métier libres, injectés dans le prompt IA. */
   editorialGuidelines: text("editorial_guidelines"),
+  // --- Seuils du suivi PRM (écran de suivi des affaires partagées) ---
+  // Valeurs par défaut posées ici (DEFAULT en base, jamais en dur dans le
+  // code de l'écran) — pas d'écran de réglages pour les changer pour
+  // l'instant : à rendre modifiable si un client indique qu'elles ne
+  // collent pas à son métier.
+  /** Jours sans réponse avant qu'un partage "en attente" soit signalé (ni urgent, ni neutre). */
+  sharePendingReminderDays: integer("share_pending_reminder_days").notNull().default(3),
+  /** Jours sans réponse avant qu'un partage "en attente" devienne critique (rouge). */
+  sharePendingUrgentDays: integer("share_pending_urgent_days").notNull().default(7),
+  /** Jours restants avant expiration à partir desquels un partage "en attente" devient critique (rouge), indépendamment de son ancienneté. */
+  shareExpiringSoonDays: integer("share_expiring_soon_days").notNull().default(2),
+  /** Jours sans événement (statut changé, commentaire) après acceptation avant qu'un partage "accepté" soit signalé comme sans suite. */
+  dealAcceptedStaleDays: integer("deal_accepted_stale_days").notNull().default(5),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

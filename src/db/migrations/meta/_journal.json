@@ -43,6 +43,13 @@
       "when": 1787274326946,
       "tag": "0005_free_wilson_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787277477407,
+      "tag": "0006_perfect_micromax",
+      "breakpoints": true
     }
   ]
 }

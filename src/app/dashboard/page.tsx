@@ -33,6 +33,7 @@ export default async function DashboardPage() {
           <Button render={<Link href="/newsletters">Newsletters</Link>} />
           <Button variant="outline" render={<Link href="/partenaires">Partenaires</Link>} />
           <Button variant="outline" render={<Link href="/affaires">Affaires</Link>} />
+          <Button variant="outline" render={<Link href="/suivi">Suivi</Link>} />
           {user.organizationId && (
             <Button variant="outline" render={<Link href="/settings">Marque & réglages</Link>} />
           )}

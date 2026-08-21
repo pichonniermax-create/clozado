@@ -1,5 +1,6 @@
 "use server";
 
+import { markCommissionSettled } from "@/db/queries/commissions";
 import { createDeal, type CreateDealInput } from "@/db/queries/deals";
 import { createDealType } from "@/db/queries/deal-types";
 import {
@@ -60,4 +61,10 @@ export async function revokeDealShareAction(shareId: string) {
 export async function reissueDealShareAction(shareId: string) {
   const user = await requireUser();
   return reissueDealShare(user, user.id, shareId);
+}
+
+/** Écran de suivi, pile "commissions confirmées non réglées" — la seule action possible dessus. */
+export async function markCommissionSettledAction(commissionId: string) {
+  const user = await requireUser();
+  return markCommissionSettled(user, user.id, commissionId);
 }
