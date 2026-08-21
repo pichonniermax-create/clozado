@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { organizations } from "@/db/schema";
-import { orgScope } from "@/db/scope";
+import { assertOrgAccess, orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
 
 /**
@@ -24,6 +24,27 @@ export async function getOwnOrganization(user: OrgScopeUser) {
     where: eq(organizations.id, user.organizationId),
   });
   return org ?? null;
+}
+
+/**
+ * L'organisation propriétaire d'une donnée déjà chargée et déjà autorisée
+ * (typiquement une affaire passée par `getDeal`, qui a fait son
+ * `assertOrgAccess`). À utiliser partout où l'on a besoin de la marque de
+ * l'organisation d'UN OBJET plutôt que de celle de l'utilisateur connecté.
+ *
+ * `assertOrgAccess` est refait ici et non supposé : c'est une lecture par
+ * id, elle ne doit jamais servir à récupérer une organisation arbitraire.
+ * Un super_admin passe (il n'a pas d'organisation propre mais voit tout),
+ * ce qui est exactement le cas que `getOwnOrganizationOrThrow` ne pouvait
+ * pas traiter.
+ */
+export async function getOrganizationOfRecord(user: OrgScopeUser, organizationId: string) {
+  assertOrgAccess(user, organizationId);
+  const org = await db.query.organizations.findFirst({
+    where: eq(organizations.id, organizationId),
+  });
+  if (!org) throw new Error("Organisation introuvable.");
+  return org;
 }
 
 export type BrandingInput = {

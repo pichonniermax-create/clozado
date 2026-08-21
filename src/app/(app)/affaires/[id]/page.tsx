@@ -13,7 +13,8 @@ import { revokeDealShareAction } from "@/lib/deals/actions";
 import { listDealStatuses } from "@/db/queries/deal-statuses";
 import { listDealTypes } from "@/db/queries/deal-types";
 import { getDeal } from "@/db/queries/deals";
-import { getOwnOrganizationOrThrow, toRenderBrand } from "@/db/queries/newsletters";
+import { toRenderBrand } from "@/db/queries/newsletters";
+import { getOrganizationOfRecord } from "@/db/queries/organizations";
 import { listPartners } from "@/db/queries/partners";
 import { formatCommission, formatDate, formatDateTime, formatEuros } from "@/lib/deal-shares/format";
 import { requireUser } from "@/lib/session";
@@ -65,7 +66,13 @@ export default async function DealPage({
   if (!deal) notFound();
 
   const [org, types, statuses, partners, shares, commissions, events] = await Promise.all([
-    getOwnOrganizationOrThrow(user),
+    // L'organisation de L'AFFAIRE, pas celle de l'utilisateur connecté :
+    // c'est sa marque qui s'affiche dans l'aperçu du partage, et c'est en
+    // son nom que le partage est émis. Identique pour un admin (il ne voit
+    // que ses propres affaires), mais un super_admin n'a pas d'organisation
+    // propre — `getOwnOrganizationOrThrow` levait alors une erreur et la
+    // page renvoyait un 500.
+    getOrganizationOfRecord(user, deal.organizationId),
     listDealTypes(user),
     listDealStatuses(user),
     listPartners(user),
@@ -81,7 +88,16 @@ export default async function DealPage({
     label: "—",
     color: null,
   };
-  const activePartners = partners.filter((p) => p.active);
+  // Bornés à l'organisation de l'affaire, pas seulement à ceux que
+  // l'appelant a le droit de voir : `listPartners` ne filtre rien pour un
+  // super_admin, qui se voyait donc proposer les partenaires d'une AUTRE
+  // organisation sur cette affaire. Le partage aurait été refusé à
+  // l'enregistrement (createDealShare + FK composite), mais mieux vaut ne
+  // pas proposer un choix qui ne peut pas aboutir. Sans effet pour un
+  // admin : ses partenaires sont déjà ceux de l'affaire.
+  const activePartners = partners.filter(
+    (p) => p.active && p.organizationId === deal.organizationId
+  );
 
   async function revoke(formData: FormData) {
     "use server";

@@ -75,7 +75,13 @@ export function Sidebar({
       <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-2">
         <NavSection label="Aujourd'hui">
           <NavLink href="/dashboard" label="Tableau de bord" icon={<LayoutDashboard />} />
-          <NavLink href="/suivi" label="Suivi" icon={<Target />} badge={followUpCount} />
+          {/* Le suivi et les réglages sont propres à une organisation : un
+              super_admin n'en a pas, l'entrée mènerait à un écran qui ne
+              peut rien afficher. Les deux écrans se défendent quand même
+              tout seuls si on y arrive par l'URL. */}
+          {!isSuperAdmin && (
+            <NavLink href="/suivi" label="Suivi" icon={<Target />} badge={followUpCount} />
+          )}
         </NavSection>
 
         <NavSection label="Dossiers">

@@ -31,6 +31,33 @@ const SHARE_STATUS_LABELS: Record<string, string> = {
 
 export default async function FollowUpPage() {
   const user = await requireUser();
+
+  // Cet écran n'existe que rapporté à UNE organisation : il lit ses seuils
+  // et ne remonte que ses partages. Un super_admin n'a pas d'organisation
+  // propre — `getFollowUpBoard` levait alors « Aucune organisation associée
+  // à cet utilisateur » et la page renvoyait un 500. On l'explique plutôt
+  // que de rediriger en silence : arriver ici est légitime, la barre
+  // latérale ne propose simplement pas l'entrée dans ce cas.
+  if (!user.organizationId) {
+    return (
+      <>
+        <PageHeader
+          title="Suivi"
+          description="Cet écran suit les relances d'une organisation donnée."
+        />
+        <p className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+          Ton compte super admin n&apos;est rattaché à aucune organisation : il n&apos;y a donc
+          pas de relances qui te soient propres. Les affaires et partenaires de toutes les
+          organisations restent consultables depuis{" "}
+          <Link href="/affaires" className="underline underline-offset-2 hover:text-foreground">
+            Affaires
+          </Link>
+          .
+        </p>
+      </>
+    );
+  }
+
   const board = await getFollowUpBoard(user);
 
   const unpaidTotal = board.unpaidCommissions.reduce(

@@ -74,6 +74,14 @@ export type FollowUpBoard = {
   closed: FollowUpShare[];
 };
 
+/**
+ * PRÉCONDITION : `user.organizationId` non nul. Ce tableau n'a de sens que
+ * rapporté à une organisation (ses seuils, ses partages) ; appelé pour un
+ * super_admin, il lève « Aucune organisation associée à cet utilisateur ».
+ * Les deux appelants (l'écran /suivi et la coquille (app)/layout.tsx) le
+ * vérifient avant d'appeler — c'est ce qui manquait et faisait renvoyer un
+ * 500 à /suivi en production.
+ */
 export async function getFollowUpBoard(user: OrgScopeUser): Promise<FollowUpBoard> {
   const org = await getOwnOrganizationOrThrow(user);
   const now = new Date();
