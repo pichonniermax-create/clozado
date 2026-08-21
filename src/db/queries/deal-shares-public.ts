@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  commissions,
   dealEvents,
   dealEventTypeEnum,
   dealShares,
@@ -8,6 +9,8 @@ import {
   dealTypes,
   deals,
   organizations,
+  partners,
+  users,
 } from "@/db/schema";
 import { toRenderBrand } from "@/db/queries/newsletters";
 import { hashShareToken } from "@/lib/deal-shares/token";
@@ -50,6 +53,11 @@ export type PublicShareStatus = "pending" | "accepted" | "declined" | "revoked";
 export type PublicShareView = {
   shareId: string;
   status: PublicShareStatus;
+  /** Qui écrit : nom de l'organisation ET de la personne qui a envoyé CE partage — jamais un email, jamais un id. */
+  organization: { name: string };
+  issuedByName: string | null;
+  /** Nom complet du partenaire destinataire — la page en dérive le prénom pour "Bonjour {prénom}". */
+  partnerName: string;
   deal: {
     title: string;
     clientName: string;
@@ -60,14 +68,32 @@ export type PublicShareView = {
   proposedTerms: string | null;
   message: string | null;
   brand: RenderBrand;
+  /** NULL = pas d'expiration. Toujours annoncée sur la page, jamais découverte au moment où le lien ne marche plus. */
+  expiresAt: string | null;
+  /** Renseignée dès accepted/declined — la date qui fait foi si les conditions sont contestées. */
+  respondedAt: string | null;
   currentDealStatus: { id: string; label: string; color: string | null };
   /** Statuts proposables au changement — appartiennent tous à l'organisation de CE partage, rien d'autre. */
   availableStatuses: { id: string; label: string; color: string | null }[];
   /**
+   * NULL tant qu'aucune commission n'a été formalisée pour ce partage —
+   * l'affichage doit rester silencieux dans ce cas (niveau 3, conditionnel).
+   */
+  commission: {
+    basis: "percentage" | "fixed";
+    rate: string | null;
+    fixedAmount: string | null;
+    computedAmount: string | null;
+    state: "prevue" | "confirmee" | "reglee";
+  } | null;
+  /**
    * Journal filtré sur CE `share_id` uniquement — jamais les événements
    * d'un autre partage de la même affaire (un deal peut être partagé à
    * plusieurs partenaires ; chacun ne voit que son propre fil). `actor` est
-   * une étiquette générique, jamais un nom/email d'utilisateur interne.
+   * une étiquette générique, jamais un nom/email d'utilisateur interne —
+   * contrairement à `issuedByName` ci-dessus (une seule identité connue et
+   * spécifique à ce partage), l'historique peut mêler plusieurs personnes
+   * internes au fil du temps, jamais nommées individuellement ici.
    */
   events: {
     id: string;
@@ -97,7 +123,7 @@ export async function resolvePublicShare(token: string): Promise<ResolvedShare> 
 
 export type PublicShareAction =
   | { type: "accept" }
-  | { type: "decline" }
+  | { type: "decline"; reason?: string }
   | { type: "status_change"; statusId: string }
   | { type: "comment"; message: string };
 
@@ -124,7 +150,12 @@ export async function applyPublicShareAction(
         updatedAt: new Date(),
       })
       .where(eq(dealShares.id, share.id));
-    await logEvent(share, action.type === "accept" ? "share_accepted" : "share_declined", null);
+    const declineReason = action.type === "decline" ? (action.reason?.trim().slice(0, 500) ?? null) : null;
+    await logEvent(
+      share,
+      action.type === "accept" ? "share_accepted" : "share_declined",
+      action.type === "accept" ? null : declineReason || null
+    );
   }
 
   if (action.type === "status_change") {
@@ -186,31 +217,44 @@ async function buildView(share: DealShareRow): Promise<PublicShareView> {
   const deal = await db.query.deals.findFirst({ where: eq(deals.id, share.dealId) });
   if (!deal) throw new Error("Incohérence interne : affaire introuvable pour un partage valide.");
 
-  const [type, org, currentStatus, availableStatuses, events] = await Promise.all([
-    db.query.dealTypes.findFirst({ where: eq(dealTypes.id, deal.typeId) }),
-    db.query.organizations.findFirst({ where: eq(organizations.id, share.organizationId) }),
-    db.query.dealStatuses.findFirst({ where: eq(dealStatuses.id, deal.statusId) }),
-    db
-      .select()
-      .from(dealStatuses)
-      .where(eq(dealStatuses.organizationId, share.organizationId))
-      .orderBy(asc(dealStatuses.position)),
-    db
-      .select()
-      .from(dealEvents)
-      .where(
-        and(eq(dealEvents.shareId, share.id), inArray(dealEvents.type, ["commented", "status_changed"]))
-      )
-      .orderBy(asc(dealEvents.createdAt)),
-  ]);
+  const [type, org, partner, issuer, currentStatus, availableStatuses, commission, events] =
+    await Promise.all([
+      db.query.dealTypes.findFirst({ where: eq(dealTypes.id, deal.typeId) }),
+      db.query.organizations.findFirst({ where: eq(organizations.id, share.organizationId) }),
+      db.query.partners.findFirst({ where: eq(partners.id, share.partnerId) }),
+      share.createdBy
+        ? db.query.users.findFirst({ where: eq(users.id, share.createdBy) })
+        : Promise.resolve(undefined),
+      db.query.dealStatuses.findFirst({ where: eq(dealStatuses.id, deal.statusId) }),
+      db
+        .select()
+        .from(dealStatuses)
+        .where(eq(dealStatuses.organizationId, share.organizationId))
+        .orderBy(asc(dealStatuses.position)),
+      // Bornée par share.id : jamais la commission d'un autre partage.
+      db.query.commissions.findFirst({ where: eq(commissions.shareId, share.id) }),
+      db
+        .select()
+        .from(dealEvents)
+        .where(
+          and(
+            eq(dealEvents.shareId, share.id),
+            inArray(dealEvents.type, ["commented", "status_changed", "share_accepted", "share_declined"])
+          )
+        )
+        .orderBy(asc(dealEvents.createdAt)),
+    ]);
 
-  if (!org || !currentStatus) {
-    throw new Error("Incohérence interne : organisation ou statut introuvable pour un partage valide.");
+  if (!org || !partner || !currentStatus) {
+    throw new Error("Incohérence interne : organisation, partenaire ou statut introuvable pour un partage valide.");
   }
 
   return {
     shareId: share.id,
     status: share.status,
+    organization: { name: org.name },
+    issuedByName: issuer?.name ?? null,
+    partnerName: partner.name,
     deal: {
       title: deal.title,
       clientName: deal.clientName,
@@ -221,12 +265,23 @@ async function buildView(share: DealShareRow): Promise<PublicShareView> {
     proposedTerms: share.proposedTerms,
     message: share.message,
     brand: toRenderBrand(org),
+    expiresAt: share.expiresAt ? share.expiresAt.toISOString() : null,
+    respondedAt: share.respondedAt ? share.respondedAt.toISOString() : null,
     currentDealStatus: {
       id: currentStatus.id,
       label: currentStatus.label,
       color: currentStatus.color,
     },
     availableStatuses: availableStatuses.map((s) => ({ id: s.id, label: s.label, color: s.color })),
+    commission: commission
+      ? {
+          basis: commission.basis,
+          rate: commission.rate,
+          fixedAmount: commission.fixedAmount,
+          computedAmount: commission.computedAmount,
+          state: commission.state,
+        }
+      : null,
     events: events.map((e) => ({
       id: e.id,
       type: e.type,

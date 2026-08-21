@@ -68,7 +68,7 @@ export async function GET(request: Request, context: { params: Promise<{ token: 
 
 const actionSchema = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("accept") }),
-  z.strictObject({ type: z.literal("decline") }),
+  z.strictObject({ type: z.literal("decline"), reason: z.string().max(500).optional() }),
   z.strictObject({ type: z.literal("status_change"), statusId: z.uuid() }),
   z.strictObject({ type: z.literal("comment"), message: z.string().min(1).max(2000) }),
 ]);
