@@ -188,7 +188,9 @@ export async function findDuplicateCandidates(
 
 export async function createContact(user: OrgScopeUser, createdBy: string, input: CreateContactInput) {
   if (!user.organizationId) {
-    throw new Error("Aucune organisation associée à cet utilisateur.");
+    // Seul un super admin sans organisation choisie peut arriver ici : un
+    // admin/membre a TOUJOURS une organisation (contrainte en base).
+    throw new Error("Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer un contact.");
   }
   if (input.ownerId) await assertUserInOrg(input.ownerId, user.organizationId);
 
@@ -290,7 +292,7 @@ export async function setContactTags(user: OrgScopeUser, contactId: string, tagI
 }
 
 export async function createContactTag(user: OrgScopeUser, label: string) {
-  if (!user.organizationId) throw new Error("Aucune organisation associée à cet utilisateur.");
+  if (!user.organizationId) throw new Error("Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer une étiquette.");
   const trimmed = label.trim();
   if (!trimmed) throw new Error("Libellé d'étiquette vide.");
   const [tag] = await db
@@ -544,6 +546,206 @@ export async function mergeContacts(user: OrgScopeUser, survivorId: string, abso
       })
       .where(eq(contacts.id, absorbedId)),
   ]);
+}
+
+// ---------------------------------------------------------------------------
+// Import CSV
+// ---------------------------------------------------------------------------
+
+export type ImportField =
+  | "name"
+  | "firstName"
+  | "lastName"
+  | "email"
+  | "phone"
+  | "companyName"
+  | "jobTitle"
+  | "city"
+  | "postalCode"
+  | "country"
+  | "notes";
+
+export type ImportRowInput = {
+  /** Numéro de ligne DANS LE FICHIER (en-tête = 1), pour un rapport lisible. */
+  line: number;
+  values: Partial<Record<ImportField, string>>;
+};
+
+/**
+ * skip     : une fiche déjà connue (même email) est écartée, listée au rapport.
+ * complete : elle est COMPLÉTÉE — seuls ses champs vides reçoivent les
+ *            valeurs du fichier, jamais d'écrasement d'une valeur existante.
+ *            C'est le cas d'usage principal : réimporter l'export de son CRM
+ *            pour rattraper des téléphones ou des sociétés manquants.
+ */
+export type ImportMode = "skip" | "complete";
+
+export type ImportReport = {
+  inserted: number;
+  /** Lignes qui ont complété une fiche existante, avec les champs remplis. */
+  completed: { line: number; contactId: string; name: string; fields: string[] }[];
+  skipped: { line: number; reason: string }[];
+  error: string | null;
+};
+
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_IMPORT_ROWS = 5000;
+
+/** Champs qu'une ligne d'import peut remplir sur une fiche existante — jamais name/email (l'identité qui a servi à apparier). */
+const COMPLETABLE: { field: Exclude<ImportField, "name" | "email">; label: string }[] = [
+  { field: "firstName", label: "prénom" },
+  { field: "lastName", label: "nom" },
+  { field: "phone", label: "téléphone" },
+  { field: "companyName", label: "société" },
+  { field: "jobTitle", label: "fonction" },
+  { field: "city", label: "ville" },
+  { field: "postalCode", label: "code postal" },
+  { field: "country", label: "pays" },
+  { field: "notes", label: "notes" },
+];
+
+/**
+ * Import partiel assumé : chaque ligne est validée indépendamment, les
+ * valides entrent, les autres sortent dans le rapport ligne par ligne avec
+ * leur numéro réel dans le fichier.
+ */
+export async function importContacts(
+  user: OrgScopeUser,
+  actorId: string,
+  rows: ImportRowInput[],
+  mode: ImportMode
+): Promise<ImportReport> {
+  if (!user.organizationId) {
+    return { inserted: 0, completed: [], skipped: [], error: "Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant d'importer." };
+  }
+  if (rows.length === 0) return { inserted: 0, completed: [], skipped: [], error: "Aucune ligne à importer." };
+  if (rows.length > MAX_IMPORT_ROWS) {
+    return {
+      inserted: 0,
+      completed: [],
+      skipped: [],
+      error: `Trop de lignes (${rows.length}) : l'import est limité à ${MAX_IMPORT_ROWS} par passage.`,
+    };
+  }
+
+  // Toutes les fiches vivantes à email, indexées par email — plusieurs
+  // fiches peuvent partager un email (rien ne l'interdit en base).
+  const existing = await db
+    .select()
+    .from(contacts)
+    .where(and(eq(contacts.organizationId, user.organizationId), isNull(contacts.deletedAt)));
+  const byEmail = new Map<string, Contact[]>();
+  for (const c of existing) {
+    const key = c.email?.toLowerCase();
+    if (!key) continue;
+    byEmail.set(key, [...(byEmail.get(key) ?? []), c]);
+  }
+
+  const report: ImportReport = { inserted: 0, completed: [], skipped: [], error: null };
+  const toInsert: (typeof contacts.$inferInsert)[] = [];
+  const toComplete: { line: number; contact: Contact; updates: Partial<Record<string, string>>; fields: string[] }[] = [];
+  const seenInFile = new Set<string>();
+
+  for (const row of rows) {
+    const v = row.values;
+    const name = v.name?.trim();
+    const email = v.email?.trim() || null;
+
+    if (!name) {
+      report.skipped.push({ line: row.line, reason: "Nom manquant." });
+      continue;
+    }
+    if (email && !EMAIL_SHAPE.test(email)) {
+      report.skipped.push({ line: row.line, reason: `Email invalide : « ${email} ».` });
+      continue;
+    }
+    const emailKey = email?.toLowerCase();
+    if (emailKey && seenInFile.has(emailKey)) {
+      report.skipped.push({ line: row.line, reason: `Ignorée : « ${email} » apparaît plus haut dans le fichier.` });
+      continue;
+    }
+    if (emailKey) seenInFile.add(emailKey);
+
+    const matches = emailKey ? (byEmail.get(emailKey) ?? []) : [];
+    if (matches.length > 0) {
+      if (mode === "skip") {
+        report.skipped.push({ line: row.line, reason: `Ignorée : « ${email} » existe déjà dans tes contacts.` });
+        continue;
+      }
+      if (matches.length > 1) {
+        report.skipped.push({
+          line: row.line,
+          reason: `Plusieurs fiches portent « ${email} » — à départager à la main avant de compléter.`,
+        });
+        continue;
+      }
+      const target = matches[0];
+      const updates: Partial<Record<string, string>> = {};
+      const fields: string[] = [];
+      for (const { field, label } of COMPLETABLE) {
+        const incoming = v[field]?.trim();
+        if (incoming && !target[field]) {
+          updates[field] = incoming;
+          fields.push(label);
+        }
+      }
+      if (fields.length === 0) {
+        report.skipped.push({ line: row.line, reason: `Déjà à jour : « ${email} » n'avait rien à compléter.` });
+        continue;
+      }
+      toComplete.push({ line: row.line, contact: target, updates, fields });
+      continue;
+    }
+
+    toInsert.push({
+      organizationId: user.organizationId,
+      kind: "person",
+      name,
+      firstName: v.firstName?.trim() || null,
+      lastName: v.lastName?.trim() || null,
+      email,
+      phone: v.phone?.trim() || null,
+      companyName: v.companyName?.trim() || null,
+      jobTitle: v.jobTitle?.trim() || null,
+      city: v.city?.trim() || null,
+      postalCode: v.postalCode?.trim() || null,
+      country: v.country?.trim() || null,
+      notes: v.notes?.trim() || null,
+      source: "import",
+      createdBy: actorId,
+    });
+  }
+
+  // Écritures par paquets — jamais tout le fichier dans une seule requête.
+  const CHUNK = 500;
+  try {
+    for (let i = 0; i < toInsert.length; i += CHUNK) {
+      const chunk = toInsert.slice(i, i + CHUNK);
+      await db.insert(contacts).values(chunk);
+      report.inserted += chunk.length;
+    }
+    const UPDATE_CHUNK = 100;
+    for (let i = 0; i < toComplete.length; i += UPDATE_CHUNK) {
+      const chunk = toComplete.slice(i, i + UPDATE_CHUNK);
+      await db.batch(
+        chunk.map((c) =>
+          db
+            .update(contacts)
+            .set({ ...c.updates, updatedAt: new Date() })
+            .where(eq(contacts.id, c.contact.id))
+        ) as unknown as Parameters<typeof db.batch>[0]
+      );
+      for (const c of chunk) {
+        report.completed.push({ line: c.line, contactId: c.contact.id, name: c.contact.name, fields: c.fields });
+      }
+    }
+  } catch {
+    report.error =
+      report.inserted > 0 || report.completed.length > 0
+        ? `L'import s'est interrompu après ${report.inserted} création(s) et ${report.completed.length} complétion(s) — relance le fichier : ce qui est déjà passé sera ignoré ou complété sans dégât.`
+        : "L'import a échoué avant la première fiche — sans doute un incident de notre côté, ta préparation n'est pas en cause. Réessaie.";
+  }
+  return report;
 }
 
 /** Les conseillers de l'organisation (pour l'attribution). */

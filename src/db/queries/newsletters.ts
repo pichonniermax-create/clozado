@@ -123,7 +123,7 @@ export function toRenderBrand(org: typeof organizations.$inferSelect): RenderBra
 /** L'organisation de l'utilisateur connecté, garde-fou d'isolation inclus (jamais un id fourni par l'appelant). */
 export async function getOwnOrganizationOrThrow(user: OrgScopeUser) {
   if (!user.organizationId) {
-    throw new Error("Aucune organisation associée à cet utilisateur.");
+    throw new Error("Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran : ce geste s'applique à une organisation précise.");
   }
   const org = await db.query.organizations.findFirst({
     where: eq(organizations.id, user.organizationId),

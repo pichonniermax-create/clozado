@@ -8,6 +8,7 @@ import {
   Plus,
   Users,
 } from "lucide-react";
+import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListCard, ListRow, ListRowLink } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
@@ -17,27 +18,45 @@ import { getFollowUpBoard } from "@/db/queries/deal-follow-up";
 import { listDeals } from "@/db/queries/deals";
 import { getOwnOrganization, getVisibleOrganizations } from "@/db/queries/organizations";
 import { listPartners } from "@/db/queries/partners";
+import { setActiveOrganizationAction } from "@/lib/admin/actions";
 import { formatDays, formatEuros } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 
 export default async function DashboardPage() {
   const user = await requireUser();
 
-  // Le super_admin n'a pas d'organisation : aucun chiffre métier ne le
-  // concerne, il voit la liste des organisations et rien d'autre.
+  // Le super_admin SANS organisation choisie : aucun chiffre métier ne le
+  // concerne, il voit la liste des organisations — et peut entrer dans
+  // l'une d'elles (même geste que le bandeau, depuis la liste).
   if (!user.organizationId) {
+    async function workIn(formData: FormData) {
+      "use server";
+      await setActiveOrganizationAction(String(formData.get("orgId")));
+      redirect("/dashboard");
+    }
     const organizations = await getVisibleOrganizations(user);
     return (
       <>
         <PageHeader
           title="Organisations"
-          description="Vue super admin — tu n'as pas d'organisation propre."
+          description="Vue globale super admin — choisis une organisation (ici ou dans le bandeau) pour travailler dedans."
         />
         <ListCard>
           {organizations.map((org) => (
             <ListRow key={org.id}>
-              <span className="text-sm font-medium">{org.name}</span>
-              <span className="text-xs text-muted-foreground">{org.slug}</span>
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate text-sm font-medium">{org.name}</span>
+                <span className="text-xs text-muted-foreground">{org.slug}</span>
+              </span>
+              <form action={workIn}>
+                <input type="hidden" name="orgId" value={org.id} />
+                <button
+                  type="submit"
+                  className="text-sm font-medium text-primary underline-offset-2 hover:underline"
+                >
+                  Travailler dans cette organisation
+                </button>
+              </form>
             </ListRow>
           ))}
         </ListCard>

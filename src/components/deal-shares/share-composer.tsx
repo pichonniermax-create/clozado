@@ -162,7 +162,7 @@ export function ShareComposer({
       setSentToken(token);
       setPhase("done");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "L'envoi a échoué.");
+      setError(err instanceof Error ? err.message : "L'envoi a échoué de notre côté — rien n'a été créé, réessaie.");
       setPhase("confirm");
     }
   }

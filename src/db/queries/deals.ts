@@ -45,7 +45,7 @@ export async function createDeal(
   input: CreateDealInput
 ) {
   if (!user.organizationId) {
-    throw new Error("Aucune organisation associée à cet utilisateur.");
+    throw new Error("Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer une affaire.");
   }
 
   // Le type doit exister ET appartenir à cette organisation — vérifié ici

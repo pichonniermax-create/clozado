@@ -77,7 +77,8 @@ export type FollowUpBoard = {
 /**
  * PRÉCONDITION : `user.organizationId` non nul. Ce tableau n'a de sens que
  * rapporté à une organisation (ses seuils, ses partages) ; appelé pour un
- * super_admin, il lève « Aucune organisation associée à cet utilisateur ».
+ * super_admin sans organisation choisie, il lève un message qui renvoie
+ * au bandeau (via getOwnOrganizationOrThrow).
  * Les deux appelants (l'écran /suivi et la coquille (app)/layout.tsx) le
  * vérifient avant d'appeler — c'est ce qui manquait et faisait renvoyer un
  * 500 à /suivi en production.

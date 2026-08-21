@@ -6,10 +6,14 @@ import {
   createContactTag,
   deleteContact,
   findDuplicateCandidates,
+  importContacts,
   mergeContacts,
   setContactTags,
   updateContact,
   type CreateContactInput,
+  type ImportMode,
+  type ImportReport,
+  type ImportRowInput,
 } from "@/db/queries/contacts";
 import { requireUser } from "@/lib/session";
 
@@ -57,6 +61,11 @@ export async function createContactAction(
   formData: FormData
 ): Promise<CreateContactState> {
   const user = await requireUser();
+  if (!user.organizationId) {
+    // La cause exacte est connue : la dire, plutôt qu'un générique qui
+    // enverrait chercher un problème de saisie qui n'existe pas.
+    return { error: "Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer un contact.", duplicates: null };
+  }
   const input = readContactForm(formData);
   if (!input.name) return { error: "Le nom est obligatoire.", duplicates: null };
 
@@ -82,7 +91,11 @@ export async function createContactAction(
     const contact = await createContact(user, user.id, input);
     contactId = contact.id;
   } catch {
-    return { error: "La création a échoué. Vérifie les champs et réessaie.", duplicates: null };
+    return {
+      error:
+        "La création a échoué de notre côté — ta saisie n'est pas en cause. Réessaie ; si ça continue, préviens-nous.",
+      duplicates: null,
+    };
   }
   redirect(`/contacts/${contactId}`);
 }
@@ -120,137 +133,15 @@ export async function mergeContactsAction(survivorId: string, absorbedId: string
 }
 
 // ---------------------------------------------------------------------------
-// Import CSV
+// Import CSV — logique dans src/db/queries/contacts.ts (testable sans session)
 // ---------------------------------------------------------------------------
 
-export type ImportField =
-  | "name"
-  | "firstName"
-  | "lastName"
-  | "email"
-  | "phone"
-  | "companyName"
-  | "jobTitle"
-  | "city"
-  | "postalCode"
-  | "country"
-  | "notes";
+export type { ImportField, ImportMode, ImportReport, ImportRowInput } from "@/db/queries/contacts";
 
-export type ImportRowInput = {
-  /** Numéro de ligne DANS LE FICHIER (en-tête = 1), pour un rapport lisible. */
-  line: number;
-  values: Partial<Record<ImportField, string>>;
-};
-
-export type ImportReport = {
-  inserted: number;
-  skipped: { line: number; reason: string }[];
-  error: string | null;
-};
-
-const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MAX_IMPORT_ROWS = 5000;
-
-/**
- * Import partiel assumé : chaque ligne est validée indépendamment, les
- * valides entrent, les autres sortent dans le rapport ligne par ligne.
- * Un email déjà présent dans l'organisation est ignoré (pas de doublon
- * silencieux) — signalé comme tel, jamais fusionné automatiquement.
- */
-export async function importContactsAction(rows: ImportRowInput[]): Promise<ImportReport> {
+export async function importContactsAction(
+  rows: ImportRowInput[],
+  mode: ImportMode
+): Promise<ImportReport> {
   const user = await requireUser();
-  if (!user.organizationId) {
-    return { inserted: 0, skipped: [], error: "Aucune organisation associée à cet utilisateur." };
-  }
-  if (rows.length === 0) return { inserted: 0, skipped: [], error: "Aucune ligne à importer." };
-  if (rows.length > MAX_IMPORT_ROWS) {
-    return {
-      inserted: 0,
-      skipped: [],
-      error: `Trop de lignes (${rows.length}) : l'import est limité à ${MAX_IMPORT_ROWS} par passage.`,
-    };
-  }
-
-  const { db } = await import("@/db");
-  const { contacts } = await import("@/db/schema");
-  const { and, eq, isNull } = await import("drizzle-orm");
-
-  const existing = await db
-    .select({ email: contacts.email })
-    .from(contacts)
-    .where(and(eq(contacts.organizationId, user.organizationId), isNull(contacts.deletedAt)));
-  const knownEmails = new Set(
-    existing.map((r) => r.email?.toLowerCase()).filter((e): e is string => Boolean(e))
-  );
-
-  const skipped: ImportReport["skipped"] = [];
-  const toInsert: (typeof contacts.$inferInsert)[] = [];
-  const seenInFile = new Set<string>();
-
-  for (const row of rows) {
-    const v = row.values;
-    const name = v.name?.trim();
-    const email = v.email?.trim() || null;
-
-    if (!name) {
-      skipped.push({ line: row.line, reason: "Nom manquant." });
-      continue;
-    }
-    if (email && !EMAIL_SHAPE.test(email)) {
-      skipped.push({ line: row.line, reason: `Email invalide : « ${email} ».` });
-      continue;
-    }
-    const emailKey = email?.toLowerCase();
-    if (emailKey && knownEmails.has(emailKey)) {
-      skipped.push({ line: row.line, reason: `Ignorée : « ${email} » existe déjà dans tes contacts.` });
-      continue;
-    }
-    if (emailKey && seenInFile.has(emailKey)) {
-      skipped.push({ line: row.line, reason: `Ignorée : « ${email} » apparaît plusieurs fois dans le fichier.` });
-      continue;
-    }
-    if (emailKey) seenInFile.add(emailKey);
-
-    toInsert.push({
-      organizationId: user.organizationId,
-      kind: "person",
-      name,
-      firstName: v.firstName?.trim() || null,
-      lastName: v.lastName?.trim() || null,
-      email,
-      phone: v.phone?.trim() || null,
-      companyName: v.companyName?.trim() || null,
-      jobTitle: v.jobTitle?.trim() || null,
-      city: v.city?.trim() || null,
-      postalCode: v.postalCode?.trim() || null,
-      country: v.country?.trim() || null,
-      notes: v.notes?.trim() || null,
-      source: "import",
-      createdBy: user.id,
-    });
-  }
-
-  // Insertion par paquets — jamais 5 000 lignes dans une seule requête.
-  const CHUNK = 500;
-  let inserted = 0;
-  try {
-    for (let i = 0; i < toInsert.length; i += CHUNK) {
-      const chunk = toInsert.slice(i, i + CHUNK);
-      if (chunk.length > 0) {
-        await db.insert(contacts).values(chunk);
-        inserted += chunk.length;
-      }
-    }
-  } catch {
-    return {
-      inserted,
-      skipped,
-      error:
-        inserted > 0
-          ? `L'import s'est interrompu après ${inserted} fiche(s) créée(s) — relance le fichier : les emails déjà importés seront ignorés.`
-          : "L'import a échoué avant la première fiche. Vérifie le fichier et réessaie.",
-    };
-  }
-
-  return { inserted, skipped, error: null };
+  return importContacts(user, user.id, rows, mode);
 }

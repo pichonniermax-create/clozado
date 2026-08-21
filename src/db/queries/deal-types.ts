@@ -30,7 +30,7 @@ function slugify(label: string): string {
  */
 export async function createDealType(user: OrgScopeUser, label: string) {
   if (!user.organizationId) {
-    throw new Error("Aucune organisation associée à cet utilisateur.");
+    throw new Error("Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer un type d'affaire.");
   }
   const trimmed = label.trim();
   if (!trimmed) throw new Error("Libellé requis.");

@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import {
   importContactsAction,
   type ImportField,
+  type ImportMode,
   type ImportReport,
   type ImportRowInput,
 } from "@/lib/contacts/actions";
@@ -133,6 +134,7 @@ export function ImportWizard() {
   const [parsed, setParsed] = useState<ParsedCsv | null>(null);
   const [mapping, setMapping] = useState<(ImportField | "")[]>([]);
   const [report, setReport] = useState<ImportReport | null>(null);
+  const [mode, setMode] = useState<ImportMode>("complete");
   const [sending, setSending] = useState(false);
   const [readError, setReadError] = useState<string | null>(null);
 
@@ -180,9 +182,15 @@ export function ImportWizard() {
   async function submit() {
     setSending(true);
     try {
-      setReport(await importContactsAction(buildRows()));
+      setReport(await importContactsAction(buildRows(), mode));
     } catch {
-      setReport({ inserted: 0, skipped: [], error: "L'import a échoué en route. Réessaie." });
+      setReport({
+        inserted: 0,
+        completed: [],
+        skipped: [],
+        error:
+          "L'import a échoué en route (réseau ou serveur) — ta préparation est intacte, réessaie depuis ce même écran.",
+      });
     } finally {
       setSending(false);
     }
@@ -194,13 +202,45 @@ export function ImportWizard() {
     return (
       <div className="flex flex-col gap-4">
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-sm font-medium">
+          <p className="text-sm font-medium tabular-nums">
             {report.inserted} fiche{report.inserted > 1 ? "s" : ""} créée{report.inserted > 1 ? "s" : ""}
+            {report.completed.length > 0 &&
+              ` · ${report.completed.length} complétée${report.completed.length > 1 ? "s" : ""}`}
             {report.skipped.length > 0 &&
               ` · ${report.skipped.length} ligne${report.skipped.length > 1 ? "s" : ""} écartée${report.skipped.length > 1 ? "s" : ""}`}
           </p>
           {report.error && <p className="mt-2 text-sm text-destructive">{report.error}</p>}
         </div>
+
+        {report.completed.length > 0 && (
+          <section className="flex flex-col gap-2">
+            <h2 className="text-sm font-semibold">Fiches complétées — champs vides remplis, rien d&apos;écrasé</h2>
+            <div className="overflow-x-auto rounded-xl border border-border bg-card">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <th className="px-4 py-2 font-medium">Ligne</th>
+                    <th className="px-4 py-2 font-medium">Fiche</th>
+                    <th className="px-4 py-2 font-medium">Champs remplis</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {report.completed.map((c) => (
+                    <tr key={c.line}>
+                      <td className="px-4 py-2 tabular-nums">{c.line}</td>
+                      <td className="px-4 py-2">
+                        <Link href={`/contacts/${c.contactId}`} className="font-medium underline underline-offset-2">
+                          {c.name}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-2">{c.fields.join(", ")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
         {report.skipped.length > 0 && (
           <div className="overflow-x-auto rounded-xl border border-border bg-card">
@@ -344,6 +384,40 @@ export function ImportWizard() {
                 </table>
               </div>
             )}
+            <fieldset className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
+              <legend className="px-1 text-sm font-medium">Si une fiche existe déjà (même email)</legend>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="mode"
+                  className="mt-0.5"
+                  checked={mode === "complete"}
+                  onChange={() => setMode("complete")}
+                />
+                <span>
+                  La compléter — seuls ses champs vides reçoivent les valeurs du fichier.
+                  <span className="block text-xs text-muted-foreground">
+                    Jamais d&apos;écrasement : une valeur déjà saisie dans Clozado reste telle quelle.
+                    C&apos;est le bon choix pour réimporter l&apos;export de ton CRM.
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="mode"
+                  className="mt-0.5"
+                  checked={mode === "skip"}
+                  onChange={() => setMode("skip")}
+                />
+                <span>
+                  L&apos;ignorer — la ligne est écartée et listée au rapport.
+                  <span className="block text-xs text-muted-foreground">
+                    N&apos;importe que les emails inconnus, ne touche à rien d&apos;existant.
+                  </span>
+                </span>
+              </label>
+            </fieldset>
             <div>
               <Button onClick={submit} disabled={!hasName || sending}>
                 {sending

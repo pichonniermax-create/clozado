@@ -29,7 +29,7 @@ export type CreatePartnerInput = {
 
 export async function createPartner(user: OrgScopeUser, input: CreatePartnerInput) {
   if (!user.organizationId) {
-    throw new Error("Aucune organisation associée à cet utilisateur.");
+    throw new Error("Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer un partenaire.");
   }
   const [partner] = await db
     .insert(partners)

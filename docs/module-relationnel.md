@@ -195,3 +195,31 @@ automatique pour l'instant (à décider quand le volume le justifiera).
 5. **C** — `birth_date` et `city/postal_code/country` : à garder ou à
    retirer (arbitrage minimisation vs usage métier) ?
 6. **C** — pierre tombale plutôt que DELETE : d'accord ?
+
+---
+
+## Espace super admin — substitution d'organisation (ajouté en cours d'étape 3)
+
+Un super admin n'a pas d'organisation propre ; or créer un contact, une
+affaire ou importer un CSV EXIGE une organisation. Correction structurelle
+(demandée après test réel) : un bandeau permanent, visible du seul super
+admin, permet de choisir l'organisation dans laquelle il travaille.
+
+- Le choix vit dans le cookie `clozado-active-org` (un an — survit aux
+  sessions), posé par une server action réservée au rôle réel super_admin.
+- LA SUBSTITUTION VIT DANS `requireUser()` (src/lib/session.ts) : un super
+  admin scopé devient, pour tout le produit, un admin de l'organisation
+  choisie. Aucun écran ni module n'a besoin de connaître le mécanisme —
+  newsletters comprises. `requireSessionUser()` donne l'identité réelle,
+  réservé à la coquille (le bandeau).
+- Un utilisateur normal qui forgerait le cookie n'obtient rien : le cookie
+  n'est lu que si le rôle de SESSION est super_admin (vérifié par test).
+
+## Limites connues, assumées
+
+- **L'import CSV ne crée que des personnes physiques.** Les sociétés se
+  créent à la main et se lient ensuite. À traiter quand un client importera
+  un vrai fichier mixte : détection d'une colonne « type », ou création
+  automatique des personnes morales depuis la colonne société.
+- Un nom cité à la main dans un texte libre du journal PRM (commentaire de
+  partenaire) n'est pas récrit par la suppression-tombale (§C).

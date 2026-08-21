@@ -36,13 +36,9 @@ export default async function FollowUpPage() {
           description="Cet écran suit les relances d'une organisation donnée."
         />
         <EmptyState>
-          Ton compte super admin n&apos;est rattaché à aucune organisation : il n&apos;y a donc
-          pas de relances qui te soient propres. Les affaires et partenaires de toutes les
-          organisations restent consultables depuis{" "}
-          <Link href="/affaires" className="underline underline-offset-2 hover:text-foreground">
-            Affaires
-          </Link>
-          .
+          Tu es en vue globale : le suivi n&apos;existe que rapporté à une organisation précise.
+          Choisis une organisation dans le bandeau super admin en haut de l&apos;écran pour voir
+          ses relances.
         </EmptyState>
       </>
     );
