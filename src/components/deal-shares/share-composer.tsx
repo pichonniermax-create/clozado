@@ -4,7 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -92,6 +98,9 @@ export function ShareComposer({
   const [message, setMessage] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
 
+  // Cochée par défaut : le produit pousse à formaliser la commission dès
+  // l'envoi, sans en faire une impasse quand elle n'est pas encore connue.
+  const [withCommission, setWithCommission] = useState(true);
   const [basis, setBasis] = useState<CommissionBasis>("percentage");
   const [rate, setRate] = useState("");
   const [fixedAmount, setFixedAmount] = useState("");
@@ -104,7 +113,7 @@ export function ShareComposer({
   const selectedPartner = partners.find((p) => p.id === partnerId);
 
   const draftCommission =
-    commissionValid && computedAmount !== null
+    withCommission && commissionValid && computedAmount !== null
       ? {
           basis,
           rate: basis === "percentage" ? rate : null,
@@ -136,7 +145,7 @@ export function ShareComposer({
     events: [],
   };
 
-  const canSubmit = Boolean(partnerId) && commissionValid;
+  const canSubmit = Boolean(partnerId) && (!withCommission || commissionValid);
 
   async function send() {
     setPhase("sending");
@@ -216,7 +225,16 @@ export function ShareComposer({
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="partnerId">Partenaire</Label>
-              <Select value={partnerId} onValueChange={(v) => setPartnerId(String(v))}>
+              <Select
+                value={partnerId}
+                onValueChange={(v) => setPartnerId(String(v))}
+                // Voir la note dans partner-share-view.tsx : sans `items`, le
+                // déclencheur affiche l'UUID du partenaire au lieu de son nom.
+                items={partners.map((p) => ({
+                  label: p.company ? `${p.name} · ${p.company}` : p.name,
+                  value: p.id,
+                }))}
+              >
                 <SelectTrigger id="partnerId" className="w-full">
                   <SelectValue placeholder="Choisir un partenaire" />
                 </SelectTrigger>
@@ -273,11 +291,43 @@ export function ShareComposer({
         <Card>
           <CardHeader>
             <CardTitle>Commission</CardTitle>
+            <CardDescription>
+              La fixer maintenant, c&apos;est ce qui t&apos;engage vis-à-vis du confrère — plutôt
+              que de la laisser en texte libre à interpréter plus tard.
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+            {/* Choix explicite. Avant, la commission était obligatoire de
+                fait : le bouton d'envoi restait grisé tant qu'elle n'était
+                pas valide, sans jamais dire pourquoi — alors que la couche
+                base accepte un partage sans commission. */}
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={withCommission}
+                onChange={(e) => setWithCommission(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                Fixer une commission pour ce partage
+                <span className="block text-xs text-muted-foreground">
+                  Décoche si elle sera négociée plus tard.
+                </span>
+              </span>
+            </label>
+
+            {withCommission && (
+              <>
             <div className="flex flex-col gap-2">
               <Label htmlFor="basis">Base</Label>
-              <Select value={basis} onValueChange={(v) => setBasis(v as CommissionBasis)}>
+              <Select
+                value={basis}
+                onValueChange={(v) => setBasis(v as CommissionBasis)}
+                items={[
+                  { label: "Pourcentage", value: "percentage" },
+                  { label: "Montant fixe", value: "fixed" },
+                ]}
+              >
                 <SelectTrigger id="basis" className="w-48">
                   <SelectValue />
                 </SelectTrigger>
@@ -336,15 +386,29 @@ export function ShareComposer({
                 </span>
               )}
             </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         {phase === "compose" && (
-          <Button className="w-fit" disabled={!canSubmit} onClick={() => setPhase("confirm")}>
-            Envoyer le partage
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button className="w-fit" disabled={!canSubmit} onClick={() => setPhase("confirm")}>
+              Envoyer le partage
+            </Button>
+            {/* Un bouton grisé doit toujours dire ce qui lui manque. */}
+            {!canSubmit && (
+              <p className="text-xs text-muted-foreground">
+                {!partnerId
+                  ? "Choisis d'abord un partenaire."
+                  : basis === "percentage"
+                    ? "Renseigne le taux et la base de la commission, ou décoche « Fixer une commission »."
+                    : "Renseigne le montant de la commission, ou décoche « Fixer une commission »."}
+              </p>
+            )}
+          </div>
         )}
 
         {(phase === "confirm" || phase === "sending") && (

@@ -1,0 +1,252 @@
+import { notFound, redirect } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/app-shell/page-header";
+import { ConfirmCommissionButton } from "@/components/deal-shares/confirm-commission-button";
+import { MarkCommissionSettledButton } from "@/components/deal-shares/mark-commission-settled-button";
+import { ReissueShareButton } from "@/components/deal-shares/reissue-share-button";
+import { ShareComposer } from "@/components/deal-shares/share-composer";
+import { listCommissionsForDeal } from "@/db/queries/commissions";
+import { listDealEvents } from "@/db/queries/deal-events";
+import { listDealShares } from "@/db/queries/deal-shares";
+import { revokeDealShareAction } from "@/lib/deals/actions";
+import { listDealStatuses } from "@/db/queries/deal-statuses";
+import { listDealTypes } from "@/db/queries/deal-types";
+import { getDeal } from "@/db/queries/deals";
+import { getOwnOrganizationOrThrow, toRenderBrand } from "@/db/queries/newsletters";
+import { listPartners } from "@/db/queries/partners";
+import { formatCommission, formatDate, formatDateTime, formatEuros } from "@/lib/deal-shares/format";
+import { requireUser } from "@/lib/session";
+import { cn } from "@/lib/utils";
+
+const SHARE_STATUS_LABELS: Record<string, string> = {
+  pending: "En attente",
+  accepted: "Acceptée",
+  declined: "Refusée",
+  revoked: "Révoquée",
+};
+
+/** Refusé et révoqué restent neutres : ce sont des fins normales, pas des échecs. */
+const SHARE_STATUS_TONE: Record<string, string> = {
+  pending: "text-warning",
+  accepted: "text-success",
+  declined: "text-muted-foreground",
+  revoked: "text-muted-foreground",
+};
+
+const COMMISSION_STATE_LABELS: Record<string, string> = {
+  prevue: "prévue",
+  confirmee: "confirmée",
+  reglee: "réglée",
+};
+
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  deal_created: "Affaire créée",
+  share_sent: "Partage envoyé",
+  share_viewed: "Partage consulté",
+  share_accepted: "Partage accepté",
+  share_declined: "Partage refusé",
+  share_revoked: "Partage révoqué",
+  share_expired: "Partage expiré (constaté)",
+  status_changed: "Statut changé",
+  commented: "Commentaire",
+  commission_updated: "Commission mise à jour",
+};
+
+export default async function DealPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const user = await requireUser();
+  const { id } = await params;
+
+  const deal = await getDeal(user, id).catch(() => null);
+  if (!deal) notFound();
+
+  const [org, types, statuses, partners, shares, commissions, events] = await Promise.all([
+    getOwnOrganizationOrThrow(user),
+    listDealTypes(user),
+    listDealStatuses(user),
+    listPartners(user),
+    listDealShares(user, id),
+    listCommissionsForDeal(user, id),
+    listDealEvents(user, id),
+  ]);
+
+  const commissionByShareId = new Map(commissions.map((c) => [c.shareId, c]));
+  const typeLabel = types.find((t) => t.id === deal.typeId)?.label ?? "—";
+  const currentDealStatus = statuses.find((s) => s.id === deal.statusId) ?? {
+    id: deal.statusId,
+    label: "—",
+    color: null,
+  };
+  const activePartners = partners.filter((p) => p.active);
+
+  async function revoke(formData: FormData) {
+    "use server";
+    const shareId = String(formData.get("shareId") ?? "");
+    if (!shareId) return;
+    await revokeDealShareAction(shareId);
+    redirect(`/affaires/${id}`);
+  }
+
+  return (
+    <>
+      <PageHeader
+        title={deal.title}
+        description={
+          <>
+            {typeLabel} · {deal.clientName}
+            {deal.estimatedAmount && ` · ≈ ${formatEuros(deal.estimatedAmount)}`}
+          </>
+        }
+        backTo={{ href: "/affaires", label: "Affaires" }}
+        // Le statut est une information d'identité de l'affaire, pas une
+        // section : il tenait une carte entière pour un seul badge. Il est
+        // explicitement nommé « Statut de l'affaire » parce que la page
+        // affiche juste en dessous des statuts de PARTAGE (acceptée,
+        // refusée…) : deux vocabulaires proches, deux objets différents.
+        actions={
+          <span className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Statut de l&apos;affaire</span>
+            <Badge
+              variant="outline"
+              style={
+                currentDealStatus.color
+                  ? { borderColor: currentDealStatus.color, color: currentDealStatus.color }
+                  : undefined
+              }
+            >
+              {currentDealStatus.label}
+            </Badge>
+          </span>
+        }
+      />
+
+      {shares.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-semibold">
+            {shares.length} partage{shares.length > 1 ? "s" : ""}
+          </h2>
+          <ul className="overflow-hidden rounded-xl border border-border bg-card">
+            {shares.map(({ share, partnerName }) => {
+              const commission = commissionByShareId.get(share.id);
+              return (
+                <li
+                  key={share.id}
+                  className="flex flex-col gap-2 border-b border-border px-4 py-3 last:border-b-0"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate text-sm font-medium">{partnerName}</span>
+                      <span className="text-xs text-muted-foreground">
+                        Envoyé le {formatDate(share.sentAt.toISOString())}
+                        {share.expiresAt &&
+                          ` · expire le ${formatDate(share.expiresAt.toISOString())}`}
+                      </span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className={cn("text-xs font-medium", SHARE_STATUS_TONE[share.status])}>
+                        {SHARE_STATUS_LABELS[share.status] ?? share.status}
+                      </span>
+                      {share.status !== "revoked" && (
+                        <>
+                          <ReissueShareButton shareId={share.id} />
+                          <form action={revoke}>
+                            <input type="hidden" name="shareId" value={share.id} />
+                            <Button type="submit" variant="ghost" size="sm">
+                              Révoquer
+                            </Button>
+                          </form>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {commission && (
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 px-3 py-2">
+                      <span className="text-xs">
+                        <span className="text-muted-foreground">Commission </span>
+                        <span className="font-medium tabular-nums">
+                          {formatCommission(commission)}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {" · "}
+                          {COMMISSION_STATE_LABELS[commission.state] ?? commission.state}
+                        </span>
+                      </span>
+                      {commission.state === "prevue" && (
+                        <ConfirmCommissionButton commissionId={commission.id} />
+                      )}
+                      {commission.state === "confirmee" && (
+                        <MarkCommissionSettledButton commissionId={commission.id} />
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      <ShareComposer
+        dealId={id}
+        deal={{
+          title: deal.title,
+          clientName: deal.clientName,
+          typeLabel,
+          estimatedAmount: deal.estimatedAmount,
+          description: deal.description,
+        }}
+        organizationName={org.name}
+        brand={toRenderBrand(org)}
+        issuedByName={user.name ?? null}
+        currentDealStatus={currentDealStatus}
+        availableStatuses={statuses}
+        partners={activePartners}
+      />
+
+      {/* Le journal ferme la page : c'est de la matière à consulter, pas une
+          action. En file verticale avec un rail — chaque entrée horodatée et
+          attribuée, jamais anonyme (cf. src/db/schema/deal-events.ts). */}
+      {events.length > 0 && (
+        <section className="flex flex-col gap-3 border-t border-border pt-6">
+          <h2 className="text-sm font-semibold">Historique</h2>
+          <ol className="flex flex-col">
+            {events.map((event, index) => (
+              <li key={event.id} className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  <span
+                    aria-hidden
+                    className="mt-1.5 size-1.5 shrink-0 rounded-full bg-muted-foreground/50"
+                  />
+                  {index < events.length - 1 && (
+                    <span aria-hidden className="w-px flex-1 bg-border" />
+                  )}
+                </div>
+                <div className="flex min-w-0 flex-col pb-4">
+                  <p className="text-sm">
+                    <span className="font-medium">
+                      {EVENT_TYPE_LABELS[event.type] ?? event.type}
+                    </span>
+                    {event.sharePartnerName && (
+                      <span className="text-muted-foreground"> · {event.sharePartnerName}</span>
+                    )}
+                  </p>
+                  {event.message && (
+                    <p className="text-sm text-muted-foreground">{event.message}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {event.actorLabel} · {formatDateTime(event.createdAt.toISOString())}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+    </>
+  );
+}

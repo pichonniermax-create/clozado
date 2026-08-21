@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/app-shell/page-header";
 import {
   Card,
   CardContent,
@@ -51,25 +51,17 @@ export default async function SettingsPage() {
   const readOnly = user.role !== "admin";
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-8">
-      <div>
-        <Link
-          href="/dashboard"
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          ← Retour au tableau de bord
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold">
-          Marque de l&apos;organisation
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {readOnly
+    <>
+      <PageHeader
+        title="Marque & réglages"
+        description={
+          readOnly
             ? "Lecture seule — seul l'admin de l'organisation peut modifier ces réglages."
-            : "Ces informations permettront à cette organisation d'afficher sa propre marque."}
-        </p>
-      </div>
+            : "Ce que voient tes partenaires sur les pages de partage et dans tes emails."
+        }
+      />
 
-      <Card>
+      <Card className="max-w-xl">
         <CardHeader>
           <CardTitle>{org.name}</CardTitle>
           <CardDescription>Identifiant : {org.slug}</CardDescription>
@@ -139,6 +131,6 @@ export default async function SettingsPage() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }

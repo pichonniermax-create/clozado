@@ -187,5 +187,22 @@ export async function getFollowUpBoard(user: OrgScopeUser): Promise<FollowUpBoar
     .where(and(eq(commissions.organizationId, org.id), eq(commissions.state, "confirmee")))
     .orderBy(commissions.updatedAt);
 
-  return { thresholds, pendingAlerts, acceptedStale, unpaidCommissions, inProgress, closed };
+  // "En cours" = niveau 2, TOUT LE RESTE actif — donc jamais ce qui est déjà
+  // remonté dans une des trois piles d'action. Les piles A et B sortent
+  // naturellement de la boucle ci-dessus (un partage y va OU dans inProgress),
+  // mais la pile C est calculée séparément : sans ce filtre, un partage
+  // accepté et récemment actif portant une commission confirmée non réglée
+  // s'affichait DEUX FOIS sur l'écran — une fois à traiter, une fois en
+  // simple constat. C'est exactement la fusion de piles que cet écran refuse.
+  const actionableShareIds = new Set(unpaidCommissions.map((c) => c.shareId));
+  const inProgressFiltered = inProgress.filter((r) => !actionableShareIds.has(r.shareId));
+
+  return {
+    thresholds,
+    pendingAlerts,
+    acceptedStale,
+    unpaidCommissions,
+    inProgress: inProgressFiltered,
+    closed,
+  };
 }

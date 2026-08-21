@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { Ban, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,7 @@ import {
   formatDateTime,
   formatEuros,
 } from "@/lib/deal-shares/format";
+import { cn } from "@/lib/utils";
 
 /**
  * La page la plus soignée du produit : seul écran vu par quelqu'un
@@ -31,14 +33,36 @@ import {
  * Server Action ici qui contournerait son rate limiting et ses en-têtes.
  */
 
+/**
+ * État du partage — icône + phrase, jamais la couleur seule : cette page
+ * est lue par quelqu'un d'extérieur, sur un écran quelconque, parfois
+ * imprimée. Les jetons sémantiques du produit remplacent ici les couleurs
+ * Tailwind brutes qui y étaient codées en dur.
+ */
 const STATUS_BANNER: Record<
   PublicShareStatus,
-  { label: string; className: string }
+  { label: string; className: string; icon: ReactNode }
 > = {
-  pending: { label: "En attente de votre réponse", className: "bg-amber-50 text-amber-900 border-amber-200" },
-  accepted: { label: "Vous avez accepté ce partage", className: "bg-emerald-50 text-emerald-900 border-emerald-200" },
-  declined: { label: "Vous avez refusé ce partage", className: "bg-slate-100 text-slate-700 border-slate-200" },
-  revoked: { label: "Ce partage a été révoqué", className: "bg-slate-100 text-slate-700 border-slate-200" },
+  pending: {
+    label: "En attente de votre réponse",
+    className: "border-warning/40 bg-warning/10",
+    icon: <Clock className="size-4 shrink-0 text-warning" />,
+  },
+  accepted: {
+    label: "Vous avez accepté ce partage",
+    className: "border-success/40 bg-success/10",
+    icon: <CheckCircle2 className="size-4 shrink-0 text-success" />,
+  },
+  declined: {
+    label: "Vous avez refusé ce partage",
+    className: "border-border bg-muted",
+    icon: <XCircle className="size-4 shrink-0 text-muted-foreground" />,
+  },
+  revoked: {
+    label: "Ce partage a été révoqué",
+    className: "border-border bg-muted",
+    icon: <Ban className="size-4 shrink-0 text-muted-foreground" />,
+  },
 };
 
 /**
@@ -134,44 +158,60 @@ export function PartnerShareView({
   const isPending = view.status === "pending";
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6 sm:p-10">
+    // En aperçu, le composant est déjà encadré par le composeur : pas de
+    // deuxième cadre ni de fond de page, sinon on empile deux « documents ».
+    <div
+      className={cn(
+        "mx-auto flex w-full max-w-xl flex-col gap-6",
+        preview ? "p-1" : "my-6 rounded-2xl border border-border bg-card p-6 shadow-sm sm:my-10 sm:p-10"
+      )}
+    >
       {preview && (
         <div className="rounded-md border border-dashed px-3 py-1.5 text-center text-xs font-medium text-muted-foreground">
           Aperçu — ce que le partenaire verra
         </div>
       )}
 
-      {/* Marque de l'organisation émettrice */}
-      <div className="flex items-center gap-3">
+      {/* Marque de l'organisation émettrice, et qui écrit — en une seule
+          ligne. Le nom de l'organisation apparaissait deux fois quand elle
+          n'a pas de logo et que l'émetteur n'a pas de nom renseigné. */}
+      <div className="flex flex-col gap-1">
         {brand.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={brand.logoUrl} alt={view.organization.name} className="h-8" />
+          <img
+            src={brand.logoUrl}
+            alt={view.organization.name}
+            className="h-9 max-w-48 self-start object-contain object-left"
+          />
         ) : (
           <span className="text-lg font-semibold" style={{ color: accent }}>
             {view.organization.name}
           </span>
         )}
-      </div>
-
-      {/* Qui écrit, à qui — dès le haut de page */}
-      <div className="text-sm text-muted-foreground">
-        {view.issuedByName ? (
-          <>
-            {view.issuedByName} · {view.organization.name}
-          </>
-        ) : (
-          view.organization.name
+        {view.issuedByName && (
+          <p className="text-sm text-muted-foreground">
+            {view.issuedByName}
+            {brand.logoUrl ? ` · ${view.organization.name}` : ""}
+          </p>
         )}
       </div>
 
       <h1 className="text-xl font-semibold">Bonjour {firstNameOf(view.partnerName)},</h1>
 
       {/* Niveau 1 — statut du partage, seul bandeau de cette taille sur la page */}
-      <div className={`rounded-lg border px-4 py-3 text-sm font-medium ${banner.className}`}>
-        {banner.label}
-        {view.status === "accepted" && view.respondedAt && (
-          <span className="ml-1 font-normal opacity-80">— le {formatDate(view.respondedAt)}</span>
-        )}
+      <div
+        className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium ${banner.className}`}
+      >
+        {banner.icon}
+        <span>
+          {banner.label}
+          {view.status === "accepted" && view.respondedAt && (
+            <span className="font-normal text-muted-foreground">
+              {" "}
+              — le {formatDate(view.respondedAt)}
+            </span>
+          )}
+        </span>
       </div>
 
       {isPending && view.expiresAt && (
@@ -282,6 +322,10 @@ export function PartnerShareView({
           <Select
             value={view.currentDealStatus.id}
             onValueChange={(v) => run({ type: "status_change", statusId: String(v) })}
+            // Sans `items`, Base UI n'a aucun moyen de retrouver le libellé
+            // d'une valeur et affiche la valeur brute — ici un UUID de statut,
+            // sur la page vue par le partenaire.
+            items={view.availableStatuses.map((s) => ({ label: s.label, value: s.id }))}
           >
             <SelectTrigger className="h-7 w-44">
               <SelectValue />

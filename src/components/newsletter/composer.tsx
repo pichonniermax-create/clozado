@@ -196,7 +196,13 @@ export function Composer({ targets, initial }: Props) {
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="target">Cible</Label>
-              <Select value={targetId} onValueChange={(v) => setTargetId(String(v))}>
+              <Select
+                value={targetId}
+                onValueChange={(v) => setTargetId(String(v))}
+                // Voir la note dans partner-share-view.tsx : sans `items`, le
+                // déclencheur affiche l'UUID de la cible au lieu de son libellé.
+                items={targets.map((t) => ({ label: t.label, value: t.id }))}
+              >
                 <SelectTrigger id="target" className="w-full">
                   <SelectValue placeholder="Choisir une cible" />
                 </SelectTrigger>
@@ -217,7 +223,14 @@ export function Composer({ targets, initial }: Props) {
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="lang">Langue</Label>
-              <Select value={lang} onValueChange={(v) => setLang(v as "fr" | "en")}>
+              <Select
+                value={lang}
+                onValueChange={(v) => setLang(v as "fr" | "en")}
+                items={[
+                  { label: "Français", value: "fr" },
+                  { label: "Anglais", value: "en" },
+                ]}
+              >
                 <SelectTrigger id="lang" className="w-full">
                   <SelectValue />
                 </SelectTrigger>

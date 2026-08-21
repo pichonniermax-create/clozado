@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { Textarea } from "@/components/ui/textarea";
 import { getPartner } from "@/db/queries/partners";
 import { listDealSharesForPartner } from "@/db/queries/deal-shares";
@@ -52,13 +53,13 @@ export default async function PartnerPage({
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-8">
-      <div>
-        <Link href="/partenaires" className="text-sm text-muted-foreground hover:underline">
-          ← Retour aux partenaires
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold">{partner.name}</h1>
-      </div>
+    <>
+      <PageHeader
+        title={partner.name}
+        description={[partner.profession, partner.company].filter(Boolean).join(" · ") || undefined}
+        backTo={{ href: "/partenaires", label: "Partenaires" }}
+        actions={!partner.active ? <Badge variant="secondary">Inactif</Badge> : undefined}
+      />
 
       <Card>
         <CardHeader>
@@ -115,19 +116,21 @@ export default async function PartnerPage({
         <CardContent>
           <ul className="flex flex-col gap-2">
             {history.map(({ share, deal }) => (
-              <li
-                key={share.id}
-                className="flex items-center justify-between rounded-md border px-3 py-2"
-              >
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">{deal.title}</span>
-                  <span className="text-xs text-muted-foreground">
-                    Envoyée le {formatDate(share.sentAt.toISOString())}
-                  </span>
-                </div>
-                <Badge variant="secondary">
-                  {SHARE_STATUS_LABELS[share.status] ?? share.status}
-                </Badge>
+              <li key={share.id}>
+                <Link
+                  href={`/affaires/${deal.id}`}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 transition-colors hover:bg-accent/40"
+                >
+                  <div className="flex min-w-0 flex-col">
+                    <span className="truncate text-sm font-medium">{deal.title}</span>
+                    <span className="text-xs text-muted-foreground">
+                      Envoyée le {formatDate(share.sentAt.toISOString())}
+                    </span>
+                  </div>
+                  <Badge variant="secondary" className="shrink-0">
+                    {SHARE_STATUS_LABELS[share.status] ?? share.status}
+                  </Badge>
+                </Link>
               </li>
             ))}
             {history.length === 0 && (
@@ -138,6 +141,6 @@ export default async function PartnerPage({
           </ul>
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }

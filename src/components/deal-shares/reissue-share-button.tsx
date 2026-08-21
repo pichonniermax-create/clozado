@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { reissueDealShareAction } from "@/lib/deals/actions";
@@ -41,14 +42,22 @@ export function ReissueShareButton({ shareId }: { shareId: string }) {
   if (token) {
     const url = `${window.location.origin}/partage/${token}`;
     return (
-      <div className="flex flex-col gap-1 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs">
-        <p className="font-medium text-amber-800">
-          Nouveau lien — ne sera plus jamais réaffiché.
+      <div className="flex w-full flex-col gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs">
+        {/* L'avertissement porte une icône ET des mots : la couleur seule ne
+            dirait pas qu'on ne pourra plus jamais réafficher ce lien. */}
+        <p className="flex items-center gap-1.5 font-medium">
+          <TriangleAlert className="size-3.5 shrink-0 text-warning" />
+          Nouveau lien — il ne sera plus jamais réaffiché.
         </p>
-        <Input readOnly value={url} className="h-7" onFocus={(e) => e.currentTarget.select()} />
+        <Input
+          readOnly
+          value={url}
+          className="h-7 bg-background font-mono text-xs"
+          onFocus={(e) => e.currentTarget.select()}
+        />
         <div className="flex gap-2">
           <Button size="sm" onClick={copy}>
-            {copied ? "Copié !" : "Copier"}
+            {copied ? "Copié !" : "Copier le lien"}
           </Button>
           <Button size="sm" variant="ghost" onClick={() => router.refresh()}>
             Terminé
@@ -59,8 +68,11 @@ export function ReissueShareButton({ shareId }: { shareId: string }) {
   }
 
   return (
-    <Button type="button" variant="ghost" size="sm" onClick={reissue} disabled={pending}>
-      {pending ? "…" : "Renvoyer (nouveau lien)"}
+    // `outline` et non `ghost` : c'est l'action principale de la pile
+    // « partages sans réponse » de l'écran de suivi — invisible tant qu'on
+    // ne la survole pas, elle ne se donnait pas pour un bouton.
+    <Button type="button" variant="outline" size="sm" onClick={reissue} disabled={pending}>
+      {pending ? "…" : "Renvoyer le lien"}
     </Button>
   );
 }

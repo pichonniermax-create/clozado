@@ -7,8 +7,16 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  /* `--font-geist-sans`/`--font-geist-mono` sont posées sur <html> par
+     next/font (src/app/layout.tsx). La pile de repli qui suit n'est pas
+     décorative : sans elle, si la variable n'est pas résolue (police non
+     chargée, réseau coupé), `font-family: var(--font-sans)` devient
+     invalide et le navigateur retombe sur sa police par défaut — du
+     serif. C'est ce qui rendait TOUTE l'application en Times. */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo,
+    Consolas, monospace;
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -27,6 +35,14 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  /* Trois couleurs sémantiques, utilisées UNIQUEMENT pour ce qu'elles
+     signifient — jamais pour décorer. Voir la note sur la retenue
+     chromatique plus bas. */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -48,73 +64,97 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * Palette — retenue chromatique délibérée.
+ *
+ * Les neutres portent une chroma minuscule (0.004–0.02) sur la même teinte
+ * que le bleu de marque : ça évite le gris "informatique" pur sans qu'aucune
+ * surface ne paraisse colorée. Le bleu ne sert qu'à ce qui est actionnable
+ * (bouton principal, lien, onglet actif). Rouge/ambre/vert ne sont JAMAIS
+ * décoratifs : ils encodent un état métier (en retard, à surveiller, réglé)
+ * — c'est la même règle que celle posée pour l'écran de suivi, où le rouge
+ * est réservé au vraiment critique.
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.988 0.002 264);
+  --foreground: oklch(0.21 0.018 264);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.21 0.018 264);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --popover-foreground: oklch(0.21 0.018 264);
+  --primary: oklch(0.52 0.168 263);
+  --primary-foreground: oklch(0.99 0.002 264);
+  --secondary: oklch(0.965 0.005 264);
+  --secondary-foreground: oklch(0.3 0.02 264);
+  --muted: oklch(0.968 0.004 264);
+  --muted-foreground: oklch(0.53 0.022 264);
+  --accent: oklch(0.955 0.012 264);
+  --accent-foreground: oklch(0.34 0.06 263);
+  --destructive: oklch(0.575 0.212 27);
+  --destructive-foreground: oklch(0.99 0.002 264);
+  --success: oklch(0.585 0.132 156);
+  --success-foreground: oklch(0.99 0.002 264);
+  --warning: oklch(0.68 0.145 68);
+  --warning-foreground: oklch(0.99 0.002 264);
+  --border: oklch(0.918 0.006 264);
+  --input: oklch(0.918 0.006 264);
+  --ring: oklch(0.52 0.168 263);
+  --chart-1: oklch(0.52 0.168 263);
+  --chart-2: oklch(0.585 0.132 156);
+  --chart-3: oklch(0.68 0.145 68);
+  --chart-4: oklch(0.575 0.212 27);
+  --chart-5: oklch(0.53 0.022 264);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: oklch(0.975 0.004 264);
+  --sidebar-foreground: oklch(0.21 0.018 264);
+  --sidebar-primary: oklch(0.52 0.168 263);
+  --sidebar-primary-foreground: oklch(0.99 0.002 264);
+  --sidebar-accent: oklch(0.94 0.012 264);
+  --sidebar-accent-foreground: oklch(0.34 0.06 263);
+  --sidebar-border: oklch(0.918 0.006 264);
+  --sidebar-ring: oklch(0.52 0.168 263);
 }
 
+/* Aucun écran ne pose `.dark` aujourd'hui (pas de bascule dans le produit) —
+   ces valeurs sont tenues à jour pour que le jour où on l'ajoute, rien ne
+   soit à réinventer. */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: oklch(0.175 0.014 264);
+  --foreground: oklch(0.96 0.004 264);
+  --card: oklch(0.216 0.016 264);
+  --card-foreground: oklch(0.96 0.004 264);
+  --popover: oklch(0.216 0.016 264);
+  --popover-foreground: oklch(0.96 0.004 264);
+  --primary: oklch(0.68 0.152 263);
+  --primary-foreground: oklch(0.17 0.02 264);
+  --secondary: oklch(0.27 0.018 264);
+  --secondary-foreground: oklch(0.94 0.006 264);
+  --muted: oklch(0.27 0.018 264);
+  --muted-foreground: oklch(0.72 0.018 264);
+  --accent: oklch(0.31 0.03 264);
+  --accent-foreground: oklch(0.94 0.006 264);
+  --destructive: oklch(0.68 0.185 25);
+  --destructive-foreground: oklch(0.17 0.02 264);
+  --success: oklch(0.7 0.13 156);
+  --success-foreground: oklch(0.17 0.02 264);
+  --warning: oklch(0.78 0.14 70);
+  --warning-foreground: oklch(0.17 0.02 264);
+  --border: oklch(1 0 0 / 11%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.68 0.152 263);
+  --chart-1: oklch(0.68 0.152 263);
+  --chart-2: oklch(0.7 0.13 156);
+  --chart-3: oklch(0.78 0.14 70);
+  --chart-4: oklch(0.68 0.185 25);
+  --chart-5: oklch(0.72 0.018 264);
+  --sidebar: oklch(0.196 0.015 264);
+  --sidebar-foreground: oklch(0.96 0.004 264);
+  --sidebar-primary: oklch(0.68 0.152 263);
+  --sidebar-primary-foreground: oklch(0.17 0.02 264);
+  --sidebar-accent: oklch(0.29 0.028 264);
+  --sidebar-accent-foreground: oklch(0.94 0.006 264);
+  --sidebar-border: oklch(1 0 0 / 11%);
+  --sidebar-ring: oklch(0.68 0.152 263);
 }
 
 @layer base {

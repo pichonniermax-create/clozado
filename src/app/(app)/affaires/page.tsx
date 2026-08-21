@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ChevronRight, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/app-shell/page-header";
 import {
   Select,
   SelectContent,
@@ -52,21 +54,21 @@ export default async function DealsPage() {
   const [deals, types] = await Promise.all([listDeals(user), listDealTypes(user)]);
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-8">
-      <div>
-        <Link href="/dashboard" className="text-sm text-muted-foreground hover:underline">
-          ← Retour au tableau de bord
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold">Affaires</h1>
-      </div>
+    <>
+      <PageHeader
+        title="Affaires"
+        description="Les dossiers que tu suis, et que tu peux partager à un confrère."
+      />
 
       {types.length === 0 ? (
+        // Sans type d'affaire, rien n'est créable : c'est le seul écran où
+        // la configuration passe devant la liste, parce qu'elle la bloque.
         <Card>
           <CardHeader>
             <CardTitle>Configure au moins un type d&apos;affaire</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="mb-3 text-sm text-muted-foreground">
+            <p className="mb-4 text-sm text-muted-foreground">
               Ton organisation n&apos;a pas encore de type d&apos;affaire (ex : « Crédit
               immobilier », « Assurance-vie »). Il en faut au moins un pour créer une affaire —
               tu pourras en ajouter d&apos;autres ensuite.
@@ -81,24 +83,33 @@ export default async function DealsPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Nouvelle affaire</CardTitle>
-          </CardHeader>
-          <CardContent>
+        /* Repliée par défaut : on vient sur cet écran pour consulter la
+           liste bien plus souvent que pour créer. Un <details> natif — pas
+           de JS, pas d'état client à synchroniser. */
+        <details className="group rounded-xl border border-border bg-card">
+          <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium transition-colors hover:text-primary">
+            <Plus className="size-4 transition-transform group-open:rotate-45" />
+            Nouvelle affaire
+          </summary>
+          <div className="border-t border-border p-4">
             <form action={addDeal} className="flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="title">Libellé</Label>
-                  <Input id="title" name="title" required />
+                  <Input id="title" name="title" placeholder="Financement appartement Lyon" required />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="clientName">Client concerné</Label>
-                  <Input id="clientName" name="clientName" required />
+                  <Input id="clientName" name="clientName" placeholder="M. et Mme Perrin" required />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="typeId">Type</Label>
-                  <Select name="typeId">
+                  <Select
+                    name="typeId"
+                    // Voir la note dans partner-share-view.tsx : sans `items`,
+                    // le déclencheur affiche l'UUID au lieu du libellé.
+                    items={types.map((t) => ({ label: t.label, value: t.id }))}
+                  >
                     <SelectTrigger id="typeId" className="w-full">
                       <SelectValue placeholder="Choisir un type" />
                     </SelectTrigger>
@@ -121,47 +132,54 @@ export default async function DealsPage() {
                 <Textarea id="description" name="description" className="min-h-16" />
               </div>
               <Button type="submit" className="w-fit">
-                Créer
+                Créer l&apos;affaire
               </Button>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </details>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{deals.length} affaire{deals.length > 1 ? "s" : ""}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="flex flex-col gap-2">
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold">
+          {deals.length} affaire{deals.length > 1 ? "s" : ""}
+        </h2>
+
+        {deals.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+            Aucune affaire pour l&apos;instant.
+          </p>
+        ) : (
+          <ul className="overflow-hidden rounded-xl border border-border bg-card">
             {deals.map(({ deal, typeLabel, statusLabel, statusColor }) => (
-              <li key={deal.id}>
+              <li key={deal.id} className="border-b border-border last:border-b-0">
                 <Link
                   href={`/affaires/${deal.id}`}
-                  className="flex items-center justify-between rounded-md border px-3 py-2 hover:bg-muted"
+                  className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-accent/40"
                 >
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">{deal.title}</span>
-                    <span className="text-xs text-muted-foreground">
+                  <div className="flex min-w-0 flex-col">
+                    <span className="truncate text-sm font-medium">{deal.title}</span>
+                    <span className="truncate text-xs text-muted-foreground">
                       {typeLabel} · {deal.clientName}
                       {deal.estimatedAmount && ` · ≈ ${formatEuros(deal.estimatedAmount)}`}
                     </span>
                   </div>
-                  <Badge
-                    variant="outline"
-                    style={statusColor ? { borderColor: statusColor, color: statusColor } : undefined}
-                  >
-                    {statusLabel}
-                  </Badge>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      style={
+                        statusColor ? { borderColor: statusColor, color: statusColor } : undefined
+                      }
+                    >
+                      {statusLabel}
+                    </Badge>
+                    <ChevronRight className="size-4 text-muted-foreground" />
+                  </div>
                 </Link>
               </li>
             ))}
-            {deals.length === 0 && (
-              <li className="text-sm text-muted-foreground">Aucune affaire pour l&apos;instant.</li>
-            )}
           </ul>
-        </CardContent>
-      </Card>
-    </div>
+        )}
+      </section>
+    </>
   );
 }

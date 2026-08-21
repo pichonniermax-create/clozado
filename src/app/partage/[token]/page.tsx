@@ -28,7 +28,11 @@ export default async function PartnerSharePage({
     return <ErrorState reason={result.reason} />;
   }
 
-  return <PartnerShareView token={token} initialView={result.view} />;
+  return (
+    <div className="min-h-screen bg-muted/40 px-4">
+      <PartnerShareView token={token} initialView={result.view} />
+    </div>
+  );
 }
 
 /**
