@@ -86,13 +86,26 @@ async function callAction(
 export function PartnerShareView({
   token,
   initialView,
+  preview = false,
 }: {
   token: string;
   initialView: PublicShareView;
+  /**
+   * Rendu réel du composant, pas une redescription : utilisé par l'écran
+   * de partage pour montrer au conseiller ce que le partenaire verra AVANT
+   * d'envoyer (src/app/affaires/[id]/share-composer.tsx). Aucune action
+   * n'est déclenchable — pas de jeton réel à ce stade.
+   */
+  preview?: boolean;
 }) {
-  const [view, setView] = useState(initialView);
+  const [committedView, setCommittedView] = useState(initialView);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // En aperçu, aucun état interne : la vue dérive directement du formulaire
+  // en cours d'édition (initialView), à chaque rendu — jamais figée sur le
+  // premier rendu comme le serait un useState synchronisé par effet.
+  const view = preview ? initialView : committedView;
 
   const [showAcceptConfirm, setShowAcceptConfirm] = useState(false);
   const [showDeclineForm, setShowDeclineForm] = useState(false);
@@ -108,7 +121,7 @@ export function PartnerShareView({
       setError(result.error);
       return;
     }
-    setView(result.view);
+    setCommittedView(result.view);
     setShowAcceptConfirm(false);
     setShowDeclineForm(false);
     setDeclineReason("");
@@ -122,6 +135,12 @@ export function PartnerShareView({
 
   return (
     <div className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6 sm:p-10">
+      {preview && (
+        <div className="rounded-md border border-dashed px-3 py-1.5 text-center text-xs font-medium text-muted-foreground">
+          Aperçu — ce que le partenaire verra
+        </div>
+      )}
+
       {/* Marque de l'organisation émettrice */}
       <div className="flex items-center gap-3">
         {brand.logoUrl ? (
@@ -187,7 +206,7 @@ export function PartnerShareView({
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       {/* Action évidente — même poids visuel pour les deux boutons */}
-      {isPending && !showAcceptConfirm && !showDeclineForm && (
+      {!preview && isPending && !showAcceptConfirm && !showDeclineForm && (
         <div className="flex gap-3">
           <Button
             className="flex-1"
@@ -307,21 +326,27 @@ export function PartnerShareView({
             <li className="text-sm text-muted-foreground">Aucun échange pour l&apos;instant.</li>
           )}
         </ul>
-        <div className="flex gap-2">
-          <Textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Ajouter un commentaire"
-            className="min-h-10 flex-1"
-          />
-          <Button
-            variant="outline"
-            onClick={() => run({ type: "comment", message: comment })}
-            disabled={pending || !comment.trim()}
-          >
-            Envoyer
-          </Button>
-        </div>
+        {preview ? (
+          <p className="text-xs text-muted-foreground">
+            Le partenaire pourra commenter une fois le lien envoyé.
+          </p>
+        ) : (
+          <div className="flex gap-2">
+            <Textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Ajouter un commentaire"
+              className="min-h-10 flex-1"
+            />
+            <Button
+              variant="outline"
+              onClick={() => run({ type: "comment", message: comment })}
+              disabled={pending || !comment.trim()}
+            >
+              Envoyer
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

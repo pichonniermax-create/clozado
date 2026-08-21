@@ -135,23 +135,25 @@ export default async function DealsPage() {
         <CardContent>
           <ul className="flex flex-col gap-2">
             {deals.map(({ deal, typeLabel, statusLabel, statusColor }) => (
-              <li
-                key={deal.id}
-                className="flex items-center justify-between rounded-md border px-3 py-2"
-              >
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">{deal.title}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {typeLabel} · {deal.clientName}
-                    {deal.estimatedAmount && ` · ≈ ${formatEuros(deal.estimatedAmount)}`}
-                  </span>
-                </div>
-                <Badge
-                  variant="outline"
-                  style={statusColor ? { borderColor: statusColor, color: statusColor } : undefined}
+              <li key={deal.id}>
+                <Link
+                  href={`/affaires/${deal.id}`}
+                  className="flex items-center justify-between rounded-md border px-3 py-2 hover:bg-muted"
                 >
-                  {statusLabel}
-                </Badge>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{deal.title}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {typeLabel} · {deal.clientName}
+                      {deal.estimatedAmount && ` · ≈ ${formatEuros(deal.estimatedAmount)}`}
+                    </span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    style={statusColor ? { borderColor: statusColor, color: statusColor } : undefined}
+                  >
+                    {statusLabel}
+                  </Badge>
+                </Link>
               </li>
             ))}
             {deals.length === 0 && (

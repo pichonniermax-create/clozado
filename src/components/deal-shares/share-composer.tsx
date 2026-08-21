@@ -1,0 +1,397 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { PartnerShareView } from "@/components/deal-shares/partner-share-view";
+import type { PublicShareView } from "@/db/queries/deal-shares-public";
+import { createDealShareAction } from "@/lib/deals/actions";
+import { formatCommission } from "@/lib/deal-shares/format";
+import type { RenderBrand } from "@/lib/newsletter/render-email";
+
+type PartnerOption = {
+  id: string;
+  name: string;
+  company: string | null;
+  profession: string | null;
+};
+
+type Props = {
+  dealId: string;
+  deal: {
+    title: string;
+    clientName: string;
+    typeLabel: string;
+    estimatedAmount: string | null;
+    description: string | null;
+  };
+  organizationName: string;
+  brand: RenderBrand;
+  issuedByName: string | null;
+  currentDealStatus: { id: string; label: string; color: string | null };
+  availableStatuses: { id: string; label: string; color: string | null }[];
+  partners: PartnerOption[];
+};
+
+type CommissionBasis = "percentage" | "fixed";
+
+function computeAmount(
+  basis: CommissionBasis,
+  rate: string,
+  fixedAmount: string,
+  baseAmount: string
+): number | null {
+  if (basis === "fixed") {
+    const n = Number(fixedAmount);
+    return fixedAmount && !Number.isNaN(n) ? n : null;
+  }
+  const r = Number(rate);
+  const b = Number(baseAmount);
+  if (!rate || !baseAmount || Number.isNaN(r) || Number.isNaN(b)) return null;
+  return (r * b) / 100;
+}
+
+/**
+ * L'écran où le conseiller fixe une commission qui l'engage vis-à-vis d'un
+ * confrère : la commission est calculée explicitement à l'écran (pas juste
+ * un pourcentage dans un champ), l'aperçu est le RENDU RÉEL de la page
+ * partenaire (même composant, mode preview), et une confirmation
+ * récapitule partenaire + conditions avant l'envoi effectif.
+ */
+export function ShareComposer({
+  dealId,
+  deal,
+  organizationName,
+  brand,
+  issuedByName,
+  currentDealStatus,
+  availableStatuses,
+  partners,
+}: Props) {
+  const router = useRouter();
+
+  const [phase, setPhase] = useState<"compose" | "confirm" | "sending" | "done">("compose");
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [sentToken, setSentToken] = useState<string | null>(null);
+
+  const [partnerId, setPartnerId] = useState(partners[0]?.id ?? "");
+  const [proposedTerms, setProposedTerms] = useState("");
+  const [message, setMessage] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
+
+  const [basis, setBasis] = useState<CommissionBasis>("percentage");
+  const [rate, setRate] = useState("");
+  const [fixedAmount, setFixedAmount] = useState("");
+  const [baseAmount, setBaseAmount] = useState(deal.estimatedAmount ?? "");
+
+  const computedAmount = computeAmount(basis, rate, fixedAmount, baseAmount);
+  const commissionValid =
+    basis === "percentage" ? Boolean(rate) && Boolean(baseAmount) && computedAmount !== null : Boolean(fixedAmount);
+
+  const selectedPartner = partners.find((p) => p.id === partnerId);
+
+  const draftCommission =
+    commissionValid && computedAmount !== null
+      ? {
+          basis,
+          rate: basis === "percentage" ? rate : null,
+          fixedAmount: basis === "fixed" ? fixedAmount : null,
+          baseAmount: basis === "percentage" ? baseAmount : null,
+          computedAmount: String(computedAmount),
+          state: "prevue" as const,
+        }
+      : null;
+
+  // Objet simple, recalculé à chaque rendu — pas de useMemo : c'est un
+  // aperçu client-only, le coût de reconstruction est négligeable, et ça
+  // évite un tableau de dépendances à tenir juste en cas d'oubli.
+  const draftView: PublicShareView = {
+    shareId: "preview",
+    status: "pending",
+    organization: { name: organizationName },
+    issuedByName,
+    partnerName: selectedPartner?.name ?? "Votre partenaire",
+    deal,
+    proposedTerms: proposedTerms || null,
+    message: message || null,
+    brand,
+    expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+    respondedAt: null,
+    currentDealStatus,
+    availableStatuses,
+    commission: draftCommission,
+    events: [],
+  };
+
+  const canSubmit = Boolean(partnerId) && commissionValid;
+
+  async function send() {
+    setPhase("sending");
+    setError(null);
+    try {
+      const { token } = await createDealShareAction({
+        dealId,
+        partnerId,
+        proposedTerms: proposedTerms || null,
+        message: message || null,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        commission: draftCommission,
+      });
+      setSentToken(token);
+      setPhase("done");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "L'envoi a échoué.");
+      setPhase("confirm");
+    }
+  }
+
+  async function copyToken() {
+    if (!sentToken) return;
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/partage/${sentToken}`);
+      setCopied(true);
+    } catch {
+      // Best-effort : le champ reste sélectionnable manuellement si le presse-papier échoue.
+    }
+  }
+
+  if (phase === "done" && sentToken) {
+    const url = `${typeof window !== "undefined" ? window.location.origin : ""}/partage/${sentToken}`;
+    return (
+      <Card className="border-amber-300">
+        <CardHeader>
+          <CardTitle>Lien généré — à copier maintenant</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <p className="text-sm font-medium text-amber-700">
+            Ce lien ne sera plus jamais réaffiché. Copiez-le maintenant et transmettez-le à{" "}
+            {selectedPartner?.name}. Si vous le perdez, vous devrez renvoyer le partage — ce qui
+            invalidera celui-ci et en générera un nouveau.
+          </p>
+          <Input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
+          <div className="flex gap-2">
+            <Button onClick={copyToken}>{copied ? "Copié !" : "Copier le lien"}</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                router.refresh();
+                setPhase("compose");
+                setSentToken(null);
+                setCopied(false);
+                setProposedTerms("");
+                setMessage("");
+                setExpiresAt("");
+                setRate("");
+                setFixedAmount("");
+              }}
+            >
+              J&apos;ai copié le lien — Terminé
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="flex flex-col gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Partager cette affaire</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="partnerId">Partenaire</Label>
+              <Select value={partnerId} onValueChange={(v) => setPartnerId(String(v))}>
+                <SelectTrigger id="partnerId" className="w-full">
+                  <SelectValue placeholder="Choisir un partenaire" />
+                </SelectTrigger>
+                <SelectContent>
+                  {partners.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                      {p.company ? ` · ${p.company}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {partners.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Aucun partenaire actif. Ajoutez-en un depuis l&apos;écran Partenaires.
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="proposedTerms">Conditions proposées</Label>
+              <Textarea
+                id="proposedTerms"
+                value={proposedTerms}
+                onChange={(e) => setProposedTerms(e.target.value)}
+                placeholder="Ex : commission versée à l'acte, sous réserve de signature."
+                className="min-h-16"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="message">Message au partenaire</Label>
+              <Textarea
+                id="message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="min-h-16"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="expiresAt">Expiration (optionnelle)</Label>
+              <Input
+                id="expiresAt"
+                type="date"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+                className="w-48"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Commission</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="basis">Base</Label>
+              <Select value={basis} onValueChange={(v) => setBasis(v as CommissionBasis)}>
+                <SelectTrigger id="basis" className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="percentage">Pourcentage</SelectItem>
+                  <SelectItem value="fixed">Montant fixe</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {basis === "percentage" ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="rate">Taux (%)</Label>
+                  <Input
+                    id="rate"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={rate}
+                    onChange={(e) => setRate(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="baseAmount">Base (€)</Label>
+                  <Input
+                    id="baseAmount"
+                    type="number"
+                    min="0"
+                    value={baseAmount}
+                    onChange={(e) => setBaseAmount(e.target.value)}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="fixedAmount">Montant (€)</Label>
+                <Input
+                  id="fixedAmount"
+                  type="number"
+                  min="0"
+                  value={fixedAmount}
+                  onChange={(e) => setFixedAmount(e.target.value)}
+                />
+              </div>
+            )}
+
+            {/* Calcul explicite, pas juste un champ rempli. */}
+            <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+              {draftCommission ? (
+                <span className="font-medium">{formatCommission(draftCommission)}</span>
+              ) : (
+                <span className="text-muted-foreground">
+                  Renseignez {basis === "percentage" ? "le taux et la base" : "le montant"} pour voir
+                  le calcul.
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+
+        {phase === "compose" && (
+          <Button className="w-fit" disabled={!canSubmit} onClick={() => setPhase("confirm")}>
+            Envoyer le partage
+          </Button>
+        )}
+
+        {(phase === "confirm" || phase === "sending") && (
+          <Card className="border-primary">
+            <CardHeader>
+              <CardTitle>Confirmez l&apos;envoi</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <p className="text-sm">
+                Vous partagez <span className="font-medium">{deal.title}</span> avec{" "}
+                <span className="font-medium">{selectedPartner?.name}</span>.
+              </p>
+              {draftCommission && (
+                <p className="text-sm">
+                  Commission : <Badge variant="secondary">{formatCommission(draftCommission)}</Badge>
+                </p>
+              )}
+              {proposedTerms && (
+                <p className="text-sm text-muted-foreground">Conditions : {proposedTerms}</p>
+              )}
+              <div className="flex gap-3">
+                <Button onClick={send} disabled={phase === "sending"}>
+                  {phase === "sending" ? "Envoi..." : "Confirmer et générer le lien"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setPhase("compose")}
+                  disabled={phase === "sending"}
+                >
+                  Modifier
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      <div className="lg:sticky lg:top-6 lg:self-start">
+        <Card>
+          <CardHeader>
+            <CardTitle>Aperçu</CardTitle>
+          </CardHeader>
+          <CardContent className="max-h-[80vh] overflow-y-auto rounded-md border">
+            <PartnerShareView token="" initialView={draftView} preview />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
