@@ -30,6 +30,7 @@ export default async function DashboardPage() {
           <p className="text-sm text-muted-foreground">{user.email}</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button render={<Link href="/newsletters">Newsletters</Link>} />
           {user.organizationId && (
             <Button variant="outline" render={<Link href="/settings">Marque & réglages</Link>} />
           )}
