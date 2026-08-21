@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Sparkles, Trash2 } from "lucide-react";
+import { Plus, Sparkles, Trash2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +15,8 @@ import {
 import { BlockEditor, blockEditorTitle } from "./block-editor";
 import { InsertionPoint } from "./insertion-point";
 import { ShadowHtml } from "./shadow-html";
+import { UnitFrame } from "./unit-frame";
+import { useBlockHistory } from "./use-block-history";
 import {
   defaultBlock,
   type AnyBlock,
@@ -65,37 +67,95 @@ export function NewsletterEditor({ targets, brand, signatory, initial }: Newslet
   const [blocks, setBlocks] = useState<AnyBlock[]>(initial?.blocks ?? []);
   const [brief, setBrief] = useState(initial?.brief ?? "");
 
-  const [selectedUnit, setSelectedUnit] = useState<number | null>(null);
+  /**
+   * La sélection est ancrée sur un BLOC, pas sur une unité : les index
+   * d'unités bougent dès qu'on insère ou déplace quelque chose, et un bloc
+   * qu'on vient d'ajouter doit s'ouvrir de lui-même — sinon on insère un
+   * bloc vide et il ne se passe rien de visible à l'écran.
+   */
+  const [selectedBlock, setSelectedBlock] = useState<number | null>(null);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [dragUnit, setDragUnit] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<{
+    unit: number;
+    position: "before" | "after";
+  } | null>(null);
+
+  const { commit, undo, canUndo } = useBlockHistory(blocks, setBlocks);
 
   const shell = useMemo(() => renderDocumentShell(brand, signatory), [brand, signatory]);
   // `editable` pose les ancres `data-block` que le clic utilise pour savoir
   // quel bloc ouvrir. Elles n'existent que dans ce rendu-ci.
   const units = useMemo(() => renderBlockUnits(blocks, brand, true), [blocks, brand]);
+  const selectedUnit =
+    selectedBlock === null ? -1 : units.findIndex((u) => u.indices.includes(selectedBlock));
 
+  /**
+   * La frappe dans un champ ne passe PAS par l'historique : elle garde
+   * l'annulation native du navigateur, à l'intérieur du champ.
+   */
   function replaceBlock(index: number, next: AnyBlock) {
     setBlocks((prev) => prev.map((b, i) => (i === index ? next : b)));
   }
 
   function insertBlock(at: number, type: BlockType) {
-    setBlocks((prev) => {
-      const next = [...prev];
-      next.splice(at, 0, defaultBlock(type));
-      return next;
-    });
-    setSelectedUnit(null);
+    commit(blocks);
+    const next = [...blocks];
+    next.splice(at, 0, defaultBlock(type));
+    setBlocks(next);
+    setSelectedBlock(at);
   }
 
   function removeUnit(indices: number[]) {
-    setBlocks((prev) => prev.filter((_, i) => !indices.includes(i)));
-    setSelectedUnit(null);
+    commit(blocks);
+    setBlocks(blocks.filter((_, i) => !indices.includes(i)));
+    setSelectedBlock(null);
   }
 
-  /** Retrouve l'unité cliquée à partir de l'ancre `data-block` la plus proche. */
-  function handleDocumentClick(unitIndex: number) {
-    setSelectedUnit((prev) => (prev === unitIndex ? null : unitIndex));
+  function duplicateUnit(indices: number[]) {
+    commit(blocks);
+    const copies = indices.map((i) => structuredClone(blocks[i]));
+    const next = [...blocks];
+    next.splice(indices[indices.length - 1] + 1, 0, ...copies);
+    setBlocks(next);
+    setSelectedBlock(null);
+  }
+
+  /**
+   * Déplace le bloc — ou le groupe de chiffres clés — d'un seul tenant.
+   * Les index sont recalculés APRÈS extraction : insérer à la position
+   * d'origine d'une cible située plus bas décalerait le résultat d'autant de
+   * blocs qu'on vient de retirer au-dessus.
+   */
+  function moveUnit(fromIndices: number[], toBlockIndex: number) {
+    commit(blocks);
+    const moved = fromIndices.map((i) => blocks[i]);
+    const rest = blocks.filter((_, i) => !fromIndices.includes(i));
+    const removedBefore = fromIndices.filter((i) => i < toBlockIndex).length;
+    const at = Math.max(0, Math.min(rest.length, toBlockIndex - removedBefore));
+    rest.splice(at, 0, ...moved);
+    setBlocks(rest);
+    setSelectedBlock(null);
+  }
+
+  function handleDocumentClick(unit: { indices: number[] }) {
+    setSelectedBlock((prev) => (unit.indices.includes(prev ?? -1) ? null : unit.indices[0]));
+  }
+
+  function handleDrop() {
+    if (dragUnit === null || dropTarget === null) return;
+    const from = units[dragUnit];
+    const target = units[dropTarget.unit];
+    const toBlockIndex =
+      dropTarget.position === "before"
+        ? target.indices[0]
+        : target.indices[target.indices.length - 1] + 1;
+    if (dragUnit !== dropTarget.unit) moveUnit(from.indices, toBlockIndex);
+    setDragUnit(null);
+    setDropTarget(null);
   }
 
   async function generate() {
@@ -174,9 +234,23 @@ export function NewsletterEditor({ targets, brand, signatory, initial }: Newslet
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={save} disabled={saving || !targetId} size="sm">
-          {saving ? "Enregistrement…" : "Enregistrer"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Le raccourci existe, mais il ne se devine pas : le bouton le
+              rend visible et donne son équivalent clavier. */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={undo}
+            disabled={!canUndo}
+            title="Annuler la dernière action (⌘Z)"
+          >
+            <Undo2 />
+            Annuler
+          </Button>
+          <Button onClick={save} disabled={saving || !targetId} size="sm">
+            {saving ? "Enregistrement…" : "Enregistrer"}
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -229,7 +303,32 @@ export function NewsletterEditor({ targets, brand, signatory, initial }: Newslet
                 <InsertionPoint onInsert={(type) => insertBlock(0, type)} />
                 {units.map((unit, i) => (
                   <div key={unit.indices.join("-")}>
-                    {selectedUnit === i ? (
+                    <UnitFrame
+                      onDuplicate={() => duplicateUnit(unit.indices)}
+                      onDelete={() => removeUnit(unit.indices)}
+                      onDragStart={() => setDragUnit(i)}
+                      onDragOver={(position) => setDropTarget({ unit: i, position })}
+                      onDrop={handleDrop}
+                      onDragEnd={() => {
+                        setDragUnit(null);
+                        setDropTarget(null);
+                      }}
+                      dragging={dragUnit === i}
+                      dropBefore={
+                        dragUnit !== null &&
+                        dragUnit !== i &&
+                        dropTarget?.unit === i &&
+                        dropTarget.position === "before"
+                      }
+                      dropAfter={
+                        dragUnit !== null &&
+                        dragUnit !== i &&
+                        dropTarget?.unit === i &&
+                        dropTarget.position === "after"
+                      }
+                      editing={selectedUnit === i}
+                    >
+                      {selectedUnit === i ? (
                       <div className="border-y-2 border-primary bg-accent/30 p-4">
                         <div className="mb-3 flex items-center justify-between">
                           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -249,7 +348,7 @@ export function NewsletterEditor({ targets, brand, signatory, initial }: Newslet
                               type="button"
                               variant="ghost"
                               size="sm"
-                              onClick={() => setSelectedUnit(null)}
+                              onClick={() => setSelectedBlock(null)}
                             >
                               Terminé
                             </Button>
@@ -271,19 +370,20 @@ export function NewsletterEditor({ targets, brand, signatory, initial }: Newslet
                           ))}
                         </div>
                       </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleDocumentClick(i)}
-                        className={cn(
-                          "block w-full cursor-text text-left transition-shadow",
-                          "hover:shadow-[inset_0_0_0_2px_var(--color-primary)]"
-                        )}
-                        aria-label={`Modifier : ${blockEditorTitle(blocks[unit.indices[0]])}`}
-                      >
-                        <ShadowHtml html={unit.html} />
-                      </button>
-                    )}
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleDocumentClick(unit)}
+                          className={cn(
+                            "block w-full cursor-text text-left transition-shadow",
+                            "hover:shadow-[inset_0_0_0_2px_var(--color-primary)]"
+                          )}
+                          aria-label={`Modifier : ${blockEditorTitle(blocks[unit.indices[0]])}`}
+                        >
+                          <ShadowHtml html={unit.html} />
+                        </button>
+                      )}
+                    </UnitFrame>
                     <InsertionPoint
                       onInsert={(type) => insertBlock(unit.indices[unit.indices.length - 1] + 1, type)}
                     />
