@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Plus, Sparkles, Trash2, Undo2 } from "lucide-react";
+import { Plus, Sparkles, Trash2, TriangleAlert, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +21,7 @@ import { useAutosave } from "./use-autosave";
 import { useBlockHistory } from "./use-block-history";
 import {
   defaultBlock,
+  DRAFT_BLOCK_UNION,
   type AnyBlock,
   type BlockType,
 } from "@/lib/newsletter/blocks";
@@ -30,11 +31,30 @@ import {
   type RenderBrand,
   type RenderSignatory,
 } from "@/lib/newsletter/render-email";
-import { PREHEADER_MAX, SUBJECT_MAX } from "@/lib/newsletter/review";
+import { PREHEADER_MAX, SUBJECT_MAX, type ReviewIssue } from "@/lib/newsletter/review";
 import { saveNewsletter } from "@/lib/newsletter/actions";
 import { cn } from "@/lib/utils";
 
 export type EditorTarget = { id: string; label: string };
+
+/**
+ * Les messages de la revue sont écrits pour un journal technique (« Chiffre
+ * non autorisé "12" dans un bloc chiffre_cle — ni un chiffre vérifié… »).
+ * Ils sont reformulés ici pour l'écran, sans toucher à `review.ts` : c'est
+ * le même travail de langage que sur le reste de l'éditeur.
+ */
+function reviewMessage(issue: ReviewIssue): string {
+  switch (issue.code) {
+    case "unauthorized_figure":
+      return "Un chiffre n'est ni dans tes chiffres vérifiés, ni entre crochets — vérifie-le ou mets-le entre crochets.";
+    case "multiple_ctas":
+      return "Il y a plusieurs invitations à cliquer. Un seul bouton ou encart par email.";
+    case "subject_too_long":
+      return "L'objet est un peu long : il risque d'être coupé dans certaines boîtes mail.";
+    case "preheader_too_long":
+      return "L'aperçu est un peu long : il risque d'être coupé.";
+  }
+}
 
 export type NewsletterEditorProps = {
   targets: EditorTarget[];
@@ -78,6 +98,8 @@ export function NewsletterEditor({ targets, brand, signatory, initial }: Newslet
   const [selectedBlock, setSelectedBlock] = useState<number | null>(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Résultat de la revue déterministe, porté jusqu'à l'écran. */
+  const [reviewIssues, setReviewIssues] = useState<ReviewIssue[]>([]);
 
   const [dragUnit, setDragUnit] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<{
@@ -159,24 +181,82 @@ export function NewsletterEditor({ targets, brand, signatory, initial }: Newslet
     setDropTarget(null);
   }
 
+  /**
+   * Génération en flux : les blocs se posent dans le document à mesure
+   * qu'ils sont rédigés, plutôt qu'un écran figé puis tout d'un coup.
+   *
+   * Ce qui arrive en cours de route est PROVISOIRE : chaque bloc est validé
+   * contre le schéma brouillon avant d'être affiché (jamais une forme non
+   * vérifiée poussée dans l'état), et l'événement final remplace l'ensemble
+   * par la sortie complète, elle seule passée par la revue déterministe.
+   */
   async function generate() {
     if (!brief.trim() || !targetId) return;
+    // La génération REMPLACE le document. Sur un email déjà écrit, c'est la
+    // plus destructrice des actions : elle entre dans l'historique pour
+    // qu'un ⌘Z ramène ce qu'il y avait avant.
+    commit(blocks);
     setGenerating(true);
     setError(null);
+    setReviewIssues([]);
     try {
       const res = await fetch("/api/newsletters/ai/design", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetId, brief, lang: "fr" }),
       });
-      const data = await res.json();
-      if (!res.ok) {
+
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => null);
         setError(data?.error ?? "La rédaction a échoué.");
         return;
       }
-      setSubject(data.newsletter.subject);
-      setPreheader(data.newsletter.preheader);
-      setBlocks(data.newsletter.blocks);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      // Une ligne = un objet JSON. La dernière ligne d'un morceau peut être
+      // coupée en plein milieu : elle reste dans le tampon jusqu'au suivant.
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let event;
+          try {
+            event = JSON.parse(line);
+          } catch {
+            continue;
+          }
+
+          if (event.type === "error") {
+            setError(event.error);
+            return;
+          }
+
+          if (event.type === "progress") {
+            if (event.newsletter.subject !== null) setSubject(event.newsletter.subject);
+            if (event.newsletter.preheader !== null) setPreheader(event.newsletter.preheader);
+            const valides = (event.newsletter.blocks as unknown[])
+              .map((b) => DRAFT_BLOCK_UNION.safeParse(b))
+              .filter((r) => r.success)
+              .map((r) => r.data);
+            setBlocks(valides);
+          }
+
+          if (event.type === "done") {
+            setSubject(event.newsletter.subject);
+            setPreheader(event.newsletter.preheader);
+            setBlocks(event.newsletter.blocks);
+            setReviewIssues(event.review?.issues ?? []);
+          }
+        }
+      }
     } catch {
       setError("Connexion impossible. Réessaie.");
     } finally {
@@ -267,6 +347,35 @@ export function NewsletterEditor({ targets, brand, signatory, initial }: Newslet
         <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
+      )}
+
+      {/* La revue déterministe qui suit chaque génération : elle ne sert à
+          rien si son résultat n'arrive pas jusqu'à l'écran. Un chiffre non
+          autorisé pointe le bloc concerné, pour aller le corriger. */}
+      {reviewIssues.length > 0 && (
+        <div className="flex flex-col gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3">
+          <p className="flex items-center gap-1.5 text-sm font-medium">
+            <TriangleAlert className="size-4 shrink-0 text-warning" />
+            À vérifier avant d&apos;envoyer
+          </p>
+          <ul className="flex flex-col gap-1">
+            {reviewIssues.map((issue, i) => (
+              <li key={i} className="text-xs">
+                {issue.blockIndex !== undefined ? (
+                  <button
+                    type="button"
+                    className="text-left underline underline-offset-2 hover:text-foreground"
+                    onClick={() => setSelectedBlock(issue.blockIndex!)}
+                  >
+                    {reviewMessage(issue)}
+                  </button>
+                ) : (
+                  reviewMessage(issue)
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {/* Le document. Fond de page et feuille repris du gabarit email lui-même. */}
@@ -400,6 +509,15 @@ export function NewsletterEditor({ targets, brand, signatory, initial }: Newslet
                   </div>
                 ))}
               </>
+            )}
+
+            {/* Pendant la rédaction, le document ne doit pas avoir l'air
+                terminé : ce curseur dit qu'il en reste à venir. */}
+            {generating && !empty && (
+              <div className="flex items-center gap-2 px-6 py-3 text-xs text-muted-foreground">
+                <span className="inline-block h-4 w-0.5 animate-pulse bg-primary" />
+                Rédaction en cours…
+              </div>
             )}
 
             <ShadowHtml html={shell.signatureHtml} />

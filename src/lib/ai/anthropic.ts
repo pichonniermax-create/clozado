@@ -22,6 +22,27 @@ export class AnthropicProvider implements AIProvider {
   }
 
   async designNewsletter(input: DesignNewsletterInput): Promise<NewsletterOutput> {
+    return this.run(input);
+  }
+
+  async designNewsletterStreaming(
+    input: DesignNewsletterInput,
+    onProgress: (accumulatedJson: string) => void
+  ): Promise<NewsletterOutput> {
+    return this.run(input, onProgress);
+  }
+
+  /**
+   * Un seul chemin d'appel pour les deux modes : la requête est toujours
+   * streamée, seule la restitution de l'avancement change. Ça évite d'avoir
+   * deux constructions de requête (prompt, outil, cache) à tenir alignées —
+   * et le streaming est de toute façon recommandé dès que la sortie peut
+   * être longue, ce qui est le cas ici.
+   */
+  private async run(
+    input: DesignNewsletterInput,
+    onProgress?: (accumulatedJson: string) => void
+  ): Promise<NewsletterOutput> {
     const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
     const tool = buildEmitNewsletterTool();
     // `buildEmitNewsletterTool()` reste volontairement agnostique du SDK
@@ -29,9 +50,20 @@ export class AnthropicProvider implements AIProvider {
     // zod est structurellement un `Tool.InputSchema` (`type: "object"`,
     // `properties`, `required`) mais typé plus large côté domaine ; seul ce
     // point de frontière avec le SDK Anthropic le resserre.
-    const anthropicTool = tool as unknown as Anthropic.Tool;
+    const anthropicTool = {
+      ...tool,
+      // Sans ça, l'API assemble et valide le JSON de l'outil avant de
+      // l'émettre : les fragments arrivent alors en une rafale à la toute
+      // fin. Mesuré sur cette route — objet et préheader tombaient à 1,5 s
+      // et 2,4 s, puis plus rien pendant dix secondes, puis les dix blocs en
+      // 120 ms. Avec `eager_input_streaming`, le JSON part à mesure qu'il
+      // est produit ; il est alors syntaxiquement incomplet en cours de
+      // route, ce que `parsePartialNewsletter` sait déjà lire, et la sortie
+      // finale reste validée par le schéma comme avant.
+      eager_input_streaming: true,
+    } as unknown as Anthropic.Tool;
 
-    const message = await this.client.messages.create({
+    const stream = this.client.messages.stream({
       model,
       max_tokens: 8192,
       system: [
@@ -47,6 +79,24 @@ export class AnthropicProvider implements AIProvider {
       tool_choice: { type: "tool", name: anthropicTool.name },
       messages: [{ role: "user", content: buildUserMessage(input) }],
     });
+
+    if (onProgress) {
+      let accumulated = "";
+      stream.on("streamEvent", (event) => {
+        // Le JSON de l'outil arrive en fragments par `input_json_delta` :
+        // c'est la seule source d'avancement réel. On le transmet brut,
+        // l'appelant décide quoi en extraire.
+        if (
+          event.type === "content_block_delta" &&
+          event.delta.type === "input_json_delta"
+        ) {
+          accumulated += event.delta.partial_json;
+          onProgress(accumulated);
+        }
+      });
+    }
+
+    const message = await stream.finalMessage();
 
     // Jamais renvoyer un JSON d'outil amputé silencieusement (dossier de
     // reconstruction §4.1 : "long mail displayed incomplete").
@@ -66,6 +116,8 @@ export class AnthropicProvider implements AIProvider {
     // `buildEmitNewsletterTool`) : c'est CETTE validation qui est le filet
     // de sécurité, jamais une forme non vérifiée transmise telle quelle à
     // l'appelant (même règle que pour un payload chargé depuis la base).
+    // Elle porte sur la sortie COMPLÈTE — ce qui a été affiché pendant le
+    // flux était provisoire et n'engage rien.
     return NEWSLETTER_OUTPUT_SCHEMA.parse(toolUse.input);
   }
 }

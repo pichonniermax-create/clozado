@@ -7,6 +7,19 @@ import type { NewsletterOutput } from "@/lib/newsletter/blocks";
  */
 export interface AIProvider {
   designNewsletter(input: DesignNewsletterInput): Promise<NewsletterOutput>;
+  /**
+   * Même génération, mais en rendant compte de son avancement : `onProgress`
+   * est appelé à chaque fois qu'un morceau supplémentaire du JSON d'outil
+   * est arrivé, avec le texte accumulé depuis le début.
+   *
+   * L'appelant décide quoi en faire (voir `parsePartialNewsletter`). La
+   * valeur RENDUE reste la sortie complète et validée : ce qui transite par
+   * `onProgress` est provisoire et n'a pas encore traversé la revue.
+   */
+  designNewsletterStreaming(
+    input: DesignNewsletterInput,
+    onProgress: (accumulatedJson: string) => void
+  ): Promise<NewsletterOutput>;
 }
 
 /**
