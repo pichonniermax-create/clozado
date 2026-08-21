@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Plus, Sparkles, Trash2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,8 @@ import { BlockEditor, blockEditorTitle } from "./block-editor";
 import { InsertionPoint } from "./insertion-point";
 import { ShadowHtml } from "./shadow-html";
 import { UnitFrame } from "./unit-frame";
+import { SaveIndicator } from "./save-indicator";
+import { useAutosave } from "./use-autosave";
 import { useBlockHistory } from "./use-block-history";
 import {
   defaultBlock,
@@ -75,7 +77,6 @@ export function NewsletterEditor({ targets, brand, signatory, initial }: Newslet
    */
   const [selectedBlock, setSelectedBlock] = useState<number | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [dragUnit, setDragUnit] = useState<number | null>(null);
@@ -183,31 +184,42 @@ export function NewsletterEditor({ targets, brand, signatory, initial }: Newslet
     }
   }
 
-  async function save() {
+  /**
+   * `useCallback` sur les valeurs courantes : le crochet d'enregistrement
+   * garde la dernière version dans une ref, donc ce qui part est toujours
+   * l'état au moment de l'écriture, jamais celui figé au montage.
+   */
+  const save = useCallback(async () => {
     if (!targetId) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const id = await saveNewsletter({
-        id: newsletterId,
-        targetId,
-        // Défaut intelligent : le nom du brouillon suit l'objet tant qu'on ne
-        // l'a pas nommé à la main. Jamais « Sans titre » quand un objet existe.
-        title: subject.trim() || initial?.title || "Brouillon sans titre",
-        subject,
-        preheader,
-        brief: brief.trim() || undefined,
-        blocks,
-      });
+    const id = await saveNewsletter({
+      id: newsletterId,
+      targetId,
+      // Défaut intelligent : le nom du brouillon suit l'objet tant qu'on ne
+      // l'a pas nommé à la main. Jamais « Sans titre » quand un objet existe.
+      title: subject.trim() || initial?.title || "Brouillon sans titre",
+      subject,
+      preheader,
+      brief: brief.trim() || undefined,
+      blocks,
+    });
+    if (!newsletterId) {
       setNewsletterId(id);
-      // L'URL suit le brouillon créé, sans recharger la page.
+      // L'URL suit le brouillon créé, sans recharger la page : recharger
+      // ferait perdre ce qui n'est pas encore parti.
       window.history.replaceState(null, "", `/newsletters/${id}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "L'enregistrement a échoué.");
-    } finally {
-      setSaving(false);
     }
-  }
+  }, [newsletterId, targetId, subject, preheader, brief, blocks, initial?.title]);
+
+  // Rien n'est écrit tant que le document est vide : ouvrir puis quitter
+  // l'écran ne doit pas semer un brouillon fantôme dans la liste.
+  const hasContent =
+    blocks.length > 0 || subject.trim().length > 0 || preheader.trim().length > 0;
+
+  const saveState = useAutosave({
+    data: JSON.stringify({ targetId, subject, preheader, brief, blocks }),
+    hasContent: hasContent && Boolean(targetId),
+    save,
+  });
 
   const empty = blocks.length === 0;
 
@@ -247,9 +259,7 @@ export function NewsletterEditor({ targets, brand, signatory, initial }: Newslet
             <Undo2 />
             Annuler
           </Button>
-          <Button onClick={save} disabled={saving || !targetId} size="sm">
-            {saving ? "Enregistrement…" : "Enregistrer"}
-          </Button>
+          <SaveIndicator state={saveState} />
         </div>
       </div>
 
