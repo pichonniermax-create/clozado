@@ -51,6 +51,12 @@ export type RenderInput = {
   preheader: string;
   blocks: AnyBlock[];
   signatory: RenderSignatory;
+  /**
+   * Rendu destiné à l'éditeur : ajoute une ancre `data-block` par bloc pour
+   * que le clic sache quel bloc ouvrir. Faux (défaut) pour tout rendu qui
+   * part réellement par email — le HTML produit est alors inchangé.
+   */
+  editable?: boolean;
 };
 
 const FALLBACK_PRIMARY = "#2563eb";
@@ -84,13 +90,17 @@ function textParagraphs(text: string): string {
  * <td> avec fond/padding — jamais un fond/padding posé sur <table>
  * directement (piège HubSpot documenté en §6.2 du dossier de reconstruction).
  */
-function box(content: string, opts: { bg?: string; padding?: string; radius?: number } = {}) {
+function box(
+  content: string,
+  opts: { bg?: string; padding?: string; radius?: number; attrs?: string } = {}
+) {
   const style = [
     opts.bg ? `background:${opts.bg};` : "",
     `padding:${opts.padding ?? "24px"};`,
     opts.radius ? `border-radius:${opts.radius}px;` : "",
   ].join("");
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="${style}">${content}</td></tr></table>`;
+  const attrs = opts.attrs ? ` ${opts.attrs}` : "";
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td${attrs} style="${style}">${content}</td></tr></table>`;
 }
 
 function renderTitre(block: Extract<AnyBlock, { type: "titre" }>, brand: ResolvedBrand): string {
@@ -108,20 +118,26 @@ function renderTexte(block: Extract<AnyBlock, { type: "texte" }>, brand: Resolve
 
 function renderKpiRow(
   group: Extract<AnyBlock, { type: "chiffre_cle" }>[],
-  brand: ResolvedBrand
+  brand: ResolvedBrand,
+  /** Index du premier bloc du groupe dans la liste — `null` hors mode éditeur. */
+  startIndex: number | null
 ): string {
   // Symétrie des légendes : soit toutes les colonnes du groupe ont une
   // légende, soit aucune — jamais une seule (le pied de rangée doit s'aligner).
   const showCaptions = group.every((b) => b.caption.trim().length > 0);
   const width = (100 / group.length).toFixed(2);
   const cells = group
-    .map(
-      (b) => `<td width="${width}%" style="padding:16px 8px;text-align:center;vertical-align:top;">
+    .map((b, i) => {
+      // Chaque colonne porte SON index : les chiffres clés consécutifs sont
+      // fusionnés en une seule rangée visuelle, sans ça on ne pourrait pas
+      // désigner le deuxième chiffre d'une rangée de trois.
+      const attrs = startIndex === null ? "" : ` ${blockAttrs(startIndex + i)}`;
+      return `<td${attrs} width="${width}%" style="padding:16px 8px;text-align:center;vertical-align:top;">
         <div style="font:700 24px/1.2 ${brand.headingFont};color:${brand.primary};">${escapeHtml(b.value)}</div>
         <div style="margin-top:4px;font:600 12px/1.4 ${brand.bodyFont};color:${brand.ink};">${escapeHtml(b.label)}</div>
         ${showCaptions ? `<div style="margin-top:2px;font:400 11px/1.4 ${brand.bodyFont};color:${brand.secondary};">${escapeHtml(b.caption)}</div>` : ""}
-      </td>`
-    )
+      </td>`;
+    })
     .join("");
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;"><tr>${cells}</tr></table>`;
 }
@@ -213,18 +229,31 @@ function renderSignature(signatory: RenderSignatory, brand: ResolvedBrand): stri
   );
 }
 
-function renderBlocks(blocks: AnyBlock[], brand: ResolvedBrand): string {
+/**
+ * Ancre de clic de l'éditeur. `data-*` sur un `<td>` est inerte dans tous les
+ * clients email — mais par prudence elle n'est émise QUE quand
+ * `RenderInput.editable` est vrai : le HTML enregistré ou exporté reste
+ * strictement identique à ce qu'il était avant ce chantier.
+ */
+function blockAttrs(index: number): string {
+  return `data-block="${index}"`;
+}
+
+function renderBlocks(blocks: AnyBlock[], brand: ResolvedBrand, editable: boolean): string {
   const out: string[] = [];
   let i = 0;
   while (i < blocks.length) {
     const block = blocks[i];
     if (block.type === "chiffre_cle") {
+      const start = i;
       const group: Extract<AnyBlock, { type: "chiffre_cle" }>[] = [];
       while (i < blocks.length && blocks[i].type === "chiffre_cle") {
         group.push(blocks[i] as Extract<AnyBlock, { type: "chiffre_cle" }>);
         i++;
       }
-      out.push(box(renderKpiRow(group, brand), { padding: "8px 24px" }));
+      out.push(
+        box(renderKpiRow(group, brand, editable ? start : null), { padding: "8px 24px" })
+      );
       continue;
     }
     const inner =
@@ -239,7 +268,15 @@ function renderBlocks(blocks: AnyBlock[], brand: ResolvedBrand): string {
               : block.type === "bouton"
                 ? renderBouton(block, brand)
                 : renderSeparateur(brand);
-    out.push(block.type === "separateur" ? inner : box(inner, { padding: "8px 24px" }));
+    const attrs = editable ? blockAttrs(i) : undefined;
+    // Le séparateur n'est pas encadré en rendu normal (il porte ses propres
+    // marges) : en mode éditeur il l'est quand même, sinon il n'aurait aucune
+    // surface cliquable à laquelle accrocher son index.
+    out.push(
+      block.type === "separateur" && !editable
+        ? inner
+        : box(inner, { padding: block.type === "separateur" ? "0" : "8px 24px", attrs })
+    );
     i++;
   }
   return out.join("");
@@ -253,7 +290,7 @@ function renderPreheader(preheader: string): string {
 
 export function renderNewsletterHtml(input: RenderInput): string {
   const brand = resolveBrand(input.brand);
-  const body = renderBlocks(input.blocks, brand);
+  const body = renderBlocks(input.blocks, brand, input.editable ?? false);
 
   return `<!doctype html>
 <html lang="fr" xmlns="http://www.w3.org/1999/xhtml">

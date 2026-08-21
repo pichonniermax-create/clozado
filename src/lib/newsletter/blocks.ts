@@ -39,56 +39,82 @@ export const BLOCK_LABELS: Record<BlockType, string> = {
   separateur: "Séparateur",
 };
 
-const ficheCard = z.strictObject({
-  title: z.string().min(1),
-  text: z.string().min(1),
-});
-
 /**
- * Un schéma complet par type de bloc, `type` inclus (littéral discriminant).
- * C'est la définition unique : tout le reste (validation de payload stocké,
- * schéma d'outil IA) en dérive.
+ * LA forme des blocs, écrite UNE SEULE FOIS et instanciée à deux niveaux
+ * d'exigence via `required` :
+ *
+ * - `BLOCK_SCHEMAS` (required = `z.string().min(1)`) — ce qu'on exige d'une
+ *   newsletter aboutie : sortie de l'IA, revue déterministe, envoi. Inchangé
+ *   par rapport à avant ce refactor.
+ * - `DRAFT_BLOCK_SCHEMAS` (required = `z.string()`) — ce qu'on tolère d'un
+ *   BROUILLON en cours d'écriture. Un bloc qu'on vient d'insérer a
+ *   forcément des champs vides ; l'aperçu live et l'enregistrement
+ *   automatique doivent l'accepter, sinon l'éditeur ne peut ni s'afficher ni
+ *   se sauvegarder tant que tout n'est pas rempli.
+ *
+ * Écrit en fabrique plutôt qu'en deux copies : ajouter un champ ou un type
+ * ne se fait qu'ici, et les deux niveaux restent alignés par construction —
+ * c'est la même discipline que le schéma d'outil IA généré depuis les mêmes
+ * zod (voir le commentaire de tête de ce fichier).
+ *
+ * Seules les contraintes de CONTENU (texte non vide) varient. Les
+ * contraintes de STRUCTURE (2 à 4 fiches, niveau de titre parmi 1/2/3)
+ * s'appliquent aux deux : une fiche manquante n'est pas un champ à finir de
+ * remplir, c'est une forme invalide.
  */
-export const BLOCK_SCHEMAS = {
-  titre: z.strictObject({
-    type: z.literal("titre"),
-    text: z.string().min(1),
-    level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
-    /** Kicker éditorial court (2-4 mots) pour un h1 ; vide ("") pour h2/h3. */
-    eyebrow: z.string(),
-  }),
-  texte: z.strictObject({
-    type: z.literal("texte"),
-    text: z.string().min(1),
-  }),
-  chiffre_cle: z.strictObject({
-    type: z.literal("chiffre_cle"),
-    /** Chaîne exacte affichée (chiffre vérifié ou "[placeholder]"). */
-    value: z.string().min(1),
-    label: z.string().min(1),
-    /** Légende optionnelle ; vide ("") si aucune — jamais absente sur une partie de la rangée. */
-    caption: z.string(),
-  }),
-  fiches: z.strictObject({
-    type: z.literal("fiches"),
-    cards: z.array(ficheCard).min(2).max(4),
-  }),
-  cta: z.strictObject({
-    type: z.literal("cta"),
-    title: z.string().min(1),
-    text: z.string().min(1),
-    buttonLabel: z.string().min(1),
-    url: z.string().min(1),
-  }),
-  bouton: z.strictObject({
-    type: z.literal("bouton"),
-    label: z.string().min(1),
-    url: z.string().min(1),
-  }),
-  separateur: z.strictObject({
-    type: z.literal("separateur"),
-  }),
-} as const satisfies Record<BlockType, z.ZodTypeAny>;
+function buildBlockSchemas(required: z.ZodString) {
+  const ficheCard = z.strictObject({
+    title: required,
+    text: required,
+  });
+
+  return {
+    titre: z.strictObject({
+      type: z.literal("titre"),
+      text: required,
+      level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+      /** Kicker éditorial court (2-4 mots) pour un h1 ; vide ("") pour h2/h3. */
+      eyebrow: z.string(),
+    }),
+    texte: z.strictObject({
+      type: z.literal("texte"),
+      text: required,
+    }),
+    chiffre_cle: z.strictObject({
+      type: z.literal("chiffre_cle"),
+      /** Chaîne exacte affichée (chiffre vérifié ou "[placeholder]"). */
+      value: required,
+      label: required,
+      /** Légende optionnelle ; vide ("") si aucune — jamais absente sur une partie de la rangée. */
+      caption: z.string(),
+    }),
+    fiches: z.strictObject({
+      type: z.literal("fiches"),
+      cards: z.array(ficheCard).min(2).max(4),
+    }),
+    cta: z.strictObject({
+      type: z.literal("cta"),
+      title: required,
+      text: required,
+      buttonLabel: required,
+      url: required,
+    }),
+    bouton: z.strictObject({
+      type: z.literal("bouton"),
+      label: required,
+      url: required,
+    }),
+    separateur: z.strictObject({
+      type: z.literal("separateur"),
+    }),
+  };
+}
+
+/** Newsletter aboutie : tout champ de copie doit être rempli. */
+export const BLOCK_SCHEMAS = buildBlockSchemas(z.string().min(1));
+
+/** Brouillon en cours : les champs de copie peuvent être vides. */
+export const DRAFT_BLOCK_SCHEMAS = buildBlockSchemas(z.string());
 
 /**
  * Schéma de payload par type, SANS `type` (déjà porté par la colonne
@@ -97,15 +123,20 @@ export const BLOCK_SCHEMAS = {
  * zod distincts ne type-check pas (les surcharges génériques de `.omit`
  * divergent d'un schéma à l'autre) — un seul appel par type reste la forme
  * la plus simple qui type-check.
+ *
+ * Dérivé du niveau BROUILLON, délibérément : c'est ce schéma qui relit une
+ * ligne `newsletter_blocks` au chargement, et une ligne enregistrée est par
+ * nature un brouillon en cours. Le refuser parce qu'un champ est encore vide
+ * rendrait impossible de rouvrir son propre travail.
  */
 export const BLOCK_PAYLOAD_SCHEMAS = {
-  titre: BLOCK_SCHEMAS.titre.omit({ type: true }),
-  texte: BLOCK_SCHEMAS.texte.omit({ type: true }),
-  chiffre_cle: BLOCK_SCHEMAS.chiffre_cle.omit({ type: true }),
-  fiches: BLOCK_SCHEMAS.fiches.omit({ type: true }),
-  cta: BLOCK_SCHEMAS.cta.omit({ type: true }),
-  bouton: BLOCK_SCHEMAS.bouton.omit({ type: true }),
-  separateur: BLOCK_SCHEMAS.separateur.omit({ type: true }),
+  titre: DRAFT_BLOCK_SCHEMAS.titre.omit({ type: true }),
+  texte: DRAFT_BLOCK_SCHEMAS.texte.omit({ type: true }),
+  chiffre_cle: DRAFT_BLOCK_SCHEMAS.chiffre_cle.omit({ type: true }),
+  fiches: DRAFT_BLOCK_SCHEMAS.fiches.omit({ type: true }),
+  cta: DRAFT_BLOCK_SCHEMAS.cta.omit({ type: true }),
+  bouton: DRAFT_BLOCK_SCHEMAS.bouton.omit({ type: true }),
+  separateur: DRAFT_BLOCK_SCHEMAS.separateur.omit({ type: true }),
 } as const satisfies Record<BlockType, z.ZodTypeAny>;
 
 export type BlockPayload<T extends BlockType> = z.infer<(typeof BLOCK_SCHEMAS)[T]>;
@@ -170,6 +201,17 @@ export const BLOCK_UNION = z.discriminatedUnion("type", [
   BLOCK_SCHEMAS.separateur,
 ]);
 
+/** Même union, au niveau brouillon — voir `DRAFT_BLOCK_SCHEMAS`. */
+export const DRAFT_BLOCK_UNION = z.discriminatedUnion("type", [
+  DRAFT_BLOCK_SCHEMAS.titre,
+  DRAFT_BLOCK_SCHEMAS.texte,
+  DRAFT_BLOCK_SCHEMAS.chiffre_cle,
+  DRAFT_BLOCK_SCHEMAS.fiches,
+  DRAFT_BLOCK_SCHEMAS.cta,
+  DRAFT_BLOCK_SCHEMAS.bouton,
+  DRAFT_BLOCK_SCHEMAS.separateur,
+]);
+
 /** Ce que l'IA doit produire : objet, préheader, et la liste ordonnée des blocs. */
 export const NEWSLETTER_OUTPUT_SCHEMA = z.strictObject({
   subject: z.string().min(1),
@@ -177,8 +219,27 @@ export const NEWSLETTER_OUTPUT_SCHEMA = z.strictObject({
   blocks: z.array(BLOCK_UNION).min(1),
 });
 
+/**
+ * Un BROUILLON : tout peut être vide, y compris la liste de blocs.
+ *
+ * C'est ce qui rend possibles l'aperçu d'un email encore vierge (on doit
+ * voir la structure et la marque avant d'avoir écrit quoi que ce soit) et
+ * l'enregistrement automatique en cours de frappe. La base l'acceptait déjà
+ * — `subject` et `preheader` sont NULL-ables et zéro bloc est zéro ligne —
+ * c'est uniquement ce schéma qui l'interdisait. Aucune migration.
+ *
+ * `NEWSLETTER_OUTPUT_SCHEMA` reste le niveau exigé de l'IA et de la revue
+ * déterministe : un brouillon permissif ne relâche rien sur ce qui part.
+ */
+export const NEWSLETTER_DRAFT_SCHEMA = z.strictObject({
+  subject: z.string(),
+  preheader: z.string(),
+  blocks: z.array(DRAFT_BLOCK_UNION),
+});
+
 export type NewsletterOutput = z.infer<typeof NEWSLETTER_OUTPUT_SCHEMA>;
-export type AnyBlock = z.infer<typeof BLOCK_UNION>;
+export type NewsletterDraft = z.infer<typeof NEWSLETTER_DRAFT_SCHEMA>;
+export type AnyBlock = z.infer<typeof DRAFT_BLOCK_UNION>;
 
 /**
  * Le schéma d'outil `emit_newsletter` transmis à l'IA, GÉNÉRÉ depuis

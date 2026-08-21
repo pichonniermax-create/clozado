@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { mailTargets, newsletterBlocks, newsletters } from "@/db/schema";
 import { assertOrgAccess, orgScope } from "@/db/scope";
 import { requireUser } from "@/lib/session";
-import { NEWSLETTER_OUTPUT_SCHEMA, parseBlockPayload, type AnyBlock } from "./blocks";
+import { NEWSLETTER_DRAFT_SCHEMA, parseBlockPayload, type AnyBlock } from "./blocks";
 
 /**
  * Server actions Drizzle pour `newsletters`/`newsletter_blocks`. Toute
@@ -22,11 +22,22 @@ import { NEWSLETTER_OUTPUT_SCHEMA, parseBlockPayload, type AnyBlock } from "./bl
  * mécanisme de transaction HTTP atomique de Neon.
  */
 
-const saveInputSchema = NEWSLETTER_OUTPUT_SCHEMA.extend({
+/**
+ * Niveau BROUILLON : ce qu'on enregistre est un travail en cours, pas une
+ * newsletter aboutie. L'enregistrement automatique se déclenche pendant la
+ * frappe — exiger un objet, un préheader et au moins un bloc rendrait
+ * impossible de sauvegarder tant que tout n'est pas écrit, c'est-à-dire
+ * exactement au moment où on risque de perdre son travail.
+ *
+ * La base l'acceptait déjà (`subject`/`preheader` NULL-ables, zéro bloc =
+ * zéro ligne) : aucune migration. Le niveau exigeant
+ * (`NEWSLETTER_OUTPUT_SCHEMA`) reste celui de l'IA et de la revue.
+ */
+const saveInputSchema = NEWSLETTER_DRAFT_SCHEMA.extend({
   id: z.uuid().optional(),
   targetId: z.uuid(),
   title: z.string().min(1),
-  /** Brief saisi, réutilisé par "Concevoir avec l'IA" — vide si la newsletter n'en a pas (créée depuis un modèle). */
+  /** Brief saisi, réutilisé par "Rédiger l'email" — vide si la newsletter n'en a pas. */
   brief: z.string().trim().optional(),
 });
 
@@ -59,8 +70,10 @@ export async function saveNewsletter(input: SaveNewsletterInput) {
       .set({
         title: parsed.title,
         targetId: parsed.targetId,
-        subject: parsed.subject,
-        preheader: parsed.preheader,
+        // NULL plutôt que "" : « pas encore d'objet » est une absence,
+        // pas une chaîne vide — la colonne est NULL-able pour ça.
+        subject: parsed.subject || null,
+        preheader: parsed.preheader || null,
         brief: parsed.brief ?? null,
         updatedAt: new Date(),
       })
@@ -72,8 +85,10 @@ export async function saveNewsletter(input: SaveNewsletterInput) {
         organizationId: target.organizationId,
         title: parsed.title,
         targetId: parsed.targetId,
-        subject: parsed.subject,
-        preheader: parsed.preheader,
+        // NULL plutôt que "" : « pas encore d'objet » est une absence,
+        // pas une chaîne vide — la colonne est NULL-able pour ça.
+        subject: parsed.subject || null,
+        preheader: parsed.preheader || null,
         brief: parsed.brief ?? null,
         createdBy: user.id,
       })
@@ -86,10 +101,17 @@ export async function saveNewsletter(input: SaveNewsletterInput) {
     return { newsletterId: newsletterId!, type, position, payload };
   });
 
-  await db.batch([
-    db.delete(newsletterBlocks).where(eq(newsletterBlocks.newsletterId, newsletterId)),
-    db.insert(newsletterBlocks).values(insertValues),
-  ]);
+  // Un brouillon peut légitimement n'avoir aucun bloc (email à peine créé,
+  // ou dont on vient de tout supprimer) : dans ce cas il n'y a que la
+  // suppression à faire — `insert().values([])` produirait du SQL invalide.
+  if (insertValues.length === 0) {
+    await db.delete(newsletterBlocks).where(eq(newsletterBlocks.newsletterId, newsletterId));
+  } else {
+    await db.batch([
+      db.delete(newsletterBlocks).where(eq(newsletterBlocks.newsletterId, newsletterId)),
+      db.insert(newsletterBlocks).values(insertValues),
+    ]);
+  }
 
   return newsletterId;
 }
