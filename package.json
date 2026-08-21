@@ -12,6 +12,7 @@
     "db:studio": "drizzle-kit studio",
     "db:seed-demo": "tsx scripts/seed-demo.ts",
     "db:seed-newsletter-demo": "tsx scripts/seed-newsletter-demo.ts",
+    "db:seed-prm-demo": "tsx scripts/seed-prm-demo.ts",
     "db:test-isolation": "tsx scripts/test-isolation.ts"
   },
   "dependencies": {

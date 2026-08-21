@@ -31,6 +31,8 @@ export default async function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button render={<Link href="/newsletters">Newsletters</Link>} />
+          <Button variant="outline" render={<Link href="/partenaires">Partenaires</Link>} />
+          <Button variant="outline" render={<Link href="/affaires">Affaires</Link>} />
           {user.organizationId && (
             <Button variant="outline" render={<Link href="/settings">Marque & réglages</Link>} />
           )}

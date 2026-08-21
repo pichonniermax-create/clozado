@@ -5,10 +5,20 @@ import { assertOrgAccess, orgScope } from "@/db/scope";
 import { getDefaultDealStatus } from "./deal-statuses";
 import type { OrgScopeUser } from "@/lib/session";
 
-/** Affaires de l'organisation de l'appelant, plus récentes d'abord. */
+/** Affaires de l'organisation de l'appelant, plus récentes d'abord, avec libellé de type/statut pour l'affichage. */
 export async function listDeals(user: OrgScopeUser) {
   const scope = orgScope(user, deals.organizationId);
-  const query = db.select().from(deals).orderBy(desc(deals.updatedAt));
+  const query = db
+    .select({
+      deal: deals,
+      typeLabel: dealTypes.label,
+      statusLabel: dealStatuses.label,
+      statusColor: dealStatuses.color,
+    })
+    .from(deals)
+    .innerJoin(dealTypes, eq(deals.typeId, dealTypes.id))
+    .innerJoin(dealStatuses, eq(deals.statusId, dealStatuses.id))
+    .orderBy(desc(deals.updatedAt));
   return scope ? query.where(scope) : query;
 }
 

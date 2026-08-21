@@ -103,6 +103,20 @@ export async function revokeDealShare(user: OrgScopeUser, shareId: string) {
   return updated;
 }
 
+/** Historique des affaires partagées avec CE partenaire — pour sa fiche. */
+export async function listDealSharesForPartner(user: OrgScopeUser, partnerId: string) {
+  const partner = await db.query.partners.findFirst({ where: eq(partners.id, partnerId) });
+  if (!partner) throw new Error("Partenaire introuvable.");
+  assertOrgAccess(user, partner.organizationId);
+
+  return db
+    .select({ share: dealShares, deal: deals })
+    .from(dealShares)
+    .innerJoin(deals, eq(dealShares.dealId, deals.id))
+    .where(eq(dealShares.partnerId, partnerId))
+    .orderBy(desc(dealShares.sentAt));
+}
+
 /**
  * "Renvoyer le lien" : révoque le partage courant puis en crée un nouveau
  * avec les mêmes conditions — jamais un jeton existant réaffiché (voir
