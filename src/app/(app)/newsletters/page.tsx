@@ -1,47 +1,55 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChevronRight, Plus } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { deleteNewsletter, listNewsletters } from "@/lib/newsletter/actions";
 import { requireUser } from "@/lib/session";
 
+function formatDate(d: Date): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
+}
+
 export default async function NewslettersPage() {
-  const user = await requireUser();
+  await requireUser();
   const items = await listNewsletters();
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <Link href="/dashboard" className="text-sm text-muted-foreground hover:underline">
-            ← Retour au tableau de bord
+    <>
+      <PageHeader
+        title="Newsletters"
+        description="Les emails que tu prépares pour tes contacts."
+        actions={
+          <Link href="/newsletters/new" className={buttonVariants()}>
+            <Plus />
+            Nouvelle newsletter
           </Link>
-          <h1 className="mt-2 text-2xl font-semibold">Newsletters</h1>
-        </div>
-        <Button render={<Link href="/newsletters/new">Nouvelle newsletter</Link>} />
-      </div>
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {user.role === "super_admin"
-              ? "Toutes les organisations"
-              : "Ton organisation"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="flex flex-col gap-2">
-            {items.map((n) => (
-              <li
-                key={n.id}
-                className="flex items-center justify-between rounded-md border px-3 py-2"
-              >
-                <Link href={`/newsletters/${n.id}`} className="flex flex-col">
-                  <span className="text-sm font-medium">{n.title}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {n.subject ?? "Sans objet"}
-                  </span>
-                </Link>
+      {items.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+          Aucune newsletter pour l&apos;instant.
+        </p>
+      ) : (
+        <ul className="overflow-hidden rounded-xl border border-border bg-card">
+          {items.map((n) => (
+            <li
+              key={n.id}
+              className="flex items-center justify-between gap-3 border-b border-border last:border-b-0 hover:bg-accent/40"
+            >
+              <Link href={`/newsletters/${n.id}`} className="flex min-w-0 flex-1 flex-col px-4 py-3">
+                <span className="truncate text-sm font-medium">{n.title}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {n.subject ?? "Objet à écrire"} · modifiée le {formatDate(n.updatedAt)}
+                </span>
+              </Link>
+              <div className="flex shrink-0 items-center gap-1 pr-3">
                 <form
                   action={async () => {
                     "use server";
@@ -53,16 +61,12 @@ export default async function NewslettersPage() {
                     Supprimer
                   </Button>
                 </form>
-              </li>
-            ))}
-            {items.length === 0 && (
-              <li className="text-sm text-muted-foreground">
-                Aucune newsletter pour l&apos;instant.
-              </li>
-            )}
-          </ul>
-        </CardContent>
-      </Card>
-    </div>
+                <ChevronRight className="size-4 text-muted-foreground" />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
   );
 }

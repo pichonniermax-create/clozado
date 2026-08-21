@@ -18,8 +18,8 @@ export default async function NewNewsletterPage() {
     return (
       <>
         <PageHeader
-          title="Nouvel email"
-          backTo={{ href: "/newsletters", label: "Emails" }}
+          title="Nouvelle newsletter"
+          backTo={{ href: "/newsletters", label: "Newsletters" }}
         />
         <p className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
           Aucun groupe de destinataires n&apos;est configuré pour ton organisation. Il en faut
@@ -31,7 +31,7 @@ export default async function NewNewsletterPage() {
 
   return (
     <>
-      <PageHeader title="Nouvel email" backTo={{ href: "/newsletters", label: "Emails" }} />
+      <PageHeader title="Nouvelle newsletter" backTo={{ href: "/newsletters", label: "Newsletters" }} />
       <NewsletterEditor
         targets={targets.map((t) => ({ id: t.id, label: t.label }))}
         brand={context.brand}

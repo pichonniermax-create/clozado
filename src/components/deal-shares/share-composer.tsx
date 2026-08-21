@@ -179,16 +179,18 @@ export function ShareComposer({
 
   if (phase === "done" && sentToken) {
     const url = `${typeof window !== "undefined" ? window.location.origin : ""}/partage/${sentToken}`;
+    // Jetons sémantiques plutôt que couleurs Tailwind en dur, et tutoiement
+    // comme partout ailleurs dans le produit.
     return (
-      <Card className="border-amber-300">
+      <Card className="border-warning/40 bg-warning/5">
         <CardHeader>
-          <CardTitle>Lien généré — à copier maintenant</CardTitle>
+          <CardTitle>Lien créé — à copier maintenant</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <p className="text-sm font-medium text-amber-700">
-            Ce lien ne sera plus jamais réaffiché. Copiez-le maintenant et transmettez-le à{" "}
-            {selectedPartner?.name}. Si vous le perdez, vous devrez renvoyer le partage — ce qui
-            invalidera celui-ci et en générera un nouveau.
+          <p className="text-sm font-medium">
+            Ce lien ne sera plus jamais réaffiché. Copie-le maintenant et transmets-le à{" "}
+            {selectedPartner?.name}. Si tu le perds, il faudra renvoyer le partage — ce qui
+            annulera celui-ci et en créera un nouveau.
           </p>
           <Input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
           <div className="flex gap-2">
@@ -276,7 +278,7 @@ export function ShareComposer({
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="expiresAt">Expiration (optionnelle)</Label>
+              <Label htmlFor="expiresAt">Le lien cesse de fonctionner le</Label>
               <Input
                 id="expiresAt"
                 type="date"
@@ -284,6 +286,9 @@ export function ShareComposer({
                 onChange={(e) => setExpiresAt(e.target.value)}
                 className="w-48"
               />
+              <p className="text-xs text-muted-foreground">
+                Facultatif. Sans date, le lien reste valable tant que tu ne le révoques pas.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -319,7 +324,9 @@ export function ShareComposer({
             {withCommission && (
               <>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="basis">Base</Label>
+              {/* « Base » désignait à la fois le MODE de calcul et le MONTANT
+                  de référence, sur le même écran. Deux libellés distincts. */}
+              <Label htmlFor="basis">Comment la calculer</Label>
               <Select
                 value={basis}
                 onValueChange={(v) => setBasis(v as CommissionBasis)}
@@ -352,7 +359,7 @@ export function ShareComposer({
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="baseAmount">Base (€)</Label>
+                  <Label htmlFor="baseAmount">Montant de référence (€)</Label>
                   <Input
                     id="baseAmount"
                     type="number"
@@ -381,7 +388,7 @@ export function ShareComposer({
                 <span className="font-medium">{formatCommission(draftCommission)}</span>
               ) : (
                 <span className="text-muted-foreground">
-                  Renseignez {basis === "percentage" ? "le taux et la base" : "le montant"} pour voir
+                  Renseigne {basis === "percentage" ? "le taux et le montant de référence" : "le montant"} pour voir
                   le calcul.
                 </span>
               )}
@@ -404,7 +411,7 @@ export function ShareComposer({
                 {!partnerId
                   ? "Choisis d'abord un partenaire."
                   : basis === "percentage"
-                    ? "Renseigne le taux et la base de la commission, ou décoche « Fixer une commission »."
+                    ? "Renseigne le taux et le montant de référence, ou décoche « Fixer une commission »."
                     : "Renseigne le montant de la commission, ou décoche « Fixer une commission »."}
               </p>
             )}
@@ -414,11 +421,11 @@ export function ShareComposer({
         {(phase === "confirm" || phase === "sending") && (
           <Card className="border-primary">
             <CardHeader>
-              <CardTitle>Confirmez l&apos;envoi</CardTitle>
+              <CardTitle>Confirme l&apos;envoi</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               <p className="text-sm">
-                Vous partagez <span className="font-medium">{deal.title}</span> avec{" "}
+                Tu partages <span className="font-medium">{deal.title}</span> avec{" "}
                 <span className="font-medium">{selectedPartner?.name}</span>.
               </p>
               {draftCommission && (

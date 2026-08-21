@@ -22,7 +22,7 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
     <>
       <PageHeader
         title={data.newsletter.title}
-        backTo={{ href: "/newsletters", label: "Emails" }}
+        backTo={{ href: "/newsletters", label: "Newsletters" }}
       />
       <NewsletterEditor
         targets={targets.map((t) => ({ id: t.id, label: t.label }))}
