@@ -11,8 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PartnerShareView } from "@/components/deal-shares/partner-share-view";
 import type { PublicShareView } from "@/db/queries/deal-shares-public";
 import { createDealShareAction } from "@/lib/deals/actions";
-import { formatCommission } from "@/lib/deal-shares/format";
+import { formatCommission } from "@/lib/format";
 import type { RenderBrand } from "@/lib/newsletter/render-email";
 
 type PartnerOption = {
@@ -225,8 +225,7 @@ export function ShareComposer({
             <CardTitle>Partager cette affaire</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="partnerId">Partenaire</Label>
+            <Field label="Partenaire" htmlFor="partnerId">
               <Select
                 value={partnerId}
                 onValueChange={(v) => setPartnerId(String(v))}
@@ -254,10 +253,9 @@ export function ShareComposer({
                   Aucun partenaire actif. Ajoutez-en un depuis l&apos;écran Partenaires.
                 </p>
               )}
-            </div>
+            </Field>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="proposedTerms">Conditions proposées</Label>
+            <Field label="Conditions proposées" htmlFor="proposedTerms">
               <Textarea
                 id="proposedTerms"
                 value={proposedTerms}
@@ -265,20 +263,22 @@ export function ShareComposer({
                 placeholder="Ex : commission versée à l'acte, sous réserve de signature."
                 className="min-h-16"
               />
-            </div>
+            </Field>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="message">Message au partenaire</Label>
+            <Field label="Message au partenaire" htmlFor="message">
               <Textarea
                 id="message"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 className="min-h-16"
               />
-            </div>
+            </Field>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="expiresAt">Le lien cesse de fonctionner le</Label>
+            <Field
+              label="Le lien cesse de fonctionner le"
+              htmlFor="expiresAt"
+              hint="Facultatif. Sans date, le lien reste valable tant que tu ne le révoques pas."
+            >
               <Input
                 id="expiresAt"
                 type="date"
@@ -286,10 +286,7 @@ export function ShareComposer({
                 onChange={(e) => setExpiresAt(e.target.value)}
                 className="w-48"
               />
-              <p className="text-xs text-muted-foreground">
-                Facultatif. Sans date, le lien reste valable tant que tu ne le révoques pas.
-              </p>
-            </div>
+            </Field>
           </CardContent>
         </Card>
 
@@ -323,10 +320,9 @@ export function ShareComposer({
 
             {withCommission && (
               <>
-            <div className="flex flex-col gap-2">
-              {/* « Base » désignait à la fois le MODE de calcul et le MONTANT
-                  de référence, sur le même écran. Deux libellés distincts. */}
-              <Label htmlFor="basis">Comment la calculer</Label>
+            {/* « Base » désignait à la fois le MODE de calcul et le MONTANT
+                de référence, sur le même écran. Deux libellés distincts. */}
+            <Field label="Comment la calculer" htmlFor="basis">
               <Select
                 value={basis}
                 onValueChange={(v) => setBasis(v as CommissionBasis)}
@@ -343,12 +339,11 @@ export function ShareComposer({
                   <SelectItem value="fixed">Montant fixe</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </Field>
 
             {basis === "percentage" ? (
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="rate">Taux (%)</Label>
+                <Field label="Taux (%)" htmlFor="rate">
                   <Input
                     id="rate"
                     type="number"
@@ -357,9 +352,8 @@ export function ShareComposer({
                     value={rate}
                     onChange={(e) => setRate(e.target.value)}
                   />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="baseAmount">Montant de référence (€)</Label>
+                </Field>
+                <Field label="Montant de référence (€)" htmlFor="baseAmount">
                   <Input
                     id="baseAmount"
                     type="number"
@@ -367,11 +361,10 @@ export function ShareComposer({
                     value={baseAmount}
                     onChange={(e) => setBaseAmount(e.target.value)}
                   />
-                </div>
+                </Field>
               </div>
             ) : (
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="fixedAmount">Montant (€)</Label>
+              <Field label="Montant (€)" htmlFor="fixedAmount">
                 <Input
                   id="fixedAmount"
                   type="number"
@@ -379,7 +372,7 @@ export function ShareComposer({
                   value={fixedAmount}
                   onChange={(e) => setFixedAmount(e.target.value)}
                 />
-              </div>
+              </Field>
             )}
 
             {/* Calcul explicite, pas juste un champ rempli. */}

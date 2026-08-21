@@ -8,6 +8,8 @@ import {
   Plus,
   Users,
 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ListCard, ListRow, ListRowLink } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { StatTile } from "@/components/stat-tile";
 import { buttonVariants } from "@/components/ui/button";
@@ -15,7 +17,7 @@ import { getFollowUpBoard } from "@/db/queries/deal-follow-up";
 import { listDeals } from "@/db/queries/deals";
 import { getOwnOrganization, getVisibleOrganizations } from "@/db/queries/organizations";
 import { listPartners } from "@/db/queries/partners";
-import { formatEuros } from "@/lib/deal-shares/format";
+import { formatDays, formatEuros } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 
 export default async function DashboardPage() {
@@ -31,17 +33,14 @@ export default async function DashboardPage() {
           title="Organisations"
           description="Vue super admin — tu n'as pas d'organisation propre."
         />
-        <ul className="flex flex-col gap-2">
+        <ListCard>
           {organizations.map((org) => (
-            <li
-              key={org.id}
-              className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3"
-            >
+            <ListRow key={org.id}>
               <span className="text-sm font-medium">{org.name}</span>
               <span className="text-xs text-muted-foreground">{org.slug}</span>
-            </li>
+            </ListRow>
           ))}
-        </ul>
+        </ListCard>
       </>
     );
   }
@@ -72,8 +71,8 @@ export default async function DashboardPage() {
         row.daysUntilExpiry !== null && row.daysUntilExpiry <= board.thresholds.expiringSoonDays
           ? row.daysUntilExpiry <= 0
             ? "lien expiré"
-            : `expire dans ${row.daysUntilExpiry} j`
-          : `sans réponse depuis ${row.daysSinceSent} j`,
+            : `expire dans ${formatDays(row.daysUntilExpiry)}`
+          : `sans réponse depuis ${formatDays(row.daysSinceSent)}`,
       critical: row.critical,
     })),
     ...board.acceptedStale.map((row) => ({
@@ -81,7 +80,7 @@ export default async function DashboardPage() {
       dealId: row.dealId,
       title: row.dealTitle,
       partner: row.partnerName,
-      detail: `acceptée, rien depuis ${row.daysSinceActivity} j`,
+      detail: `acceptée, rien depuis ${formatDays(row.daysSinceActivity)}`,
       critical: false,
     })),
   ].slice(0, 5);
@@ -124,7 +123,7 @@ export default async function DashboardPage() {
         />
         <StatTile
           label="À encaisser"
-          value={unpaidTotal > 0 ? (formatEuros(String(unpaidTotal)) ?? "—") : "—"}
+          value={unpaidTotal > 0 ? (formatEuros(unpaidTotal) ?? "—") : "—"}
           hint={`${board.unpaidCommissions.length} commission${board.unpaidCommissions.length > 1 ? "s" : ""} confirmée${board.unpaidCommissions.length > 1 ? "s" : ""}`}
           icon={<Banknote />}
           tone="success"
@@ -152,34 +151,30 @@ export default async function DashboardPage() {
         </div>
 
         {priority.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-            Rien qui attende une relance. Tout est à jour.
-          </p>
+          <EmptyState className="py-8">Rien qui attende une relance. Tout est à jour.</EmptyState>
         ) : (
-          <ul className="overflow-hidden rounded-xl border border-border bg-card">
+          <ListCard>
             {priority.map((row) => (
-              <li key={row.key} className="border-b border-border last:border-b-0">
-                <Link
-                  href={`/affaires/${row.dealId}`}
-                  className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-accent/40"
-                >
-                  <div className="flex min-w-0 flex-col">
-                    <span className="truncate text-sm font-medium">{row.title}</span>
-                    <span className="truncate text-xs text-muted-foreground">{row.partner}</span>
-                  </div>
+              <ListRowLink
+                key={row.key}
+                href={`/affaires/${row.dealId}`}
+                title={row.title}
+                subtitle={row.partner}
+                chevron={false}
+                trailing={
                   <span
                     className={
                       row.critical
-                        ? "shrink-0 text-xs font-medium text-destructive"
-                        : "shrink-0 text-xs text-muted-foreground"
+                        ? "text-xs font-medium tabular-nums text-destructive"
+                        : "text-xs tabular-nums text-muted-foreground"
                     }
                   >
                     {row.detail}
                   </span>
-                </Link>
-              </li>
+                }
+              />
             ))}
-          </ul>
+          </ListCard>
         )}
       </section>
     </>

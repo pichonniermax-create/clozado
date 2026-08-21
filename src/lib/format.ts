@@ -1,0 +1,68 @@
+/**
+ * Pur affichage — tout le formatage français du produit, aucune logique
+ * métier. Une seule définition par format : on étend CE fichier, on
+ * n'écrit jamais un `Intl.*` local dans un écran (la duplication avait
+ * commencé : une `formatDate` locale dans la liste des newsletters).
+ */
+
+/** Espace fine insécable — un « 12 j » ou un « 1,5 % » ne se coupe jamais en fin de ligne. */
+const NNBSP = "\u202f";
+
+export function firstNameOf(fullName: string): string {
+  const trimmed = fullName.trim();
+  return trimmed.split(/\s+/)[0] || trimmed;
+}
+
+export function formatEuros(amount: string | number | null): string | null {
+  if (amount == null) return null;
+  const n = Number(amount);
+  if (Number.isNaN(n)) return null;
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(n);
+}
+
+/** « 1,5 % » — virgule française et unité collée au nombre. */
+export function formatPercent(rate: string | number | null): string | null {
+  if (rate == null || rate === "") return null;
+  const n = Number(rate);
+  if (Number.isNaN(n)) return null;
+  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n)}${NNBSP}%`;
+}
+
+/** « 12 j » — l'abréviation utilisée partout dans le suivi, insécable. */
+export function formatDays(days: number): string {
+  return `${days}${NNBSP}j`;
+}
+
+export function formatCommission(commission: {
+  basis: "percentage" | "fixed";
+  rate: string | null;
+  fixedAmount: string | null;
+  computedAmount: string | null;
+}): string {
+  const base =
+    commission.basis === "percentage"
+      ? formatPercent(commission.rate)
+      : formatEuros(commission.fixedAmount);
+  const computed = formatEuros(commission.computedAmount);
+  if (base && computed) return `${base} · ≈ ${computed}`;
+  return base ?? computed ?? "—";
+}
+
+export function formatDate(date: Date | string): string {
+  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(
+    typeof date === "string" ? new Date(date) : date
+  );
+}
+
+export function formatDateTime(date: Date | string): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(typeof date === "string" ? new Date(date) : date);
+}

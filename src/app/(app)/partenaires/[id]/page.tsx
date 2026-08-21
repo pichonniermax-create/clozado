@@ -1,24 +1,19 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { ListCard, ListRowLink } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
+import { ShareStatusBadge } from "@/components/deal-shares/share-status-badge";
 import { Textarea } from "@/components/ui/textarea";
 import { getPartner } from "@/db/queries/partners";
 import { listDealSharesForPartner } from "@/db/queries/deal-shares";
 import { updatePartnerAction } from "@/lib/deals/actions";
-import { formatDate } from "@/lib/deal-shares/format";
+import { formatDate } from "@/lib/format";
 import { requireUser } from "@/lib/session";
-
-const SHARE_STATUS_LABELS: Record<string, string> = {
-  pending: "En attente",
-  accepted: "Acceptée",
-  declined: "Refusée",
-  revoked: "Révoquée",
-};
 
 export default async function PartnerPage({
   params,
@@ -68,36 +63,30 @@ export default async function PartnerPage({
         <CardContent>
           <form action={savePartner} className="flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="name">Nom</Label>
+              <Field label="Nom" htmlFor="name">
                 <Input id="name" name="name" defaultValue={partner.name} required />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="company">Société</Label>
+              </Field>
+              <Field label="Société" htmlFor="company">
                 <Input id="company" name="company" defaultValue={partner.company ?? ""} />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="profession">Métier</Label>
+              </Field>
+              <Field label="Métier" htmlFor="profession">
                 <Input id="profession" name="profession" defaultValue={partner.profession ?? ""} />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="email">Email</Label>
+              </Field>
+              <Field label="Email" htmlFor="email">
                 <Input id="email" name="email" type="email" defaultValue={partner.email ?? ""} />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="phone">Téléphone</Label>
+              </Field>
+              <Field label="Téléphone" htmlFor="phone">
                 <Input id="phone" name="phone" defaultValue={partner.phone ?? ""} />
-              </div>
+              </Field>
             </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="notes">Notes</Label>
+            <Field label="Notes" htmlFor="notes">
               <Textarea
                 id="notes"
                 name="notes"
                 defaultValue={partner.notes ?? ""}
                 className="min-h-16"
               />
-            </div>
+            </Field>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="active" defaultChecked={partner.active} />
               Partenaire actif
@@ -109,38 +98,28 @@ export default async function PartnerPage({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Affaires partagées</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="flex flex-col gap-2">
+      {/* Même motif que partout ailleurs (liste en carte sous un titre de
+          section) — l'historique n'a pas de raison d'être « en carte dans
+          une carte » alors que la même liste vit nue sur les autres écrans. */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold">Affaires partagées</h2>
+        {history.length === 0 ? (
+          <EmptyState>Aucune affaire partagée avec ce partenaire pour l&apos;instant.</EmptyState>
+        ) : (
+          <ListCard>
             {history.map(({ share, deal }) => (
-              <li key={share.id}>
-                <Link
-                  href={`/affaires/${deal.id}`}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 transition-colors hover:bg-accent/40"
-                >
-                  <div className="flex min-w-0 flex-col">
-                    <span className="truncate text-sm font-medium">{deal.title}</span>
-                    <span className="text-xs text-muted-foreground">
-                      Envoyée le {formatDate(share.sentAt.toISOString())}
-                    </span>
-                  </div>
-                  <Badge variant="secondary" className="shrink-0">
-                    {SHARE_STATUS_LABELS[share.status] ?? share.status}
-                  </Badge>
-                </Link>
-              </li>
+              <ListRowLink
+                key={share.id}
+                href={`/affaires/${deal.id}`}
+                title={deal.title}
+                subtitle={`Envoyée le ${formatDate(share.sentAt)}`}
+                trailing={<ShareStatusBadge status={share.status} />}
+                chevron={false}
+              />
             ))}
-            {history.length === 0 && (
-              <li className="text-sm text-muted-foreground">
-                Aucune affaire partagée avec ce partenaire pour l&apos;instant.
-              </li>
-            )}
-          </ul>
-        </CardContent>
-      </Card>
+          </ListCard>
+        )}
+      </section>
     </>
   );
 }

@@ -8,12 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   getOwnOrganization,
   updateOrganizationBranding,
 } from "@/db/queries/organizations";
+import { DEFAULT_BRAND_PRIMARY } from "@/lib/brand";
 import { requireUser } from "@/lib/session";
 
 async function saveBranding(formData: FormData) {
@@ -68,8 +69,7 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <form action={saveBranding} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="name">Nom affiché</Label>
+            <Field label="Nom affiché" htmlFor="name">
               <Input
                 id="name"
                 name="name"
@@ -77,10 +77,9 @@ export default async function SettingsPage() {
                 disabled={readOnly}
                 required
               />
-            </div>
+            </Field>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="logoUrl">Logo (lien vers une image)</Label>
+            <Field label="Logo (lien vers une image)" htmlFor="logoUrl">
               <Input
                 id="logoUrl"
                 name="logoUrl"
@@ -89,15 +88,14 @@ export default async function SettingsPage() {
                 defaultValue={org.logoUrl ?? ""}
                 disabled={readOnly}
               />
-            </div>
+            </Field>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="primaryColor">Couleur principale</Label>
+            <Field label="Couleur principale" htmlFor="primaryColor">
               <div className="flex items-center gap-2">
                 <Input
                   id="primaryColor"
                   name="primaryColor"
-                  placeholder="#2563eb"
+                  placeholder={DEFAULT_BRAND_PRIMARY}
                   defaultValue={org.primaryColor ?? ""}
                   disabled={readOnly}
                   className="max-w-40"
@@ -110,10 +108,9 @@ export default async function SettingsPage() {
                   />
                 )}
               </div>
-            </div>
+            </Field>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="fontFamily">Police</Label>
+            <Field label="Police" htmlFor="fontFamily">
               <Input
                 id="fontFamily"
                 name="fontFamily"
@@ -121,7 +118,7 @@ export default async function SettingsPage() {
                 defaultValue={org.fontFamily ?? ""}
                 disabled={readOnly}
               />
-            </div>
+            </Field>
 
             {!readOnly && (
               <Button type="submit" className="w-fit">

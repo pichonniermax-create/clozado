@@ -1,10 +1,11 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronRight, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DetailsCard } from "@/components/ui/details-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { ListCard, ListRowLink } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Textarea } from "@/components/ui/textarea";
 import { listPartners } from "@/db/queries/partners";
@@ -43,45 +44,33 @@ export default async function PartnersPage() {
         description="Les confrères vers qui tu partages des affaires — ce ne sont pas des comptes du produit, ils n'ont rien à installer."
       />
 
-      <details className="group rounded-xl border border-border bg-card">
-        <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium transition-colors hover:text-primary">
-          <Plus className="size-4 transition-transform group-open:rotate-45" />
-          Ajouter un partenaire
-        </summary>
-        <div className="border-t border-border p-4">
-          <form action={addPartner} className="flex flex-col gap-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="name">Nom</Label>
-                <Input id="name" name="name" placeholder="Camille Rousseau" required />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="company">Société</Label>
-                <Input id="company" name="company" placeholder="Rousseau Patrimoine" />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="profession">Métier</Label>
-                <Input id="profession" name="profession" placeholder="CGP, courtier crédit…" />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="phone">Téléphone</Label>
-                <Input id="phone" name="phone" />
-              </div>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea id="notes" name="notes" className="min-h-16" />
-            </div>
-            <Button type="submit" className="w-fit">
-              Ajouter le partenaire
-            </Button>
-          </form>
-        </div>
-      </details>
+      <DetailsCard summary="Ajouter un partenaire">
+        <form action={addPartner} className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Nom" htmlFor="name">
+              <Input id="name" name="name" placeholder="Camille Rousseau" required />
+            </Field>
+            <Field label="Société" htmlFor="company">
+              <Input id="company" name="company" placeholder="Rousseau Patrimoine" />
+            </Field>
+            <Field label="Métier" htmlFor="profession">
+              <Input id="profession" name="profession" placeholder="CGP, courtier crédit…" />
+            </Field>
+            <Field label="Email" htmlFor="email">
+              <Input id="email" name="email" type="email" />
+            </Field>
+            <Field label="Téléphone" htmlFor="phone">
+              <Input id="phone" name="phone" />
+            </Field>
+          </div>
+          <Field label="Notes" htmlFor="notes">
+            <Textarea id="notes" name="notes" className="min-h-16" />
+          </Field>
+          <Button type="submit" className="w-fit">
+            Ajouter le partenaire
+          </Button>
+        </form>
+      </DetailsCard>
 
       <PartnerList
         title={`${active.length} partenaire${active.length > 1 ? "s" : ""} actif${active.length > 1 ? "s" : ""}`}
@@ -116,31 +105,19 @@ function PartnerList({
     <section className="flex flex-col gap-3">
       <h2 className="text-sm font-semibold">{title}</h2>
       {partners.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
-          {empty}
-        </p>
+        <EmptyState>{empty}</EmptyState>
       ) : (
-        <ul className="overflow-hidden rounded-xl border border-border bg-card">
+        <ListCard>
           {partners.map((p) => (
-            <li key={p.id} className="border-b border-border last:border-b-0">
-              <Link
-                href={`/partenaires/${p.id}`}
-                className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-accent/40"
-              >
-                <div className="flex min-w-0 flex-col">
-                  <span className="truncate text-sm font-medium">{p.name}</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {[p.profession, p.company].filter(Boolean).join(" · ") || "—"}
-                  </span>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {!p.active && <Badge variant="secondary">Inactif</Badge>}
-                  <ChevronRight className="size-4 text-muted-foreground" />
-                </div>
-              </Link>
-            </li>
+            <ListRowLink
+              key={p.id}
+              href={`/partenaires/${p.id}`}
+              title={p.name}
+              subtitle={[p.profession, p.company].filter(Boolean).join(" · ") || "—"}
+              trailing={!p.active ? <Badge variant="secondary">Inactif</Badge> : undefined}
+            />
           ))}
-        </ul>
+        </ListCard>
       )}
     </section>
   );

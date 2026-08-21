@@ -1,4 +1,5 @@
 import type { AnyBlock } from "./blocks";
+import { DEFAULT_BRAND_PRIMARY } from "@/lib/brand";
 
 /**
  * Rendu HTML email — un seul format, directement email-safe (styles inlinés
@@ -59,7 +60,7 @@ export type RenderInput = {
   editable?: boolean;
 };
 
-const FALLBACK_PRIMARY = "#2563eb";
+const FALLBACK_PRIMARY = DEFAULT_BRAND_PRIMARY;
 const FALLBACK_SECONDARY = "#0f172a";
 const FALLBACK_INK = "#1a1a1a";
 const FALLBACK_BACKGROUND = "#f4f4f2";

@@ -2,8 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { signUpAction, type AuthFormState } from "@/lib/auth/actions";
 
 const initialState: AuthFormState = { error: null };
@@ -19,8 +19,16 @@ export function SignUpForm() {
 
   return (
     <form action={action} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="organizationName">Nom de ton cabinet</Label>
+      <Field
+        label="Nom de ton cabinet"
+        htmlFor="organizationName"
+        hint={
+          <>
+            C&apos;est ce nom que verront tes partenaires sur les pages de partage. Tu pourras le
+            changer ensuite.
+          </>
+        }
+      >
         <Input
           id="organizationName"
           name="organizationName"
@@ -32,14 +40,9 @@ export function SignUpForm() {
           value={organizationName}
           onChange={(e) => setOrganizationName(e.target.value)}
         />
-        <p className="text-xs text-muted-foreground">
-          C&apos;est ce nom que verront tes partenaires sur les pages de partage. Tu pourras le
-          changer ensuite.
-        </p>
-      </div>
+      </Field>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="email">Email professionnel</Label>
+      <Field label="Email professionnel" htmlFor="email">
         <Input
           id="email"
           name="email"
@@ -50,7 +53,7 @@ export function SignUpForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-      </div>
+      </Field>
 
       {state.error && (
         <p role="alert" className="text-sm text-destructive">

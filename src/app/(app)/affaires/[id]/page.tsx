@@ -1,11 +1,13 @@
 import { notFound, redirect } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DealStatusBadge } from "@/components/deals/deal-status-badge";
+import { ListCard } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { ConfirmCommissionButton } from "@/components/deal-shares/confirm-commission-button";
 import { MarkCommissionSettledButton } from "@/components/deal-shares/mark-commission-settled-button";
 import { ReissueShareButton } from "@/components/deal-shares/reissue-share-button";
 import { ShareComposer } from "@/components/deal-shares/share-composer";
+import { ShareStatusBadge } from "@/components/deal-shares/share-status-badge";
 import { listCommissionsForDeal } from "@/db/queries/commissions";
 import { listDealEvents } from "@/db/queries/deal-events";
 import { listDealShares } from "@/db/queries/deal-shares";
@@ -16,24 +18,8 @@ import { getDeal } from "@/db/queries/deals";
 import { toRenderBrand } from "@/db/queries/newsletters";
 import { getOrganizationOfRecord } from "@/db/queries/organizations";
 import { listPartners } from "@/db/queries/partners";
-import { formatCommission, formatDate, formatDateTime, formatEuros } from "@/lib/deal-shares/format";
+import { formatCommission, formatDate, formatDateTime, formatEuros } from "@/lib/format";
 import { requireUser } from "@/lib/session";
-import { cn } from "@/lib/utils";
-
-const SHARE_STATUS_LABELS: Record<string, string> = {
-  pending: "En attente",
-  accepted: "Acceptée",
-  declined: "Refusée",
-  revoked: "Révoquée",
-};
-
-/** Refusé et révoqué restent neutres : ce sont des fins normales, pas des échecs. */
-const SHARE_STATUS_TONE: Record<string, string> = {
-  pending: "text-warning",
-  accepted: "text-success",
-  declined: "text-muted-foreground",
-  revoked: "text-muted-foreground",
-};
 
 const COMMISSION_STATE_LABELS: Record<string, string> = {
   prevue: "prévue",
@@ -126,16 +112,7 @@ export default async function DealPage({
         actions={
           <span className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Statut de l&apos;affaire</span>
-            <Badge
-              variant="outline"
-              style={
-                currentDealStatus.color
-                  ? { borderColor: currentDealStatus.color, color: currentDealStatus.color }
-                  : undefined
-              }
-            >
-              {currentDealStatus.label}
-            </Badge>
+            <DealStatusBadge label={currentDealStatus.label} color={currentDealStatus.color} />
           </span>
         }
       />
@@ -145,27 +122,21 @@ export default async function DealPage({
           <h2 className="text-sm font-semibold">
             {shares.length} partage{shares.length > 1 ? "s" : ""}
           </h2>
-          <ul className="overflow-hidden rounded-xl border border-border bg-card">
+          <ListCard>
             {shares.map(({ share, partnerName }) => {
               const commission = commissionByShareId.get(share.id);
               return (
-                <li
-                  key={share.id}
-                  className="flex flex-col gap-2 border-b border-border px-4 py-3 last:border-b-0"
-                >
+                <li key={share.id} className="flex flex-col gap-2 px-4 py-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex min-w-0 flex-col">
                       <span className="truncate text-sm font-medium">{partnerName}</span>
-                      <span className="text-xs text-muted-foreground">
-                        Envoyé le {formatDate(share.sentAt.toISOString())}
-                        {share.expiresAt &&
-                          ` · expire le ${formatDate(share.expiresAt.toISOString())}`}
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        Envoyé le {formatDate(share.sentAt)}
+                        {share.expiresAt && ` · expire le ${formatDate(share.expiresAt)}`}
                       </span>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <span className={cn("text-xs font-medium", SHARE_STATUS_TONE[share.status])}>
-                        {SHARE_STATUS_LABELS[share.status] ?? share.status}
-                      </span>
+                      <ShareStatusBadge status={share.status} />
                       {share.status !== "revoked" && (
                         <>
                           <ReissueShareButton shareId={share.id} />
@@ -203,7 +174,7 @@ export default async function DealPage({
                 </li>
               );
             })}
-          </ul>
+          </ListCard>
         </section>
       )}
 
@@ -254,8 +225,8 @@ export default async function DealPage({
                   {event.message && (
                     <p className="text-sm text-muted-foreground">{event.message}</p>
                   )}
-                  <p className="text-xs text-muted-foreground">
-                    {event.actorLabel} · {formatDateTime(event.createdAt.toISOString())}
+                  <p className="text-xs tabular-nums text-muted-foreground">
+                    {event.actorLabel} · {formatDateTime(event.createdAt)}
                   </p>
                 </div>
               </li>

@@ -2,8 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { signInAction, type AuthFormState } from "@/lib/auth/actions";
 
 const initialState: AuthFormState = { error: null };
@@ -20,8 +20,7 @@ export function SignInForm({ initialError }: { initialError?: string | null }) {
 
   return (
     <form action={action} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="email">Email professionnel</Label>
+      <Field label="Email professionnel" htmlFor="email">
         <Input
           id="email"
           name="email"
@@ -32,7 +31,7 @@ export function SignInForm({ initialError }: { initialError?: string | null }) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-      </div>
+      </Field>
 
       {error && (
         <p role="alert" className="text-sm text-destructive">

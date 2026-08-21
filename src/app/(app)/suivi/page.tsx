@@ -1,16 +1,13 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import {
-  AlarmClock,
-  Banknote,
-  CheckCircle2,
-  ChevronRight,
-  PauseCircle,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { AlarmClock, Banknote, CheckCircle2, PauseCircle } from "lucide-react";
+import { DetailsCard } from "@/components/ui/details-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ListCard, ListRow } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { MarkCommissionSettledButton } from "@/components/deal-shares/mark-commission-settled-button";
 import { ReissueShareButton } from "@/components/deal-shares/reissue-share-button";
+import { ShareStatusBadge } from "@/components/deal-shares/share-status-badge";
 import {
   getFollowUpBoard,
   type AcceptedStale,
@@ -18,16 +15,9 @@ import {
   type PendingAlert,
   type UnpaidCommission,
 } from "@/db/queries/deal-follow-up";
-import { formatCommission, formatDate, formatEuros } from "@/lib/deal-shares/format";
+import { formatCommission, formatDate, formatDays, formatEuros } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
-
-const SHARE_STATUS_LABELS: Record<string, string> = {
-  pending: "En attente",
-  accepted: "Acceptée",
-  declined: "Refusée",
-  revoked: "Révoquée",
-};
 
 export default async function FollowUpPage() {
   const user = await requireUser();
@@ -45,7 +35,7 @@ export default async function FollowUpPage() {
           title="Suivi"
           description="Cet écran suit les relances d'une organisation donnée."
         />
-        <p className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+        <EmptyState>
           Ton compte super admin n&apos;est rattaché à aucune organisation : il n&apos;y a donc
           pas de relances qui te soient propres. Les affaires et partenaires de toutes les
           organisations restent consultables depuis{" "}
@@ -53,7 +43,7 @@ export default async function FollowUpPage() {
             Affaires
           </Link>
           .
-        </p>
+        </EmptyState>
       </>
     );
   }
@@ -111,7 +101,7 @@ export default async function FollowUpPage() {
         count={board.unpaidCommissions.length}
         empty="Aucune commission en attente de règlement."
         subtitle="Confirmées, pas encore réglées — aucune échéance, elles restent dues."
-        aside={unpaidTotal > 0 ? (formatEuros(String(unpaidTotal)) ?? undefined) : undefined}
+        aside={unpaidTotal > 0 ? (formatEuros(unpaidTotal) ?? undefined) : undefined}
       >
         {board.unpaidCommissions.map((row) => (
           <UnpaidCommissionRow key={row.commissionId} row={row} />
@@ -127,28 +117,24 @@ export default async function FollowUpPage() {
               {board.inProgress.length} · rien à faire pour l&apos;instant
             </span>
           </div>
-          <ul className="overflow-hidden rounded-xl border border-border bg-card">
+          <ListCard>
             {board.inProgress.map((row) => (
               <NeutralRow key={row.shareId} row={row} />
             ))}
-          </ul>
+          </ListCard>
         </section>
       )}
 
       {/* Niveau 3 — l'historique clos, replié : présent pour être retrouvé,
           jamais dans le champ de vision du travail du jour. */}
       {board.closed.length > 0 && (
-        <details className="group rounded-xl border border-border bg-card">
-          <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-            <ChevronRight className="size-4 transition-transform group-open:rotate-90" />
-            Partages clos ({board.closed.length})
-          </summary>
-          <ul className="border-t border-border">
+        <DetailsCard variant="archive" flush summary={`Partages clos (${board.closed.length})`}>
+          <ul className="divide-y divide-border">
             {board.closed.map((row) => (
               <NeutralRow key={row.shareId} row={row} />
             ))}
           </ul>
-        </details>
+        </DetailsCard>
       )}
     </>
   );
@@ -198,12 +184,9 @@ function Pile({
       <p className="-mt-1 text-xs text-muted-foreground">{subtitle}</p>
 
       {count === 0 ? (
-        <p className="flex items-center gap-2 rounded-xl border border-dashed border-border px-4 py-5 text-sm text-muted-foreground">
-          <CheckCircle2 className="size-4 text-success" />
-          {empty}
-        </p>
+        <EmptyState icon={<CheckCircle2 className="size-4 text-success" />}>{empty}</EmptyState>
       ) : (
-        <ul className="overflow-hidden rounded-xl border border-border bg-card">{children}</ul>
+        <ListCard>{children}</ListCard>
       )}
     </section>
   );
@@ -230,11 +213,8 @@ function ActionRow({
   action?: ReactNode;
 }) {
   return (
-    <li
-      className={cn(
-        "flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 last:border-b-0",
-        critical && "border-l-2 border-l-destructive"
-      )}
+    <ListRow
+      className={cn("flex-wrap gap-3", critical && "border-l-2 border-l-destructive")}
     >
       <div className="flex min-w-0 flex-col">
         <Link
@@ -243,12 +223,12 @@ function ActionRow({
         >
           {dealTitle}
         </Link>
-        <span className="truncate text-xs text-muted-foreground">
+        <span className="truncate text-xs tabular-nums text-muted-foreground">
           {partnerName} · {detail}
         </span>
       </div>
       {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
-    </li>
+    </ListRow>
   );
 }
 
@@ -258,7 +238,7 @@ function PendingAlertRow({ row }: { row: PendingAlert }) {
       ? null
       : row.daysUntilExpiry <= 0
         ? "lien expiré"
-        : `expire dans ${row.daysUntilExpiry} j`;
+        : `expire dans ${formatDays(row.daysUntilExpiry)}`;
 
   return (
     <ActionRow
@@ -269,7 +249,7 @@ function PendingAlertRow({ row }: { row: PendingAlert }) {
       detail={
         <>
           <span className={row.critical ? "font-medium text-destructive" : undefined}>
-            sans réponse depuis {row.daysSinceSent} j
+            sans réponse depuis {formatDays(row.daysSinceSent)}
           </span>
           {expiry && ` · ${expiry}`}
         </>
@@ -285,9 +265,7 @@ function AcceptedStaleRow({ row }: { row: AcceptedStale }) {
       dealTitle={row.dealTitle}
       partnerName={row.partnerName}
       dealId={row.dealId}
-      detail={`acceptée le ${formatDate(
-        row.respondedAt?.toISOString() ?? row.sentAt.toISOString()
-      )} · rien depuis ${row.daysSinceActivity} j`}
+      detail={`acceptée le ${formatDate(row.respondedAt ?? row.sentAt)} · rien depuis ${formatDays(row.daysSinceActivity)}`}
       // Pas de bouton : rien à déclencher automatiquement sur du
       // relationnel. Le titre est déjà le lien vers l'affaire.
     />
@@ -300,7 +278,7 @@ function UnpaidCommissionRow({ row }: { row: UnpaidCommission }) {
       dealTitle={row.dealTitle}
       partnerName={row.partnerName}
       dealId={row.dealId}
-      detail={`${formatCommission(row)} · confirmée le ${formatDate(row.confirmedAt.toISOString())}`}
+      detail={`${formatCommission(row)} · confirmée le ${formatDate(row.confirmedAt)}`}
       action={<MarkCommissionSettledButton commissionId={row.commissionId} />}
     />
   );
@@ -308,14 +286,12 @@ function UnpaidCommissionRow({ row }: { row: UnpaidCommission }) {
 
 function NeutralRow({ row }: { row: FollowUpShare }) {
   return (
-    <li className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5 last:border-b-0">
+    <ListRow className="gap-3 py-2.5">
       <Link href={`/affaires/${row.dealId}`} className="min-w-0 truncate text-sm hover:underline">
         <span className="font-medium">{row.dealTitle}</span>
         <span className="text-muted-foreground"> · {row.partnerName}</span>
       </Link>
-      <Badge variant="secondary" className="shrink-0">
-        {SHARE_STATUS_LABELS[row.status] ?? row.status}
-      </Badge>
-    </li>
+      <ShareStatusBadge status={row.status} />
+    </ListRow>
   );
 }

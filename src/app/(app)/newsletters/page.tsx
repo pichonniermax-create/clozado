@@ -4,16 +4,8 @@ import { ChevronRight, Plus } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { deleteNewsletter, listNewsletters } from "@/lib/newsletter/actions";
+import { formatDateTime } from "@/lib/format";
 import { requireUser } from "@/lib/session";
-
-function formatDate(d: Date): string {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(d);
-}
 
 export default async function NewslettersPage() {
   await requireUser();
@@ -46,7 +38,7 @@ export default async function NewslettersPage() {
               <Link href={`/newsletters/${n.id}`} className="flex min-w-0 flex-1 flex-col px-4 py-3">
                 <span className="truncate text-sm font-medium">{n.title}</span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {n.subject ?? "Objet à écrire"} · modifiée le {formatDate(n.updatedAt)}
+                  {n.subject ?? "Objet à écrire"} · modifiée le {formatDateTime(n.updatedAt)}
                 </span>
               </Link>
               <div className="flex shrink-0 items-center gap-1 pr-3">

@@ -23,7 +23,8 @@ import {
   formatDate,
   formatDateTime,
   formatEuros,
-} from "@/lib/deal-shares/format";
+} from "@/lib/format";
+import { DEFAULT_BRAND_PRIMARY } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 /**
@@ -153,7 +154,7 @@ export function PartnerShareView({
   }
 
   const brand = view.brand;
-  const accent = brand.primaryColor || "#2563eb";
+  const accent = brand.primaryColor || DEFAULT_BRAND_PRIMARY;
   const banner = STATUS_BANNER[view.status];
   const isPending = view.status === "pending";
 
@@ -215,7 +216,7 @@ export function PartnerShareView({
       </div>
 
       {isPending && view.expiresAt && (
-        <p className="text-sm text-amber-700">À confirmer avant le {formatDate(view.expiresAt)}.</p>
+        <p className="text-sm text-warning">À confirmer avant le {formatDate(view.expiresAt)}.</p>
       )}
 
       {/* L'affaire */}
