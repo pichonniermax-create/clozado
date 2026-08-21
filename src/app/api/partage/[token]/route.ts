@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { applyPublicShareAction, resolvePublicShare } from "@/db/queries/deal-shares-public";
-import { checkRateLimit } from "@/lib/deal-shares/rate-limit";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 /**
  * SEULE ROUTE PUBLIQUE, SANS SESSION, DU PRODUIT — accès par jeton

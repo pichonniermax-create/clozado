@@ -26,11 +26,22 @@ const DEFAULT_STATUSES = [
   { slug: "perdue", label: "Perdue", color: "#dc2626" },
 ] as const;
 
-/** À appeler une fois, à la création d'une organisation. */
-export async function seedDefaultDealStatuses(organizationId: string) {
-  await db
+/**
+ * La requête d'insertion des statuts par défaut, NON exécutée — pour
+ * pouvoir la joindre à un `db.batch()` avec la création de l'organisation
+ * (voir `createOrganizationWithAdmin`). Sans ces statuts, une organisation
+ * neuve existe mais `getDefaultDealStatus` lève à la première affaire créée :
+ * les deux doivent naître ensemble ou pas du tout.
+ */
+export function buildDefaultDealStatusesInsert(organizationId: string) {
+  return db
     .insert(dealStatuses)
     .values(DEFAULT_STATUSES.map((s, position) => ({ organizationId, position, ...s })));
+}
+
+/** À appeler une fois, à la création d'une organisation. */
+export async function seedDefaultDealStatuses(organizationId: string) {
+  await buildDefaultDealStatusesInsert(organizationId);
 }
 
 /** Le statut par défaut ("nouveau") d'une organisation, utilisé à la création d'une affaire. */

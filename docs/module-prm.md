@@ -7,7 +7,7 @@ fil de l'eau — voir `docs/module-mails.md` pour l'équivalent côté mailing.
 
 ### Limitation de débit de la route publique (`/api/partage/[token]`)
 
-`src/lib/deal-shares/rate-limit.ts` est **en mémoire, par instance**. Sur
+`src/lib/rate-limit.ts` est **en mémoire, par instance**. Sur
 Vercel (serverless, instances multiples et éphémères), ce compteur n'est
 pas partagé entre instances : il freine un script naïf qui tape la même
 instance en rafale, il ne bloque pas un attaquant qui distribue ses

@@ -1,30 +1,22 @@
-import { signIn } from "@/auth";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { SignInForm } from "@/components/auth/sign-in-form";
 
-async function sendMagicLink(formData: FormData) {
-  "use server";
-  const email = formData.get("email");
-  if (typeof email !== "string" || !email) return;
-  // Ce redirectTo s'applique une fois le lien magique VALIDÉ (pas avant) :
-  // c'est là qu'on veut atterrir sur /dashboard. La page "vérifie tes
-  // emails" s'affiche automatiquement juste après, via pages.verifyRequest
-  // dans src/auth.ts — pas besoin de la référencer ici.
-  await signIn("nodemailer", { email, redirectTo: "/dashboard" });
-}
-
+/**
+ * Messages volontairement NEUTRES : aucun ne confirme ni n'infirme
+ * l'existence d'un compte pour l'adresse saisie. C'est la même discipline
+ * que la page d'erreur du partage (src/app/partage/[token]/page.tsx), qui
+ * refuse de distinguer « n'existe pas » de « n'est plus valable ».
+ *
+ * Avant, `AccessDenied` répondait « Cet email n'est pas reconnu » : il
+ * suffisait d'essayer des adresses pour savoir lesquelles avaient un compte.
+ * Le message renvoie maintenant vers l'inscription sans rien affirmer — ce
+ * qui est aussi plus utile, puisqu'un espace peut désormais se créer seul.
+ */
 const errorMessages: Record<string, string> = {
   AccessDenied:
-    "Cet email n'est pas reconnu. Contacte l'administrateur de ton organisation pour être invité.",
-  Verification: "Ce lien de connexion a expiré ou a déjà été utilisé.",
+    "Connexion impossible avec cette adresse. Si tu n'as pas encore d'espace Clozado, crée-le en quelques secondes.",
+  Verification: "Ce lien de connexion a expiré ou a déjà été utilisé. Demande-en un nouveau.",
 };
 
 export default async function LoginPage({
@@ -36,33 +28,22 @@ export default async function LoginPage({
   const errorMessage = error ? (errorMessages[error] ?? "Une erreur est survenue.") : null;
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-8">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Connexion à Clozado</CardTitle>
-          <CardDescription>
-            Entre ton email professionnel, tu recevras un lien de connexion.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={sendMagicLink} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="toi@exemple.com"
-                required
-              />
-            </div>
-            {errorMessage && (
-              <p className="text-sm text-destructive">{errorMessage}</p>
-            )}
-            <Button type="submit">Envoyer le lien de connexion</Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    <AuthShell
+      title="Se connecter"
+      description="Entre ton email professionnel, tu recevras un lien de connexion."
+      footer={
+        <>
+          Pas encore d&apos;espace ?{" "}
+          <Link
+            href="/inscription"
+            className="font-medium text-foreground underline underline-offset-4"
+          >
+            Créer un espace
+          </Link>
+        </>
+      }
+    >
+      <SignInForm initialError={errorMessage} />
+    </AuthShell>
   );
 }

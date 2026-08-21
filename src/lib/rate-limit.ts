@@ -1,5 +1,8 @@
 /**
- * Limiteur de débit en mémoire pour la route publique par jeton.
+ * Limiteur de débit en mémoire, partagé par les points d'entrée publics :
+ * la route de partage par jeton (`/api/partage/[token]`) et les formulaires
+ * de connexion/inscription — les seuls endroits où un anonyme peut
+ * déclencher du travail serveur (écriture en base, envoi d'email).
  *
  * LIMITE HONNÊTE, À LIRE AVANT D'EN DÉPENDRE : cette Map vit dans le
  * processus d'UNE instance serverless. Sur Vercel, chaque instance peut
