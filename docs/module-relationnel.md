@@ -174,7 +174,7 @@ client) et disperse la preuve de suppression.
 
 ### Journal des accès
 
-Table `contact_access_views` — pardon : `contact_access_log`
+Table `contact_access_log`
 (organization_id, contact_id FK composite, user_id, action
 `view` | `export` | `delete` | `merge`, created_at). Écrit côté serveur au
 rendu de la fiche, à l'export, à la suppression, à la fusion. Pas de purge
