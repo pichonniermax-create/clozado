@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { DealStatusBadge } from "@/components/deals/deal-status-badge";
 import { ListCard } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
+import { Journal } from "@/components/activities/journal";
+import { JOURNAL_ERROR_PARAM } from "@/components/activities/labels";
 import { ConfirmCommissionButton } from "@/components/deal-shares/confirm-commission-button";
 import { MarkCommissionSettledButton } from "@/components/deal-shares/mark-commission-settled-button";
 import { ReissueShareButton } from "@/components/deal-shares/reissue-share-button";
@@ -12,10 +14,10 @@ import { TaskSection } from "@/components/tasks/task-section";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { listDealJournal } from "@/db/queries/activities";
 import { listCommissionsForDeal } from "@/db/queries/commissions";
 import { listLossReasons } from "@/db/queries/loss-reasons";
 import { listOrgUsers } from "@/db/queries/contacts";
-import { listDealEvents } from "@/db/queries/deal-events";
 import { listDealShares } from "@/db/queries/deal-shares";
 import {
   moveDealStageAction,
@@ -29,7 +31,7 @@ import { listOpenTasksForDeal } from "@/db/queries/tasks";
 import { toRenderBrand } from "@/db/queries/newsletters";
 import { getOrganizationOfRecord } from "@/db/queries/organizations";
 import { listPartners } from "@/db/queries/partners";
-import { formatCommission, formatDate, formatDateTime, formatDays, formatEuros, formatPercent } from "@/lib/format";
+import { formatCommission, formatDate, formatDays, formatEuros, formatPercent } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 
 const COMMISSION_STATE_LABELS: Record<string, string> = {
@@ -38,34 +40,22 @@ const COMMISSION_STATE_LABELS: Record<string, string> = {
   reglee: "réglée",
 };
 
-const EVENT_TYPE_LABELS: Record<string, string> = {
-  deal_created: "Affaire créée",
-  share_sent: "Partage envoyé",
-  share_viewed: "Partage consulté",
-  share_accepted: "Partage accepté",
-  share_declined: "Partage refusé",
-  share_revoked: "Partage révoqué",
-  share_expired: "Partage expiré (constaté)",
-  status_changed: "Statut changé",
-  commented: "Commentaire",
-  commission_updated: "Commission mise à jour",
-};
-
 export default async function DealPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ erreur?: string }>;
+  /** `erreur` : section tâches ; `erreurJournal` : journal. */
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const user = await requireUser();
   const { id } = await params;
-  const { erreur } = await searchParams;
+  const query = await searchParams;
 
   const deal = await getDeal(user, id).catch(() => null);
   if (!deal) notFound();
 
-  const [org, types, statuses, partners, shares, commissions, events, lossReasons, durations, orgUsers, dealTasks] = await Promise.all([
+  const [org, types, statuses, partners, shares, commissions, journal, lossReasons, durations, orgUsers, dealTasks] = await Promise.all([
     // L'organisation de L'AFFAIRE, pas celle de l'utilisateur connecté :
     // c'est sa marque qui s'affiche dans l'aperçu du partage, et c'est en
     // son nom que le partage est émis. Identique pour un admin (il ne voit
@@ -78,7 +68,7 @@ export default async function DealPage({
     listPartners(user),
     listDealShares(user, id),
     listCommissionsForDeal(user, id),
-    listDealEvents(user, id),
+    listDealJournal(user, id),
     listLossReasons(user),
     getDealStageDurations(user, id),
     listOrgUsers(user),
@@ -381,48 +371,23 @@ export default async function DealPage({
         backTo={`/affaires/${id}`}
         dealId={id}
         emptyText="Aucune tâche pour cette affaire — celles que le suivi génère (relances, commission) arriveront ici toutes seules."
-        erreur={erreur}
+        erreur={query.erreur}
       />
 
-      {/* Le journal ferme la page : c'est de la matière à consulter, pas une
-          action. En file verticale avec un rail — chaque entrée horodatée et
-          attribuée, jamais anonyme (cf. src/db/schema/deal-events.ts). */}
-      {events.length > 0 && (
-        <section className="flex flex-col gap-3 border-t border-border pt-6">
-          <h2 className="text-sm font-semibold">Historique</h2>
-          <ol className="flex flex-col">
-            {events.map((event, index) => (
-              <li key={event.id} className="flex gap-3">
-                <div className="flex flex-col items-center">
-                  <span
-                    aria-hidden
-                    className="mt-1.5 size-1.5 shrink-0 rounded-full bg-muted-foreground/50"
-                  />
-                  {index < events.length - 1 && (
-                    <span aria-hidden className="w-px flex-1 bg-border" />
-                  )}
-                </div>
-                <div className="flex min-w-0 flex-col pb-4">
-                  <p className="text-sm">
-                    <span className="font-medium">
-                      {EVENT_TYPE_LABELS[event.type] ?? event.type}
-                    </span>
-                    {event.sharePartnerName && (
-                      <span className="text-muted-foreground"> · {event.sharePartnerName}</span>
-                    )}
-                  </p>
-                  {event.message && (
-                    <p className="text-sm text-muted-foreground">{event.message}</p>
-                  )}
-                  <p className="text-xs tabular-nums text-muted-foreground">
-                    {event.actorLabel} · {formatDateTime(event.createdAt)}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
+      {/* Le journal unifié ferme la page : interactions consignées ici,
+          passages d'étape (avant → après), histoire PRM (partages,
+          commentaires, commissions) et tâches achevées, dans la même
+          chronologie — chaque entrée horodatée et attribuée, jamais anonyme. */}
+      <div className="border-t border-border pt-6">
+        <Journal
+          journal={journal}
+          backTo={`/affaires/${id}`}
+          dealId={id}
+          context="deal"
+          erreur={query[JOURNAL_ERROR_PARAM]}
+          description="Interactions, étapes franchies, partages et tâches achevées sur cette affaire — une interaction consignée ici se retrouve aussi sur la fiche du client."
+        />
+      </div>
     </>
   );
 }

@@ -3,7 +3,7 @@
  * organisation de test DÉDIÉE, jamais dans une organisation existante.
  *
  * Usage :
- *   npx tsx --env-file=.env.local scripts/perf-dataset.ts create   # 5 000 contacts, 500 affaires, 2 000 tâches
+ *   npx tsx --env-file=.env.local scripts/perf-dataset.ts create   # 5 000 contacts, 500 affaires, 2 000 tâches, 3 000 interactions, 1 000 passages d'étape
  *   npx tsx --env-file=.env.local scripts/perf-dataset.ts status   # ce qui existe
  *   npx tsx --env-file=.env.local scripts/perf-dataset.ts destroy  # supprime EXACTEMENT ce qui a été créé
  *
@@ -19,6 +19,7 @@ const SLUG = "_perf-test";
 const N_CONTACTS = 5000;
 const N_DEALS = 500;
 const N_TASKS = 2000;
+const N_ACTIVITIES = 3000;
 
 const FIRST = ["Camille", "Julie", "Marc", "Sophie", "Éric", "Nadia", "Paul", "Inès", "Hugo", "Léa", "Karim", "Anne", "Louis", "Emma", "Yann", "Sarah", "Nicolas", "Chloé", "Pierre", "Manon"];
 const LAST = ["Marchand", "Dupont", "Bernard", "Petit", "Robert", "Richard", "Durand", "Moreau", "Laurent", "Simon", "Michel", "Lefebvre", "Leroy", "Roux", "David", "Bertrand", "Morel", "Fournier", "Girard", "Bonnet"];
@@ -32,7 +33,7 @@ function pick<T>(arr: T[], i: number): T {
 async function main() {
   const cmd = process.argv[2];
   const { db } = await import("../src/db");
-  const { contacts, deals, dealTypes, organizations, tasks, users } = await import("../src/db/schema");
+  const { activities, contacts, deals, dealStageChanges, dealTypes, organizations, tasks, users } = await import("../src/db/schema");
   const { seedDefaultDealStatuses } = await import("../src/db/queries/deal-statuses");
   const { eq, count } = await import("drizzle-orm");
 
@@ -43,12 +44,14 @@ async function main() {
       console.log("Aucune organisation de test — la base est dans son état normal.");
       return;
     }
-    const [[c], [d], [t]] = await Promise.all([
+    const [[c], [d], [t], [a], [s]] = await Promise.all([
       db.select({ n: count() }).from(contacts).where(eq(contacts.organizationId, existing.id)),
       db.select({ n: count() }).from(deals).where(eq(deals.organizationId, existing.id)),
       db.select({ n: count() }).from(tasks).where(eq(tasks.organizationId, existing.id)),
+      db.select({ n: count() }).from(activities).where(eq(activities.organizationId, existing.id)),
+      db.select({ n: count() }).from(dealStageChanges).where(eq(dealStageChanges.organizationId, existing.id)),
     ]);
-    console.log(`Organisation ${SLUG} : ${c.n} contacts, ${d.n} affaires, ${t.n} tâches.`);
+    console.log(`Organisation ${SLUG} : ${c.n} contacts, ${d.n} affaires, ${t.n} tâches, ${a.n} interactions, ${s.n} passages d'étape.`);
     return;
   }
 
@@ -59,12 +62,15 @@ async function main() {
     }
     await db.delete(organizations).where(eq(organizations.id, existing.id));
     const still = await db.query.organizations.findFirst({ where: eq(organizations.slug, SLUG) });
-    const [orphans] = await db.select({ n: count() }).from(contacts).where(eq(contacts.organizationId, existing.id));
-    if (still || orphans.n > 0) {
+    const [[orphans], [orphanActivities]] = await Promise.all([
+      db.select({ n: count() }).from(contacts).where(eq(contacts.organizationId, existing.id)),
+      db.select({ n: count() }).from(activities).where(eq(activities.organizationId, existing.id)),
+    ]);
+    if (still || orphans.n > 0 || orphanActivities.n > 0) {
       console.error("✗ La suppression n'est pas complète — à inspecter.");
       process.exit(1);
     }
-    console.log("✓ Organisation de test supprimée, cascades vérifiées : zéro contact restant.");
+    console.log("✓ Organisation de test supprimée, cascades vérifiées : zéro contact, zéro interaction restants.");
     return;
   }
 
@@ -115,6 +121,7 @@ async function main() {
   console.timeEnd(`insertion de ${N_CONTACTS} contacts`);
 
   console.time(`insertion de ${N_DEALS} affaires`);
+  const dealIds: string[] = [];
   for (let i = 0; i < N_DEALS; i += CHUNK) {
     const values = Array.from({ length: Math.min(CHUNK, N_DEALS - i) }, (_, j) => {
       const n = i + j;
@@ -133,9 +140,30 @@ async function main() {
         createdBy: user.id,
       };
     });
-    await db.insert(deals).values(values);
+    const inserted = await db.insert(deals).values(values).returning({ id: deals.id });
+    dealIds.push(...inserted.map((r) => r.id));
   }
   console.timeEnd(`insertion de ${N_DEALS} affaires`);
+
+  // Deux passages par affaire (entrée, puis un déplacement) : le journal
+  // unifié les lit, les durées par étape aussi.
+  console.time(`insertion de ${N_DEALS * 2} passages d'étape`);
+  for (let i = 0; i < dealIds.length; i += CHUNK / 2) {
+    const slice = dealIds.slice(i, i + CHUNK / 2);
+    const values = slice.flatMap((dealId, j) => {
+      const n = i + j;
+      const from = statuses[n % statuses.length];
+      const to = statuses[(n + 1) % statuses.length];
+      const entered = new Date(Date.now() - (30 + (n % 60)) * 24 * 3600 * 1000);
+      const moved = new Date(entered.getTime() + (1 + (n % 20)) * 24 * 3600 * 1000);
+      return [
+        { organizationId: org.id, dealId, fromStatusId: null, toStatusId: from.id, actorUserId: user.id, changedAt: entered },
+        { organizationId: org.id, dealId, fromStatusId: from.id, toStatusId: to.id, actorUserId: user.id, changedAt: moved },
+      ];
+    });
+    await db.insert(dealStageChanges).values(values);
+  }
+  console.timeEnd(`insertion de ${N_DEALS * 2} passages d'étape`);
 
   console.time(`insertion de ${N_TASKS} tâches`);
   for (let i = 0; i < N_TASKS; i += CHUNK) {
@@ -157,7 +185,31 @@ async function main() {
     await db.insert(tasks).values(values);
   }
   console.timeEnd(`insertion de ${N_TASKS} tâches`);
-  console.log(`✓ Jeu créé dans l'organisation ${SLUG} (${org.id}).`);
+
+  // Interactions : deux tiers sur des contacts, un tiers sur des affaires
+  // (rattachées aussi à leur client, comme le fait la saisie rapide). Le
+  // contact 0 en concentre beaucoup : c'est lui qu'on mesure.
+  console.time(`insertion de ${N_ACTIVITIES} interactions`);
+  const types = ["call", "email", "meeting", "note"] as const;
+  for (let i = 0; i < N_ACTIVITIES; i += CHUNK) {
+    const values = Array.from({ length: Math.min(CHUNK, N_ACTIVITIES - i) }, (_, j) => {
+      const n = i + j;
+      const onDeal = n % 3 === 0;
+      const contactId = n % 10 === 0 ? contactIds[0] : contactIds[(n * 11) % contactIds.length];
+      return {
+        organizationId: org.id,
+        type: types[n % types.length],
+        content: `Interaction ${n} — compte rendu de test.`,
+        occurredAt: new Date(Date.now() - (n % 400) * 6 * 3600 * 1000),
+        contactId,
+        dealId: onDeal ? dealIds[n % dealIds.length] : null,
+        createdBy: user.id,
+      };
+    });
+    await db.insert(activities).values(values);
+  }
+  console.timeEnd(`insertion de ${N_ACTIVITIES} interactions`);
+  console.log(`✓ Jeu créé dans l'organisation ${SLUG} (${org.id}). Contact le plus chargé : ${contactIds[0]}.`);
 }
 
 main().then(() => process.exit(0)).catch((e) => {

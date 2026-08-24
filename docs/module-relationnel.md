@@ -223,3 +223,148 @@ admin, permet de choisir l'organisation dans laquelle il travaille.
   automatique des personnes morales depuis la colonne société.
 - Un nom cité à la main dans un texte libre du journal PRM (commentaire de
   partenaire) n'est pas récrit par la suppression-tombale (§C).
+
+---
+
+## Étape 6 — activité unifiée et intégration aux modules existants
+
+### Le journal : une fusion à la lecture, pas une table
+
+Il n'existe pas de table « journal ». Chaque source garde ses lignes et son
+contrat, et `src/db/queries/activities.ts` les fusionne à la lecture :
+
+| Source | Ce qu'elle apporte |
+|---|---|
+| `activities` | ce qui est saisi à la main : appel, email, rendez-vous, note |
+| `deal_stage_changes` | chaque passage d'étape, structuré (avant → après, couleurs, marqueur gagné/perdu) |
+| `deal_events` | ce que le PRM raconte : partages (envoyé, consulté, accepté, refusé, révoqué, expiré), commentaires, commissions |
+| `tasks` achevées | ce qui a été fait (badge de la règle pour une tâche générée) |
+| `deals.created_at` | la naissance de l'affaire, synthétisée depuis la ligne elle-même |
+
+Deux types de `deal_events` sont volontairement ignorés : `status_changed`
+(dit mieux par `deal_stage_changes`) et `deal_created` (dit par la ligne
+`deals`, ce qui couvre aussi l'affaire d'avant le journal PRM, qui n'a ni
+événement de création ni première ligne d'étape). Vérifié en base au moment
+de la décision : aucun `status_changed` n'existait sans sa ligne structurée
+— pas de dédoublonnage à écrire.
+
+La fiche contact voit aussi ce qui arrive à **ses affaires** : c'est ce qui
+rend la vue unifiée (appeler un client et lire, dans la même file, que son
+dossier a été partagé puis accepté). La fiche affaire voit ce qui la
+concerne. Le tableau de bord voit toute l'organisation (8 dernières entrées).
+
+Volume borné par construction : chaque source est limitée en base (100),
+triée par date, puis fusionnée et tronquée — jamais une table entière en
+mémoire. Ordre : le plus récent d'abord (un journal se lit comme un fil,
+l'ancien « Historique » de la fiche affaire, chronologique, est remplacé).
+
+Attribution : utilisateur interne, partenaire (marqué « (partenaire) »), ou
+« Système » — réservé à l'absence d'acteur. La révocation d'un partage porte
+désormais son acteur (`revokeDealShare` reçoit l'utilisateur) : un geste
+humain n'est plus affiché comme un automate.
+
+`src/db/queries/deal-events.ts` (l'ancien journal de la fiche affaire) est
+supprimé : plus aucun lecteur.
+
+### Saisie rapide d'une interaction
+
+Sur les deux fiches, en tête du journal : type, texte, date facultative.
+
+- Texte facultatif sauf pour une note (« une note sans texte n'a rien à
+  dire ») ; un appel sans compte rendu est une trace légitime.
+- Date vide = maintenant. Une date saisie est lue comme une heure de Paris
+  (`src/lib/timezone.ts`, même convention que les échéances des tâches).
+- Une date à venir est refusée : le journal consigne ce qui a eu lieu ; pour
+  un rendez-vous à venir, on crée une tâche.
+- Consignée depuis une **affaire**, l'interaction est aussi rattachée au
+  client de l'affaire : elle apparaît sur sa fiche, part dans son export, et
+  disparaît avec sa pierre tombale (elle parle de lui). Si le client a déjà
+  été supprimé, elle vit sur l'affaire seule.
+- Seules les interactions saisies se suppriment ; le reste est de
+  l'histoire, on ne la récrit pas.
+- Les erreurs reviennent sur la fiche en paramètre d'URL dédié
+  (`erreurJournal`), distinct de celui de la section tâches (`erreur`) :
+  deux formulaires sur la même fiche, deux messages jamais confondus.
+
+### Fuseau d'affichage — correction transverse
+
+`formatDate`/`formatDateTime` (`src/lib/format.ts`) rendaient l'heure du
+serveur — UTC sur Vercel — donc une interaction consignée à 10 h se serait
+affichée 08 h. Le fuseau produit est centralisé dans `src/lib/timezone.ts`
+et appliqué au formatage. Touche par construction tous les affichages de
+date du produit (newsletters comprises : « modifiée le … » gagne deux
+heures d'exactitude). C'est le seul fichier du socle UI modifié à cette
+étape, pour cette raison.
+
+### Newsletter depuis une fiche contact
+
+« Rédiger une newsletter pour ce contact » crée un **brouillon** dont le
+brief est pré-rempli depuis la fiche, puis ouvre l'éditeur existant dessus
+(`/newsletters/[id]`). Le composer n'est pas modifié : il reçoit une
+newsletter comme une autre, via `saveNewsletter`, qui vérifie que le groupe
+de destinataires appartient à l'organisation.
+
+Contenu du brief : identité professionnelle (nom, fonction, société, ville),
+étiquettes, affaires en cours avec leur étape, et une ligne « Objectif de
+l'email : (à préciser) ». **Jamais** les notes privées du conseiller ni la
+date de naissance : le brief part au modèle d'IA, on n'y met que ce qu'un
+email pourrait légitimement refléter.
+
+Limite connue : aucun lien structuré newsletter ↔ contact n'existe en base
+(`newsletters` n'a pas de `contact_id`). La section « Newsletters » de la
+fiche reste donc honnête (l'historique d'envoi n'existe pas, l'outil
+n'envoie rien) et ne liste pas les brouillons écrits pour la personne. Poser
+cette colonne est une décision de schéma dans le périmètre du composer —
+à arbitrer, pas prise seule.
+
+### Tableau de bord — les trois modules
+
+- Rangée « aujourd'hui » : À faire (tâches en retard + du jour, rouge s'il
+  y a du retard), À relancer, Sans suite, À encaisser.
+- Rangée « dossiers » : Contacts, Affaires en cours (montant au pipeline),
+  Gagnées, Partages actifs.
+- « À faire aujourd'hui » : les 6 premières tâches échues ou du jour,
+  achevables d'un clic (exigence « depuis n'importe quelle vue »), renvoi
+  vers l'écran des tâches pour le reste.
+- « À traiter en priorité » (PRM, inchangé) et « Activité récente »
+  (journal de l'organisation).
+- Ouvrir le tableau de bord **génère les tâches automatiques** comme
+  l'écran des tâches (idempotent ; le tableau de suivi déjà calculé pour
+  les tuiles est réutilisé) — sinon la tuile « À relancer » et la liste
+  « à faire » se contrediraient tant qu'on n'a pas ouvert `/taches`.
+- Trois états : `loading.tsx` et `error.tsx` ajoutés (la vue globale super
+  admin est inchangée).
+
+### Preuves
+
+- `npm run db:test-isolation` est réécrit, **autonome et réversible** : deux
+  organisations jetables (`_iso-a`, `_iso-b`) avec un jeu complet chacune,
+  44 contrôles — lectures et écritures par les mêmes fonctions que les
+  écrans, puis rejets par la base elle-même (FK composites, code 23503) —
+  et suppression vérifiée à zéro reliquat. Ne touche à aucune organisation
+  existante.
+- `scripts/perf-dataset.ts` crée désormais aussi 3 000 interactions et
+  1 000 passages d'étape (le journal et les durées les lisent).
+
+### Pagination de l'écran des tâches — corrigé à la mesure
+
+Trouvé par la mesure HTTP à l'échelle du jeu de performance : `/taches`
+rendait TOUTES les tâches ouvertes de l'organisation (1 334 dans le jeu),
+chacune avec son panneau d'édition — 2,5 s de rendu pour 41 ms de requête,
+et une entorse à « pagination côté serveur ». Les tâches ouvertes se lisent
+désormais par pages de 50 (comme les contacts et les affaires), les plus
+urgentes d'abord (échéance croissante,
+sans échéance en dernier) ; les totaux des quatre piles sont comptés en
+base, l'en-tête de pile dit « (total) · N sur cette page », les actions
+reviennent à la page courante, une page au-delà de la dernière ramène à la
+dernière. Les achevées récentes restaient déjà limitées à 30.
+
+### Indexation — à décider quand le volume le justifiera
+
+Les nouvelles lectures du journal s'appuient sur les index existants
+(`activities`, `deal_stage_changes`, `tasks`) sauf deux : `deal_events`
+(aucun index hors clés) et `tasks (organization_id, status, completed_at)`.
+Les mesures à l'échelle du jeu de performance (voir le message de commit de
+l'étape 6) tiennent l'exigence des 300 ms sans eux ; une migration d'index
+sera proposée le jour où les volumes réels s'en approchent — jamais
+appliquée sans accord.

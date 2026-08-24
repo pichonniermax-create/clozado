@@ -3,25 +3,53 @@ import {
   ArrowRight,
   Banknote,
   BellRing,
+  BookUser,
   Briefcase,
+  Check,
+  Flag,
+  Handshake,
+  ListTodo,
   PauseCircle,
   Plus,
-  Users,
 } from "lucide-react";
 import { redirect } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListCard, ListRow, ListRowLink } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { StatTile } from "@/components/stat-tile";
-import { buttonVariants } from "@/components/ui/button";
+import { Journal } from "@/components/activities/journal";
+import { TASK_AUTO_RULE_LABELS } from "@/components/tasks/labels";
+import { TaskMetaLine } from "@/components/tasks/task-section";
+import { listOrganizationJournal } from "@/db/queries/activities";
+import { countContacts } from "@/db/queries/contacts";
 import { getFollowUpBoard } from "@/db/queries/deal-follow-up";
-import { listDeals } from "@/db/queries/deals";
+import { getPipelineSummary } from "@/db/queries/deals";
 import { getOwnOrganization, getVisibleOrganizations } from "@/db/queries/organizations";
 import { listPartners } from "@/db/queries/partners";
+import { generateAutoTasks, getTasksDueSummary } from "@/db/queries/tasks";
 import { setActiveOrganizationAction } from "@/lib/admin/actions";
+import { completeTaskAction } from "@/lib/tasks/actions";
 import { formatDays, formatEuros } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 
+/** Tâches montrées sur le tableau de bord — le reste vit sur l'écran des tâches. */
+const TASKS_PREVIEW = 6;
+/** Entrées d'activité récente. */
+const JOURNAL_PREVIEW = 8;
+
+function plural(n: number, singular: string, pluralForm = `${singular}s`) {
+  return `${n} ${n > 1 ? pluralForm : singular}`;
+}
+
+/**
+ * Le tableau de bord agrège les trois modules — tâches, PRM, pipeline et
+ * contacts — et n'est plus le seul reflet du PRM. Il annonce ce qui attend
+ * et renvoie vers l'écran où l'on travaille ; la seule action possible ici
+ * est d'achever une tâche d'un clic (exigence du module tâches : depuis
+ * n'importe quelle vue).
+ */
 export default async function DashboardPage() {
   const user = await requireUser();
 
@@ -64,11 +92,20 @@ export default async function DashboardPage() {
     );
   }
 
-  const [org, board, deals, partners] = await Promise.all([
+  const board = await getFollowUpBoard(user);
+  // Comme l'écran des tâches : ouvrir le tableau de bord matérialise en
+  // tâches ce que le suivi signale (idempotent, voir generateAutoTasks) —
+  // sinon la tuile « À relancer » et la liste « à faire » se contrediraient
+  // tant qu'on n'a pas ouvert /taches. Le tableau déjà calculé est réutilisé.
+  await generateAutoTasks(user, board);
+
+  const [org, pipeline, contactsCount, partners, tasksDue, journal] = await Promise.all([
     getOwnOrganization(user),
-    getFollowUpBoard(user),
-    listDeals(user),
+    getPipelineSummary(user),
+    countContacts(user),
     listPartners(user),
+    getTasksDueSummary(user, TASKS_PREVIEW),
+    listOrganizationJournal(user, JOURNAL_PREVIEW),
   ]);
 
   const unpaidTotal = board.unpaidCommissions.reduce(
@@ -76,6 +113,7 @@ export default async function DashboardPage() {
     0
   );
   const activePartners = partners.filter((p) => p.active).length;
+  const tasksNow = tasksDue.overdue + tasksDue.today;
 
   // Les trois piles d'action, remises bout à bout et tronquées : le tableau
   // de bord annonce ce qui attend, l'écran de suivi est celui où l'on
@@ -108,12 +146,12 @@ export default async function DashboardPage() {
     <>
       <PageHeader
         title={org?.name ?? "Tableau de bord"}
-        description={`${deals.length} affaire${deals.length > 1 ? "s" : ""} · ${activePartners} partenaire${activePartners > 1 ? "s" : ""} actif${activePartners > 1 ? "s" : ""}`}
+        description={`${plural(contactsCount, "contact")} · ${plural(pipeline.open.n, "affaire en cours", "affaires en cours")} · ${plural(activePartners, "partenaire actif", "partenaires actifs")}`}
         actions={
           <>
-            <Link href="/partenaires" className={buttonVariants({ variant: "outline" })}>
-              <Users />
-              Partenaires
+            <Link href="/contacts" className={buttonVariants({ variant: "outline" })}>
+              <BookUser />
+              Contacts
             </Link>
             <Link href="/affaires" className={buttonVariants()}>
               <Plus />
@@ -123,7 +161,20 @@ export default async function DashboardPage() {
         }
       />
 
+      {/* Aujourd'hui : ce qui attend une action, tous modules confondus. */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatTile
+          label="À faire"
+          value={tasksNow}
+          hint={
+            tasksDue.overdue > 0
+              ? `dont ${plural(tasksDue.overdue, "en retard")}`
+              : "Tâches du jour"
+          }
+          icon={<ListTodo />}
+          tone={tasksDue.overdue > 0 ? "critical" : "warning"}
+          href="/taches"
+        />
         <StatTile
           label="À relancer"
           value={board.pendingAlerts.length}
@@ -143,19 +194,101 @@ export default async function DashboardPage() {
         <StatTile
           label="À encaisser"
           value={unpaidTotal > 0 ? (formatEuros(unpaidTotal) ?? "—") : "—"}
-          hint={`${board.unpaidCommissions.length} commission${board.unpaidCommissions.length > 1 ? "s" : ""} confirmée${board.unpaidCommissions.length > 1 ? "s" : ""}`}
+          hint={`${plural(board.unpaidCommissions.length, "commission confirmée", "commissions confirmées")}`}
           icon={<Banknote />}
           tone="success"
           href="/suivi"
         />
+      </div>
+
+      {/* Les dossiers : la matière, pas l'urgence — ton neutre. */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
-          label="En cours"
-          value={board.inProgress.length}
-          hint="Partages actifs, rien à faire"
+          label="Contacts"
+          value={contactsCount}
+          hint="Personnes et sociétés"
+          icon={<BookUser />}
+          href="/contacts"
+        />
+        <StatTile
+          label="Affaires en cours"
+          value={pipeline.open.n}
+          hint={pipeline.open.amount > 0 ? `≈ ${formatEuros(pipeline.open.amount)} au pipeline` : "Dans le pipeline"}
           icon={<Briefcase />}
           href="/affaires"
         />
+        <StatTile
+          label="Gagnées"
+          value={pipeline.won.n}
+          hint={pipeline.won.amount > 0 ? `≈ ${formatEuros(pipeline.won.amount)}` : "Affaires conclues"}
+          icon={<Flag />}
+          tone="success"
+          href="/affaires?vue=liste"
+        />
+        <StatTile
+          label="Partages actifs"
+          value={board.inProgress.length}
+          hint="Rien à faire pour l'instant"
+          icon={<Handshake />}
+          href="/suivi"
+        />
       </div>
+
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold">À faire aujourd&apos;hui</h2>
+          <Link
+            href="/taches"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Toutes les tâches
+            <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
+
+        {tasksDue.rows.length === 0 ? (
+          <EmptyState className="py-8">Rien d&apos;échu ni de prévu pour aujourd&apos;hui.</EmptyState>
+        ) : (
+          <>
+            <ListCard>
+              {tasksDue.rows.map((task) => (
+                <li key={task.id} className="flex items-center gap-3 px-4 py-3">
+                  <form action={completeTaskAction.bind(null, { taskId: task.id, backTo: "/dashboard" })}>
+                    <Button
+                      type="submit"
+                      variant="outline"
+                      size="icon-sm"
+                      className="rounded-full"
+                      aria-label={`Marquer « ${task.title} » comme faite`}
+                      title="Marquer comme faite"
+                    >
+                      <Check />
+                    </Button>
+                  </form>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-sm font-medium">{task.title}</span>
+                    <TaskMetaLine task={task} />
+                  </div>
+                  {task.autoRule && (
+                    <Badge variant="secondary" className="shrink-0">
+                      {TASK_AUTO_RULE_LABELS[task.autoRule] ?? task.autoRule}
+                    </Badge>
+                  )}
+                </li>
+              ))}
+            </ListCard>
+            {tasksNow > tasksDue.rows.length && (
+              <p className="text-xs text-muted-foreground">
+                Et {plural(tasksNow - tasksDue.rows.length, "autre")} —{" "}
+                <Link href="/taches" className="underline underline-offset-2 hover:text-foreground">
+                  voir toutes les tâches
+                </Link>
+                .
+              </p>
+            )}
+          </>
+        )}
+      </section>
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
@@ -196,6 +329,15 @@ export default async function DashboardPage() {
           </ListCard>
         )}
       </section>
+
+      <Journal
+        journal={journal}
+        backTo="/dashboard"
+        context="org"
+        title="Activité récente"
+        description="Interactions, étapes franchies, partages, tâches achevées — toute l'organisation, les plus récentes d'abord."
+        emptyText="Rien encore : les appels, rendez-vous et notes se consignent depuis les fiches contact et affaire ; le reste arrive tout seul."
+      />
     </>
   );
 }

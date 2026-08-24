@@ -5,6 +5,8 @@
  * commencé : une `formatDate` locale dans la liste des newsletters).
  */
 
+import { PRODUCT_TIMEZONE } from "@/lib/timezone";
+
 /** Espace fine insécable — un « 12 j » ou un « 1,5 % » ne se coupe jamais en fin de ligne. */
 const NNBSP = "\u202f";
 
@@ -52,10 +54,18 @@ export function formatCommission(commission: {
   return base ?? computed ?? "—";
 }
 
+/**
+ * Dates et heures rendues dans le fuseau du produit (Europe/Paris), jamais
+ * dans celui du serveur : sans cela, une interaction consignée à 10 h
+ * s'affichait 08 h une fois déployée (Vercel est en UTC).
+ */
 export function formatDate(date: Date | string): string {
-  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(
-    typeof date === "string" ? new Date(date) : date
-  );
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: PRODUCT_TIMEZONE,
+  }).format(typeof date === "string" ? new Date(date) : date);
 }
 
 export function formatDateTime(date: Date | string): string {
@@ -64,5 +74,6 @@ export function formatDateTime(date: Date | string): string {
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: PRODUCT_TIMEZONE,
   }).format(typeof date === "string" ? new Date(date) : date);
 }

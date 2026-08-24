@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Download } from "lucide-react";
+import { Download, Mail } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,8 +10,11 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ListCard, ListRow, ListRowLink } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
+import { Journal } from "@/components/activities/journal";
+import { JOURNAL_ERROR_PARAM } from "@/components/activities/labels";
 import { TaskSection } from "@/components/tasks/task-section";
 import { Textarea } from "@/components/ui/textarea";
+import { listContactJournal } from "@/db/queries/activities";
 import {
   findDuplicateCandidates,
   getContactPageData,
@@ -19,7 +22,9 @@ import {
   listOrgUsers,
   logContactAccess,
 } from "@/db/queries/contacts";
+import { listMailTargets } from "@/db/queries/mail-targets";
 import {
+  createNewsletterForContactAction,
   deleteContactAction,
   mergeContactsAction,
   saveContactTagsAction,
@@ -27,13 +32,6 @@ import {
 } from "@/lib/contacts/actions";
 import { formatDate, formatDateTime, formatEuros } from "@/lib/format";
 import { requireUser } from "@/lib/session";
-
-const ACTIVITY_LABELS: Record<string, string> = {
-  call: "Appel",
-  email: "Email",
-  meeting: "Rendez-vous",
-  note: "Note",
-};
 
 const ACCESS_LABELS: Record<string, string> = {
   view: "Consultation",
@@ -47,28 +45,31 @@ export default async function ContactPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ erreur?: string }>;
+  /** `erreur` : section tâches ; `erreurJournal` : journal ; `erreurNewsletter` : rédaction depuis la fiche. */
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const user = await requireUser();
   const { id } = await params;
-  const { erreur } = await searchParams;
+  const query = await searchParams;
 
   const data = await getContactPageData(user, id).catch(() => null);
   if (!data) notFound();
 
-  const { contact, tags, allTags, deals, tasks, activities, company, employees, owner } = data;
+  const { contact, tags, allTags, deals, tasks, company, employees, owner } = data;
   const isPerson = contact.kind === "person";
 
   // Journal des accès : la consultation est tracée côté serveur, dédupliquée
   // à l'heure (exigence données personnelles, docs/module-relationnel.md §C).
   await logContactAccess(contact, user.id, "view");
 
-  const [accessLog, orgUsers, duplicates] = await Promise.all([
+  const [accessLog, orgUsers, duplicates, journal, mailTargets] = await Promise.all([
     listContactAccessLog(user, id),
     listOrgUsers(user),
     contact.deletedAt
       ? Promise.resolve([])
       : findDuplicateCandidates(user, { name: contact.name, email: contact.email }, id),
+    contact.deletedAt ? Promise.resolve(null) : listContactJournal(user, id),
+    contact.deletedAt ? Promise.resolve([]) : listMailTargets(user),
   ]);
 
   // -------------------------------------------------------------------
@@ -283,39 +284,71 @@ export default async function ContactPage({
         backTo={`/contacts/${contact.id}`}
         contactId={contact.id}
         emptyText="Aucune tâche pour ce contact — l'ajout rapide ci-dessous la rattache à cette fiche."
-        erreur={erreur}
+        erreur={query.erreur}
       />
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">Interactions</h2>
-        {activities.length === 0 ? (
-          <EmptyState>
-            Aucune interaction enregistrée. Appels, rendez-vous et notes se consigneront ici.
-          </EmptyState>
-        ) : (
-          <ListCard>
-            {activities.map((a) => (
-              <ListRow key={a.id}>
-                <div className="flex min-w-0 flex-col">
-                  <span className="text-sm font-medium">{ACTIVITY_LABELS[a.type] ?? a.type}</span>
-                  {a.content && <span className="truncate text-sm text-muted-foreground">{a.content}</span>}
-                </div>
-                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                  {formatDateTime(a.occurredAt)}
-                </span>
-              </ListRow>
-            ))}
-          </ListCard>
-        )}
-      </section>
+      {/* Le journal unifié : ce qui s'est passé avec cette personne — ses
+          interactions, et ce qui est arrivé à ses affaires (étapes, partages,
+          tâches achevées) dans la même chronologie. */}
+      {journal && (
+        <Journal
+          journal={journal}
+          backTo={`/contacts/${contact.id}`}
+          contactId={contact.id}
+          context="contact"
+          erreur={query[JOURNAL_ERROR_PARAM]}
+          description="Appels, emails, rendez-vous et notes — et ce que ses affaires racontent : étapes franchies, partages, tâches achevées."
+        />
+      )}
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">Newsletters reçues</h2>
+        <h2 className="text-sm font-semibold">Newsletters</h2>
         <EmptyState>
-          Rien à montrer : l&apos;outil compose les newsletters mais ne les envoie pas — l&apos;envoi
-          se fait depuis ton outil d&apos;emailing. Cette section se remplira quand une
-          synchronisation ramènera l&apos;historique d&apos;envoi.
+          L&apos;outil compose les newsletters, ton outil d&apos;emailing les envoie : l&apos;historique
+          des envois n&apos;existe pas ici. Cette section se remplira quand une synchronisation le
+          ramènera.
         </EmptyState>
+        {query.erreurNewsletter && (
+          <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">
+            {query.erreurNewsletter}
+          </p>
+        )}
+        {mailTargets.length > 0 ? (
+          <form
+            action={createNewsletterForContactAction.bind(null, contact.id)}
+            className="flex flex-wrap items-center gap-2"
+          >
+            {mailTargets.length > 1 ? (
+              <select
+                name="targetId"
+                defaultValue={mailTargets[0].id}
+                aria-label="Groupe de destinataires"
+                className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+              >
+                {mailTargets.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input type="hidden" name="targetId" value={mailTargets[0].id} />
+            )}
+            <Button type="submit" variant="outline">
+              <Mail />
+              Rédiger une newsletter pour ce contact
+            </Button>
+            <p className="w-full text-xs text-muted-foreground">
+              Ouvre l&apos;éditeur sur un brouillon dont le brief est déjà rempli depuis cette fiche
+              (nom, fonction, société, étiquettes, affaires en cours) — jamais les notes.
+            </p>
+          </form>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Pour rédiger une newsletter depuis cette fiche, il faut d&apos;abord un groupe de
+            destinataires configuré pour ton organisation.
+          </p>
+        )}
       </section>
 
       {duplicates.length > 0 && (

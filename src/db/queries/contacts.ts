@@ -7,6 +7,7 @@ import {
   contactTagAssignments,
   contactTags,
   deals,
+  dealStatuses,
   tasks,
   users,
   type Contact,
@@ -749,6 +750,69 @@ export async function importContacts(
         : "L'import a échoué avant la première fiche — sans doute un incident de notre côté, ta préparation n'est pas en cause. Réessaie.";
   }
   return report;
+}
+
+/** Le nombre de fiches vivantes — la tuile du tableau de bord. */
+export async function countContacts(user: OrgScopeUser): Promise<number> {
+  const [row] = await db
+    .select({ n: count() })
+    .from(contacts)
+    .where(and(orgScope(user, contacts.organizationId), isNull(contacts.deletedAt)));
+  return row?.n ?? 0;
+}
+
+/**
+ * Le brief d'une newsletter écrite POUR ce contact : ce que la fiche sait
+ * d'utile pour personnaliser — identité professionnelle, étiquettes,
+ * affaires en cours avec leur étape. Jamais les notes privées du
+ * conseiller ni la date de naissance : le brief part au modèle d'IA, on n'y
+ * met que ce qu'un email pourrait légitimement refléter. Le composer de
+ * newsletters n'est pas modifié : il reçoit un brouillon comme un autre.
+ */
+export async function buildContactNewsletterBrief(user: OrgScopeUser, contactId: string) {
+  const contact = await getContact(user, contactId);
+  if (contact.deletedAt) throw new Error("Cette fiche a été supprimée : on n'écrit plus à cette personne.");
+
+  const [tagRows, openDeals] = await Promise.all([
+    db
+      .select({ label: contactTags.label })
+      .from(contactTagAssignments)
+      .innerJoin(contactTags, eq(contactTagAssignments.tagId, contactTags.id))
+      .where(eq(contactTagAssignments.contactId, contactId))
+      .orderBy(asc(contactTags.position), asc(contactTags.label)),
+    db
+      .select({ title: deals.title, stageLabel: dealStatuses.label })
+      .from(deals)
+      .innerJoin(dealStatuses, eq(deals.statusId, dealStatuses.id))
+      .where(
+        and(
+          eq(deals.organizationId, contact.organizationId),
+          eq(deals.contactId, contactId),
+          isNull(dealStatuses.outcome)
+        )
+      )
+      .orderBy(desc(deals.updatedAt))
+      .limit(5),
+  ]);
+
+  const isPerson = contact.kind === "person";
+  // « Directrice financière chez Cap Test » forme un seul groupe — la
+  // virgule sépare les groupes, pas la fonction de la société.
+  const role = isPerson
+    ? [contact.jobTitle, contact.companyName ? `chez ${contact.companyName}` : null].filter(Boolean).join(" ")
+    : "";
+  const who = [contact.name, role || null, contact.city].filter(Boolean).join(", ");
+
+  const lines = [`Destinataire : ${who}.`];
+  if (tagRows.length > 0) lines.push(`Étiquettes : ${tagRows.map((t) => t.label).join(", ")}.`);
+  if (openDeals.length > 0) {
+    lines.push(
+      `Affaires en cours : ${openDeals.map((d) => `« ${d.title} » (étape ${d.stageLabel})`).join(" ; ")}.`
+    );
+  }
+  lines.push("Objectif de l'email : (à préciser avant de générer)");
+
+  return { title: `Newsletter pour ${contact.name}`, brief: lines.join("\n") };
 }
 
 /** Les conseillers de l'organisation (pour l'attribution). */

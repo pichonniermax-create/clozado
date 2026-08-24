@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Check, RotateCcw } from "lucide-react";
+import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -14,6 +15,7 @@ import { TASK_AUTO_RULE_LABELS, TASK_PRIORITY_LABELS } from "@/components/tasks/
 import { TaskMetaLine } from "@/components/tasks/task-section";
 import { listOrgUsers } from "@/db/queries/contacts";
 import {
+  TASKS_PAGE_SIZE,
   dueDateInputValue,
   generateAutoTasks,
   listTasksBoard,
@@ -32,6 +34,7 @@ import { cn } from "@/lib/utils";
 
 type Params = {
   conseiller?: string;
+  page?: string;
   erreur?: string;
 };
 
@@ -61,19 +64,26 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   // (idempotent, voir generateAutoTasks).
   await generateAutoTasks(user);
 
+  const page = Number(params.page) > 0 ? Number(params.page) : 1;
   const [board, orgUsers] = await Promise.all([
-    listTasksBoard(user, { assigneeId: params.conseiller || undefined }),
+    listTasksBoard(user, { assigneeId: params.conseiller || undefined, page }),
     listOrgUsers(user),
   ]);
 
-  // L'URL de CET écran, filtres compris — les actions y reviennent.
+  // L'URL de CET écran, filtres et page compris — les actions y reviennent.
   // L'erreur éventuelle n'y est jamais reconduite : elle se montre une fois.
-  const backTo = params.conseiller
-    ? `/taches?conseiller=${encodeURIComponent(params.conseiller)}`
-    : "/taches";
+  const pageHref = (p: number) => {
+    const sp = new URLSearchParams();
+    if (params.conseiller) sp.set("conseiller", params.conseiller);
+    if (p > 1) sp.set("page", String(p));
+    const s = sp.toString();
+    return `/taches${s ? `?${s}` : ""}`;
+  };
+  // Une page au-delà de la dernière (tâches achevées entre-temps) ramène à la dernière.
+  if (board.page > board.pageCount) redirect(pageHref(board.pageCount));
+  const backTo = pageHref(board.page);
 
-  const openCount =
-    board.overdue.length + board.today.length + board.upcoming.length + board.noDue.length;
+  const openCount = board.counts.open;
 
   return (
     <>
@@ -149,10 +159,31 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         </EmptyState>
       ) : (
         <>
-          <TaskPile label="En retard" tasks={board.overdue} tone="destructive" {...{ backTo, orgUsers }} />
-          <TaskPile label="Aujourd'hui" tasks={board.today} {...{ backTo, orgUsers }} />
-          <TaskPile label="À venir" tasks={board.upcoming} {...{ backTo, orgUsers }} />
-          <TaskPile label="Sans échéance" tasks={board.noDue} {...{ backTo, orgUsers }} />
+          <TaskPile label="En retard" tasks={board.overdue} total={board.counts.overdue} tone="destructive" {...{ backTo, orgUsers }} />
+          <TaskPile label="Aujourd'hui" tasks={board.today} total={board.counts.today} {...{ backTo, orgUsers }} />
+          <TaskPile label="À venir" tasks={board.upcoming} total={board.counts.upcoming} {...{ backTo, orgUsers }} />
+          <TaskPile label="Sans échéance" tasks={board.noDue} total={board.counts.noDue} {...{ backTo, orgUsers }} />
+          {board.pageCount > 1 && (
+            <nav className="flex items-center justify-between text-sm" aria-label="Pages de tâches">
+              {board.page > 1 ? (
+                <Link href={pageHref(board.page - 1)} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                  ← Plus urgentes
+                </Link>
+              ) : (
+                <span />
+              )}
+              <span className="tabular-nums text-muted-foreground">
+                Page {board.page} sur {board.pageCount} · {TASKS_PAGE_SIZE} par page, les plus urgentes d&apos;abord
+              </span>
+              {board.page < board.pageCount ? (
+                <Link href={pageHref(board.page + 1)} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                  Suivantes →
+                </Link>
+              ) : (
+                <span />
+              )}
+            </nav>
+          )}
         </>
       )}
 
@@ -208,12 +239,16 @@ function FilterPill({ href, label, active }: { href: string; label: string; acti
 function TaskPile({
   label,
   tasks,
+  total,
   tone,
   backTo,
   orgUsers,
 }: {
   label: string;
+  /** Les lignes de la page courante. */
   tasks: TaskRow[];
+  /** Le total de la pile, toutes pages confondues. */
+  total: number;
   tone?: "destructive";
   backTo: string;
   orgUsers: OrgUser[];
@@ -222,7 +257,10 @@ function TaskPile({
   return (
     <section className="flex flex-col gap-3">
       <h2 className={cn("text-sm font-semibold", tone === "destructive" && "text-destructive")}>
-        {label} ({tasks.length})
+        {label} ({total})
+        {tasks.length < total && (
+          <span className="font-normal text-muted-foreground"> · {tasks.length} sur cette page</span>
+        )}
       </h2>
       <ListCard>
         {tasks.map((task) => (

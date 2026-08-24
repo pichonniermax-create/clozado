@@ -69,7 +69,7 @@ export async function createDealShareAction(input: CreateShareInput) {
 
 export async function revokeDealShareAction(shareId: string) {
   const user = await requireUser();
-  return revokeDealShare(user, shareId);
+  return revokeDealShare(user, shareId, user.id);
 }
 
 /** "Renvoyer le lien" : révoque l'ancien partage, en crée un nouveau — renvoie le NOUVEAU jeton en clair, une seule fois. */

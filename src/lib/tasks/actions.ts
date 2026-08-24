@@ -9,6 +9,7 @@ import {
   updateTask,
   type TaskInput,
 } from "@/db/queries/tasks";
+import { errorMessage, withError } from "@/lib/form-actions";
 import { requireUser } from "@/lib/session";
 
 /**
@@ -23,17 +24,6 @@ type ActionContext = {
   /** Chemin interne de l'écran appelant, paramètres compris. */
   backTo: string;
 };
-
-function withError(backTo: string, message: string): string {
-  const separator = backTo.includes("?") ? "&" : "?";
-  return `${backTo}${separator}erreur=${encodeURIComponent(message)}`;
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error && error.message
-    ? error.message
-    : "L'opération a échoué de notre côté — réessaie.";
-}
 
 function readPriority(formData: FormData): "low" | "normal" | "high" {
   const value = String(formData.get("priority") ?? "");

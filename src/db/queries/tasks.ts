@@ -1,10 +1,11 @@
-import { and, asc, count, desc, eq, inArray, isNotNull, lt, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNotNull, isNull, lt, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { contacts, deals, tasks, users, type NewTask, type Task } from "@/db/schema";
 import { assertOrgAccess, orgScope } from "@/db/scope";
 import { formatCommission, formatDate, formatDays } from "@/lib/format";
 import type { OrgScopeUser } from "@/lib/session";
-import { daysBetween, getFollowUpBoard } from "./deal-follow-up";
+import { PRODUCT_TIMEZONE } from "@/lib/timezone";
+import { daysBetween, getFollowUpBoard, type FollowUpBoard } from "./deal-follow-up";
 import { getOwnOrganizationOrThrow } from "./newsletters";
 
 /**
@@ -21,14 +22,9 @@ import { getOwnOrganizationOrThrow } from "./newsletters";
 
 /**
  * Les échéances sont des JOURS, pas des instants : stockées à minuit UTC de
- * la date choisie, comparées à la date calendrier du produit. La clientèle
- * est française — le « aujourd'hui » du produit est celui d'Europe/Paris,
- * pas celui du serveur (UTC sur Vercel : à 23 h à Paris, la journée n'est
- * pas finie). À revoir si le produit s'internationalise (fuseau par
- * organisation).
+ * la date choisie, comparées à la date calendrier du produit — le
+ * « aujourd'hui » d'Europe/Paris (lib/timezone.ts), pas celui du serveur.
  */
-const PRODUCT_TIMEZONE = "Europe/Paris";
-
 /** La date du jour (calendrier Europe/Paris), représentée à minuit UTC — même convention que les échéances stockées. */
 export function todayAsStoredDate(): Date {
   // en-CA donne « YYYY-MM-DD » directement.
@@ -134,7 +130,21 @@ export type TasksBoard = {
   noDue: TaskRow[];
   /** Les dernières achevées — matière à consulter, pas à traiter. */
   done: TaskRow[];
+  /** Totaux par pile, calculés en base — les piles ci-dessus ne portent que la page courante. */
+  counts: { overdue: number; today: number; upcoming: number; noDue: number; open: number };
+  page: number;
+  pageCount: number;
 };
+
+/**
+ * Les tâches ouvertes se lisent par pages de 50 — même taille que les
+ * contacts et les affaires — les plus urgentes d'abord (échéance
+ * croissante, sans échéance en dernier) : la première page est le travail
+ * du jour, les suivantes le reste. Mesuré à 1 334 tâches ouvertes : rendre
+ * toutes les lignes (chacune avec son panneau d'édition) coûtait 2,5 s —
+ * la requête, elle, 41 ms.
+ */
+export const TASKS_PAGE_SIZE = 50;
 
 function taskSelection() {
   return {
@@ -171,9 +181,13 @@ const DONE_LIMIT = 30;
 
 export async function listTasksBoard(
   user: OrgScopeUser,
-  filters: { assigneeId?: string } = {}
+  filters: { assigneeId?: string; page?: number } = {}
 ): Promise<TasksBoard> {
+  const page = Math.max(1, filters.page ?? 1);
   const assigneeFilter = filters.assigneeId ? eq(tasks.assigneeId, filters.assigneeId) : undefined;
+  const open = and(orgScope(user, tasks.organizationId), eq(tasks.status, "open"), assigneeFilter);
+  const today = todayAsStoredDate();
+  const tomorrow = addInterval(today, "day", 1);
 
   const base = () =>
     db
@@ -182,23 +196,42 @@ export async function listTasksBoard(
       .leftJoin(users, eq(tasks.assigneeId, users.id))
       .leftJoin(contacts, eq(tasks.contactId, contacts.id))
       .leftJoin(deals, eq(tasks.dealId, deals.id));
+  const countOpen = (extra: SQL) =>
+    db
+      .select({ n: count() })
+      .from(tasks)
+      .where(and(open, extra))
+      .then(([r]) => r?.n ?? 0);
 
-  const [openRows, doneRows] = await Promise.all([
+  const [openRows, doneRows, overdue, dueToday, upcoming, noDue] = await Promise.all([
     base()
-      .where(and(orgScope(user, tasks.organizationId), eq(tasks.status, "open"), assigneeFilter))
+      .where(open)
       // ASC met les NULL en dernier : les tâches datées d'abord, les sans
       // échéance à la fin ; à échéance égale, la priorité la plus haute d'abord.
-      .orderBy(asc(tasks.dueAt), desc(tasks.priority), asc(tasks.createdAt)),
+      .orderBy(asc(tasks.dueAt), desc(tasks.priority), asc(tasks.createdAt))
+      .limit(TASKS_PAGE_SIZE)
+      .offset((page - 1) * TASKS_PAGE_SIZE),
     base()
       .where(and(orgScope(user, tasks.organizationId), eq(tasks.status, "done"), assigneeFilter))
       .orderBy(desc(tasks.completedAt))
       .limit(DONE_LIMIT),
+    countOpen(lt(tasks.dueAt, today)),
+    countOpen(and(gte(tasks.dueAt, today), lt(tasks.dueAt, tomorrow))!),
+    countOpen(gte(tasks.dueAt, tomorrow)),
+    countOpen(isNull(tasks.dueAt)),
   ]);
 
-  const today = todayAsStoredDate();
-  const tomorrow = addInterval(today, "day", 1);
-
-  const board: TasksBoard = { overdue: [], today: [], upcoming: [], noDue: [], done: [] };
+  const openTotal = overdue + dueToday + upcoming + noDue;
+  const board: TasksBoard = {
+    overdue: [],
+    today: [],
+    upcoming: [],
+    noDue: [],
+    done: doneRows.map(toTaskRow),
+    counts: { overdue, today: dueToday, upcoming, noDue, open: openTotal },
+    page,
+    pageCount: Math.max(1, Math.ceil(openTotal / TASKS_PAGE_SIZE)),
+  };
   for (const raw of openRows) {
     const row = toTaskRow(raw);
     if (!row.dueAt) board.noDue.push(row);
@@ -206,7 +239,6 @@ export async function listTasksBoard(
     else if (row.dueAt < tomorrow) board.today.push(row);
     else board.upcoming.push(row);
   }
-  board.done = doneRows.map(toTaskRow);
   return board;
 }
 
@@ -225,6 +257,47 @@ export async function countTasksDueNow(user: OrgScopeUser): Promise<number> {
       )
     );
   return row?.value ?? 0;
+}
+
+export type TasksDueSummary = {
+  overdue: number;
+  today: number;
+  /** Les premières à traiter : en retard d'abord (la plus ancienne en tête), puis celles du jour. */
+  rows: TaskRow[];
+};
+
+/**
+ * Le « à faire maintenant » du tableau de bord : deux compteurs et une
+ * courte liste — jamais toutes les tâches ouvertes de l'organisation
+ * (c'est l'écran des tâches qui les montre).
+ */
+export async function getTasksDueSummary(user: OrgScopeUser, limit: number): Promise<TasksDueSummary> {
+  const today = todayAsStoredDate();
+  const tomorrow = addInterval(today, "day", 1);
+  const openDated = and(
+    orgScope(user, tasks.organizationId),
+    eq(tasks.status, "open"),
+    isNotNull(tasks.dueAt)
+  );
+
+  const [[overdue], [dueToday], rows] = await Promise.all([
+    db.select({ n: count() }).from(tasks).where(and(openDated, lt(tasks.dueAt, today))),
+    db
+      .select({ n: count() })
+      .from(tasks)
+      .where(and(openDated, gte(tasks.dueAt, today), lt(tasks.dueAt, tomorrow))),
+    db
+      .select(taskSelection())
+      .from(tasks)
+      .leftJoin(users, eq(tasks.assigneeId, users.id))
+      .leftJoin(contacts, eq(tasks.contactId, contacts.id))
+      .leftJoin(deals, eq(tasks.dealId, deals.id))
+      .where(and(openDated, lt(tasks.dueAt, tomorrow)))
+      .orderBy(asc(tasks.dueAt), desc(tasks.priority), asc(tasks.createdAt))
+      .limit(limit),
+  ]);
+
+  return { overdue: overdue?.n ?? 0, today: dueToday?.n ?? 0, rows: rows.map(toTaskRow) };
 }
 
 /** Les tâches ouvertes d'une fiche (affaire ou contact) — les fiches n'affichent pas les achevées. */
@@ -411,9 +484,10 @@ export async function deleteTask(user: OrgScopeUser, taskId: string) {
  * Les seuils et les définitions sont ceux de `getFollowUpBoard` : ce que le
  * suivi montre et ce que les tâches matérialisent ne peuvent pas diverger.
  */
-export async function generateAutoTasks(user: OrgScopeUser): Promise<void> {
+export async function generateAutoTasks(user: OrgScopeUser, knownBoard?: FollowUpBoard): Promise<void> {
   const org = await getOwnOrganizationOrThrow(user);
-  const board = await getFollowUpBoard(user);
+  // Le tableau de bord l'a déjà calculé pour ses tuiles : on ne le recalcule pas.
+  const board = knownBoard ?? (await getFollowUpBoard(user));
   const now = new Date();
   const today = todayAsStoredDate();
 

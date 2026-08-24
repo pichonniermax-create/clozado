@@ -125,7 +125,7 @@ export async function listDealShares(user: OrgScopeUser, dealId: string) {
     .orderBy(desc(dealShares.sentAt));
 }
 
-export async function revokeDealShare(user: OrgScopeUser, shareId: string) {
+export async function revokeDealShare(user: OrgScopeUser, shareId: string, actorUserId?: string | null) {
   const existing = await db.query.dealShares.findFirst({ where: eq(dealShares.id, shareId) });
   if (!existing) throw new Error("Partage introuvable.");
   assertOrgAccess(user, existing.organizationId);
@@ -143,6 +143,7 @@ export async function revokeDealShare(user: OrgScopeUser, shareId: string) {
     dealId: existing.dealId,
     shareId: existing.id,
     type: "share_revoked",
+    actorUserId: actorUserId ?? null,
   });
 
   return updated;
@@ -176,7 +177,7 @@ export async function reissueDealShare(user: OrgScopeUser, createdBy: string, sh
     where: eq(commissions.shareId, shareId),
   });
 
-  await revokeDealShare(user, shareId);
+  await revokeDealShare(user, shareId, createdBy);
 
   return createDealShare(user, createdBy, {
     dealId: existing.dealId,

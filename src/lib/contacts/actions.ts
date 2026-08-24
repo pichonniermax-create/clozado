@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import {
+  buildContactNewsletterBrief,
   createContact,
   createContactTag,
   deleteContact,
@@ -15,6 +16,8 @@ import {
   type ImportReport,
   type ImportRowInput,
 } from "@/db/queries/contacts";
+import { errorMessage, withError } from "@/lib/form-actions";
+import { saveNewsletter } from "@/lib/newsletter/actions";
 import { requireUser } from "@/lib/session";
 
 /**
@@ -130,6 +133,31 @@ export async function mergeContactsAction(survivorId: string, absorbedId: string
   const user = await requireUser();
   await mergeContacts(user, survivorId, absorbedId, user.id);
   redirect(`/contacts/${survivorId}`);
+}
+
+/** Paramètre d'URL de l'erreur de cette action sur la fiche (distinct de ceux des tâches et du journal). */
+const NEWSLETTER_ERROR_PARAM = "erreurNewsletter";
+
+/**
+ * « Rédiger une newsletter pour ce contact » : crée un brouillon dont le
+ * brief est déjà rempli depuis la fiche, puis ouvre l'éditeur existant sur
+ * ce brouillon — le composer n'est pas modifié, il reçoit une newsletter
+ * comme une autre (`saveNewsletter` vérifie que le groupe de destinataires
+ * appartient bien à l'organisation).
+ */
+export async function createNewsletterForContactAction(contactId: string, formData: FormData) {
+  const user = await requireUser();
+  const targetId = String(formData.get("targetId") ?? "").trim();
+  let destination: string;
+  try {
+    if (!targetId) throw new Error("Choisis le groupe de destinataires de la newsletter.");
+    const { title, brief } = await buildContactNewsletterBrief(user, contactId);
+    const id = await saveNewsletter({ targetId, title, brief, subject: "", preheader: "", blocks: [] });
+    destination = `/newsletters/${id}`;
+  } catch (error) {
+    destination = withError(`/contacts/${contactId}`, errorMessage(error), NEWSLETTER_ERROR_PARAM);
+  }
+  redirect(destination);
 }
 
 // ---------------------------------------------------------------------------
