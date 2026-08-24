@@ -32,6 +32,8 @@ export type CreateShareInput = {
    * libre à interpréter plus tard.
    */
   commission?: CreateShareCommissionInput | null;
+  /** Renvoi de lien : le partage que celui-ci remplace (chaîne suivie par l'analytique). */
+  replacesShareId?: string | null;
 };
 
 /**
@@ -74,6 +76,7 @@ export async function createDealShare(
     proposedTerms: input.proposedTerms ?? null,
     message: input.message ?? null,
     expiresAt: input.expiresAt ?? null,
+    replacesShareId: input.replacesShareId ?? null,
     createdBy,
   });
   const eventInsert = db.insert(dealEvents).values({
@@ -185,6 +188,9 @@ export async function reissueDealShare(user: OrgScopeUser, createdBy: string, sh
     proposedTerms: existing.proposedTerms,
     message: existing.message,
     expiresAt: existing.expiresAt,
+    // La chaîne : pour l'analytique, un lien renvoyé n'est pas un second
+    // partage sans réponse, c'est le même, envoyé à la date du premier.
+    replacesShareId: existing.id,
     commission: existingCommission
       ? {
           basis: existingCommission.basis,

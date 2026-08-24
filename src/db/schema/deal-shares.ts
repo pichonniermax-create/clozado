@@ -67,6 +67,15 @@ export const dealShares = pgTable(
      * matérialisée dans `status`, jamais dépendante d'une tâche de fond.
      */
     expiresAt: timestamp("expires_at", { withTimezone: true }),
+    /**
+     * « Renvoyer le lien » révoque un partage et en crée un nouveau : cette
+     * colonne relie le nouveau à celui qu'il remplace. Pour l'analytique,
+     * une chaîne de renvois est UN partage, envoyé à la date du premier —
+     * les remplacés ne comptent ni comme sans réponse ni comme refusés.
+     * NULL = premier envoi. Posée depuis le module analytique (étape 2) ;
+     * les renvois antérieurs restent sans lien (aucun en base à ce moment).
+     */
+    replacesShareId: uuid("replaces_share_id"),
     sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
     respondedAt: timestamp("responded_at", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
@@ -88,6 +97,12 @@ export const dealShares = pgTable(
       columns: [table.partnerId, table.organizationId],
       foreignColumns: [partners.id, partners.organizationId],
     }).onDelete("cascade"),
+    // Un partage ne peut remplacer qu'un partage de sa propre organisation.
+    foreignKey({
+      name: "deal_shares_replaces_org_fk",
+      columns: [table.replacesShareId, table.organizationId],
+      foreignColumns: [table.id, table.organizationId],
+    }),
   ]
 );
 

@@ -302,7 +302,7 @@ function UnpaidCommissionRow({ row }: { row: UnpaidCommission }) {
       dealTitle={row.dealTitle}
       partnerName={row.partnerName}
       dealId={row.dealId}
-      detail={`${formatCommission(row)} · confirmée le ${formatDate(row.confirmedAt)}`}
+      detail={`${formatCommission(row)} · ${row.confirmedAt ? `confirmée le ${formatDate(row.confirmedAt)}` : "date de confirmation inconnue"}`}
       action={<MarkCommissionSettledButton commissionId={row.commissionId} />}
     />
   );

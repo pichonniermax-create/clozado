@@ -111,7 +111,12 @@ export type ResolvedShare =
 
 type DealShareRow = typeof dealShares.$inferSelect;
 
-/** Lecture seule : résout un jeton en la vue minimale du partage, ou en un motif de refus. */
+/**
+ * Résout un jeton en la vue minimale du partage, ou en un motif de refus.
+ * Journalise la PREMIÈRE consultation (`share_viewed`, attribuée au
+ * partenaire) — une seule fois par partage : c'est la date qui compte pour
+ * « envoyé → consulté », les suivantes n'apprennent rien.
+ */
 export async function resolvePublicShare(token: string): Promise<ResolvedShare> {
   const share = await findShareByToken(token);
   if (!share) return { ok: false, reason: "not_found" };
@@ -119,7 +124,18 @@ export async function resolvePublicShare(token: string): Promise<ResolvedShare> 
   const rejection = await checkAccessible(share);
   if (rejection) return rejection;
 
+  await logFirstView(share);
   return { ok: true, view: await buildView(share) };
+}
+
+async function logFirstView(share: DealShareRow) {
+  const [seen] = await db
+    .select({ id: dealEvents.id })
+    .from(dealEvents)
+    .where(and(eq(dealEvents.shareId, share.id), eq(dealEvents.type, "share_viewed")))
+    .limit(1);
+  if (seen) return;
+  await logEvent(share, "share_viewed", null);
 }
 
 export type PublicShareAction =

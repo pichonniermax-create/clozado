@@ -491,8 +491,10 @@ export async function generateAutoTasks(user: OrgScopeUser, knownBoard?: FollowU
   const now = new Date();
   const today = todayAsStoredDate();
 
+  // Une commission dont la date de confirmation est inconnue ne déclenche
+  // pas la règle : on ne compte pas des jours depuis une date qu'on n'a pas.
   const unpaidOverdue = board.unpaidCommissions.filter(
-    (c) => daysBetween(c.confirmedAt, now) >= org.commissionUnpaidDays
+    (c) => c.confirmedAt !== null && daysBetween(c.confirmedAt, now) >= org.commissionUnpaidDays
   );
 
   const dealIds = [
@@ -546,7 +548,7 @@ export async function generateAutoTasks(user: OrgScopeUser, knownBoard?: FollowU
     values.push({
       ...common(commission.dealId),
       title: `Solder la commission de ${commission.partnerName} — « ${commission.dealTitle} »`,
-      notes: `Générée automatiquement : commission ${formatCommission(commission)} confirmée le ${formatDate(commission.confirmedAt)}, non réglée après ${formatDays(org.commissionUnpaidDays)}. Le règlement se déclare sur la fiche de l'affaire ; achever cette tâche vaut « traité ».`,
+      notes: `Générée automatiquement : commission ${formatCommission(commission)} confirmée le ${formatDate(commission.confirmedAt!)}, non réglée après ${formatDays(org.commissionUnpaidDays)}. Le règlement se déclare sur la fiche de l'affaire ; achever cette tâche vaut « traité ».`,
       autoRule: "commission_unpaid",
       sourceCommissionId: commission.commissionId,
     });

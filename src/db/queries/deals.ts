@@ -170,12 +170,13 @@ export async function changeDealStage(
     reasonId = reason.id;
   }
 
+  const lossReasonAtChange = status.outcome === "lost" ? (reasonId ?? deal.lossReasonId) : null;
   await db.batch([
     db
       .update(deals)
       .set({
         statusId: status.id,
-        lossReasonId: status.outcome === "lost" ? (reasonId ?? deal.lossReasonId) : null,
+        lossReasonId: lossReasonAtChange,
         updatedAt: new Date(),
       })
       .where(eq(deals.id, dealId)),
@@ -185,6 +186,9 @@ export async function changeDealStage(
       fromStatusId: deal.statusId,
       toStatusId: status.id,
       actorUserId,
+      // Le motif AU MOMENT de la perte, historisé avec le passage (module
+      // analytique, correction 4) — deals.loss_reason_id n'est que courant.
+      lossReasonId: lossReasonAtChange,
     }),
     db.insert(dealEvents).values({
       organizationId: deal.organizationId,
@@ -244,6 +248,24 @@ export async function updateDealDetails(user: OrgScopeUser, dealId: string, inpu
     })
     .where(eq(deals.id, dealId))
     .returning();
+
+  // Le motif corrigé tant que l'affaire est dans l'étape perdue se reporte
+  // sur le passage qui l'y a menée : l'historique dit le motif de CETTE
+  // perte, pas seulement la valeur courante.
+  if (input.lossReasonId !== undefined && lossReasonId !== deal.lossReasonId) {
+    const latest = await db
+      .select({ id: dealStageChanges.id })
+      .from(dealStageChanges)
+      .where(and(eq(dealStageChanges.dealId, dealId), eq(dealStageChanges.toStatusId, deal.statusId)))
+      .orderBy(desc(dealStageChanges.changedAt))
+      .limit(1);
+    if (latest[0]) {
+      await db
+        .update(dealStageChanges)
+        .set({ lossReasonId })
+        .where(eq(dealStageChanges.id, latest[0].id));
+    }
+  }
   return updated;
 }
 

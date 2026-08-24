@@ -27,9 +27,12 @@ export async function confirmCommission(
 
   if (commission.state !== "prevue") return commission;
 
+  // La date de confirmation est une OBSERVATION posée ici, plus une
+  // approximation par updated_at (module analytique, correction 3).
+  const now = new Date();
   const [updated] = await db
     .update(commissions)
-    .set({ state: "confirmee", updatedAt: new Date() })
+    .set({ state: "confirmee", confirmedAt: now, updatedAt: now })
     .where(eq(commissions.id, commissionId))
     .returning();
 
@@ -61,9 +64,17 @@ export async function markCommissionSettled(
 
   if (commission.state === "reglee") return commission;
 
+  const now = new Date();
   const [updated] = await db
     .update(commissions)
-    .set({ state: "reglee", updatedAt: new Date() })
+    .set({
+      state: "reglee",
+      settledAt: now,
+      // Une commission réglée sans passer par « confirmée » (impossible
+      // depuis l'écran, possible par le code) porterait quand même sa date.
+      confirmedAt: commission.confirmedAt ?? (commission.state === "prevue" ? now : null),
+      updatedAt: now,
+    })
     .where(eq(commissions.id, commissionId))
     .returning();
 

@@ -239,6 +239,97 @@ Pour que le calcul à la volée reste borné par organisation et par date :
 
 ---
 
+---
+
+## Étape 2 — corrections des manques et couche de définition des métriques
+
+### Migration `0009_analytique_corrections`, appliquée le 2026-08-24
+
+Relue et validée avant application ; rejouable (rattrapages idempotents).
+
+- `deal_shares.replaces_share_id` (FK composite vers le partage remplacé) —
+  posé par « Renvoyer le lien » : pour l'analytique, une chaîne de renvois
+  est UN partage, envoyé à la date du premier.
+- `commissions.confirmed_at`, `commissions.settled_at` — posés à la
+  transition par confirmCommission / markCommissionSettled ; reconstruits
+  depuis les événements « Commission confirmée. » / « Commission marquée
+  réglée. » (seuls libellés jamais écrits par le produit, inchangés dans
+  l'historique git ; aucune autre valeur en base). **Aucun repli sur
+  `updated_at`** : une commission confirmée ou réglée sans événement garde
+  NULL = date inconnue, que l'analytique écarte et compte à part. La
+  contrainte `commissions_state_dates_consistency` ne vérifie que la
+  cohérence (une prévue n'a aucune date, une confirmée pas de règlement,
+  un règlement jamais avant sa confirmation), sans exiger la présence des
+  dates — les trois états sont ceux de l'enum, en ajouter un revisitera la
+  contrainte. À l'application : 1 commission, `prevue`, rien à
+  reconstruire.
+- `deal_stage_changes.loss_reason_id` — le motif AU MOMENT de la perte,
+  posé par changeDealStage vers une étape perdue, reporté par
+  updateDealDetails si le motif est corrigé tant que l'affaire y est.
+- `deal_stage_changes.reconstructed` — vrai pour une ligne RECONSTITUÉE
+  par un rattrapage (ligne d'étape initiale déduite de `deals.created_at`,
+  motif reporté depuis la valeur courante) : une reconstruction, pas une
+  observation. L'analytique les exclut des durées et les compte à part.
+  À l'application : 1 ligne initiale reconstituée (l'affaire du
+  2026-08-21), 0 motif reporté.
+
+### Correction sans migration
+
+`share_viewed` est enfin écrit : la PREMIÈRE consultation d'un partage par
+le partenaire (route publique GET), une seule fois par partage, attribuée
+au partenaire. Le suivi et la génération de tâches lisent désormais
+`confirmed_at` ; une commission dont la date de confirmation est inconnue
+se liste « date de confirmation inconnue » et ne déclenche pas la règle
+« commission non réglée » (on ne compte pas des jours depuis une date
+qu'on n'a pas).
+
+### La couche de définition — `src/lib/metrics/`
+
+- `definitions.ts` : LE registre. Une entrée par métrique : définition
+  exacte en français, exclusions, comportement quand les données manquent,
+  seuil. C'est le seul endroit où une métrique est définie ; les écrans et
+  l'export le consomment, jamais un calcul refait dans une page.
+- `types.ts` : le résultat d'une durée (`n`, médiane et moyenne en jours,
+  `hidden`, `missing`, lignes écartées) et la règle du seuil appliquée UNE
+  fois (`finishStat`) — un écran ne décide jamais lui-même d'afficher.
+- `filters.ts` : période (sur l'événement qui CLÔT l'observation),
+  conseiller, type, pipeline (valeur courante de l'affaire, assumé) ;
+  `organizationOf` refuse toute requête sans organisation — jamais le mode
+  « voit tout », un agrégat ne traverse pas la frontière entre clients.
+- `durations.ts` : la famille « délais et durées », en SQL
+  (`percentile_cont`, `avg`, fenêtres), bornée par l'organisation ; les
+  lignes reconstituées et les dates inconnues sont écartées et comptées.
+
+### Le catalogue (copie du registre au 2026-08-24 — la définition fait foi dans `definitions.ts`)
+
+| Métrique | Unité | Définition | Exclut | Données insuffisantes |
+|---|---|---|---|---|
+| **Temps passé par étape** (`stage_duration`) | jours | Pour chaque étape du pipeline, durée entre l'entrée d'une affaire dans l'étape et sa sortie (le passage suivant), médiane et moyenne sur les passages terminés. Une affaire qui revisite une étape compte un passage par visite. | Le passage en cours (l'affaire y est encore) ; les lignes reconstituées après coup (ligne d'étape initiale déduite de la date de création) — comptées à part, jamais dans la durée. | Masqué en dessous de 5 observations ; l'écran indique combien il en manque. |
+| **Délai création → signature** (`creation_to_won`) | jours | Durée entre la création de l'affaire et sa PREMIÈRE entrée dans une étape marquée « gagné », médiane et moyenne sur les affaires signées. | Les affaires jamais gagnées ; une entrée en étape gagnée reconstituée après coup ; une organisation sans étape marquée « gagné » n'a pas de signature mesurable. | Masqué en dessous de 5 observations ; l'écran indique combien il en manque. |
+| **Délai entre deux étapes consécutives** (`stage_pair_delay`) | jours | Pour chaque paire d'étapes qui se suivent dans un pipeline, durée entre la première entrée d'une affaire dans la première et sa première entrée dans la seconde, sur les affaires qui ont atteint les deux — médiane et moyenne. | Les affaires qui n'ont pas atteint la seconde étape ; les paires non consécutives ; les entrées reconstituées. | Masqué en dessous de 5 observations ; l'écran indique combien il en manque. |
+| **Délai partage → réponse du partenaire** (`share_response_delay`) | jours | Durée entre l'envoi d'un partage et la réponse du partenaire (acceptation ou refus). Un lien renvoyé ne compte pas comme un nouveau partage : la durée part du PREMIER envoi de la chaîne. | Les partages sans réponse (en attente, révoqués sans réponse, expirés) ; les partages remplacés par un renvoi (seul le dernier de la chaîne porte la réponse). | Masqué en dessous de 5 observations ; l'écran indique combien il en manque. |
+| **Délai commission confirmée → réglée** (`commission_settlement_delay`) | jours | Durée entre la confirmation d'une commission et la déclaration de son règlement, médiane et moyenne sur les commissions réglées dont les deux dates sont connues. | Les commissions non réglées ; celles dont la date de confirmation est inconnue (confirmées avant que la date soit journalisée) — comptées à part, jamais remplacées par une date plausible. | Masqué en dessous de 5 observations ; l'écran indique combien il en manque. |
+| **Délai lead → premier contact effectif** (`lead_to_first_contact`) | jours | Durée entre l'arrivée d'un lead et la première interaction consignée avec la personne (appel, email ou rendez-vous — pas une note), médiane et moyenne. | Les leads sans interaction consignée ; les notes (elles ne sont pas un contact) ; les contacts arrivés autrement que par un lead. | Indisponible tant que l'entrée des leads n'est pas branchée (migration B du module analytique) ; ensuite, masqué en dessous de 5 observations ; l'écran indique combien il en manque. |
+
+Seuil commun : 5 observations.
+
+### Vérifié contre la base (deux organisations jetables, détruites après)
+
+Six affaires aux durées connues → temps par étape (n = 6, médiane 3,5 j,
+passage reconstitué écarté et compté, passage en cours non compté, filtre
+de période sur la fin du passage), délai création → signature (médiane
+5,5 j), paires d'étapes consécutives (4 paires, celles jamais atteintes
+masquées), délai partage → réponse depuis le premier envoi d'une chaîne
+de renvoi (le partage remplacé ne compte pas), délai commission (dates
+observées, une date inconnue écartée et comptée), contrainte refusant une
+date sur une commission prévue, motif de perte posé au passage puis
+corrigé, `share_viewed` écrit une seule fois pour deux consultations,
+organisation voisine à zéro partout, super admin sans organisation refusé.
+
 ## Avancement
 
-- **Étape 1 — audit** : ce document. STOP.
+- **Étape 1 — audit** : `ea0de94`. STOP.
+- **Étape 2 — corrections + couche de métriques** : migration `0009`
+  appliquée, code branché, registre et famille « délais » en place. STOP.
+  Reste à valider séparément : le changeset d'index `0010` (§4), la
+  migration B de l'acquisition (§3).

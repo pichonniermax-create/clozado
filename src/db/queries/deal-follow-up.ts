@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { commissions, dealEvents, dealShares, deals, partners } from "@/db/schema";
 import { getOwnOrganizationOrThrow } from "./newsletters";
@@ -53,12 +53,12 @@ export type UnpaidCommission = {
   fixedAmount: string | null;
   computedAmount: string | null;
   /**
-   * Approximation : date de dernière modification de la commission, pas
-   * une date de confirmation dédiée (pas de colonne pour ça). Correct tant
-   * qu'une commission confirmée n'est pas rééditée sans changer d'état —
-   * à revoir si ça devient un vrai problème en usage.
+   * La date de confirmation OBSERVÉE (`commissions.confirmed_at`, posée à
+   * la transition depuis le module analytique). NULL = inconnue : commission
+   * confirmée avant que la date soit journalisée — on le dit, on ne le
+   * remplace pas par une date plausible.
    */
-  confirmedAt: Date;
+  confirmedAt: Date | null;
 };
 
 export type FollowUpBoard = {
@@ -188,14 +188,15 @@ export async function getFollowUpBoard(user: OrgScopeUser): Promise<FollowUpBoar
       rate: commissions.rate,
       fixedAmount: commissions.fixedAmount,
       computedAmount: commissions.computedAmount,
-      confirmedAt: commissions.updatedAt,
+      confirmedAt: commissions.confirmedAt,
     })
     .from(commissions)
     .innerJoin(deals, eq(commissions.dealId, deals.id))
     .innerJoin(dealShares, eq(commissions.shareId, dealShares.id))
     .innerJoin(partners, eq(dealShares.partnerId, partners.id))
     .where(and(eq(commissions.organizationId, org.id), eq(commissions.state, "confirmee")))
-    .orderBy(commissions.updatedAt);
+    // Les plus anciennes confirmations d'abord ; date inconnue en dernier.
+    .orderBy(sql`${commissions.confirmedAt} ASC NULLS LAST`);
 
   // "En cours" = niveau 2, TOUT LE RESTE actif — donc jamais ce qui est déjà
   // remonté dans une des trois piles d'action. Les piles A et B sortent

@@ -44,6 +44,18 @@ export const commissions = pgTable(
     /** Montant calculé, figé au moment du calcul — pas recalculé silencieusement si le taux ou la base change ensuite. */
     computedAmount: numeric("computed_amount", { precision: 12, scale: 2 }),
     state: commissionStateEnum("state").notNull().default("prevue"),
+    /**
+     * Horodatages DÉDIÉS des deux transitions — avant, seul `updated_at`
+     * les approchait, écrasé à chaque modification (le règlement effaçait
+     * la date de confirmation). Posés par confirmCommission /
+     * markCommissionSettled ; reconstruits depuis le journal (`deal_events`
+     * « Commission confirmée. » / « Commission marquée réglée. ») par la
+     * migration du module analytique. NULL sur une commission confirmée ou
+     * réglée = date INCONNUE (antérieure au journal) : jamais remplacée par
+     * une valeur plausible, l'analytique exclut ces lignes et le dit.
+     */
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    settledAt: timestamp("settled_at", { withTimezone: true }),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -53,6 +65,19 @@ export const commissions = pgTable(
     // organization_id) — absente jusqu'au module relationnel : la table
     // n'avait jamais été référencée par une FK composite.
     unique("commissions_id_org_unique").on(table.id, table.organizationId),
+    // Cohérence des dates avec l'état, sans exiger leur présence (une date
+    // peut être inconnue) : une commission prévue n'a aucune date, une
+    // confirmée n'a pas de règlement, et un règlement ne précède jamais sa
+    // confirmation. Les trois états sont ceux de l'enum commission_state ;
+    // en ajouter un (annulée…) passera par une migration qui revisitera
+    // cette contrainte.
+    check(
+      "commissions_state_dates_consistency",
+      sql`((${table.state} = 'prevue' AND ${table.confirmedAt} IS NULL AND ${table.settledAt} IS NULL)
+        OR (${table.state} = 'confirmee' AND ${table.settledAt} IS NULL)
+        OR ${table.state} = 'reglee')
+        AND (${table.confirmedAt} IS NULL OR ${table.settledAt} IS NULL OR ${table.settledAt} >= ${table.confirmedAt})`
+    ),
     check(
       "commissions_basis_fields_consistency",
       sql`(${table.basis} = 'percentage' AND ${table.rate} IS NOT NULL AND ${table.fixedAmount} IS NULL)
