@@ -1,8 +1,23 @@
 "use server";
 
 import { confirmCommission, markCommissionSettled } from "@/db/queries/commissions";
-import { createDeal, type CreateDealInput } from "@/db/queries/deals";
+import {
+  changeDealStage,
+  createDeal,
+  updateDealDetails,
+  type CreateDealInput,
+  type DealDetailsInput,
+} from "@/db/queries/deals";
 import { createDealType } from "@/db/queries/deal-types";
+import { createLossReason, deleteLossReason } from "@/db/queries/loss-reasons";
+import {
+  createPipeline,
+  createStage,
+  moveStage,
+  updatePipelineLabel,
+  updateStage,
+  type StageInput,
+} from "@/db/queries/pipelines";
 import {
   createDealShare,
   reissueDealShare,
@@ -73,4 +88,54 @@ export async function confirmCommissionAction(commissionId: string) {
 export async function markCommissionSettledAction(commissionId: string) {
   const user = await requireUser();
   return markCommissionSettled(user, user.id, commissionId);
+}
+
+// ---------------------------------------------------------------------------
+// Pipeline — déplacement d'affaires et configuration
+// ---------------------------------------------------------------------------
+
+/** LE geste du kanban et de la fiche : déplacer une affaire vers une étape. */
+export async function moveDealStageAction(dealId: string, statusId: string, lossReasonId?: string | null) {
+  const user = await requireUser();
+  return changeDealStage(user, user.id, dealId, statusId, lossReasonId);
+}
+
+export async function updateDealDetailsAction(dealId: string, input: DealDetailsInput) {
+  const user = await requireUser();
+  return updateDealDetails(user, dealId, input);
+}
+
+export async function createPipelineAction(label: string) {
+  const user = await requireUser();
+  return createPipeline(user, label);
+}
+
+export async function updatePipelineLabelAction(pipelineId: string, label: string) {
+  const user = await requireUser();
+  return updatePipelineLabel(user, pipelineId, label);
+}
+
+export async function createStageAction(pipelineId: string, input: StageInput) {
+  const user = await requireUser();
+  return createStage(user, pipelineId, input);
+}
+
+export async function updateStageAction(stageId: string, input: StageInput) {
+  const user = await requireUser();
+  return updateStage(user, stageId, input);
+}
+
+export async function moveStageAction(stageId: string, direction: "up" | "down") {
+  const user = await requireUser();
+  return moveStage(user, stageId, direction);
+}
+
+export async function createLossReasonAction(label: string) {
+  const user = await requireUser();
+  return createLossReason(user, label);
+}
+
+export async function deleteLossReasonAction(id: string) {
+  const user = await requireUser();
+  return deleteLossReason(user, id);
 }

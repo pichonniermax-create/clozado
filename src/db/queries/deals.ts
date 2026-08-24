@@ -1,6 +1,16 @@
-import { desc, eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
+import { and, asc, count, desc, eq, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
-import { deals, dealStatuses, dealTypes } from "@/db/schema";
+import {
+  contacts,
+  dealEvents,
+  deals,
+  dealStageChanges,
+  dealStatuses,
+  dealTypes,
+  lossReasons,
+  users,
+} from "@/db/schema";
 import { assertOrgAccess, orgScope } from "@/db/scope";
 import { getDefaultDealStatus } from "./deal-statuses";
 import type { OrgScopeUser } from "@/lib/session";
@@ -35,6 +45,8 @@ export type CreateDealInput = {
   typeId: string;
   /** Statut initial optionnel — si absent, le statut "nouveau" de l'organisation est utilisé. */
   statusId?: string;
+  /** Fiche contact à relier (facultatif) — le nom du client est alors copié depuis la fiche si absent. */
+  contactId?: string | null;
   estimatedAmount?: string | null;
   description?: string | null;
 };
@@ -45,7 +57,9 @@ export async function createDeal(
   input: CreateDealInput
 ) {
   if (!user.organizationId) {
-    throw new Error("Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer une affaire.");
+    throw new Error(
+      "Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer une affaire."
+    );
   }
 
   // Le type doit exister ET appartenir à cette organisation — vérifié ici
@@ -68,44 +82,311 @@ export async function createDeal(
     status = await getDefaultDealStatus(user.organizationId);
   }
 
-  const [deal] = await db
-    .insert(deals)
-    .values({
+  let clientName = input.clientName.trim();
+  if (input.contactId) {
+    const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, input.contactId) });
+    if (!contact || contact.organizationId !== user.organizationId) {
+      throw new Error("Fiche contact introuvable pour cette organisation.");
+    }
+    if (contact.deletedAt) {
+      throw new Error("Cette fiche contact a été supprimée : elle ne peut plus porter d'affaire.");
+    }
+    if (!clientName) clientName = contact.name;
+  }
+
+  // Id généré côté application : l'affaire, sa première ligne d'historique
+  // d'étape et son événement de création naissent dans le MÊME lot atomique
+  // (un batch neon-http ne lit pas de returning).
+  const dealId = randomUUID();
+  await db.batch([
+    db.insert(deals).values({
+      id: dealId,
       organizationId: user.organizationId,
       title: input.title,
-      clientName: input.clientName,
+      clientName,
+      contactId: input.contactId ?? null,
       typeId: input.typeId,
       statusId: status.id,
       pipelineId: status.pipelineId,
       estimatedAmount: input.estimatedAmount ?? null,
       description: input.description ?? null,
       createdBy,
-    })
-    .returning();
-  return deal;
+    }),
+    db.insert(dealStageChanges).values({
+      organizationId: user.organizationId,
+      dealId,
+      fromStatusId: null,
+      toStatusId: status.id,
+      actorUserId: createdBy,
+    }),
+    db.insert(dealEvents).values({
+      organizationId: user.organizationId,
+      dealId,
+      type: "deal_created",
+      message: status.label,
+      actorUserId: createdBy,
+    }),
+  ]);
+  const deal = await db.query.deals.findFirst({ where: eq(deals.id, dealId) });
+  return deal!;
 }
 
-export async function updateDealStatus(user: OrgScopeUser, dealId: string, statusId: string) {
+/**
+ * LE geste du pipeline : déplacer une affaire vers une étape. Trois
+ * écritures atomiques — l'affaire, la ligne d'historique structurée
+ * (deal_stage_changes, ce qui permet les durées), l'événement du journal
+ * (deal_events, ce qui raconte). Le motif de perte n'a de sens que vers
+ * une étape perdue ; quitter une étape perdue l'efface.
+ */
+export async function changeDealStage(
+  user: OrgScopeUser,
+  actorUserId: string,
+  dealId: string,
+  statusId: string,
+  lossReasonId?: string | null
+) {
+  const deal = await db.query.deals.findFirst({ where: eq(deals.id, dealId) });
+  if (!deal) throw new Error("Affaire introuvable.");
+  assertOrgAccess(user, deal.organizationId);
+  if (deal.statusId === statusId) return deal;
+
+  const status = await db.query.dealStatuses.findFirst({ where: eq(dealStatuses.id, statusId) });
+  if (!status || status.organizationId !== deal.organizationId) {
+    throw new Error("Étape introuvable pour cette organisation.");
+  }
+  // La FK composite deals_status_pipeline_fk le refuserait de toute façon —
+  // ici pour l'erreur claire. Changer de pipeline sera un geste dédié,
+  // jamais un effet de bord d'un changement d'étape.
+  if (status.pipelineId !== deal.pipelineId) {
+    throw new Error("Cette étape appartient à un autre pipeline que celui de l'affaire.");
+  }
+
+  let reasonId: string | null = null;
+  if (status.outcome === "lost" && lossReasonId) {
+    const reason = await db.query.lossReasons.findFirst({ where: eq(lossReasons.id, lossReasonId) });
+    if (!reason || reason.organizationId !== deal.organizationId) {
+      throw new Error("Motif de perte introuvable pour cette organisation.");
+    }
+    reasonId = reason.id;
+  }
+
+  await db.batch([
+    db
+      .update(deals)
+      .set({
+        statusId: status.id,
+        lossReasonId: status.outcome === "lost" ? (reasonId ?? deal.lossReasonId) : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(deals.id, dealId)),
+    db.insert(dealStageChanges).values({
+      organizationId: deal.organizationId,
+      dealId,
+      fromStatusId: deal.statusId,
+      toStatusId: status.id,
+      actorUserId,
+    }),
+    db.insert(dealEvents).values({
+      organizationId: deal.organizationId,
+      dealId,
+      type: "status_changed",
+      message: status.label,
+      actorUserId,
+    }),
+  ]);
+  return { ...deal, statusId: status.id };
+}
+
+export type DealDetailsInput = {
+  estimatedAmount?: string | null;
+  /** Dérogation à la probabilité de l'étape — NULL = celle de l'étape. */
+  probability?: string | null;
+  expectedCloseDate?: string | null;
+  ownerId?: string | null;
+  /** Pris en compte seulement si l'étape courante est marquée perdue. */
+  lossReasonId?: string | null;
+};
+
+export async function updateDealDetails(user: OrgScopeUser, dealId: string, input: DealDetailsInput) {
   const deal = await db.query.deals.findFirst({ where: eq(deals.id, dealId) });
   if (!deal) throw new Error("Affaire introuvable.");
   assertOrgAccess(user, deal.organizationId);
 
-  const status = await db.query.dealStatuses.findFirst({ where: eq(dealStatuses.id, statusId) });
-  if (!status || status.organizationId !== deal.organizationId) {
-    throw new Error("Statut introuvable pour cette organisation.");
+  if (input.ownerId) {
+    const owner = await db.query.users.findFirst({ where: eq(users.id, input.ownerId) });
+    if (!owner || owner.organizationId !== deal.organizationId) {
+      throw new Error("Ce conseiller n'appartient pas à l'organisation de l'affaire.");
+    }
   }
-  // Un changement de statut reste DANS le pipeline de l'affaire (la FK
-  // composite deals_status_pipeline_fk le refuserait de toute façon —
-  // ici pour l'erreur claire). Changer de pipeline sera un geste dédié
-  // de l'écran pipeline, jamais un effet de bord.
-  if (status.pipelineId !== deal.pipelineId) {
-    throw new Error("Ce statut appartient à un autre pipeline que celui de l'affaire.");
+  let lossReasonId = deal.lossReasonId;
+  if (input.lossReasonId !== undefined) {
+    if (input.lossReasonId) {
+      const reason = await db.query.lossReasons.findFirst({ where: eq(lossReasons.id, input.lossReasonId) });
+      if (!reason || reason.organizationId !== deal.organizationId) {
+        throw new Error("Motif de perte introuvable pour cette organisation.");
+      }
+      lossReasonId = reason.id;
+    } else {
+      lossReasonId = null;
+    }
   }
 
   const [updated] = await db
     .update(deals)
-    .set({ statusId, updatedAt: new Date() })
+    .set({
+      estimatedAmount: input.estimatedAmount === undefined ? deal.estimatedAmount : input.estimatedAmount,
+      probability: input.probability === undefined ? deal.probability : input.probability,
+      expectedCloseDate:
+        input.expectedCloseDate === undefined ? deal.expectedCloseDate : input.expectedCloseDate,
+      ownerId: input.ownerId === undefined ? deal.ownerId : input.ownerId,
+      lossReasonId,
+      updatedAt: new Date(),
+    })
     .where(eq(deals.id, dealId))
     .returning();
   return updated;
+}
+
+// ---------------------------------------------------------------------------
+// Vues du pipeline
+// ---------------------------------------------------------------------------
+
+/** Toutes les cartes d'un pipeline (kanban) — une requête, le groupage par étape se fait à l'affichage. */
+export async function listDealsBoard(user: OrgScopeUser, pipelineId: string) {
+  const scope = orgScope(user, deals.organizationId);
+  const owner = users;
+  return db
+    .select({
+      id: deals.id,
+      title: deals.title,
+      clientName: deals.clientName,
+      statusId: deals.statusId,
+      estimatedAmount: deals.estimatedAmount,
+      probability: deals.probability,
+      expectedCloseDate: deals.expectedCloseDate,
+      lossReasonId: deals.lossReasonId,
+      updatedAt: deals.updatedAt,
+      ownerName: owner.name,
+      contactId: deals.contactId,
+    })
+    .from(deals)
+    .leftJoin(owner, eq(deals.ownerId, owner.id))
+    .where(and(eq(deals.pipelineId, pipelineId), scope ?? undefined))
+    .orderBy(desc(deals.updatedAt));
+}
+
+export const DEALS_PAGE_SIZE = 50;
+
+export type DealsTableSort = "title" | "amount" | "close" | "stage" | "updated";
+
+export type DealsTableOptions = {
+  pipelineId: string;
+  statusId?: string;
+  ownerId?: string;
+  sort?: DealsTableSort;
+  dir?: "asc" | "desc";
+  page?: number;
+};
+
+/** La liste dense : triable, filtrable, paginée côté serveur. */
+export async function listDealsTable(user: OrgScopeUser, opts: DealsTableOptions) {
+  const page = Math.max(1, opts.page ?? 1);
+  const conditions: (SQL | undefined)[] = [
+    orgScope(user, deals.organizationId),
+    eq(deals.pipelineId, opts.pipelineId),
+  ];
+  if (opts.statusId) conditions.push(eq(deals.statusId, opts.statusId));
+  if (opts.ownerId) conditions.push(eq(deals.ownerId, opts.ownerId));
+  const where = and(...conditions.filter((c): c is SQL => Boolean(c)));
+
+  const dir = opts.dir === "asc" ? asc : desc;
+  const orderBy = {
+    title: [dir(deals.title)],
+    amount: [dir(deals.estimatedAmount)],
+    close: [dir(deals.expectedCloseDate)],
+    stage: [dir(dealStatuses.position)],
+    updated: [dir(deals.updatedAt)],
+  }[opts.sort ?? "updated"];
+
+  const [rows, [{ total }]] = await Promise.all([
+    db
+      .select({
+        deal: deals,
+        stageLabel: dealStatuses.label,
+        stageColor: dealStatuses.color,
+        stageProbability: dealStatuses.probability,
+        stageOutcome: dealStatuses.outcome,
+        typeLabel: dealTypes.label,
+        ownerName: users.name,
+        lossReasonLabel: lossReasons.label,
+      })
+      .from(deals)
+      .innerJoin(dealStatuses, eq(deals.statusId, dealStatuses.id))
+      .innerJoin(dealTypes, eq(deals.typeId, dealTypes.id))
+      .leftJoin(users, eq(deals.ownerId, users.id))
+      .leftJoin(lossReasons, eq(deals.lossReasonId, lossReasons.id))
+      .where(where)
+      .orderBy(...orderBy, asc(deals.id))
+      .limit(DEALS_PAGE_SIZE)
+      .offset((page - 1) * DEALS_PAGE_SIZE),
+    db.select({ total: count() }).from(deals).where(where),
+  ]);
+
+  return { rows, total, page, pageCount: Math.max(1, Math.ceil(total / DEALS_PAGE_SIZE)) };
+}
+
+/**
+ * Temps passé par étape pour une affaire : les lignes de
+ * deal_stage_changes, bornées à maintenant pour l'étape courante. Renvoie
+ * un cumul par étape (une étape revisitée cumule ses passages).
+ */
+export async function getDealStageDurations(user: OrgScopeUser, dealId: string) {
+  const deal = await db.query.deals.findFirst({ where: eq(deals.id, dealId) });
+  if (!deal) return [];
+  assertOrgAccess(user, deal.organizationId);
+
+  const changes = await db
+    .select({
+      toStatusId: dealStageChanges.toStatusId,
+      changedAt: dealStageChanges.changedAt,
+      label: dealStatuses.label,
+      color: dealStatuses.color,
+    })
+    .from(dealStageChanges)
+    .innerJoin(dealStatuses, eq(dealStageChanges.toStatusId, dealStatuses.id))
+    .where(eq(dealStageChanges.dealId, dealId))
+    .orderBy(asc(dealStageChanges.changedAt));
+
+  const totals = new Map<string, { label: string; color: string | null; ms: number; current: boolean }>();
+  for (let i = 0; i < changes.length; i++) {
+    const start = changes[i].changedAt.getTime();
+    const end = i + 1 < changes.length ? changes[i + 1].changedAt.getTime() : Date.now();
+    const entry = totals.get(changes[i].toStatusId) ?? {
+      label: changes[i].label,
+      color: changes[i].color,
+      ms: 0,
+      current: false,
+    };
+    entry.ms += Math.max(0, end - start);
+    entry.current = i === changes.length - 1;
+    totals.set(changes[i].toStatusId, entry);
+  }
+  return [...totals.values()];
+}
+
+/**
+ * Répartition par étape (compteur + somme des montants) pour l'en-tête du
+ * kanban — calculée en base, jamais en chargeant la table entière.
+ */
+export async function getPipelineTotals(user: OrgScopeUser, pipelineId: string) {
+  const scope = orgScope(user, deals.organizationId);
+  return db
+    .select({
+      statusId: deals.statusId,
+      n: count(),
+      amount: sql<string | null>`sum(${deals.estimatedAmount})`,
+    })
+    .from(deals)
+    .where(and(eq(deals.pipelineId, pipelineId), scope ?? undefined))
+    .groupBy(deals.statusId);
 }

@@ -1,12 +1,14 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { ArrowDown, ArrowUp, Columns3, Rows3 } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DealStatusBadge } from "@/components/deals/deal-status-badge";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { ListCard, ListRowLink } from "@/components/ui/list-card";
+import { KanbanBoard } from "@/components/deals/kanban-board";
 import { PageHeader } from "@/components/app-shell/page-header";
 import {
   Select,
@@ -16,11 +18,31 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { getContact, listOrgUsers } from "@/db/queries/contacts";
 import { listDealTypes } from "@/db/queries/deal-types";
-import { listDeals } from "@/db/queries/deals";
+import {
+  DEALS_PAGE_SIZE,
+  listDealsBoard,
+  listDealsTable,
+  type DealsTableSort,
+} from "@/db/queries/deals";
+import { listLossReasons } from "@/db/queries/loss-reasons";
+import { listPipelinesWithStages } from "@/db/queries/pipelines";
 import { createDealAction, createDealTypeAction } from "@/lib/deals/actions";
-import { formatEuros } from "@/lib/format";
+import { formatDate, formatEuros, formatPercent } from "@/lib/format";
 import { requireUser } from "@/lib/session";
+import { cn } from "@/lib/utils";
+
+type Params = {
+  vue?: string;
+  pipeline?: string;
+  etape?: string;
+  conseiller?: string;
+  tri?: string;
+  dir?: string;
+  page?: string;
+  contact?: string;
+};
 
 async function addDealType(formData: FormData) {
   "use server";
@@ -30,36 +52,126 @@ async function addDealType(formData: FormData) {
   redirect("/affaires");
 }
 
-async function addDeal(formData: FormData) {
-  "use server";
-  const title = String(formData.get("title") ?? "").trim();
-  const clientName = String(formData.get("clientName") ?? "").trim();
-  const typeId = String(formData.get("typeId") ?? "").trim();
-  if (!title || !clientName || !typeId) return;
-
-  const rawAmount = String(formData.get("estimatedAmount") ?? "").trim();
-
-  await createDealAction({
-    title,
-    clientName,
-    typeId,
-    estimatedAmount: rawAmount || null,
-    description: String(formData.get("description") ?? "").trim() || null,
-  });
-
-  redirect("/affaires");
-}
-
-export default async function DealsPage() {
+export default async function DealsPage({ searchParams }: { searchParams: Promise<Params> }) {
   const user = await requireUser();
-  const [deals, types] = await Promise.all([listDeals(user), listDealTypes(user)]);
+  const params = await searchParams;
+  const vue = params.vue === "liste" ? "liste" : "kanban";
+
+  const [pipelines, types, orgUsers, lossReasons] = await Promise.all([
+    listPipelinesWithStages(user),
+    listDealTypes(user),
+    listOrgUsers(user),
+    listLossReasons(user),
+  ]);
+
+  if (pipelines.length === 0) {
+    return (
+      <>
+        <PageHeader title="Affaires" description="Les dossiers que tu suis, du premier contact à la signature." />
+        <EmptyState>
+          {user.organizationId
+            ? "Aucun pipeline dans cette organisation — il se crée depuis Marque & réglages."
+            : "Tu es en vue globale : choisis une organisation dans le bandeau super admin en haut de l'écran pour voir son pipeline."}
+        </EmptyState>
+      </>
+    );
+  }
+
+  const pipeline = pipelines.find((p) => p.id === params.pipeline) ?? pipelines[0];
+  const stages = pipeline.stages;
+  const prefillContact = params.contact
+    ? await getContact(user, params.contact).catch(() => null)
+    : null;
+
+  const baseQuery = (over: Record<string, string | undefined>) => {
+    const sp = new URLSearchParams();
+    const merged: Record<string, string | undefined> = {
+      vue,
+      pipeline: pipeline.id,
+      etape: params.etape,
+      conseiller: params.conseiller,
+      tri: params.tri,
+      dir: params.dir,
+      ...over,
+    };
+    for (const [k, v] of Object.entries(merged)) if (v) sp.set(k, v);
+    return `/affaires?${sp.toString()}`;
+  };
+
+  async function addDeal(formData: FormData) {
+    "use server";
+    const title = String(formData.get("title") ?? "").trim();
+    const clientName = String(formData.get("clientName") ?? "").trim();
+    const typeId = String(formData.get("typeId") ?? "").trim();
+    const contactId = String(formData.get("contactId") ?? "").trim() || null;
+    const statusId = String(formData.get("statusId") ?? "").trim() || undefined;
+    if (!title || !typeId || (!clientName && !contactId)) return;
+
+    const rawAmount = String(formData.get("estimatedAmount") ?? "").trim();
+    await createDealAction({
+      title,
+      clientName,
+      typeId,
+      statusId,
+      contactId,
+      estimatedAmount: rawAmount || null,
+      description: String(formData.get("description") ?? "").trim() || null,
+    });
+    redirect(`/affaires?vue=${formData.get("vue")}&pipeline=${formData.get("pipelineId")}`);
+  }
 
   return (
     <>
       <PageHeader
         title="Affaires"
-        description="Les dossiers que tu suis, et que tu peux partager à un confrère."
+        description="Les dossiers que tu suis — le kanban pour piloter, la liste pour travailler. Chaque affaire se partage à un confrère sans ressaisie."
+        actions={
+          <div className="flex rounded-lg border border-border p-0.5">
+            <Link
+              href={baseQuery({ vue: "kanban", page: undefined })}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm transition-colors",
+                vue === "kanban" ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+              aria-current={vue === "kanban" ? "page" : undefined}
+            >
+              <Columns3 className="size-4" />
+              Kanban
+            </Link>
+            <Link
+              href={baseQuery({ vue: "liste", page: undefined })}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm transition-colors",
+                vue === "liste" ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+              aria-current={vue === "liste" ? "page" : undefined}
+            >
+              <Rows3 className="size-4" />
+              Liste
+            </Link>
+          </div>
+        }
       />
+
+      {pipelines.length > 1 && (
+        <nav className="flex flex-wrap gap-1 border-b border-border" aria-label="Pipelines">
+          {pipelines.map((p) => (
+            <Link
+              key={p.id}
+              href={`/affaires?vue=${vue}&pipeline=${p.id}`}
+              className={cn(
+                "-mb-px border-b-2 px-3 py-2 text-sm transition-colors",
+                p.id === pipeline.id
+                  ? "border-primary font-medium text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+              aria-current={p.id === pipeline.id ? "page" : undefined}
+            >
+              {p.label}
+            </Link>
+          ))}
+        </nav>
+      )}
 
       {types.length === 0 ? (
         // Sans type d'affaire, rien n'est créable : c'est le seul écran où
@@ -83,16 +195,37 @@ export default async function DealsPage() {
           </CardContent>
         </Card>
       ) : (
-        /* Repliée par défaut : on vient sur cet écran pour consulter la
-           liste bien plus souvent que pour créer. */
-        <DetailsCard summary="Nouvelle affaire">
+        <DetailsCard
+          summary={
+            prefillContact ? `Nouvelle affaire pour ${prefillContact.name}` : "Nouvelle affaire"
+          }
+        >
           <form action={addDeal} className="flex flex-col gap-4">
+            <input type="hidden" name="vue" value={vue} />
+            <input type="hidden" name="pipelineId" value={pipeline.id} />
+            {/* L'affaire naît dans le pipeline affiché, à sa première étape. */}
+            <input type="hidden" name="statusId" value={stages[0]?.id ?? ""} />
+            {prefillContact && (
+              <input type="hidden" name="contactId" value={prefillContact.id} />
+            )}
+            {prefillContact && (
+              <p className="text-sm text-muted-foreground">
+                Cette affaire sera reliée à la fiche{" "}
+                <span className="font-medium text-foreground">{prefillContact.name}</span>.
+              </p>
+            )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Libellé" htmlFor="title">
                 <Input id="title" name="title" placeholder="Financement appartement Lyon" required />
               </Field>
               <Field label="Client concerné" htmlFor="clientName">
-                <Input id="clientName" name="clientName" placeholder="M. et Mme Perrin" required />
+                <Input
+                  id="clientName"
+                  name="clientName"
+                  placeholder="M. et Mme Perrin"
+                  defaultValue={prefillContact?.name ?? ""}
+                  required={!prefillContact}
+                />
               </Field>
               <Field label="Type" htmlFor="typeId">
                 <Select
@@ -127,32 +260,223 @@ export default async function DealsPage() {
         </DetailsCard>
       )}
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">
-          {deals.length} affaire{deals.length > 1 ? "s" : ""}
-        </h2>
-
-        {deals.length === 0 ? (
-          <EmptyState>Aucune affaire pour l&apos;instant.</EmptyState>
-        ) : (
-          <ListCard>
-            {deals.map(({ deal, typeLabel, statusLabel, statusColor }) => (
-              <ListRowLink
-                key={deal.id}
-                href={`/affaires/${deal.id}`}
-                title={deal.title}
-                subtitle={
-                  <>
-                    {typeLabel} · {deal.clientName}
-                    {deal.estimatedAmount && ` · ≈ ${formatEuros(deal.estimatedAmount)}`}
-                  </>
-                }
-                trailing={<DealStatusBadge label={statusLabel} color={statusColor} />}
-              />
-            ))}
-          </ListCard>
-        )}
-      </section>
+      {vue === "kanban" ? (
+        <KanbanView user={user} pipelineId={pipeline.id} stages={stages} lossReasons={lossReasons} />
+      ) : (
+        <ListeView
+          user={user}
+          pipelineId={pipeline.id}
+          stages={stages}
+          orgUsers={orgUsers}
+          params={params}
+          baseQuery={baseQuery}
+        />
+      )}
     </>
+  );
+}
+
+async function KanbanView({
+  user,
+  pipelineId,
+  stages,
+  lossReasons,
+}: {
+  user: Awaited<ReturnType<typeof requireUser>>;
+  pipelineId: string;
+  stages: Awaited<ReturnType<typeof listPipelinesWithStages>>[number]["stages"];
+  lossReasons: Awaited<ReturnType<typeof listLossReasons>>;
+}) {
+  const cards = await listDealsBoard(user, pipelineId);
+  return (
+    <KanbanBoard
+      stages={stages.map((s) => ({
+        id: s.id,
+        label: s.label,
+        color: s.color,
+        probability: s.probability,
+        outcome: s.outcome,
+      }))}
+      cards={cards.map((c) => ({
+        id: c.id,
+        title: c.title,
+        clientName: c.clientName,
+        statusId: c.statusId,
+        estimatedAmount: c.estimatedAmount,
+        expectedCloseDate: c.expectedCloseDate,
+        lossReasonId: c.lossReasonId,
+        ownerName: c.ownerName,
+      }))}
+      lossReasons={lossReasons.map((r) => ({ id: r.id, label: r.label }))}
+    />
+  );
+}
+
+async function ListeView({
+  user,
+  pipelineId,
+  stages,
+  orgUsers,
+  params,
+  baseQuery,
+}: {
+  user: Awaited<ReturnType<typeof requireUser>>;
+  pipelineId: string;
+  stages: Awaited<ReturnType<typeof listPipelinesWithStages>>[number]["stages"];
+  orgUsers: Awaited<ReturnType<typeof listOrgUsers>>;
+  params: Params;
+  baseQuery: (over: Record<string, string | undefined>) => string;
+}) {
+  const sort = (["title", "amount", "close", "stage", "updated"] as const).includes(
+    params.tri as DealsTableSort
+  )
+    ? (params.tri as DealsTableSort)
+    : "updated";
+  const dir = params.dir === "asc" ? "asc" : "desc";
+  const page = Number(params.page) > 0 ? Number(params.page) : 1;
+
+  const { rows, total, pageCount } = await listDealsTable(user, {
+    pipelineId,
+    statusId: params.etape || undefined,
+    ownerId: params.conseiller || undefined,
+    sort,
+    dir,
+    page,
+  });
+
+  const sortLink = (key: DealsTableSort, label: string) => {
+    const active = sort === key;
+    const nextDir = active && dir === "desc" ? "asc" : "desc";
+    return (
+      <Link
+        href={baseQuery({ tri: key, dir: nextDir, page: undefined })}
+        className={cn("inline-flex items-center gap-1 hover:text-foreground", active && "text-foreground")}
+      >
+        {label}
+        {active &&
+          (dir === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />)}
+      </Link>
+    );
+  };
+
+  return (
+    <section className="flex flex-col gap-3">
+      <form method="get" className="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="vue" value="liste" />
+        <input type="hidden" name="pipeline" value={pipelineId} />
+        <select
+          name="etape"
+          defaultValue={params.etape ?? ""}
+          className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+          aria-label="Filtrer par étape"
+        >
+          <option value="">Toutes les étapes</option>
+          {stages.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+        {orgUsers.length > 1 && (
+          <select
+            name="conseiller"
+            defaultValue={params.conseiller ?? ""}
+            className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+            aria-label="Filtrer par conseiller"
+          >
+            <option value="">Tous les conseillers</option>
+            {orgUsers.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name || u.email}
+              </option>
+            ))}
+          </select>
+        )}
+        <button type="submit" className={buttonVariants({ variant: "outline", size: "sm" })}>
+          Filtrer
+        </button>
+        <span className="ml-auto text-sm tabular-nums text-muted-foreground">
+          {total} affaire{total > 1 ? "s" : ""}
+        </span>
+      </form>
+
+      {rows.length === 0 ? (
+        <EmptyState>
+          {params.etape || params.conseiller
+            ? "Aucune affaire ne correspond à ces filtres."
+            : "Aucune affaire dans ce pipeline pour l'instant — crée la première ci-dessus."}
+        </EmptyState>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                <th className="px-4 py-2 font-medium">{sortLink("title", "Affaire")}</th>
+                <th className="px-4 py-2 font-medium">Client</th>
+                <th className="px-4 py-2 font-medium">{sortLink("stage", "Étape")}</th>
+                <th className="px-4 py-2 text-right font-medium">{sortLink("amount", "Montant")}</th>
+                <th className="px-4 py-2 text-right font-medium">Prob.</th>
+                <th className="px-4 py-2 font-medium">{sortLink("close", "Clôture prévue")}</th>
+                <th className="px-4 py-2 font-medium">Responsable</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {rows.map(({ deal, stageLabel, stageColor, stageProbability, stageOutcome, typeLabel, ownerName, lossReasonLabel }) => {
+                const probability = deal.probability ?? stageProbability;
+                return (
+                  <tr key={deal.id} className="transition-colors hover:bg-accent/40">
+                    <td className="max-w-64 px-4 py-2.5">
+                      <Link href={`/affaires/${deal.id}`} className="font-medium hover:underline">
+                        {deal.title}
+                      </Link>
+                      <span className="block truncate text-xs text-muted-foreground">{typeLabel}</span>
+                    </td>
+                    <td className="max-w-40 truncate px-4 py-2.5">{deal.clientName}</td>
+                    <td className="px-4 py-2.5">
+                      <DealStatusBadge label={stageLabel} color={stageColor} />
+                      {stageOutcome === "lost" && lossReasonLabel && (
+                        <span className="block pt-0.5 text-xs text-muted-foreground">{lossReasonLabel}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-medium tabular-nums">
+                      {deal.estimatedAmount ? formatEuros(deal.estimatedAmount) : "—"}
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
+                      {probability != null ? formatPercent(probability) : "—"}
+                    </td>
+                    <td className="px-4 py-2.5 tabular-nums">
+                      {deal.expectedCloseDate ? formatDate(deal.expectedCloseDate) : "—"}
+                    </td>
+                    <td className="max-w-32 truncate px-4 py-2.5">{ownerName ?? "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {pageCount > 1 && (
+        <nav className="flex items-center justify-between text-sm">
+          {page > 1 ? (
+            <Link href={baseQuery({ page: String(page - 1) })} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              ← Précédentes
+            </Link>
+          ) : (
+            <span />
+          )}
+          <span className="tabular-nums text-muted-foreground">
+            Page {page} sur {pageCount} · {DEALS_PAGE_SIZE} par page
+          </span>
+          {page < pageCount ? (
+            <Link href={baseQuery({ page: String(page + 1) })} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              Suivantes →
+            </Link>
+          ) : (
+            <span />
+          )}
+        </nav>
+      )}
+    </section>
   );
 }

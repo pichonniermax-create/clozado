@@ -8,17 +8,26 @@ import { MarkCommissionSettledButton } from "@/components/deal-shares/mark-commi
 import { ReissueShareButton } from "@/components/deal-shares/reissue-share-button";
 import { ShareComposer } from "@/components/deal-shares/share-composer";
 import { ShareStatusBadge } from "@/components/deal-shares/share-status-badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { listCommissionsForDeal } from "@/db/queries/commissions";
+import { listLossReasons } from "@/db/queries/loss-reasons";
+import { listOrgUsers } from "@/db/queries/contacts";
 import { listDealEvents } from "@/db/queries/deal-events";
 import { listDealShares } from "@/db/queries/deal-shares";
-import { revokeDealShareAction } from "@/lib/deals/actions";
+import {
+  moveDealStageAction,
+  revokeDealShareAction,
+  updateDealDetailsAction,
+} from "@/lib/deals/actions";
 import { listDealStatuses } from "@/db/queries/deal-statuses";
 import { listDealTypes } from "@/db/queries/deal-types";
-import { getDeal } from "@/db/queries/deals";
+import { getDeal, getDealStageDurations } from "@/db/queries/deals";
 import { toRenderBrand } from "@/db/queries/newsletters";
 import { getOrganizationOfRecord } from "@/db/queries/organizations";
 import { listPartners } from "@/db/queries/partners";
-import { formatCommission, formatDate, formatDateTime, formatEuros } from "@/lib/format";
+import { formatCommission, formatDate, formatDateTime, formatDays, formatEuros, formatPercent } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 
 const COMMISSION_STATE_LABELS: Record<string, string> = {
@@ -51,7 +60,7 @@ export default async function DealPage({
   const deal = await getDeal(user, id).catch(() => null);
   if (!deal) notFound();
 
-  const [org, types, statuses, partners, shares, commissions, events] = await Promise.all([
+  const [org, types, statuses, partners, shares, commissions, events, lossReasons, durations, orgUsers] = await Promise.all([
     // L'organisation de L'AFFAIRE, pas celle de l'utilisateur connecté :
     // c'est sa marque qui s'affiche dans l'aperçu du partage, et c'est en
     // son nom que le partage est émis. Identique pour un admin (il ne voit
@@ -65,11 +74,20 @@ export default async function DealPage({
     listDealShares(user, id),
     listCommissionsForDeal(user, id),
     listDealEvents(user, id),
+    listLossReasons(user),
+    getDealStageDurations(user, id),
+    listOrgUsers(user),
   ]);
+
+  // Les étapes du pipeline de CETTE affaire — et ce qu'on en montre au
+  // partenaire : jamais les étapes gagné/perdu (clore est un geste de
+  // l'organisation, décision A du module relationnel).
+  const pipelineStages = statuses.filter((s) => s.pipelineId === deal.pipelineId);
+  const partnerStages = pipelineStages.filter((s) => s.outcome === null);
 
   const commissionByShareId = new Map(commissions.map((c) => [c.shareId, c]));
   const typeLabel = types.find((t) => t.id === deal.typeId)?.label ?? "—";
-  const currentDealStatus = statuses.find((s) => s.id === deal.statusId) ?? {
+  const currentDealStatus = pipelineStages.find((s) => s.id === deal.statusId) ?? {
     id: deal.statusId,
     label: "—",
     color: null,
@@ -84,6 +102,27 @@ export default async function DealPage({
   const activePartners = partners.filter(
     (p) => p.active && p.organizationId === deal.organizationId
   );
+
+  async function moveStage(formData: FormData) {
+    "use server";
+    const statusId = String(formData.get("statusId") ?? "");
+    if (!statusId) return;
+    await moveDealStageAction(id, statusId);
+    redirect(`/affaires/${id}`);
+  }
+
+  async function saveDetails(formData: FormData) {
+    "use server";
+    const raw = (name: string) => String(formData.get(name) ?? "").trim();
+    await updateDealDetailsAction(id, {
+      estimatedAmount: raw("estimatedAmount") || null,
+      probability: raw("probability") || null,
+      expectedCloseDate: raw("expectedCloseDate") || null,
+      ownerId: raw("ownerId") || null,
+      ...(formData.has("lossReasonId") ? { lossReasonId: raw("lossReasonId") || null } : {}),
+    });
+    redirect(`/affaires/${id}`);
+  }
 
   async function revoke(formData: FormData) {
     "use server";
@@ -116,6 +155,142 @@ export default async function DealPage({
           </span>
         }
       />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Pipeline</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <form action={moveStage} className="flex flex-wrap items-end gap-2">
+            <Field label="Étape" htmlFor="statusId">
+              <select
+                id="statusId"
+                name="statusId"
+                defaultValue={deal.statusId}
+                className="h-8 min-w-48 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+              >
+                {pipelineStages.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                    {s.outcome === "won" ? " (gagné)" : s.outcome === "lost" ? " (perdu)" : ""}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Button type="submit" variant="outline">
+              Déplacer
+            </Button>
+            {"outcome" in currentDealStatus && currentDealStatus.outcome === "lost" && (
+              <p className="w-full text-xs text-muted-foreground">
+                Affaire perdue{deal.lossReasonId ? "" : " — renseigne le motif ci-dessous"}.
+              </p>
+            )}
+          </form>
+
+          <form action={saveDetails} className="flex flex-col gap-4 border-t border-border pt-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Field label="Montant estimé (€)" htmlFor="estimatedAmount">
+                <Input
+                  id="estimatedAmount"
+                  name="estimatedAmount"
+                  type="number"
+                  min="0"
+                  defaultValue={deal.estimatedAmount ?? ""}
+                />
+              </Field>
+              <Field
+                label="Probabilité (%)"
+                htmlFor="probability"
+                hint={
+                  "outcome" in currentDealStatus && currentDealStatus.probability != null
+                    ? `Vide = celle de l'étape (${formatPercent(currentDealStatus.probability)}).`
+                    : "Vide = celle de l'étape."
+                }
+              >
+                <Input
+                  id="probability"
+                  name="probability"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  defaultValue={deal.probability ? String(Number(deal.probability)) : ""}
+                />
+              </Field>
+              <Field label="Clôture prévue" htmlFor="expectedCloseDate">
+                <Input
+                  id="expectedCloseDate"
+                  name="expectedCloseDate"
+                  type="date"
+                  defaultValue={deal.expectedCloseDate ?? ""}
+                />
+              </Field>
+              <Field label="Responsable" htmlFor="ownerId">
+                <select
+                  id="ownerId"
+                  name="ownerId"
+                  defaultValue={deal.ownerId ?? ""}
+                  className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                >
+                  <option value="">Personne</option>
+                  {orgUsers.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name || u.email}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            {"outcome" in currentDealStatus && currentDealStatus.outcome === "lost" && (
+              <Field label="Motif de perte" htmlFor="lossReasonId" hint="La liste se configure dans Marque & réglages.">
+                <select
+                  id="lossReasonId"
+                  name="lossReasonId"
+                  defaultValue={deal.lossReasonId ?? ""}
+                  className="h-8 max-w-64 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                >
+                  <option value="">Sans motif</option>
+                  {lossReasons.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
+            <Button type="submit" variant="outline" className="w-fit">
+              Enregistrer
+            </Button>
+          </form>
+
+          {durations.length > 0 && (
+            <div className="flex flex-col gap-2 border-t border-border pt-4">
+              <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                Temps par étape
+              </h3>
+              <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                {durations.map((d) => {
+                  const days = Math.floor(d.ms / 86400000);
+                  return (
+                    <li key={d.label + String(d.current)} className="flex items-center gap-1.5">
+                      <span
+                        aria-hidden
+                        className="size-2 rounded-full"
+                        style={{ backgroundColor: d.color ?? "var(--muted-foreground)" }}
+                      />
+                      <span>{d.label}</span>
+                      <span className="tabular-nums text-muted-foreground">
+                        {days < 1 ? "moins d'un jour" : formatDays(days)}
+                        {d.current && " · en cours"}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {shares.length > 0 && (
         <section className="flex flex-col gap-3">
@@ -191,7 +366,7 @@ export default async function DealPage({
         brand={toRenderBrand(org)}
         issuedByName={user.name ?? null}
         currentDealStatus={currentDealStatus}
-        availableStatuses={statuses}
+        availableStatuses={partnerStages}
         partners={activePartners}
       />
 

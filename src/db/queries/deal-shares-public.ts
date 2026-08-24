@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import {
   commissions,
@@ -10,6 +10,7 @@ import {
   deals,
   organizations,
   partners,
+  dealStageChanges,
   users,
 } from "@/db/schema";
 import { toRenderBrand } from "@/db/queries/newsletters";
@@ -169,10 +170,32 @@ export async function applyPublicShareAction(
     if (!status || status.organizationId !== share.organizationId) {
       throw new Error("Statut invalide pour ce partage.");
     }
-    await db
-      .update(deals)
-      .set({ statusId: status.id, updatedAt: new Date() })
-      .where(eq(deals.id, share.dealId));
+    const deal = await db.query.deals.findFirst({ where: eq(deals.id, share.dealId) });
+    if (!deal) throw new Error("Incohérence interne : affaire introuvable pour un partage valide.");
+    // Même pipeline seulement, et JAMAIS une étape gagné/perdu : clore une
+    // affaire est un geste de l'organisation, pas d'un tiers via jeton
+    // (décision A, docs/module-relationnel.md). Ces étapes ne sont pas
+    // proposées par buildView — ce refus couvre une soumission forgée.
+    if (status.pipelineId !== deal.pipelineId || status.outcome !== null) {
+      throw new Error("Statut invalide pour ce partage.");
+    }
+    if (deal.statusId !== status.id) {
+      await db.batch([
+        db
+          .update(deals)
+          .set({ statusId: status.id, updatedAt: new Date() })
+          .where(eq(deals.id, share.dealId)),
+        // L'historique structuré (durées par étape) attribue le geste au
+        // PARTENAIRE — même règle d'attribution que deal_events.
+        db.insert(dealStageChanges).values({
+          organizationId: share.organizationId,
+          dealId: share.dealId,
+          fromStatusId: deal.statusId,
+          toStatusId: status.id,
+          actorPartnerId: share.partnerId,
+        }),
+      ]);
+    }
     await logEvent(share, "status_changed", status.label);
   }
 
@@ -229,7 +252,15 @@ async function buildView(share: DealShareRow): Promise<PublicShareView> {
       db
         .select()
         .from(dealStatuses)
-        .where(eq(dealStatuses.organizationId, share.organizationId))
+        .where(
+          and(
+            eq(dealStatuses.organizationId, share.organizationId),
+            // Les étapes du pipeline de CETTE affaire, hors gagné/perdu :
+            // clore reste un geste de l'organisation (décision A).
+            eq(dealStatuses.pipelineId, deal.pipelineId),
+            isNull(dealStatuses.outcome)
+          )
+        )
         .orderBy(asc(dealStatuses.position)),
       // Bornée par share.id : jamais la commission d'un autre partage.
       db.query.commissions.findFirst({ where: eq(commissions.shareId, share.id) }),

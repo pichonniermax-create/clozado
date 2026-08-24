@@ -274,7 +274,7 @@ export default async function ContactPage({ params }: { params: Promise<{ id: st
         </p>
       )}
 
-      <DealsSection deals={deals} />
+      <DealsSection deals={deals} contactId={contact.id} />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold">Tâches ouvertes</h2>
@@ -419,16 +419,35 @@ export default async function ContactPage({ params }: { params: Promise<{ id: st
 
 function DealsSection({
   deals,
+  contactId,
 }: {
   deals: { id: string; title: string; estimatedAmount: string | null; createdAt: Date }[];
+  contactId?: string;
 }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold">Affaires liées</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold">Affaires liées</h2>
+        {contactId && (
+          <Link
+            href={`/affaires?contact=${contactId}`}
+            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Nouvelle affaire pour ce contact →
+          </Link>
+        )}
+      </div>
       {deals.length === 0 ? (
         <EmptyState>
-          Aucune affaire reliée à cette fiche. Le lien se posera à la création d&apos;une affaire
-          depuis le pipeline.
+          Aucune affaire reliée à cette fiche —{" "}
+          {contactId ? (
+            <Link href={`/affaires?contact=${contactId}`} className="underline underline-offset-2 hover:text-foreground">
+              crée la première depuis le pipeline
+            </Link>
+          ) : (
+            "elles apparaîtront ici"
+          )}
+          .
         </EmptyState>
       ) : (
         <ListCard>
