@@ -1,6 +1,8 @@
 import { Search } from "lucide-react";
 import { signOut } from "@/auth";
 import { AccountMenu } from "@/components/app-shell/account-menu";
+import { MobileNav } from "@/components/app-shell/mobile-nav";
+import type { NavBadge } from "@/components/app-shell/navigation";
 import { QuickCreateMenu } from "@/components/app-shell/quick-create-menu";
 import { Input } from "@/components/ui/input";
 
@@ -10,15 +12,19 @@ import { Input } from "@/components/ui/input";
  * CONTEXTE (dans quelle organisation on travaille — le nom, jamais la
  * marque du client), la recherche de contacts, le menu « Nouveau » et le
  * compte. Collant en haut : le bandeau super admin se range juste dessous.
+ * Sur petit écran, il porte aussi le bouton qui ouvre la navigation repliée.
  */
 export function AppHeader({
   organizationName,
   hasOrganization,
+  badges,
   user,
 }: {
   /** Nom de l'organisation dans laquelle on travaille — null en vue globale super admin. */
   organizationName: string | null;
   hasOrganization: boolean;
+  /** Les compteurs de la navigation — le panneau replié les affiche comme la barre latérale. */
+  badges: Record<NavBadge, number>;
   user: { name: string | null; email: string | null };
 }) {
   async function signOutAction() {
@@ -27,7 +33,8 @@ export function AppHeader({
   }
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-6 backdrop-blur">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-border bg-background/95 px-3 backdrop-blur md:gap-3 md:px-6">
+      <MobileNav hasOrganization={hasOrganization} badges={badges} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">
           {organizationName ?? <span className="text-muted-foreground">Vue globale</span>}

@@ -20,9 +20,9 @@ import {
 export function QuickCreateMenu() {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button size="sm" />}>
+      <DropdownMenuTrigger render={<Button size="sm" aria-label="Nouveau" />}>
         <Plus />
-        Nouveau
+        <span className="hidden sm:inline">Nouveau</span>
         <ChevronDown className="opacity-70" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">

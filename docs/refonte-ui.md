@@ -134,9 +134,24 @@ compteur (`tasksDue`, `followUp`) et la règle « exige une organisation »
 ses compteurs et le menu « Nouveau » (`QUICK_CREATE`) suivent. Les menus
 s'appuient sur `dropdown-menu` (Base UI), jusqu'ici présent mais inutilisé.
 
+### Navigation repliable sur petit écran (complément de l'étape 3)
+
+En dessous de `md` (768 px), la barre latérale disparaît ; un bouton dans
+l'en-tête ouvre **la même liste** (`NavigationList`, rendue depuis
+`navigation.ts` — une seule source, deux emplacements) dans un panneau qui
+glisse depuis la gauche par-dessus l'écran. Le panneau est le nouveau
+composant du socle **`Sheet`** (`components/ui/sheet.tsx`), construit sur le
+Drawer de Base UI : focus retenu, défilement de la page bloqué, fermeture à
+Échap, au clic en dehors, au bouton « Fermer » et d'un glissement vers le
+bord (le panneau suit le doigt via `--drawer-swipe-movement-x`). À la
+navigation, il est remonté (`key={pathname}`) : toujours fermé sur l'écran
+d'arrivée, sans état à synchroniser — la règle `react-hooks/set-state-in-
+effect` interdit d'ailleurs la fermeture par effet. L'en-tête, le bandeau
+super admin et le conteneur de contenu resserrent leurs marges sur petit
+écran ; « Nouveau » n'y garde que son icône ; la recherche reste sur grand
+écran seulement.
+
 ### Hors de cette étape, à décider
 
-- Une navigation repliable sur petit écran (la barre fait 16 rem fixes) :
-  demande un composant de panneau latéral (« sheet ») qui n'existe pas
-  encore dans le socle.
 - Des fichiers d'état propres à `/newsletters/*` (voir étape 2).
+- Info-bulle et boîte de dialogue, encore absentes du socle (inventaire §3).

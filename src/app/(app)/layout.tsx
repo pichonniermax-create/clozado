@@ -50,6 +50,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         <AppHeader
           organizationName={org?.name ?? null}
           hasOrganization={hasOrganization}
+          badges={{ followUp, tasksDue }}
           user={{ name: sessionUser.name ?? null, email: sessionUser.email ?? null }}
         />
         {isSuperAdmin && (
@@ -58,7 +59,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             activeOrgId={user.organizationId}
           />
         )}
-        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-8 py-8">
+        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
           {children}
         </main>
       </div>
