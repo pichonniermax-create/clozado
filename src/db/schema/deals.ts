@@ -14,6 +14,7 @@ import {
 import { contacts } from "./contacts";
 import { dealStatuses } from "./deal-statuses";
 import { dealTypes } from "./deal-types";
+import { leads } from "./leads";
 import { lossReasons } from "./loss-reasons";
 import { organizations } from "./organizations";
 import { pipelines } from "./pipelines";
@@ -47,6 +48,14 @@ export const deals = pgTable(
     clientName: text("client_name").notNull(),
     /** Fiche contact liée — NULL pour les affaires d'avant le module relationnel ou saisies sans fiche. */
     contactId: uuid("contact_id"),
+    /**
+     * L'ORIGINE de l'affaire : le lead qui l'a générée. Posé à la création
+     * depuis le lead le plus récent du contact REÇU AVANT la création ;
+     * jamais rattaché automatiquement après coup (un lead postérieur n'a
+     * pas généré l'affaire) ; modifiable à la main sur la fiche, chaque
+     * changement journalisé (`origin_changed`). NULL = origine inconnue.
+     */
+    leadId: uuid("lead_id"),
     /** Pas de colonne .references() simple ici : voir la FK composite ci-dessous (deals_type_org_fk). */
     typeId: uuid("type_id").notNull(),
     pipelineId: uuid("pipeline_id").notNull(),
@@ -110,6 +119,11 @@ export const deals = pgTable(
       columns: [table.lossReasonId, table.organizationId],
       foreignColumns: [lossReasons.id, lossReasons.organizationId],
     }),
+    foreignKey({
+      name: "deals_lead_org_fk",
+      columns: [table.leadId, table.organizationId],
+      foreignColumns: [leads.id, leads.organizationId],
+    }).onDelete("set null"),
     check(
       "deals_probability_range",
       sql`${table.probability} IS NULL OR (${table.probability} >= 0 AND ${table.probability} <= 100)`
@@ -124,6 +138,9 @@ export const deals = pgTable(
     index("deals_org_owner_idx").on(table.organizationId, table.ownerId),
     index("deals_org_close_date_idx").on(table.organizationId, table.expectedCloseDate),
     index("deals_org_contact_idx").on(table.organizationId, table.contactId),
+    // Analytique : créations d'affaires dans le temps (funnel, délais), et par origine.
+    index("deals_org_created_idx").on(table.organizationId, table.createdAt),
+    index("deals_org_lead_idx").on(table.organizationId, table.leadId),
   ]
 );
 

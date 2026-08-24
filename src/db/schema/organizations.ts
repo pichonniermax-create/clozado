@@ -60,6 +60,14 @@ export const organizations = pgTable("organizations", {
    * que la pile « commissions à encaisser » de l'écran de suivi.
    */
   commissionUnpaidDays: integer("commission_unpaid_days").notNull().default(14),
+  // --- Acquisition (module analytique) — les clés de site vivent dans `site_keys` ---
+  /**
+   * Les domaines depuis lesquels `POST /api/events` est accepté pour cette
+   * organisation (en-tête Origin du navigateur) — vide = rien n'est
+   * accepté : sans domaine déclaré, n'importe qui pourrait polluer le
+   * funnel amont.
+   */
+  allowedDomains: text("allowed_domains").array().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

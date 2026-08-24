@@ -137,6 +137,8 @@ export const tasks = pgTable(
     ),
     index("tasks_org_contact_idx").on(table.organizationId, table.contactId),
     index("tasks_org_deal_idx").on(table.organizationId, table.dealId),
+    // Journal unifié et analytique : les tâches achevées d'une organisation par date.
+    index("tasks_org_status_completed_idx").on(table.organizationId, table.status, table.completedAt),
   ]
 );
 

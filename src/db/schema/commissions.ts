@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   check,
   foreignKey,
+  index,
   numeric,
   pgEnum,
   pgTable,
@@ -95,6 +96,8 @@ export const commissions = pgTable(
       columns: [table.shareId, table.organizationId],
       foreignColumns: [dealShares.id, dealShares.organizationId],
     }).onDelete("cascade"),
+    // Suivi et analytique : les commissions d'une organisation par état.
+    index("commissions_org_state_idx").on(table.organizationId, table.state),
   ]
 );
 

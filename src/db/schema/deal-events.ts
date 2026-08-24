@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, foreignKey, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { check, foreignKey, index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { dealShares } from "./deal-shares";
 import { deals } from "./deals";
 import { organizations } from "./organizations";
@@ -25,6 +25,8 @@ export const dealEventTypeEnum = pgEnum("deal_event_type", [
   "status_changed",
   "commented",
   "commission_updated",
+  /** L'origine de l'affaire (lead) rattachée ou détachée à la main — message : le libellé de l'origine. */
+  "origin_changed",
 ]);
 
 /**
@@ -87,6 +89,10 @@ export const dealEvents = pgTable(
       columns: [table.actorPartnerId, table.organizationId],
       foreignColumns: [partners.id, partners.organizationId],
     }),
+    // Analytique : le fil d'une organisation par date, et les événements
+    // d'un partage par type (consultation, réponse) — module analytique §4.
+    index("deal_events_org_created_idx").on(table.organizationId, table.createdAt),
+    index("deal_events_org_share_type_idx").on(table.organizationId, table.shareId, table.type),
   ]
 );
 

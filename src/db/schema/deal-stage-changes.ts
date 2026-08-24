@@ -83,6 +83,12 @@ export const dealStageChanges = pgTable(
       table.dealId,
       table.changedAt
     ),
+    // Analytique : les entrées dans une étape donnée, dans le temps (funnel, signatures, pertes).
+    index("deal_stage_changes_org_to_status_changed_idx").on(
+      table.organizationId,
+      table.toStatusId,
+      table.changedAt
+    ),
   ]
 );
 

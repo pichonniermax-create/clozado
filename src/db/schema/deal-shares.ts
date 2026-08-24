@@ -1,4 +1,4 @@
-import { foreignKey, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { foreignKey, index, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { deals } from "./deals";
 import { organizations } from "./organizations";
 import { partners } from "./partners";
@@ -103,6 +103,9 @@ export const dealShares = pgTable(
       columns: [table.replacesShareId, table.organizationId],
       foreignColumns: [table.id, table.organizationId],
     }),
+    // Analytique : par partenaire dans le temps, et par état (suivi).
+    index("deal_shares_org_partner_sent_idx").on(table.organizationId, table.partnerId, table.sentAt),
+    index("deal_shares_org_status_idx").on(table.organizationId, table.status),
   ]
 );
 

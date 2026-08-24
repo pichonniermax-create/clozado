@@ -326,6 +326,84 @@ date sur une commission prévue, motif de perte posé au passage puis
 corrigé, `share_viewed` écrit une seule fois pour deux consultations,
 organisation voisine à zéro partout, super admin sans organisation refusé.
 
+---
+
+## Acquisition — conception retenue avec l'utilisateur (avant la migration B)
+
+Arbitrages du 2026-08-24 : entrée des leads **serveur à serveur** avec clé
+d'API (jamais dans du JavaScript) ; **visites mesurées dès maintenant** ;
+liste d'origines **configurée par organisation + débordement libre**,
+rapprochement ensuite ; lead à email connu ⇒ **compléter la fiche et
+journaliser** l'enrichissement ; le système **fonctionne en dégradé** pour
+une organisation qui n'a rien branché ; `/api/events` **restreint par
+domaine d'origine**.
+
+### `deals.lead_id` — figé, mais jamais changé en silence
+
+- À la création : le lead le plus récent du contact **reçu avant** la
+  création, automatiquement (une affaire créée à la main sur un contact qui
+  a déjà un lead hérite de son origine).
+- Après coup : un lead arrivé **après** la création n'est jamais rattaché
+  tout seul — il n'a pas généré l'affaire. La fiche affaire porte un champ
+  **Origine** : le lead rattaché ou « aucune », le choix parmi les leads du
+  contact, ou le détachement. Chaque changement manuel est journalisé
+  (`deal_events` type `origin_changed`, avec l'acteur et le libellé) et
+  visible dans le journal unifié. L'écran de rapprochement signale « N
+  affaires sans origine chez des contacts qui ont un lead ».
+- Pour l'analytique, l'affaire compte sous l'origine rattachée au moment du
+  calcul ; le journal garde la trace des changements.
+
+### La clé d'API (`api_keys`)
+
+- **Où** : table `api_keys`, une ligne par clé, par organisation, plusieurs
+  clés possibles (une par intégration).
+- **Forme** : 256 bits d'aléa, montrée **une seule fois** à la création,
+  stockée **hachée** (SHA-256, comme le jeton de partage) — `key_hash`
+  unique sert à l'authentification, `key_prefix` (les premiers caractères)
+  sert à la reconnaître dans la liste, jamais à la reconstituer. Un dump de
+  la base ne donne accès à aucune clé.
+- **Rotation** : on crée une nouvelle clé (affichée une fois), on bascule
+  l'intégration, on **révoque** l'ancienne (`revoked_at` : refusée à
+  l'authentification, conservée pour l'historique — les leads reçus y
+  restent liés). Les deux vivent en parallèle le temps de la bascule ;
+  `last_used_at` dit si l'ancienne sert encore avant de la couper.
+- Gestion dans Marque & réglages, réservée à l'admin de l'organisation ;
+  débit limité par clé sur `/api/leads`.
+
+### L'extrait JavaScript et les visites
+
+- **Rien de branché** : aucune visite, aucun lead — le funnel amont affiche
+  l'état « pas encore branché » avec l'extrait à poser et la clé à créer ;
+  le funnel commercial, les délais, les pertes fonctionnent ; l'origine des
+  affaires est « inconnue » et les filtres par origine le montrent tel quel.
+  Aucune erreur, aucun écran vide muet.
+- **Ce qui vit chez le client** : une seule ligne, un **chargeur** minuscule
+  (`<script src="https://<clozado>/s.js" data-site="<site_key>">`), qui ne
+  change jamais de contrat ; il charge l'extrait courant depuis Clozado. La
+  logique se met donc à jour **côté Clozado**, sans redéploiement chez le
+  client. L'extrait pose un `visitor_id` en première partie (localStorage,
+  repli cookie), envoie la visite (`sendBeacon`, jamais bloquant), expose
+  `clozado.track("simulation_started" | "simulation_completed", {…})` pour
+  les simulateurs, et **échoue en silence** : jamais une exception sur la
+  page du client.
+- **Évolution sans casser** : le contrat de `/api/events` est **versionné
+  dans la charge** (`v: 1`) ; les changements sont **additifs** (jamais un
+  champ retiré, jamais un sens changé) ; une rupture = un nouveau numéro de
+  version que le serveur sert en parallèle de l'ancien, jamais à sa place.
+  Une installation ancienne continue de fonctionner indéfiniment.
+- **Identification et garde-fous** : `organizations.site_key` (identifiant
+  public opaque, généré par la base) désigne l'organisation ;
+  `organizations.allowed_domains` liste les domaines acceptés — en-tête
+  `Origin` vérifié, **vide = rien d'accepté** ; débit limité par site et par
+  IP ; aucune adresse IP stockée, aucune identité dans les événements.
+
+### À refaire sur données réelles
+
+Les vérifications de la migration `0009` (rattrapages) ont tourné sur des
+organisations jetables et sur une base quasi vide (1 ligne dans
+`deal_events`) : c'est la logique qui est validée, pas le comportement sur
+du volume. **À rejouer sur de vraies données** dès qu'il y en aura.
+
 ## Avancement
 
 - **Étape 1 — audit** : `ea0de94`. STOP.

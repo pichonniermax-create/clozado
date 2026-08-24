@@ -17,13 +17,14 @@ import { users } from "./users";
 
 /**
  * ORIGINE du contact — figée à la création, ne change jamais ensuite :
- * saisi à la main, arrivé par un import CSV, ou né dans un système externe.
+ * saisi à la main, arrivé par un import CSV, né dans un système externe, ou
+ * arrivé par un lead (simulateur, page — module analytique).
  * Protocole technique fixe (comme `deal_share_status`), pas une valeur
  * métier configurable. Un contact `manual`/`import` peut être RATTACHÉ plus
  * tard à un CRM externe (external_system/external_id posés par une future
  * synchro) sans que son origine change.
  */
-export const contactSourceEnum = pgEnum("contact_source", ["manual", "import", "external"]);
+export const contactSourceEnum = pgEnum("contact_source", ["manual", "import", "external", "lead"]);
 
 /** Personne physique ou personne morale — conditionne la fiche, pas un vocabulaire client. */
 export const contactKindEnum = pgEnum("contact_kind", ["person", "company"]);
@@ -126,6 +127,8 @@ export const contacts = pgTable(
       .where(sql`${table.deletedAt} IS NULL`),
     // Filtre « mes contacts » (par conseiller).
     index("contacts_org_owner_idx").on(table.organizationId, table.ownerId),
+    // Analytique : arrivées de contacts dans le temps.
+    index("contacts_org_created_idx").on(table.organizationId, table.createdAt),
   ]
 );
 
