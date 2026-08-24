@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
@@ -31,8 +33,13 @@ async function addPartner(formData: FormData) {
   redirect("/partenaires");
 }
 
-export default async function PartnersPage() {
+export default async function PartnersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ nouveau?: string }>;
+}) {
   const user = await requireUser();
+  const params = await searchParams;
   const partners = await listPartners(user);
   const active = partners.filter((p) => p.active);
   const inactive = partners.filter((p) => !p.active);
@@ -44,7 +51,7 @@ export default async function PartnersPage() {
         description="Les confrères vers qui tu partages des affaires — ce ne sont pas des comptes du produit, ils n'ont rien à installer."
       />
 
-      <DetailsCard summary="Ajouter un partenaire">
+      <DetailsCard summary="Ajouter un partenaire" defaultOpen={params.nouveau === "1"}>
         <form action={addPartner} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Nom" htmlFor="name">
@@ -75,7 +82,19 @@ export default async function PartnersPage() {
       <PartnerList
         title={`${active.length} partenaire${active.length > 1 ? "s" : ""} actif${active.length > 1 ? "s" : ""}`}
         partners={active}
-        empty="Aucun partenaire actif pour l'instant."
+        emptyState={
+          <EmptyState
+            title="Aucun partenaire pour l'instant"
+            action={
+              <Link href="/partenaires?nouveau=1" className={buttonVariants({ variant: "outline" })}>
+                Ajouter un partenaire
+              </Link>
+            }
+          >
+            Les confrères vers qui tu partages des affaires : ils reçoivent un lien à ton nom et
+            répondent en un clic, sans compte à créer de leur côté.
+          </EmptyState>
+        }
       />
 
       {/* Les partenaires se désactivent, ne se suppriment pas — cohérent
@@ -85,7 +104,7 @@ export default async function PartnersPage() {
         <PartnerList
           title={`${inactive.length} inactif${inactive.length > 1 ? "s" : ""}`}
           partners={inactive}
-          empty=""
+          emptyState={null}
         />
       )}
     </>
@@ -95,17 +114,18 @@ export default async function PartnersPage() {
 function PartnerList({
   title,
   partners,
-  empty,
+  emptyState,
 }: {
   title: string;
   partners: Awaited<ReturnType<typeof listPartners>>;
-  empty: string;
+  /** Ce qu'on montre quand la liste est vide — un état structuré qui dit quoi faire. */
+  emptyState: ReactNode;
 }) {
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-sm font-semibold">{title}</h2>
       {partners.length === 0 ? (
-        <EmptyState>{empty}</EmptyState>
+        emptyState
       ) : (
         <ListCard>
           {partners.map((p) => (

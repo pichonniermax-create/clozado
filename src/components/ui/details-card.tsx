@@ -17,17 +17,22 @@ export function DetailsCard({
   summary,
   variant = "create",
   flush = false,
+  defaultOpen = false,
+  id,
   children,
 }: {
   summary: ReactNode;
   variant?: "create" | "archive";
   /** Sans le padding interne — pour y glisser une liste bord à bord. */
   flush?: boolean;
+  /** Déjà dépliée au rendu — un état vide peut y envoyer (« Ajouter un partenaire »). */
+  defaultOpen?: boolean;
+  id?: string;
   children: ReactNode;
 }) {
   const Icon = variant === "create" ? Plus : ChevronRight;
   return (
-    <details className="group rounded-xl border border-border bg-card">
+    <details id={id} open={defaultOpen || undefined} className="group rounded-xl border border-border bg-card">
       <summary
         className={cn(
           "flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium transition-colors",

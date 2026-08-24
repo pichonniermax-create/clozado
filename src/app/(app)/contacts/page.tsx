@@ -14,7 +14,7 @@ import { requireUser } from "@/lib/session";
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string; conseiller?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; conseiller?: string; nouveau?: string }>;
 }) {
   const user = await requireUser();
   const params = await searchParams;
@@ -49,7 +49,7 @@ export default async function ContactsPage({
         }
       />
 
-      <DetailsCard summary="Nouveau contact">
+      <DetailsCard summary="Nouveau contact" defaultOpen={params.nouveau === "1"}>
         <ContactCreateForm orgUsers={orgUsers} />
       </DetailsCard>
 
@@ -90,19 +90,33 @@ export default async function ContactsPage({
 
         {rows.length === 0 ? (
           q || ownerId ? (
-            <EmptyState>
-              Aucun contact ne correspond à cette recherche.{" "}
-              <Link href="/contacts" className="underline underline-offset-2 hover:text-foreground">
-                Tout afficher
-              </Link>
+            <EmptyState
+              title="Aucun contact ne correspond à cette recherche"
+              action={
+                <Link href="/contacts" className={buttonVariants({ variant: "outline" })}>
+                  Tout afficher
+                </Link>
+              }
+            >
+              La recherche porte sur le nom, l&apos;email, la société et le téléphone — espaces et
+              points compris.
             </EmptyState>
           ) : (
-            <EmptyState>
-              Aucun contact pour l&apos;instant. Crée ta première fiche ci-dessus, ou{" "}
-              <Link href="/contacts/import" className="underline underline-offset-2 hover:text-foreground">
-                importe ton fichier CSV
-              </Link>{" "}
-              — tes affaires et tes relances s&apos;y rattacheront.
+            <EmptyState
+              title="Aucun contact pour l'instant"
+              action={
+                <>
+                  <Link href="/contacts?nouveau=1" className={buttonVariants()}>
+                    Créer une fiche
+                  </Link>
+                  <Link href="/contacts/import" className={buttonVariants({ variant: "outline" })}>
+                    Importer un CSV
+                  </Link>
+                </>
+              }
+            >
+              Tes clients et prospects, personnes et sociétés : chaque fiche relie ses affaires,
+              ses tâches et ses échanges. Un import CSV depuis ton CRM est le plus rapide.
             </EmptyState>
           )
         ) : (

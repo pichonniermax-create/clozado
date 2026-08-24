@@ -11,6 +11,7 @@ import {
   ListTodo,
   PauseCircle,
   Plus,
+  Sparkles,
 } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -114,6 +115,11 @@ export default async function DashboardPage() {
   );
   const activePartners = partners.filter((p) => p.active).length;
   const tasksNow = tasksDue.overdue + tasksDue.today;
+  // Un espace neuf : ni contact ni affaire. Des tuiles à zéro ne disent pas
+  // par où commencer — on le dit, avec les premiers gestes (les partenaires
+  // ne comptent pas : on peut en avoir sans avoir encore rien suivi).
+  const isFreshSpace =
+    contactsCount === 0 && pipeline.open.n + pipeline.won.n + pipeline.lost.n === 0;
 
   // Les trois piles d'action, remises bout à bout et tronquées : le tableau
   // de bord annonce ce qui attend, l'écran de suivi est celui où l'on
@@ -160,6 +166,32 @@ export default async function DashboardPage() {
           </>
         }
       />
+
+      {isFreshSpace && (
+        <EmptyState
+          icon={<Sparkles />}
+          title="Bienvenue dans ton espace"
+          action={
+            <>
+              <Link href="/contacts/import" className={buttonVariants()}>
+                Importer mes contacts
+              </Link>
+              {partners.length === 0 && (
+                <Link href="/partenaires?nouveau=1" className={buttonVariants({ variant: "outline" })}>
+                  Ajouter un partenaire
+                </Link>
+              )}
+              <Link href="/affaires?nouveau=1" className={buttonVariants({ variant: "outline" })}>
+                Créer une affaire
+              </Link>
+            </>
+          }
+        >
+          Par où commencer : importe tes contacts ou crée les premières fiches, puis crée ta
+          première affaire — et partage-la à un confrère depuis sa fiche. Le tableau de bord se
+          remplit tout seul.
+        </EmptyState>
+      )}
 
       {/* Aujourd'hui : ce qui attend une action, tous modules confondus. */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

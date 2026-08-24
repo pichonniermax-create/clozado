@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AlarmClock, Banknote, CheckCircle2, PauseCircle } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListCard, ListRow } from "@/components/ui/list-card";
@@ -45,6 +46,33 @@ export default async function FollowUpPage() {
   }
 
   const board = await getFollowUpBoard(user);
+
+  // Aucun partage, jamais : les trois piles vides diraient « rien en
+  // souffrance » — vrai, mais l'écran doit d'abord dire à quoi il sert.
+  const everShared =
+    board.pendingAlerts.length +
+    board.acceptedStale.length +
+    board.unpaidCommissions.length +
+    board.inProgress.length +
+    board.closed.length;
+  if (everShared === 0) {
+    return (
+      <>
+        <PageHeader title="Suivi" description="Ce qu'il faut relancer, classé par nature — pas par date." />
+        <EmptyState
+          title="Rien à suivre pour l'instant"
+          action={
+            <Link href="/affaires" className={buttonVariants({ variant: "outline" })}>
+              Voir les affaires
+            </Link>
+          }
+        >
+          Le suivi se remplit dès que tu partages une affaire à un confrère : partages sans
+          réponse, acceptés sans suite, commissions à encaisser.
+        </EmptyState>
+      </>
+    );
+  }
 
   const unpaidTotal = board.unpaidCommissions.reduce(
     (sum, c) => sum + (Number(c.computedAmount) || 0),

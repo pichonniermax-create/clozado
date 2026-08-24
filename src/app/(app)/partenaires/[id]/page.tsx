@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
@@ -104,7 +105,17 @@ export default async function PartnerPage({
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold">Affaires partagées</h2>
         {history.length === 0 ? (
-          <EmptyState>Aucune affaire partagée avec ce partenaire pour l&apos;instant.</EmptyState>
+          <EmptyState
+            title="Aucune affaire partagée avec ce partenaire"
+            action={
+              <Link href="/affaires" className={buttonVariants({ variant: "outline" })}>
+                Voir les affaires
+              </Link>
+            }
+          >
+            Le partage se fait depuis la fiche d&apos;une affaire : un lien à ton nom, une réponse en
+            un clic — l&apos;historique apparaîtra ici.
+          </EmptyState>
         ) : (
           <ListCard>
             {history.map(({ share, deal }) => (

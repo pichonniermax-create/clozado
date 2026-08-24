@@ -260,7 +260,7 @@ export default async function SettingsPage() {
                   </button>
                 </span>
                 <Input name="label" defaultValue={stage.label} disabled={readOnly} className="w-44" aria-label="Libellé de l'étape" />
-                <Input name="color" defaultValue={stage.color ?? ""} disabled={readOnly} placeholder="#16a34a" className="w-28" aria-label="Couleur" />
+                <Input name="color" defaultValue={stage.color ?? ""} disabled={readOnly} placeholder={DEFAULT_BRAND_PRIMARY} className="w-28" aria-label="Couleur" />
                 <Input
                   name="probability"
                   type="number"
@@ -295,7 +295,7 @@ export default async function SettingsPage() {
               <form action={addStage} className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2">
                 <input type="hidden" name="pipelineId" value={pipeline.id} />
                 <Input name="label" placeholder="Nouvelle étape" required className="w-44" aria-label="Libellé de la nouvelle étape" />
-                <Input name="color" placeholder="#2563eb" className="w-28" aria-label="Couleur" />
+                <Input name="color" placeholder={DEFAULT_BRAND_PRIMARY} className="w-28" aria-label="Couleur" />
                 <Input name="probability" type="number" min="0" max="100" placeholder="%" className="w-20 text-right" aria-label="Probabilité" />
                 <select name="outcome" defaultValue="" className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm" aria-label="Marqueur de fin">
                   <option value="">Étape intermédiaire</option>

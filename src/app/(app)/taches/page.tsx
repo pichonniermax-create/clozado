@@ -112,7 +112,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         </div>
       )}
 
-      <Card>
+      <Card id="nouvelle-tache">
         <CardHeader>
           <CardTitle>Nouvelle tâche</CardTitle>
         </CardHeader>
@@ -152,10 +152,16 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
       </Card>
 
       {openCount === 0 ? (
-        <EmptyState>
-          Rien à faire pour l&apos;instant
-          {params.conseiller ? " pour ce conseiller" : ""} — la première tâche se crée ci-dessus, et
-          les relances du PRM apparaîtront ici d&apos;elles-mêmes.
+        <EmptyState
+          title={`Rien à faire pour l'instant${params.conseiller ? " pour ce conseiller" : ""}`}
+          action={
+            <a href="#nouvelle-tache" className={buttonVariants({ variant: "outline" })}>
+              Créer une tâche
+            </a>
+          }
+        >
+          Les tâches se créent ci-dessus, ou naissent toutes seules des relances du PRM : partage
+          sans réponse, affaire sans suite, commission non réglée.
         </EmptyState>
       ) : (
         <>

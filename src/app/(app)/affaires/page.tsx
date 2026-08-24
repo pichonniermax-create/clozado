@@ -42,6 +42,8 @@ type Params = {
   dir?: string;
   page?: string;
   contact?: string;
+  /** « 1 » : le formulaire de création s'ouvre déplié (un état vide y envoie). */
+  nouveau?: string;
 };
 
 async function addDealType(formData: FormData) {
@@ -68,11 +70,24 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
     return (
       <>
         <PageHeader title="Affaires" description="Les dossiers que tu suis, du premier contact à la signature." />
-        <EmptyState>
-          {user.organizationId
-            ? "Aucun pipeline dans cette organisation — il se crée depuis Marque & réglages."
-            : "Tu es en vue globale : choisis une organisation dans le bandeau super admin en haut de l'écran pour voir son pipeline."}
-        </EmptyState>
+        {user.organizationId ? (
+          <EmptyState
+            title="Aucun pipeline dans cette organisation"
+            action={
+              <Link href="/settings" className={buttonVariants({ variant: "outline" })}>
+                Configurer un pipeline
+              </Link>
+            }
+          >
+            Un pipeline est une famille d&apos;affaires avec ses propres étapes (crédit, placement,
+            transaction…). Il se crée depuis Marque &amp; réglages.
+          </EmptyState>
+        ) : (
+          <EmptyState title="Tu es en vue globale">
+            Choisis une organisation dans le bandeau super admin en haut de l&apos;écran pour voir
+            son pipeline.
+          </EmptyState>
+        )}
       </>
     );
   }
@@ -199,6 +214,9 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
           summary={
             prefillContact ? `Nouvelle affaire pour ${prefillContact.name}` : "Nouvelle affaire"
           }
+          // Déplié quand on vient pour créer : depuis une fiche contact, ou
+          // depuis un état vide (« Créer une affaire »).
+          defaultOpen={Boolean(prefillContact) || params.nouveau === "1"}
         >
           <form action={addDeal} className="flex flex-col gap-4">
             <input type="hidden" name="vue" value={vue} />
@@ -289,6 +307,23 @@ async function KanbanView({
 }) {
   const cards = await listDealsBoard(user, pipelineId);
   return (
+    <>
+      {cards.length === 0 && (
+        <EmptyState
+          title="Aucune affaire dans ce pipeline pour l'instant"
+          action={
+            <Link
+              href={`/affaires?vue=kanban&pipeline=${pipelineId}&nouveau=1`}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              Créer une affaire
+            </Link>
+          }
+        >
+          Chaque colonne est une étape ; une affaire se glisse de l&apos;une à l&apos;autre et se
+          partage à un confrère depuis sa fiche. La première naîtra dans la colonne de gauche.
+        </EmptyState>
+      )}
     <KanbanBoard
       stages={stages.map((s) => ({
         id: s.id,
@@ -309,6 +344,7 @@ async function KanbanView({
       }))}
       lossReasons={lossReasons.map((r) => ({ id: r.id, label: r.label }))}
     />
+    </>
   );
 }
 
@@ -401,11 +437,36 @@ async function ListeView({
       </form>
 
       {rows.length === 0 ? (
-        <EmptyState>
-          {params.etape || params.conseiller
-            ? "Aucune affaire ne correspond à ces filtres."
-            : "Aucune affaire dans ce pipeline pour l'instant — crée la première ci-dessus."}
-        </EmptyState>
+        params.etape || params.conseiller ? (
+          <EmptyState
+            title="Aucune affaire ne correspond à ces filtres"
+            action={
+              <Link
+                href={`/affaires?vue=liste&pipeline=${pipelineId}`}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                Retirer les filtres
+              </Link>
+            }
+          >
+            Étape et conseiller se combinent : élargis l&apos;un des deux.
+          </EmptyState>
+        ) : (
+          <EmptyState
+            title="Aucune affaire dans ce pipeline pour l'instant"
+            action={
+              <Link
+                href={`/affaires?vue=liste&pipeline=${pipelineId}&nouveau=1`}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                Créer une affaire
+              </Link>
+            }
+          >
+            La liste est faite pour travailler : triable, filtrable, paginée. Elle se remplira avec
+            la première affaire.
+          </EmptyState>
+        )
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <table className="w-full text-sm">
