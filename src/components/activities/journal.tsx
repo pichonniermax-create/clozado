@@ -9,10 +9,12 @@ import {
   CheckCircle2,
   Clock,
   Eye,
+  Inbox,
   Mail,
   MessageSquare,
   Milestone,
   Phone,
+  Route,
   Send,
   StickyNote,
   Trash2,
@@ -156,7 +158,9 @@ const KIND_ICONS: Record<JournalKind, ReactNode> = {
   share_expired: <Clock />,
   commented: <MessageSquare />,
   commission_updated: <Banknote />,
+  origin_changed: <Route />,
   task_done: <CheckCircle2 />,
+  lead_received: <Inbox />,
 };
 
 function JournalRow({

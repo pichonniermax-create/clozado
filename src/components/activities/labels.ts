@@ -28,7 +28,9 @@ export const JOURNAL_KIND_LABELS: Record<JournalKind, string> = {
   share_expired: "Partage expiré (constaté)",
   commented: "Commentaire",
   commission_updated: "Commission",
+  origin_changed: "Origine de l'affaire",
   task_done: "Tâche achevée",
+  lead_received: "Lead reçu",
 };
 
 /** Comment le confrère se rattache à l'intitulé d'un événement de partage. */
@@ -45,6 +47,7 @@ const PARTNER_LINK: Partial<Record<JournalKind, string>> = {
 export function journalHeadline(entry: JournalEntry): string {
   const label = JOURNAL_KIND_LABELS[entry.kind] ?? entry.kind;
   if (entry.kind === "task_done" && entry.body) return `${label} : ${entry.body}`;
+  if (entry.kind === "lead_received" && entry.originLabel) return `${label} · ${entry.originLabel}`;
   const link = PARTNER_LINK[entry.kind];
   if (link && entry.partnerName) return `${label} ${link} ${entry.partnerName}`;
   return label;

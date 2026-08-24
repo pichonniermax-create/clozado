@@ -14,7 +14,9 @@ import { TaskSection } from "@/components/tasks/task-section";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { leadOriginLabel, listLeadsForContact } from "@/db/queries/acquisition";
 import { listDealJournal } from "@/db/queries/activities";
+import { setDealOriginAction } from "@/lib/acquisition/actions";
 import { listCommissionsForDeal } from "@/db/queries/commissions";
 import { listLossReasons } from "@/db/queries/loss-reasons";
 import { listOrgUsers } from "@/db/queries/contacts";
@@ -55,7 +57,7 @@ export default async function DealPage({
   const deal = await getDeal(user, id).catch(() => null);
   if (!deal) notFound();
 
-  const [org, types, statuses, partners, shares, commissions, journal, lossReasons, durations, orgUsers, dealTasks] = await Promise.all([
+  const [org, types, statuses, partners, shares, commissions, journal, lossReasons, durations, orgUsers, dealTasks, contactLeads] = await Promise.all([
     // L'organisation de L'AFFAIRE, pas celle de l'utilisateur connecté :
     // c'est sa marque qui s'affiche dans l'aperçu du partage, et c'est en
     // son nom que le partage est émis. Identique pour un admin (il ne voit
@@ -73,7 +75,9 @@ export default async function DealPage({
     getDealStageDurations(user, id),
     listOrgUsers(user),
     listOpenTasksForDeal(user, id),
+    deal.contactId ? listLeadsForContact(user, deal.contactId) : Promise.resolve([]),
   ]);
+  const currentLead = contactLeads.find((l) => l.id === deal.leadId) ?? null;
 
   // Les étapes du pipeline de CETTE affaire — et ce qu'on en montre au
   // partenaire : jamais les étapes gagné/perdu (clore est un geste de
@@ -284,6 +288,49 @@ export default async function DealPage({
                 })}
               </ul>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* L'origine : figée à la création depuis le dernier lead reçu avant,
+          jamais rattachée toute seule après coup — ici, le geste humain, journalisé. */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Origine</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <p className="text-sm">
+            {currentLead ? (
+              <>
+                Lead du {formatDate(currentLead.receivedAt)} — <span className="font-medium">{leadOriginLabel(currentLead)}</span>
+                {currentLead.pageUrl && <span className="text-muted-foreground"> · {currentLead.pageUrl}</span>}
+              </>
+            ) : (
+              <span className="text-muted-foreground">Aucune origine rattachée.</span>
+            )}
+          </p>
+          {!deal.contactId ? (
+            <p className="text-xs text-muted-foreground">Sans fiche contact, aucun lead ne peut être rattaché à cette affaire.</p>
+          ) : contactLeads.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Ce contact n&apos;a reçu aucun lead : rien à rattacher.</p>
+          ) : (
+            <form action={setDealOriginAction.bind(null, id)} className="flex flex-wrap items-end gap-2">
+              <Field
+                label="Lead à l'origine de l'affaire"
+                htmlFor="leadId"
+                hint="Posé automatiquement à la création depuis le dernier lead reçu avant. Un lead arrivé après ne se rattache qu'ici — et c'est journalisé."
+              >
+                <select id="leadId" name="leadId" defaultValue={deal.leadId ?? ""} className="h-8 min-w-64 rounded-lg border border-input bg-transparent px-2.5 text-sm">
+                  <option value="">Aucune origine</option>
+                  {contactLeads.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {formatDate(l.receivedAt)} — {leadOriginLabel(l)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Button type="submit" variant="outline">Enregistrer</Button>
+            </form>
           )}
         </CardContent>
       </Card>

@@ -1,7 +1,8 @@
 import { randomUUID } from "crypto";
 import { eq, like } from "drizzle-orm";
 import { db } from "@/db";
-import { organizations, users } from "@/db/schema";
+import { organizations, siteKeys, users } from "@/db/schema";
+import { generateSiteKey } from "@/lib/acquisition/keys";
 import { buildDefaultPipelineInserts } from "./deal-statuses";
 
 /**
@@ -84,6 +85,8 @@ export async function createOrganizationWithAdmin(input: {
     db.insert(organizations).values({ id: organizationId, name, slug }),
     db.insert(users).values({ email, role: "admin", organizationId }),
     ...buildDefaultPipelineInserts(organizationId),
+    // La clé de site publique de l'organisation (collecte des visites) — dès la naissance.
+    db.insert(siteKeys).values({ organizationId, key: generateSiteKey() }),
   ]);
 
   return { ok: true, organizationId, slug };

@@ -404,6 +404,110 @@ organisations jetables et sur une base quasi vide (1 ligne dans
 `deal_events`) : c'est la logique qui est validée, pas le comportement sur
 du volume. **À rejouer sur de vraies données** dès qu'il y en aura.
 
+---
+
+## La collecte — ce qui est construit (branche `analytique-collecte`)
+
+### Migrations `0010` (index) et `0011` (acquisition), appliquées
+
+Relues avant application, avec les quatre corrections demandées :
+`leads.contact_id` nullable et `ON DELETE SET NULL` (l'attribution survit à
+la personne : voir la purge ci-dessous) ; les clés de site dans une table
+`site_keys` (plusieurs actives, révocation datée — rotation sans casser les
+installations) ; `acquisition_rejections` (un compteur par organisation,
+motif et détail — le fail-closed n'est jamais silencieux) ; plafonds de
+taille et de débit dans les routes.
+
+### Le contrat d'entrée (versionné, additif)
+
+**`POST /api/leads`** — serveur à serveur. En-tête `Authorization: Bearer
+clz_…` (clé d'API de l'organisation). Corps JSON ≤ 64 Ko :
+`email` (ou `phone`), `name` / `first_name` / `last_name`, `phone`,
+`company`, `job_title`, `city`, `postal_code`, `country`, `origin`,
+`simulator`, `page_url`, `referrer`, `utm_source` / `utm_medium` /
+`utm_campaign`, `visitor_id` (celui de l'extrait, pour relier la chaîne),
+`simulation_started_at` / `simulation_completed_at` (ISO 8601), `payload`
+(objet ≤ 16 Ko et ≤ 200 clés, jamais interprété). Réponses : `201`
+`{ lead_id, contact_id, matched_existing_contact, enriched_fields }` ;
+`400 invalid_payload` (avec les champs en cause) ; `401` (clé absente,
+inconnue ou révoquée — sans distinguer) ; `413 payload_too_large` (rien
+n'est enregistré) ; `429 rate_limited` (120/min par clé et par IP). Email
+connu ⇒ la fiche est **complétée** (champs vides seulement, jamais
+name/email), et le lead garde `matched_existing_contact` + les champs
+enrichis — le journal unifié affiche « Lead reçu · origine — fiche
+existante complétée : ville, fonction ».
+
+**`POST /api/events`** — navigateur, via l'extrait. Corps `text/plain` (pas
+de pré-vol CORS) : `{ v: 1, site: <clé de site>, events: [ { kind: visit |
+simulation_started | simulation_completed, visitor_id, occurred_at?,
+page_url?, referrer?, utm_*?, simulator?, origin? } ] }`, ≤ 16 Ko, ≤ 20
+événements. Accepté seulement si l'en-tête `Origin` est un domaine déclaré
+par l'organisation ; `404` clé inconnue ou révoquée, `403` domaine absent
+ou non déclaré (compté), `413`, `429` (600/min par clé de site, 120/min
+par IP). Une date hors fenêtre (7 jours en arrière, 5 minutes en avant) est
+remplacée par « maintenant ». Aucune IP stockée.
+
+**`GET /s.js`** — l'extrait : `<script src="https://<clozado>/s.js"
+data-site="<clé de site>" async>` (+ `data-origin`, `data-simulator`
+facultatifs). Identifiant de visiteur en première partie (localStorage,
+repli cookie), visite envoyée au chargement (page, referrer, UTM),
+`clozado.track("simulation_started" | "simulation_completed", { simulator,
+origin })`, file `window.clozado.q` acceptée avant chargement, envoi par
+`sendBeacon`, échec silencieux. Cache 5 minutes : la logique se met à jour
+côté Clozado.
+
+**Le limiteur de débit est en mémoire, par instance** (même limite honnête
+que la route de partage, `src/lib/rate-limit.ts`) : il freine, il ne
+garantit pas. À centraliser (Postgres ou Redis) si l'abus devient réel.
+
+### Les écrans
+
+- **Marque & réglages → Collecte** : état (visites, simulations, leads sur
+  30 jours, derniers reçus ; « rien n'est branché » sinon), **refus comptés**
+  avec le conseil (« ajoute ce domaine s'il est à toi »), ligne de script
+  par clé de site active (création, révocation — jamais la dernière active),
+  domaines autorisés (un par ligne, normalisés), clés d'API (création avec
+  la valeur affichée **une fois**, préfixe, dernier usage, révocation).
+- **Analytique → Origines** : à rapprocher (textes reçus inconnus, avec
+  leur poids ; rattacher à une origine existante ou nouvelle —
+  rétroactif), origines configurées, et **affaires sans origine chez des
+  contacts qui ont un lead** (le cas « créée à la main, lead identifié
+  après coup »).
+- **Fiche affaire → Origine** : le lead rattaché, le choix parmi les leads
+  du contact ou le détachement — chaque changement journalisé
+  (`origin_changed`).
+- **Journal unifié** : « Lead reçu · origine » sur la fiche contact et le
+  fil de l'organisation.
+
+### La purge RGPD, précisément
+
+À la suppression d'un contact (tombale), le lead **reste**, rattaché à la
+tombale comme les affaires, et garde : date d'arrivée, origine (rattachée
+et texte brut), simulateur, page, referrer, UTM, dates de simulation, clé
+utilisée, champs enrichis (des noms de champs, pas des valeurs). Sont
+**purgés** : `payload` (les réponses de la simulation) et `visitor_id` (le
+lien vers la navigation). L'export réglementaire d'un contact inclut ses
+leads, réponses comprises, tant qu'il n'est pas supprimé.
+
+### Vérifié — sur des organisations jetables, pas sur des données réelles
+
+Ce qui suit valide la **logique** ; la base réelle ne contient encore
+aucun lead ni aucune visite. API (46 contrôles) : clés, refus 401/400/413,
+complétion sans écrasement, débordement et rapprochement rétroactif,
+domaine absent/non déclaré/déclaré avec compteurs, plafonds, rotation des
+clés de site, `s.js`, origine posée à la création et jamais après coup,
+rattachement/détachement journalisés, purge RGPD, isolation (dont rejet
+par la base d'un lead qui mélangerait deux organisations). Navigateur
+(17 contrôles) : un « site client » servi localement avec la ligne de
+script → visite, simulation démarrée (file) et terminée (bouton) reçues
+avec page, UTM et origine ; identifiant stable entre chargements ; lead
+envoyé côté serveur avec le même identifiant ; fiche contact et affaire
+créée depuis la fiche (origine posée) ; affaire passée en « gagné » ;
+**chaîne continue lue en base : origine → visite → simulation → lead →
+contact → affaire gagnée** ; réglages (ligne de script, domaine, clé
+affichée une fois, refus visible), écran des origines (rapprochement), zéro
+erreur console.
+
 ## Avancement
 
 - **Étape 1 — audit** : `ea0de94`. STOP.

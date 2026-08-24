@@ -8,6 +8,7 @@ import {
   contactTags,
   deals,
   dealStatuses,
+  leads,
   tasks,
   users,
   type Contact,
@@ -368,7 +369,7 @@ export async function listContactAccessLog(user: OrgScopeUser, contactId: string
 /** Toutes les données d'un contact, en un JSON complet — l'export réglementaire. */
 export async function exportContactData(user: OrgScopeUser, contactId: string, actorId: string) {
   const data = await getContactPageData(user, contactId);
-  const [accessLog, allTasks] = await Promise.all([
+  const [accessLog, allTasks, allLeads] = await Promise.all([
     db
       .select()
       .from(contactAccessLog)
@@ -378,6 +379,8 @@ export async function exportContactData(user: OrgScopeUser, contactId: string, a
     // brutes — l'export est un inventaire complet, pas la vue de la fiche
     // (qui ne montre que l'ouvert).
     db.select().from(tasks).where(eq(tasks.contactId, contactId)).orderBy(desc(tasks.createdAt)),
+    // Les leads reçus pour cette personne, réponses de simulation comprises.
+    db.select().from(leads).where(eq(leads.contactId, contactId)).orderBy(desc(leads.receivedAt)),
   ]);
 
   await logContactAccess(data.contact, actorId, "export");
@@ -389,6 +392,7 @@ export async function exportContactData(user: OrgScopeUser, contactId: string, a
     affairesLiees: data.deals,
     taches: allTasks,
     interactions: data.activities,
+    leads: allLeads,
     journalDesAcces: accessLog,
   };
 }
@@ -411,6 +415,10 @@ export async function deleteContact(user: OrgScopeUser, contactId: string, actor
   await db.batch([
     db.delete(activities).where(eq(activities.contactId, contactId)),
     db.delete(tasks).where(eq(tasks.contactId, contactId)),
+    // Les leads restent (l'attribution survit à la personne, rattachée à la
+    // tombale comme les affaires) ; ce qui parle d'elle part : les réponses
+    // de la simulation et le lien vers sa navigation.
+    db.update(leads).set({ payload: null, visitorId: null }).where(eq(leads.contactId, contactId)),
     db.delete(contactTagAssignments).where(eq(contactTagAssignments.contactId, contactId)),
     db
       .update(deals)
@@ -487,6 +495,7 @@ export async function mergeContacts(user: OrgScopeUser, survivorId: string, abso
   await db.batch([
     db.update(deals).set({ contactId: survivorId, updatedAt: new Date() }).where(eq(deals.contactId, absorbedId)),
     db.update(tasks).set({ contactId: survivorId, updatedAt: new Date() }).where(eq(tasks.contactId, absorbedId)),
+    db.update(leads).set({ contactId: survivorId }).where(eq(leads.contactId, absorbedId)),
     db
       .update(activities)
       .set({ contactId: survivorId, updatedAt: new Date() })

@@ -12,6 +12,7 @@ import {
   users,
 } from "@/db/schema";
 import { assertOrgAccess, orgScope } from "@/db/scope";
+import { latestLeadBefore } from "./acquisition";
 import { getDefaultDealStatus } from "./deal-statuses";
 import type { OrgScopeUser } from "@/lib/session";
 
@@ -94,6 +95,13 @@ export async function createDeal(
     if (!clientName) clientName = contact.name;
   }
 
+  // L'origine : le lead le plus récent du contact reçu AVANT la création —
+  // figée ici, jamais rattachée automatiquement après coup (un lead
+  // postérieur n'a pas généré l'affaire) ; modifiable à la main, journalisé.
+  const leadId = input.contactId
+    ? await latestLeadBefore(user.organizationId, input.contactId, new Date())
+    : null;
+
   // Id généré côté application : l'affaire, sa première ligne d'historique
   // d'étape et son événement de création naissent dans le MÊME lot atomique
   // (un batch neon-http ne lit pas de returning).
@@ -105,6 +113,7 @@ export async function createDeal(
       title: input.title,
       clientName,
       contactId: input.contactId ?? null,
+      leadId,
       typeId: input.typeId,
       statusId: status.id,
       pipelineId: status.pipelineId,

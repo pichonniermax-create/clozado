@@ -9,6 +9,8 @@ import {
   dealShares,
   dealStageChanges,
   dealStatuses,
+  leads,
+  origins,
   partners,
   tasks,
   users,
@@ -59,7 +61,9 @@ export type JournalKind =
   | "share_expired"
   | "commented"
   | "commission_updated"
-  | "task_done";
+  | "origin_changed"
+  | "task_done"
+  | "lead_received";
 
 export type JournalEntry = {
   /** Unique toutes sources confondues (préfixe par source). */
@@ -88,6 +92,8 @@ export type JournalEntry = {
   contactName: string | null;
   /** Renseigné pour une interaction saisie à la main — la seule entrée qui se supprime. */
   activityId: string | null;
+  /** Lead reçu : l'origine (configurée, sinon le texte reçu, sinon le simulateur). */
+  originLabel: string | null;
 };
 
 export type Journal = { entries: JournalEntry[]; truncated: boolean };
@@ -138,11 +144,19 @@ async function collectJournal(scope: JournalScope, limit: number): Promise<Journ
 
   const activitySubject = subjectOf(scope, activities.contactId, activities.dealId);
   const taskSubject = subjectOf(scope, tasks.contactId, tasks.dealId);
+  // Les leads parlent d'une personne : sur une fiche contact et sur le fil de
+  // l'organisation, jamais sur une affaire (elle montre son champ Origine).
+  const leadSubject: SQL | undefined | null =
+    scope.dealIds === undefined && !scope.contactId
+      ? undefined
+      : scope.contactId
+        ? eq(leads.contactId, scope.contactId)
+        : null;
   const stageSubject = subjectOf(scope, null, dealStageChanges.dealId);
   const eventSubject = subjectOf(scope, null, dealEvents.dealId);
   const dealSubject = subjectOf(scope, null, deals.id);
 
-  const [activityRows, stageRows, eventRows, taskRows, dealRows] = await Promise.all([
+  const [activityRows, stageRows, eventRows, taskRows, dealRows, leadRows] = await Promise.all([
     activitySubject === null
       ? []
       : db
@@ -277,6 +291,26 @@ async function collectJournal(scope: JournalScope, limit: number): Promise<Journ
           .where(and(eq(deals.organizationId, orgId), dealSubject))
           .orderBy(desc(deals.createdAt))
           .limit(limit),
+    leadSubject === null
+      ? []
+      : db
+          .select({
+            id: leads.id,
+            receivedAt: leads.receivedAt,
+            simulator: leads.simulator,
+            originRaw: leads.originRaw,
+            originLabel: origins.label,
+            matched: leads.matchedExistingContact,
+            enriched: leads.enrichedFields,
+            contactId: leads.contactId,
+            contactName: contacts.name,
+          })
+          .from(leads)
+          .leftJoin(origins, eq(leads.originId, origins.id))
+          .leftJoin(contacts, eq(leads.contactId, contacts.id))
+          .where(and(eq(leads.organizationId, orgId), leadSubject))
+          .orderBy(desc(leads.receivedAt))
+          .limit(limit),
   ]);
 
   const entries: JournalEntry[] = [];
@@ -296,6 +330,7 @@ async function collectJournal(scope: JournalScope, limit: number): Promise<Journ
       contactId: r.contactId,
       contactName: r.contactName,
       activityId: r.id,
+      originLabel: null,
     });
   }
   for (const r of stageRows) {
@@ -319,6 +354,7 @@ async function collectJournal(scope: JournalScope, limit: number): Promise<Journ
       contactId: r.contactId,
       contactName: r.contactName,
       activityId: null,
+      originLabel: null,
     });
   }
   for (const r of eventRows) {
@@ -336,6 +372,7 @@ async function collectJournal(scope: JournalScope, limit: number): Promise<Journ
       contactId: r.contactId,
       contactName: r.contactName,
       activityId: null,
+      originLabel: null,
     });
   }
   for (const r of taskRows) {
@@ -354,6 +391,7 @@ async function collectJournal(scope: JournalScope, limit: number): Promise<Journ
       contactId: r.contactId,
       contactName: r.contactName,
       activityId: null,
+      originLabel: null,
     });
   }
   for (const r of dealRows) {
@@ -371,6 +409,30 @@ async function collectJournal(scope: JournalScope, limit: number): Promise<Journ
       contactId: r.contactId,
       contactName: r.contactName,
       activityId: null,
+      originLabel: null,
+    });
+  }
+
+  for (const r of leadRows) {
+    entries.push({
+      key: `lead:${r.id}`,
+      kind: "lead_received",
+      at: r.receivedAt,
+      body: r.matched
+        ? r.enriched.length > 0
+          ? `Fiche existante complétée : ${r.enriched.join(", ")}.`
+          : "Fiche existante, déjà à jour : rien à compléter."
+        : "Nouvelle fiche créée.",
+      actorLabel: r.simulator ?? "site",
+      partnerName: null,
+      autoRule: null,
+      stage: null,
+      dealId: null,
+      dealTitle: null,
+      contactId: r.contactId,
+      contactName: r.contactName,
+      activityId: null,
+      originLabel: r.originLabel ?? r.originRaw ?? r.simulator ?? "origine non renseignée",
     });
   }
 

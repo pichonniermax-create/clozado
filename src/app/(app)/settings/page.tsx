@@ -1,5 +1,17 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { ApiKeyCreator } from "@/components/acquisition/api-key-creator";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Textarea } from "@/components/ui/textarea";
+import { getCollectionStatus, listApiKeys, listSiteKeys } from "@/db/queries/acquisition";
+import {
+  createSiteKeyAction,
+  revokeApiKeyAction,
+  revokeSiteKeyAction,
+  updateAllowedDomainsAction,
+} from "@/lib/acquisition/actions";
+import { formatDateTime } from "@/lib/format";
 import { PageHeader } from "@/components/app-shell/page-header";
 import {
   Card,
@@ -60,8 +72,19 @@ function stageInputFrom(formData: FormData) {
   };
 }
 
-export default async function SettingsPage() {
+const REJECTION_LABELS: Record<string, string> = {
+  domain_not_allowed: "Domaine non déclaré",
+  origin_missing: "Requête sans domaine d'origine",
+  site_key_revoked: "Clé de site révoquée encore utilisée",
+  api_key_revoked: "Clé d'API révoquée encore utilisée",
+  rate_limited: "Débit dépassé",
+  payload_too_large: "Charge trop volumineuse",
+  invalid_payload: "Charge invalide",
+};
+
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ erreur?: string }> }) {
   const user = await requireUser();
+  const { erreur } = await searchParams;
 
   // Le super_admin n'a pas d'organisation propre : cet écran ne le concerne pas.
   if (!user.organizationId) {
@@ -74,10 +97,17 @@ export default async function SettingsPage() {
   }
 
   const readOnly = user.role !== "admin";
-  const [pipelines, lossReasons] = await Promise.all([
+  const [pipelines, lossReasons, apiKeyRows, siteKeyRows, collection, requestHeaders] = await Promise.all([
     listPipelinesWithStages(user),
     listLossReasons(user),
+    listApiKeys(user),
+    listSiteKeys(user),
+    getCollectionStatus(user),
+    headers(),
   ]);
+  const appOrigin = `${requestHeaders.get("x-forwarded-proto") ?? "https"}://${requestHeaders.get("host") ?? "clozado"}`;
+  const activeSiteKeys = siteKeyRows.filter((k) => !k.revokedAt);
+  const nothingConnected = collection.lastEventAt === null && collection.lastLeadAt === null;
 
   async function saveStage(formData: FormData) {
     "use server";
@@ -329,6 +359,161 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
       )}
+
+      {erreur && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{erreur}</p>}
+
+      {/* ------------------------------------------------------------------
+          Collecte des leads et des visites (module analytique) : clés
+          d'API serveur, clés de site et extrait, domaines autorisés
+          (fail-closed, jamais silencieux : les refus sont comptés ici).
+      ------------------------------------------------------------------ */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Collecte des leads et des visites</CardTitle>
+          <CardDescription>
+            Deux entrées : les leads, envoyés par tes simulateurs côté serveur avec une clé d&apos;API ; les visites et
+            simulations, envoyées par une ligne de script posée sur tes sites, acceptées seulement depuis les domaines
+            déclarés ci-dessous.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-6">
+          {nothingConnected ? (
+            <EmptyState title="Rien n'est branché pour l'instant">
+              Aucune visite ni aucun lead reçus. Le reste du produit fonctionne sans ; le funnel d&apos;acquisition
+              se remplira dès que la ligne de script sera posée et un domaine déclaré, et dès qu&apos;un simulateur
+              enverra des leads avec une clé d&apos;API.
+            </EmptyState>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border border-border p-3">
+                <p className="text-xs text-muted-foreground">Visites (30 jours)</p>
+                <p className="text-2xl font-semibold tabular-nums">{collection.visits30d}</p>
+                <p className="text-xs text-muted-foreground">
+                  {collection.lastEventAt ? `dernier événement le ${formatDateTime(collection.lastEventAt)}` : "aucun événement"}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border p-3">
+                <p className="text-xs text-muted-foreground">Simulations (30 jours)</p>
+                <p className="text-2xl font-semibold tabular-nums">{collection.simulations30d}</p>
+              </div>
+              <div className="rounded-lg border border-border p-3">
+                <p className="text-xs text-muted-foreground">Leads (30 jours)</p>
+                <p className="text-2xl font-semibold tabular-nums">{collection.leads30d}</p>
+                <p className="text-xs text-muted-foreground">
+                  {collection.lastLeadAt ? `dernier le ${formatDateTime(collection.lastLeadAt)}` : "aucun lead"}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {collection.rejections.length > 0 && (
+            <div className="flex flex-col gap-2 rounded-lg border border-warning/40 bg-warning/5 p-3">
+              <p className="text-sm font-medium">Requêtes refusées — à corriger, sinon la collecte reste muette</p>
+              <ul className="flex flex-col gap-1 text-sm">
+                {collection.rejections.map((r) => (
+                  <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span>
+                      {REJECTION_LABELS[r.reason] ?? r.reason} · <span className="font-medium">{r.detail}</span>
+                      {r.reason === "domain_not_allowed" && (
+                        <span className="text-muted-foreground"> — ajoute ce domaine ci-dessous s&apos;il est à toi</span>
+                      )}
+                    </span>
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {r.count} fois · dernière le {formatDateTime(r.lastSeenAt)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3 border-t border-border pt-4">
+            <h3 className="text-sm font-semibold">Ligne de script à poser sur tes sites</h3>
+            {activeSiteKeys.map((k) => (
+              <div key={k.id} className="flex flex-col gap-1.5">
+                <p className="text-xs text-muted-foreground">
+                  {k.label} · clé créée le {formatDateTime(k.createdAt)}
+                </p>
+                <code className="block rounded-md bg-muted px-3 py-2 text-xs break-all select-all">
+                  {`<script src="${appOrigin}/s.js" data-site="${k.key}" async></script>`}
+                </code>
+                {!readOnly && activeSiteKeys.length > 1 && (
+                  <form action={revokeSiteKeyAction.bind(null, k.id)}>
+                    <Button type="submit" variant="ghost" size="sm">Révoquer cette clé de site</Button>
+                  </form>
+                )}
+              </div>
+            ))}
+            {siteKeyRows.some((k) => k.revokedAt) && (
+              <p className="text-xs text-muted-foreground">
+                {siteKeyRows.filter((k) => k.revokedAt).length} clé(s) de site révoquée(s) — les scripts qui les portent encore sont refusés et comptés ci-dessus.
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Pour faire tourner une clé sans couper la collecte : crée la nouvelle, pose-la sur tes sites, puis révoque l&apos;ancienne.
+              Pour un simulateur, ajoute <code>data-simulator=&quot;…&quot;</code> et appelle{" "}
+              <code>clozado.track(&quot;simulation_started&quot;)</code> / <code>clozado.track(&quot;simulation_completed&quot;)</code>.
+            </p>
+            {!readOnly && (
+              <form action={createSiteKeyAction} className="flex flex-wrap items-end gap-2">
+                <Field label="Nouvelle clé de site" htmlFor="site-key-label" className="w-72">
+                  <Input id="site-key-label" name="label" placeholder="Site vitrine" />
+                </Field>
+                <Button type="submit" variant="outline">Créer</Button>
+              </form>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-border pt-4">
+            <h3 className="text-sm font-semibold">Domaines autorisés</h3>
+            <form action={updateAllowedDomainsAction} className="flex flex-col gap-2">
+              <Field
+                label="Un domaine par ligne (hôte seul, sans https:// ni chemin)"
+                htmlFor="allowed-domains"
+                hint="Rien n'est accepté tant que cette liste est vide — c'est voulu : sans elle, n'importe qui pourrait polluer ta collecte. Les refus sont comptés plus haut."
+              >
+                <Textarea id="allowed-domains" name="domains" defaultValue={org.allowedDomains.join("\n")} disabled={readOnly} className="min-h-20 max-w-xl font-mono text-xs" placeholder={"www.mon-cabinet.fr\nsimulateur.mon-cabinet.fr"} />
+              </Field>
+              {!readOnly && (
+                <Button type="submit" variant="outline" className="w-fit">Enregistrer les domaines</Button>
+              )}
+            </form>
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-border pt-4">
+            <h3 className="text-sm font-semibold">Clés d&apos;API (leads, côté serveur)</h3>
+            {apiKeyRows.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucune clé. Chaque intégration serveur reçoit la sienne — révocable séparément.</p>
+            ) : (
+              <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+                {apiKeyRows.map((k) => (
+                  <li key={k.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                    <span className="flex min-w-0 flex-col">
+                      <span className="font-medium">
+                        {k.label} <code className="text-xs text-muted-foreground">{k.keyPrefix}…</code>
+                      </span>
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        créée le {formatDateTime(k.createdAt)}
+                        {k.lastUsedAt ? ` · dernier usage le ${formatDateTime(k.lastUsedAt)}` : " · jamais utilisée"}
+                        {k.revokedAt && ` · révoquée le ${formatDateTime(k.revokedAt)}`}
+                      </span>
+                    </span>
+                    {!readOnly && !k.revokedAt && (
+                      <form action={revokeApiKeyAction.bind(null, k.id)}>
+                        <Button type="submit" variant="ghost" size="sm">Révoquer</Button>
+                      </form>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {!readOnly && <ApiKeyCreator />}
+            <p className="text-xs text-muted-foreground">
+              Envoi : <code>POST {appOrigin}/api/leads</code>, en-tête <code>Authorization: Bearer clz_…</code>, JSON avec au moins <code>email</code> ou <code>phone</code>, et <code>origin</code>, <code>simulator</code>, <code>visitor_id</code>, <code>utm_*</code>, <code>payload</code> (≤ 16 Ko).
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="max-w-xl">
         <CardHeader>

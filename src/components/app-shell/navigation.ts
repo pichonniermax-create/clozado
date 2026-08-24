@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   ListTodo,
   Mail,
+  Route,
   Target,
   Users,
   type LucideIcon,
@@ -48,6 +49,12 @@ export const NAVIGATION: NavSection[] = [
       { href: "/contacts", label: "Contacts", icon: BookUser },
       { href: "/affaires", label: "Affaires", icon: Briefcase },
       { href: "/partenaires", label: "Partenaires", icon: Users },
+    ],
+  },
+  {
+    label: "Analytique",
+    entries: [
+      { href: "/analytique/origines", label: "Origines", icon: Route, requiresOrganization: true },
     ],
   },
   {
