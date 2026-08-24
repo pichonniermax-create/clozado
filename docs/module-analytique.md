@@ -508,10 +508,177 @@ contact → affaire gagnée** ; réglages (ligne de script, domaine, clé
 affichée une fois, refus visible), écran des origines (rapprochement), zéro
 erreur console.
 
+## Étape 3 — délais et durées (branche `analytique-collecte`)
+
+### L'écran `/analytique/delais`
+
+Entrée « Délais » de la section Analytique. Tout ce qu'il affiche vient de
+`delaysReport()` — un seul objet, que l'export CSV (étape 6) écrira tel
+quel — et passe par UN composant, `DurationTable` : médiane ET moyenne
+côte à côte, le nombre d'observations toujours visible, chiffres
+tabulaires alignés à droite, et sous chaque indicateur ce qui est en
+cours ou écarté (« 3 affaires dans l'étape aujourd'hui », « 1 passage
+reconstitué écarté », « 1 commission réglée écartée (date de confirmation
+inconnue) »). Un indicateur sous le seuil n'affiche aucun chiffre : la
+ligne dit « masqué : il manque N observations ».
+
+- **Le cycle** : lead → premier contact, création → signature, partage →
+  réponse du partenaire, commission confirmée → réglée — dans l'ordre de la
+  vie d'une affaire.
+- **Temps passé par étape**, par pipeline : les étapes intermédiaires
+  seulement (une étape finale ne se quitte pas : rien à mesurer). Le
+  libellé d'une étape ouvre la liste des affaires qui y sont aujourd'hui
+  (`/affaires?vue=liste&pipeline=…&etape=…`) — l'analyse mène au geste.
+- **D'une étape à la suivante**, par pipeline : les paires consécutives,
+  jamais depuis une étape finale.
+- **Définitions** : les six entrées du registre, repliées (`<details>`
+  natif — pas d'info-bulle inventée, la décision reste ouverte), avec
+  mesure, exclusions, filtres, données insuffisantes, et « ce qui compte »
+  (ce qui crée une observation). Les libellés d'indicateurs y renvoient.
+
+**Les trois états.** Chargement et erreur : `loading.tsx` / `error.tsx` du
+segment `/analytique`. « Pas encore assez de données » : pas un écran vide
+mais l'inventaire — pour chaque indicateur, `n/5`, ce qui est en cours ou
+écarté, et la phrase du registre qui dit quel geste crée une observation ;
+gestes proposés : ouvrir le pipeline, brancher la collecte. Le même bloc
+sert quand des filtres ne laissent rien passer (« Rien ne se calcule avec
+ces filtres », retirer les filtres). Un filtre sans objet le dit (« sans
+origine » sur lead → premier contact). Vue globale super admin : refusée
+avec l'explication, jamais un agrégat qui traverserait deux organisations.
+
+### Les filtres — l'URL est le filtre
+
+`src/lib/metrics/search-params.ts` : les mêmes paramètres sur toutes les
+vues du module et sur l'export, pour qu'un lien copié garde sa sélection.
+`periode` (`30j`, `90j`, `12m`, défaut = depuis le début, le plus
+d'observations possible avant de restreindre), `du` / `au` (jours de
+Paris, borne haute **incluse**, priment sur le préréglage), `conseiller`,
+`type`, `pipeline`, `origine`. Tout identifiant qui n'est pas un UUID est
+ignoré, jamais transmis à la base ; une date mal formée aussi. Les
+sélecteurs n'apparaissent que s'il y a de quoi choisir (un seul
+conseiller, un seul pipeline : rien à filtrer ; aucune origine configurée :
+pas de sélecteur d'origine).
+
+**L'origine d'une affaire est celle de son lead** (`deals.lead_id`). Le
+filtre accepte une origine configurée, ou deux valeurs spéciales :
+`a-rapprocher` (lead reçu avec un texte non rattaché — Analytique →
+Origines) et `inconnue` (affaire sans lead). Sur lead → premier contact,
+l'origine est celle du premier lead du contact et « sans lead » est sans
+objet.
+
+**La période porte sur l'événement qui clôt chaque délai** (fin de passage,
+signature, réponse, règlement, première interaction) ; conseiller, type et
+pipeline sont ceux de l'affaire aujourd'hui ; lead → premier contact lit le
+conseiller de la fiche contact et ignore type et pipeline (il se mesure
+avant toute affaire). Chaque entrée du registre porte désormais son champ
+`filters` qui le dit, et `howToFeed` (ce qui crée une observation).
+
+### La couche, ce qui a changé
+
+- `lead_to_first_contact` est **mesurable** : par contact, son PREMIER
+  lead, puis la première interaction effective (appel, email, rendez-vous
+  — pas une note) consignée à partir de cette arrivée. Écartés : les
+  interactions antérieures au lead (la relation existait déjà), les notes,
+  les contacts venus autrement, les fiches supprimées (leurs interactions
+  le sont aussi). Les contacts venus par un lead sans interaction sont
+  comptés à part (`pending`) : de la matière à venir.
+- `DurationStat.pending` : les observations en cours (passage où
+  l'affaire est encore, lead sans premier contact) — affichées, jamais
+  comptées.
+- `stage_duration` et `stage_pair_delay` excluent les étapes finales
+  (définition mise à jour dans le registre).
+- **Défaut corrigé** dans `stagePairDelays` : les filtres (conseiller,
+  type, pipeline, période) étaient posés dans le `ON` d'un `LEFT JOIN` et
+  n'excluaient aucune paire — un filtre par conseiller rendait le même
+  nombre que sans filtre. Les paires observées sont maintenant calculées
+  d'abord (jointure interne, filtres, période), puis rattachées aux étapes.
+  Vérifié : conseiller 2 → n = 1 là où il y a 7 paires.
+- `formatDuration` (`lib/format.ts`) : « 12 min », « 7 h », « 3,5 j »,
+  « 42 j » — une décimale sous dix jours, aucune au-delà.
+
+### Vérifié — sur des organisations jetables, pas sur des données réelles
+
+Script temporaire contre la vraie base, deux organisations jetables
+détruites après (`_delais-a` : 8 contacts, 8 leads, 8 affaires aux dates
+connues, 8 partages dont une chaîne de renvoi, 7 commissions ; `_delais-b`
+témoin), **47 contrôles** : chaque métrique à la valeur attendue (médianes
+6 j, 8 j, 3,5 j, 3 j, 4 j, 2 j, 3 j), note et interaction antérieure au
+lead écartées, fiche supprimée écartée, second lead ignoré, passage
+reconstitué écarté et compté, 3 affaires en cours, étapes finales absentes,
+paires jamais depuis une étape finale ; filtres conseiller (sur l'affaire /
+sur la fiche), type sans effet sur le lead, pipeline, origine configurée,
+« à rapprocher », « sans origine » (sans objet), période sur l'événement
+qui clôt (début, fin exclue) ; isolation (B ne voit que B, A ne voit pas
+l'affaire de B, super admin sans organisation refusé) ; paramètres d'URL
+(UUID invalide ignoré, jours de Paris, borne incluse, préréglages) ;
+formats. **Navigateur** (Chromium, build de production, session forgée,
+27 contrôles) : l'écran d'A avec ses chiffres et ses mentions, l'entrée de
+navigation, le libellé d'étape qui ouvre la liste des affaires, le
+préréglage 90 j (commissions visibles, étapes masquées), le formulaire
+(conseiller 2 → « rien ne se calcule » + inventaire, sélecteur conservé),
+bornes du/au, valeurs spéciales d'origine, paramètres invalides (200,
+écran normal), définition dépliée, petit écran sans débordement ; B : état
+« pas encore assez de données » avec l'inventaire et les gestes, aucune
+donnée d'A, sélecteurs absents ; super admin en vue globale ; zéro erreur
+console.
+
+### Performance — mesures, et jusqu'où ça tient
+
+**Écrans quotidiens — avant / après.** Même protocole que la refonte UI :
+jeu `_perf-test` (5 000 contacts, 500 affaires, 2 000 tâches, 3 000
+interactions, 1 000 passages), build de production, session forgée, temps
+de réponse complet, médiane de 7 requêtes. Référence (main, avant ce
+chantier) → cette branche : tableau de bord 205 → 188 ms, contacts 139 →
+142 ms, tâches 238 → 251 ms, suivi 120 → 127 ms ; affaires (kanban)
+210 ms, liste 143 ms. Dans le bruit de mesure : l'analytique vit sur ses
+propres routes et n'ajoute rien à la coquille. L'écran des délais sur ce
+jeu : 143 ms (135 ms avec une période) ; Origines : 126 ms.
+
+**Volume — à partir de quand ça casse.** Organisation jetable
+`_perf-analytique` générée côté base : 70 000 affaires, 266 153 passages
+d'étape, 14 047 partages répondus, 9 342 commissions réglées, 35 000
+contacts venus par un lead, 24 425 interactions — soit, pour un cabinet
+qui signe 500 affaires par an, un siècle d'activité. Temps mesurés depuis
+le code de l'écran (aller-retour HTTP Neon compris, sur le compute de
+développement, médiane de 3 exécutions) :
+
+| Requête | 70 000 affaires |
+|---|---|
+| Temps passé par étape | 633 ms |
+| Paires d'étapes consécutives | 729 ms |
+| Création → signature | 123 ms |
+| Lead → premier contact | 100 ms |
+| Partage → réponse | 70 ms |
+| Commission confirmée → réglée | 37 ms |
+| **L'écran** (les six en parallèle) | **1,7 s** (1,5 s avec une période de 90 j) |
+
+Deux réécritures au passage, validées par les 47 contrôles : les paires
+d'étapes (3,3 s → 0,73 s : le planificateur recalculait l'agrégat pour
+chaque étape de départ, avec 800 000 sondes d'index sur `deals` — un seul
+passage à fenêtre par affaire, agrégat `MATERIALIZED`) et lead → premier
+contact (477 → 100 ms : jointure agrégée au lieu d'une sous-requête
+corrélée par contact). Les deux requêtes d'étapes lisent tout l'historique
+de l'organisation (fenêtre par affaire, puis tri pour la médiane) et
+croissent linéairement avec lui — la période ne borne pas la lecture, elle
+filtre à la fin. **Le choix « à la volée » tient jusqu'à ~300 000
+passages par organisation** (l'écran sous 2 s) ; vers **1 million de
+passages** (≈ 250 000 affaires) les deux requêtes d'étapes dépasseront
+2,5 s chacune et l'écran 6 s. À ce moment-là, et seulement à ce
+moment-là : tables de cumul par organisation, étape et jour (compte,
+somme, histogramme des durées pour la médiane), rafraîchies par une tâche
+planifiée — l'écran lira les cumuls, le registre restera la seule
+définition. La base réelle en est aujourd'hui à moins d'un pour cent de ce
+volume.
+
 ## Avancement
 
 - **Étape 1 — audit** : `ea0de94`. STOP.
 - **Étape 2 — corrections + couche de métriques** : migration `0009`
   appliquée, code branché, registre et famille « délais » en place. STOP.
-  Reste à valider séparément : le changeset d'index `0010` (§4), la
-  migration B de l'acquisition (§3).
+- **Collecte** (branche `analytique-collecte`, à relire avant `main`) :
+  `dbc6352` migrations `0010` (index) et `0011` (acquisition) appliquées ;
+  `a8491d5` `/api/leads`, `/api/events`, `s.js`, réglages Collecte,
+  Analytique → Origines, origine des affaires, purge RGPD.
+- **Étape 3 — délais et durées** (même branche) : `/analytique/delais`,
+  filtres dans l'URL, lead → premier contact mesurable, filtre origine,
+  défaut des paires corrigé. STOP.

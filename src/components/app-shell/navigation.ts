@@ -6,6 +6,7 @@ import {
   Mail,
   Route,
   Target,
+  Timer,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -54,6 +55,7 @@ export const NAVIGATION: NavSection[] = [
   {
     label: "Analytique",
     entries: [
+      { href: "/analytique/delais", label: "Délais", icon: Timer, requiresOrganization: true },
       { href: "/analytique/origines", label: "Origines", icon: Route, requiresOrganization: true },
     ],
   },

@@ -77,3 +77,18 @@ export function formatDateTime(date: Date | string): string {
     timeZone: PRODUCT_TIMEZONE,
   }).format(typeof date === "string" ? new Date(date) : date);
 }
+
+/**
+ * Une durée MESURÉE (médiane, moyenne), reçue en jours décimaux, à l'échelle
+ * où elle se lit : « 12 min », « 7 h », « 3,5 j », « 42 j » — une décimale
+ * sous dix jours, aucune au-delà. Distinct de `formatDays`, qui affiche un
+ * nombre de jours entiers déjà décidé (le suivi).
+ */
+export function formatDuration(days: number): string {
+  if (!Number.isFinite(days) || days < 0) return "—";
+  const hours = days * 24;
+  if (hours < 1) return `${Math.max(1, Math.round(hours * 60))}${NNBSP}min`;
+  if (days < 1) return `${Math.round(hours)}${NNBSP}h`;
+  const formatted = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: days < 10 ? 1 : 0 }).format(days);
+  return `${formatted}${NNBSP}j`;
+}

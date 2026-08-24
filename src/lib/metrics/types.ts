@@ -19,7 +19,9 @@ export type DurationStat = {
   excludedReconstructed: number;
   /** Lignes écartées faute de date connue. */
   excludedUnknown: number;
-  /** Renseigné quand la métrique n'est pas encore mesurable du tout (source absente). */
+  /** Observations EN COURS, pas encore closes (passage où l'affaire est encore, lead sans premier contact) — de la matière à venir, hors période. */
+  pending: number;
+  /** Renseigné quand la métrique n'est pas mesurable du tout dans ce contexte (source absente, filtre sans objet). */
   unavailable?: string;
 };
 
@@ -38,6 +40,7 @@ export function finishStat(raw: {
   meanSeconds: unknown;
   excludedReconstructed?: unknown;
   excludedUnknown?: unknown;
+  pending?: unknown;
 }): DurationStat {
   const n = Number(raw.n) || 0;
   const hidden = n < MIN_OBSERVATIONS;
@@ -49,6 +52,7 @@ export function finishStat(raw: {
     missing: hidden ? MIN_OBSERVATIONS - n : 0,
     excludedReconstructed: Number(raw.excludedReconstructed) || 0,
     excludedUnknown: Number(raw.excludedUnknown) || 0,
+    pending: Number(raw.pending) || 0,
   };
 }
 
@@ -61,6 +65,7 @@ export function unavailableStat(reason: string): DurationStat {
     missing: MIN_OBSERVATIONS,
     excludedReconstructed: 0,
     excludedUnknown: 0,
+    pending: 0,
     unavailable: reason,
   };
 }
