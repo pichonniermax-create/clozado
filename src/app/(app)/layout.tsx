@@ -2,6 +2,7 @@ import { Sidebar } from "@/components/app-shell/sidebar";
 import { SuperAdminBar } from "@/components/app-shell/super-admin-bar";
 import { getFollowUpBoard } from "@/db/queries/deal-follow-up";
 import { getOwnOrganization, getVisibleOrganizations } from "@/db/queries/organizations";
+import { countTasksDueNow } from "@/db/queries/tasks";
 import { requireSessionUser, requireUser } from "@/lib/session";
 
 /**
@@ -31,7 +32,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   // assumé — trois requêtes indexées sur de petites tables, contre le fait
   // de voir « ce qu'il reste à traiter » depuis n'importe quel écran. À
   // revoir si ces tables grossissent vraiment.
-  const board = user.organizationId && org ? await getFollowUpBoard(user) : null;
+  const [board, tasksDueCount] =
+    user.organizationId && org
+      ? await Promise.all([getFollowUpBoard(user), countTasksDueNow(user)])
+      : [null, 0];
   const followUpCount = board
     ? board.pendingAlerts.length + board.acceptedStale.length + board.unpaidCommissions.length
     : 0;
@@ -44,6 +48,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         userName={sessionUser.name ?? null}
         isSuperAdmin={!user.organizationId}
         followUpCount={followUpCount}
+        tasksDueCount={tasksDueCount}
       />
       <main className="min-w-0 flex-1">
         {isSuperAdmin && (

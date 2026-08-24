@@ -13,6 +13,7 @@ import {
 } from "@/db/schema";
 import { assertOrgAccess, orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
+import { listOpenTasksForContact } from "./tasks";
 
 /** Taille de page de la liste — côté serveur, jamais la table entière en mémoire. */
 export const CONTACTS_PAGE_SIZE = 50;
@@ -101,11 +102,7 @@ export async function getContactPageData(user: OrgScopeUser, contactId: string) 
         .from(deals)
         .where(and(eq(deals.contactId, contactId), eq(deals.organizationId, contact.organizationId)))
         .orderBy(desc(deals.createdAt)),
-      db
-        .select()
-        .from(tasks)
-        .where(and(eq(tasks.contactId, contactId), eq(tasks.status, "open")))
-        .orderBy(asc(tasks.dueAt)),
+      listOpenTasksForContact(user, contactId),
       db
         .select()
         .from(activities)
@@ -370,11 +367,17 @@ export async function listContactAccessLog(user: OrgScopeUser, contactId: string
 /** Toutes les données d'un contact, en un JSON complet — l'export réglementaire. */
 export async function exportContactData(user: OrgScopeUser, contactId: string, actorId: string) {
   const data = await getContactPageData(user, contactId);
-  const accessLog = await db
-    .select()
-    .from(contactAccessLog)
-    .where(eq(contactAccessLog.contactId, contactId))
-    .orderBy(desc(contactAccessLog.createdAt));
+  const [accessLog, allTasks] = await Promise.all([
+    db
+      .select()
+      .from(contactAccessLog)
+      .where(eq(contactAccessLog.contactId, contactId))
+      .orderBy(desc(contactAccessLog.createdAt)),
+    // TOUTES les tâches de la personne, achevées comprises, en lignes
+    // brutes — l'export est un inventaire complet, pas la vue de la fiche
+    // (qui ne montre que l'ouvert).
+    db.select().from(tasks).where(eq(tasks.contactId, contactId)).orderBy(desc(tasks.createdAt)),
+  ]);
 
   await logContactAccess(data.contact, actorId, "export");
 
@@ -383,7 +386,7 @@ export async function exportContactData(user: OrgScopeUser, contactId: string, a
     fiche: data.contact,
     etiquettes: data.tags,
     affairesLiees: data.deals,
-    taches: data.tasks,
+    taches: allTasks,
     interactions: data.activities,
     journalDesAcces: accessLog,
   };

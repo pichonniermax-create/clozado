@@ -10,6 +10,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ListCard, ListRow, ListRowLink } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
+import { TaskSection } from "@/components/tasks/task-section";
 import { Textarea } from "@/components/ui/textarea";
 import {
   findDuplicateCandidates,
@@ -41,15 +42,16 @@ const ACCESS_LABELS: Record<string, string> = {
   merge: "Fusion",
 };
 
-const PRIORITY_LABELS: Record<string, string> = {
-  low: "Basse",
-  normal: "Normale",
-  high: "Haute",
-};
-
-export default async function ContactPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ContactPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ erreur?: string }>;
+}) {
   const user = await requireUser();
   const { id } = await params;
+  const { erreur } = await searchParams;
 
   const data = await getContactPageData(user, id).catch(() => null);
   if (!data) notFound();
@@ -276,26 +278,13 @@ export default async function ContactPage({ params }: { params: Promise<{ id: st
 
       <DealsSection deals={deals} contactId={contact.id} />
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">Tâches ouvertes</h2>
-        {tasks.length === 0 ? (
-          <EmptyState>Aucune tâche pour ce contact.</EmptyState>
-        ) : (
-          <ListCard>
-            {tasks.map((t) => (
-              <ListRow key={t.id}>
-                <div className="flex min-w-0 flex-col">
-                  <span className="truncate text-sm font-medium">{t.title}</span>
-                  <span className="text-xs tabular-nums text-muted-foreground">
-                    {t.dueAt ? `Échéance le ${formatDate(t.dueAt)}` : "Sans échéance"}
-                    {` · priorité ${PRIORITY_LABELS[t.priority] ?? t.priority}`}
-                  </span>
-                </div>
-              </ListRow>
-            ))}
-          </ListCard>
-        )}
-      </section>
+      <TaskSection
+        tasks={tasks}
+        backTo={`/contacts/${contact.id}`}
+        contactId={contact.id}
+        emptyText="Aucune tâche pour ce contact — l'ajout rapide ci-dessous la rattache à cette fiche."
+        erreur={erreur}
+      />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold">Interactions</h2>

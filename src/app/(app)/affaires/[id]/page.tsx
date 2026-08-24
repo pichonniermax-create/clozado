@@ -8,6 +8,7 @@ import { MarkCommissionSettledButton } from "@/components/deal-shares/mark-commi
 import { ReissueShareButton } from "@/components/deal-shares/reissue-share-button";
 import { ShareComposer } from "@/components/deal-shares/share-composer";
 import { ShareStatusBadge } from "@/components/deal-shares/share-status-badge";
+import { TaskSection } from "@/components/tasks/task-section";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ import {
 import { listDealStatuses } from "@/db/queries/deal-statuses";
 import { listDealTypes } from "@/db/queries/deal-types";
 import { getDeal, getDealStageDurations } from "@/db/queries/deals";
+import { listOpenTasksForDeal } from "@/db/queries/tasks";
 import { toRenderBrand } from "@/db/queries/newsletters";
 import { getOrganizationOfRecord } from "@/db/queries/organizations";
 import { listPartners } from "@/db/queries/partners";
@@ -51,16 +53,19 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
 
 export default async function DealPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ erreur?: string }>;
 }) {
   const user = await requireUser();
   const { id } = await params;
+  const { erreur } = await searchParams;
 
   const deal = await getDeal(user, id).catch(() => null);
   if (!deal) notFound();
 
-  const [org, types, statuses, partners, shares, commissions, events, lossReasons, durations, orgUsers] = await Promise.all([
+  const [org, types, statuses, partners, shares, commissions, events, lossReasons, durations, orgUsers, dealTasks] = await Promise.all([
     // L'organisation de L'AFFAIRE, pas celle de l'utilisateur connecté :
     // c'est sa marque qui s'affiche dans l'aperçu du partage, et c'est en
     // son nom que le partage est émis. Identique pour un admin (il ne voit
@@ -77,6 +82,7 @@ export default async function DealPage({
     listLossReasons(user),
     getDealStageDurations(user, id),
     listOrgUsers(user),
+    listOpenTasksForDeal(user, id),
   ]);
 
   // Les étapes du pipeline de CETTE affaire — et ce qu'on en montre au
@@ -368,6 +374,14 @@ export default async function DealPage({
         currentDealStatus={currentDealStatus}
         availableStatuses={partnerStages}
         partners={activePartners}
+      />
+
+      <TaskSection
+        tasks={dealTasks}
+        backTo={`/affaires/${id}`}
+        dealId={id}
+        emptyText="Aucune tâche pour cette affaire — celles que le suivi génère (relances, commission) arriveront ici toutes seules."
+        erreur={erreur}
       />
 
       {/* Le journal ferme la page : c'est de la matière à consulter, pas une

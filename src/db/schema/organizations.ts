@@ -52,6 +52,14 @@ export const organizations = pgTable("organizations", {
   shareExpiringSoonDays: integer("share_expiring_soon_days").notNull().default(2),
   /** Jours sans événement (statut changé, commentaire) après acceptation avant qu'un partage "accepté" soit signalé comme sans suite. */
   dealAcceptedStaleDays: integer("deal_accepted_stale_days").notNull().default(5),
+  /**
+   * Jours pendant lesquels une commission confirmée peut rester non réglée
+   * avant de générer une tâche de relance (règle commission_unpaid de
+   * `tasks`). La date de confirmation est approchée par la dernière
+   * modification de la commission — même approximation, déjà documentée,
+   * que la pile « commissions à encaisser » de l'écran de suivi.
+   */
+  commissionUnpaidDays: integer("commission_unpaid_days").notNull().default(14),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -2,6 +2,7 @@ import {
   BookUser,
   Briefcase,
   LayoutDashboard,
+  ListTodo,
   LogOut,
   Mail,
   Settings,
@@ -33,6 +34,7 @@ export function Sidebar({
   userName,
   isSuperAdmin,
   followUpCount,
+  tasksDueCount,
 }: {
   org: SidebarOrg | null;
   userEmail: string | null;
@@ -40,6 +42,8 @@ export function Sidebar({
   isSuperAdmin: boolean;
   /** Total des trois piles d'action de l'écran de suivi. */
   followUpCount: number;
+  /** Tâches ouvertes en retard ou du jour — le « à faire maintenant » de l'écran des tâches. */
+  tasksDueCount: number;
 }) {
   const initials = (org?.name ?? "Clozado")
     .split(/\s+/)
@@ -76,10 +80,13 @@ export function Sidebar({
       <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-2">
         <NavSection label="Aujourd'hui">
           <NavLink href="/dashboard" label="Tableau de bord" icon={<LayoutDashboard />} />
-          {/* Le suivi et les réglages sont propres à une organisation : un
-              super_admin n'en a pas, l'entrée mènerait à un écran qui ne
-              peut rien afficher. Les deux écrans se défendent quand même
-              tout seuls si on y arrive par l'URL. */}
+          {/* Les tâches, le suivi et les réglages sont propres à une
+              organisation : un super_admin n'en a pas, l'entrée mènerait à
+              un écran qui ne peut rien afficher. Les écrans se défendent
+              quand même tout seuls si on y arrive par l'URL. */}
+          {!isSuperAdmin && (
+            <NavLink href="/taches" label="Tâches" icon={<ListTodo />} badge={tasksDueCount} />
+          )}
           {!isSuperAdmin && (
             <NavLink href="/suivi" label="Suivi" icon={<Target />} badge={followUpCount} />
           )}

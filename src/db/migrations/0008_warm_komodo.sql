@@ -1,0 +1,1 @@
+ALTER TABLE "organizations" ADD COLUMN "commission_unpaid_days" integer DEFAULT 14 NOT NULL;
