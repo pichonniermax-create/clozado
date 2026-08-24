@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
+import { BrandMark } from "@/components/app-shell/brand-mark";
 
 /**
  * Cadre commun à /login, /inscription et /login/verifier. Ces trois écrans
@@ -25,15 +25,7 @@ export function AuthShell({
     <div className="flex min-h-screen flex-col bg-muted/40">
       <div className="flex flex-1 items-center justify-center px-4 py-10">
         <div className="flex w-full max-w-sm flex-col gap-6">
-          <Link href="/" className="flex items-center gap-2.5 self-center">
-            <span
-              aria-hidden
-              className="flex size-8 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground"
-            >
-              C
-            </span>
-            <span className="text-lg font-semibold tracking-tight">Clozado</span>
-          </Link>
+          <BrandMark size="lg" href="/" className="self-center" />
 
           <div className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
             <div className="flex flex-col gap-1.5">

@@ -11,7 +11,7 @@ de départ est dans `docs/inventaire-ui.md` (constat au commit `51fc189`).
 | 0 | Inventaire de l'existant (`docs/inventaire-ui.md`) | fait, `32ee82f` |
 | 1 | Le socle : les motifs recopiés deviennent des composants (`ListCard`, `EmptyState`, `DetailsCard`, `Field`, badges d'état, `lib/format.ts`, `lib/brand.ts`) | fait, `3b7d810` |
 | 2 | Jamais l'écran brut : chargement, erreur, introuvable sur toutes les routes ; états vides qui disent ce qu'est l'écran et proposent le geste suivant | fait, voir ci-dessous |
-| 3 | La coquille : identité Clozado seule dans la barre latérale (la marque du client ne vit que sur `/partage/[token]` et dans les emails), bandeau permanent super admin, en-tête avec menu de compte, navigation prête à grandir | à faire — deux décisions déjà tranchées, ne pas les rouvrir |
+| 3 | La coquille : identité Clozado seule dans la barre latérale (la marque du client ne vit que sur `/partage/[token]` et dans les emails), bandeau permanent super admin, en-tête avec menu de compte, navigation prête à grandir | fait, voir ci-dessous |
 
 `/newsletters/*` est hors périmètre tant qu'aucun accord n'est donné pour y
 toucher (chantier composer) ; les filets de sécurité posés au niveau du
@@ -87,3 +87,56 @@ Mécanique commune : `?nouveau=1` déplie le formulaire de création
 
 Les exemples de couleur en dur des réglages (`#2563eb`, `#16a34a` dans des
 `placeholder`) passent par `DEFAULT_BRAND_PRIMARY` (`lib/brand.ts`).
+
+---
+
+## Étape 3 — la coquille
+
+### Identité Clozado seule
+
+La barre latérale ne porte plus le logo ni la couleur du client
+(`sidebar.tsx` peignait la pastille avec `org.primaryColor` et affichait
+`org.logoUrl` — la fuite relevée à l'inventaire §7). Elle porte la marque de
+l'application (`BrandMark`, une seule définition pour la coquille, les
+écrans publics et l'accueil — trois copies avant). Le nom de
+l'organisation vit dans l'en-tête, comme un **contexte** (« dans quel espace
+je travaille »), pas comme une marque. La marque du client ne s'affiche que
+sur la vitrine de partage et dans les emails (`RenderBrand`), inchangés.
+
+### L'en-tête
+
+Nouveau, collant en haut de la colonne de contenu (`app-header.tsx`) :
+
+- le nom de l'organisation (ou « Vue globale » pour un super admin sans
+  organisation choisie) ;
+- la recherche de contacts — un simple formulaire GET vers `/contacts?q=`,
+  aucun JavaScript ;
+- le menu **Nouveau** (contact, affaire, tâche, partenaire) : chaque entrée
+  ouvre l'écran concerné avec son formulaire déjà déplié (`?nouveau=1`,
+  mécanique de l'étape 2) — un raccourci, pas un second formulaire ;
+- le menu de **compte** (initiales) : nom, email, « Marque & réglages »,
+  « Se déconnecter » — la déconnexion reste un formulaire branché sur une
+  action serveur, elle marche sans JavaScript. Avant, c'était une icône au
+  pied de la navigation, et rien ne disait le nom du compte.
+
+### Le bandeau super admin
+
+Inchangé dans son rôle (permanent, visible du seul super admin, teinte
+distincte, sélecteur d'organisation posé à l'étape 3 du module relationnel
+à la demande de l'utilisateur) ; il se range désormais **sous l'en-tête**
+(collant à `top-14`), toujours au même endroit.
+
+### Navigation prête à grandir
+
+`navigation.ts` décrit la navigation en données : sections, entrées, icône,
+compteur (`tasksDue`, `followUp`) et la règle « exige une organisation »
+(masqué en vue globale). Ajouter un module = ajouter une ligne ; la barre,
+ses compteurs et le menu « Nouveau » (`QUICK_CREATE`) suivent. Les menus
+s'appuient sur `dropdown-menu` (Base UI), jusqu'ici présent mais inutilisé.
+
+### Hors de cette étape, à décider
+
+- Une navigation repliable sur petit écran (la barre fait 16 rem fixes) :
+  demande un composant de panneau latéral (« sheet ») qui n'existe pas
+  encore dans le socle.
+- Des fichiers d'état propres à `/newsletters/*` (voir étape 2).

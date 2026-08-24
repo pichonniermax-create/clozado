@@ -34,7 +34,7 @@ export function SuperAdminBar({
   }
 
   return (
-    <div className="sticky top-0 z-40 border-b border-warning/50 bg-warning/15 backdrop-blur">
+    <div className="sticky top-14 z-30 border-b border-warning/50 bg-warning/15 backdrop-blur">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-3 gap-y-1 px-8 py-2 text-sm">
         <span className="flex items-center gap-1.5 font-semibold">
           <ShieldAlert className="size-4" />

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Banknote, Share2, Target } from "lucide-react";
 import { auth } from "@/auth";
+import { BrandMark } from "@/components/app-shell/brand-mark";
 import { buttonVariants } from "@/components/ui/button";
 
 /**
@@ -19,15 +20,7 @@ export default async function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-muted/40">
       <header className="flex items-center justify-between px-6 py-5">
-        <div className="flex items-center gap-2.5">
-          <span
-            aria-hidden
-            className="flex size-8 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground"
-          >
-            C
-          </span>
-          <span className="text-lg font-semibold tracking-tight">Clozado</span>
-        </div>
+        <BrandMark size="lg" />
         <Link href="/login" className={buttonVariants({ variant: "ghost" })}>
           Se connecter
         </Link>
