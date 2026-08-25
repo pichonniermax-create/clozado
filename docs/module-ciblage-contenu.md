@@ -1,0 +1,382 @@
+# Module ciblage et contenu — cibles vivantes, identité éditoriale, veille, composer
+
+Notes de chantier, même rôle que `docs/module-relationnel.md` et
+`docs/module-analytique.md`. Cahier des charges reçu le 2026-08-25
+(« CHANTIER — CIBLAGE ET CONTENU »). Ce document commence par l'état des
+lieux et les trois réponses de conception demandées avant toute ligne de
+code (étape 1). Le schéma et les migrations viendront à l'étape 2, après
+arbitrage.
+
+État des lieux au commit `c040c90` (2026-08-25, `main`).
+
+---
+
+## 0. Ce qui existe — exploration
+
+### 0.1 Les contacts : tout ce qu'un critère de cible peut lire est déjà en base
+
+`contacts` (par organisation, FK composites, pierre tombale `deleted_at`) :
+`kind` personne/société, `name`, `email`, `phone`, `company_name`/
+`company_id`, `job_title`, `city`, `postal_code`, `country`, `birth_date`,
+`owner_id` (conseiller), `source` (`manual` | `import` | `external` |
+`lead`), `created_at`. Autour : `contact_tags` + `contact_tag_assignments`
+(étiquettes par organisation, verrouillées par FK composites), `deals`
+(`contact_id`, `status_id` → `deal_statuses.outcome` gagné/perdu/NULL,
+`pipeline_id`, `owner_id`, `lead_id`, `created_at`), `leads`
+(`contact_id`, `origin_id` — l'origine d'acquisition), `activities`
+(`contact_id`, `occurred_at` — la dernière interaction), `tasks`.
+
+Donc les critères du cahier des charges — étiquettes, type personne/
+société, ville, pays, conseiller attribué, présence d'affaires (en cours,
+gagnée, perdue, dans telle étape, dans tel pipeline), ancienneté, origine —
+se lisent tous sur des colonnes existantes. **Aucune colonne nouvelle n'est
+nécessaire pour exprimer un critère** ; ce qui manque, c'est l'objet
+« cible » qui les porte, et un seul endroit qui les compile en SQL.
+
+Index en place : `contacts (organization_id, name) WHERE deleted_at IS
+NULL`, `(organization_id, owner_id)`, `(organization_id, created_at)` ;
+`contact_tag_assignments` clé primaire `(contact_id, tag_id)` ; `deals
+(organization_id, contact_id)`, `(organization_id, pipeline_id,
+status_id)` ; `leads (organization_id, contact_id)`, `(organization_id,
+origin_id)` ; `activities (organization_id, contact_id, occurred_at)`.
+`listContacts` ne filtre aujourd'hui que par texte, conseiller et UNE
+étiquette (pages de 50).
+
+### 0.2 Le composer : des cibles-personas sans contacts, pas d'historique, pas de matière
+
+- `mail_targets` (par organisation : `slug`, `label`, `persona`,
+  `audience_label`, `editorial_voice` NOT NULL, `accent_color`,
+  `default_signatory_id`, `position`) — c'est l'IDENTITÉ ÉDITORIALE, et
+  rien d'autre : **aucun critère, aucun lien avec `contacts`**. Une cible
+  est un texte injecté dans le prompt (`buildUserMessage` dans
+  `src/lib/ai/anthropic.ts`). L'identité tient dans un seul champ libre ;
+  le cahier des charges en demande cinq facettes (qui, préoccupations,
+  niveau de connaissance, ton, centres d'intérêt) plus « ce qu'on ne lui
+  dit pas ».
+- `newsletters` (`organization_id`, `target_id` NOT NULL, `title`,
+  `subject`, `preheader`, `brief`, `created_by`) + `newsletter_blocks`
+  (sept types : titre, texte, chiffre_cle, fiches, cta, bouton,
+  separateur — **pas de bloc article ni de bloc source**). **Ni statut, ni
+  `sent_at`, ni destinataires** : l'information « cette newsletter a été
+  envoyée à ces contacts » n'existe nulle part (constat déjà noté dans
+  `docs/module-relationnel.md` §B) ; la fiche contact affiche une section
+  « Newsletters » honnêtement vide.
+- `verified_figures` (`label`, `value`, `position`) — la SOURCE UNIQUE des
+  chiffres autorisés, lue par le prompt ET par la revue déterministe
+  (`src/lib/newsletter/review.ts`). **Sans source ni date** : le cahier des
+  charges exige les deux sur tout chiffre affiché.
+- La génération : `POST /api/newsletters/ai/design` → `getDesignContext`
+  (organisation, cible, signataire, chiffres) → `AnthropicProvider`
+  (`@anthropic-ai/sdk`, modèle `ANTHROPIC_MODEL` ou `claude-sonnet-5`,
+  outil `emit_newsletter` forcé, prompt système composé depuis la base et
+  mis en cache, flux NDJSON) → `reviewNewsletter` (chiffres non autorisés,
+  CTA multiples, longueurs objet/préheader) — le résultat et sa revue
+  arrivent ensemble au client. Aucun outil de recherche ni de lecture web
+  n'est branché aujourd'hui.
+- Le brief est une page blanche : la fiche contact peut le préremplir
+  (« Rédiger une newsletter pour ce contact », `createNewsletterForContactAction`,
+  cible choisie parmi celles de l'organisation), rien d'autre.
+- **Aucun écran n'administre les cibles, les chiffres vérifiés, les
+  signataires ni les presets de CTA** : seul `scripts/seed-newsletter-demo.ts`
+  en crée. Une organisation née par `/inscription` n'a aucune cible, et
+  `/newsletters/new` lui répond « Aucun groupe de destinataires n'est
+  configuré » — une impasse. L'écran des cibles de ce chantier la comble.
+- `organizations` porte déjà le profil éditorial (`tagline`,
+  `tone_of_voice`, `editorial_guidelines`) et le **pack métier**
+  (`business_pack`, quatre packs en données dans
+  `src/lib/metrics/packs.ts`) : c'est de lui que viendront les cibles et
+  les sujets de veille par défaut (« viennent de son métier, pas d'une
+  liste figée dans le code »).
+
+### 0.3 L'infrastructure
+
+- Base : Neon en HTTP (`drizzle-orm/neon-http`) — pas de transaction
+  classique, `db.batch()` pour l'atomicité ; migrations par
+  `npm run db:migrate:http`.
+- Vercel : **aucun `vercel.json`/`vercel.ts`, donc aucun cron**. Next 16
+  fournit `after()` (`next/server`) : un travail lancé après l'envoi de la
+  réponse, tenu en vie par `waitUntil` sur Vercel jusqu'au `maxDuration`
+  de la route (doc embarquée `after.md`, § Platform Support).
+- `src/lib/rate-limit.ts` : limiteur en mémoire, par instance — suffisant
+  pour freiner un bouton « Actualiser », pas pour une garantie globale.
+- IA : un seul fournisseur (Anthropic) derrière `AIProvider` ; SDK
+  `@anthropic-ai/sdk` 0.120. Les outils serveur `web_search` et
+  `web_fetch` de ce fournisseur sont disponibles sans dépendance nouvelle.
+- **Sources officielles, sondées le 2026-08-25 depuis cet environnement,
+  toutes SANS clé** :
+  - BCE, Data Portal (`data-api.ecb.europa.eu`, CSV/JSON) : taux de la
+    facilité de dépôt 2,25 % au 2026-08-25 ; taux long terme France (10
+    ans, critère de convergence) 3,85 % en 2026-07 ;
+  - Eurostat (`ec.europa.eu/eurostat/api/dissemination`, JSON-stat) :
+    IPCH France, variation annuelle ;
+  - Banque de France Webstat (nouveau portail Opendatasoft, API Explore
+    v2.1) : 200 sans clé, 42 169 jeux de données au catalogue — OAT,
+    taux d'usure, taux des crédits à l'habitat, Livret A y vivent (séries
+    exactes à identifier par un appel réel à l'étape 4, pas de mémoire) ;
+  - INSEE BDM (`api.insee.fr/series/BDM`) : 200 sans clé — IPC, IRL,
+    indices Notaires-INSEE.
+
+  **Aucune dépendance externe nouvelle n'est nécessaire pour les
+  indicateurs de marché.**
+
+---
+
+## 1. Les trois points de conception
+
+### 1.1 Comment et à quelle fréquence les sources sont interrogées — coût, fiabilité, source muette
+
+**Un seul chemin de code, deux déclencheurs (un troisième en option).**
+`refreshWatch(organizationId)` est idempotent et borné (60 s de budget,
+10 s par source, sources les plus anciennement collectées d'abord ; ce qui
+ne tient pas dans le budget attend le tour suivant). Il est appelé :
+
+1. **À la visite** : quand l'écran Veille s'ouvre et que la dernière
+   collecte de l'organisation date de plus de 24 h, la page rend
+   immédiatement l'état connu (« mis à jour il y a 26 h — collecte en
+   cours ») et lance la collecte en arrière-plan avec `after()`. La page ne
+   ralentit jamais ; l'utilisateur voit le résultat au rechargement ou par
+   un rafraîchissement automatique léger de la section. Une organisation
+   qui n'ouvre jamais la veille ne coûte rien.
+2. **Par un bouton « Actualiser maintenant »**, borné à une collecte par
+   10 minutes et par organisation (verrou en base : une ligne de collecte
+   `started_at` sans `finished_at` datant de moins de 5 min bloque un
+   second départ — pas le limiteur en mémoire).
+3. **En option, un cron Vercel quotidien** (`vercel.ts` → `crons`, route
+   protégée par `CRON_SECRET`) qui parcourt les organisations dont la
+   collecte est périmée, pour que la matière soit fraîche AVANT la visite.
+   Plan Hobby : deux crons au plus, une fois par jour, à l'heure près ;
+   plan Pro : à la minute. **Recommandation : 1 + 2 maintenant, 3 quand le
+   plan le permet** — le cron n'est qu'un préchauffage, jamais le seul
+   mécanisme (une source ne doit pas dépendre d'un plan Vercel).
+
+**Fréquences** (par organisation) : sources thématiques et concurrentielles
+au plus une fois par 24 h — la matière sert des newsletters hebdomadaires
+ou mensuelles, pas un fil d'actualité. Indicateurs de marché : une lecture
+par jour et par indicateur au plus, mais **partagée entre toutes les
+organisations** : un taux de la BCE n'appartient à personne, le stocker
+quatre fois avec quatre dates différentes serait faux. C'est la seule
+donnée du chantier sans `organization_id` (voir §2, décision à prendre) ;
+ce qu'une organisation en fait — l'indicateur qu'elle suit, la copie
+datée et sourcée dans SES chiffres vérifiés — reste scopé.
+
+**Comment, par type de source :**
+
+| Source | Mécanisme | Ce qui est stocké |
+|---|---|---|
+| Site ou flux déclaré (thématique, concurrent) | découverte du flux RSS/Atom depuis la page d'accueil (`<link rel="alternate">`, `/feed/` des WordPress — le cas courant chez les cabinets), puis lecture HTTP directe du flux depuis le serveur ; analyse XML | titre, lien canonique, date, source, pays, langue — **jamais la description ni l'extrait du flux** |
+| Sujet sans flux (recherche thématique) | outil serveur Anthropic `web_search` (résultats datés, restreints au sujet et au pays ; `allowed_domains` quand l'organisation a déclaré ses sources) | idem |
+| Concurrent sans flux | `web_search` restreint à son domaine, une requête par concurrent et par collecte | idem, rattaché au concurrent |
+| Résumé original d'un article | l'article est lu au moment de la collecte (`web_fetch`), le modèle écrit un résumé de deux ou trois phrases, classe par thème et note l'angle ; **le texte lu n'est jamais écrit en base** ; avant d'enregistrer le résumé, un contrôle déterministe vérifie qu'aucune suite de 12 mots du résumé n'apparaît dans le texte d'origine — sinon le résumé est refusé et l'article reste « sans résumé » plutôt qu'avec une reprise | résumé original, thèmes, angle |
+| Indicateur de marché | appel HTTP à l'API officielle (BCE, Eurostat, Webstat, INSEE), lecture déterministe du JSON/CSV, aucune IA | valeur telle que publiée, période, date de collecte, source et lien — une ligne par (indicateur, période) |
+
+La **règle de droit d'auteur** tient structurellement, pas par discipline :
+le composer ne reçoit JAMAIS le texte d'un article — seulement nos résumés,
+les titres, les sources et les liens. Un modèle ne peut pas reprendre une
+formulation qu'il n'a pas lue. La revue déterministe (étape 6) vérifie en
+plus que chaque source citée dans l'email est bien un article du panier
+(liste blanche d'URL) avec son lien, et que l'email ne recopie pas nos
+propres résumés au-delà de courtes suites de mots.
+
+**Coût** (ordre de grandeur, une organisation active : 5 sujets, 5
+concurrents, 20 articles nouveaux par jour résumés) :
+
+- flux RSS, APIs officielles : gratuit (quelques secondes de fonction par
+  jour) ;
+- `web_search` : 10 par jour ≈ 3 $ par mois (10 $ les 1 000 recherches) ;
+- résumés (≈ 5 000 jetons lus par article, 150 écrits) : Haiku 4.5
+  ≈ 0,006 $ l'article ≈ 3,6 $ par mois ; Sonnet 5 (le modèle actuel du
+  composer) ≈ 0,012 $ ≈ 7 $ par mois ; Opus 5 ≈ 0,03 $ ≈ 17 $ par mois ;
+- classification et écart de contenu : un appel par jour sur les titres ≈
+  moins de 0,50 $ par mois.
+
+Soit **5 à 20 $ par mois et par organisation qui utilise la veille**, zéro
+pour les autres. Le choix du modèle est le tien (voir §3) — je ne
+descends pas en gamme pour le prix sans ta décision.
+
+**Fiabilité, et une source qui ne répond plus.** Chaque source porte
+`last_fetched_at`, `last_ok_at`, `last_error` (texte lisible :
+« délai dépassé », « 404 », « flux illisible »), `consecutive_failures`.
+Une source en échec n'empêche jamais les autres (`Promise.allSettled`),
+ne perd jamais ses articles passés, est retentée avec un recul croissant
+(1 h, 6 h, 24 h, puis chaque jour) et s'affiche « injoignable depuis le …
+(cause) » avec un bouton « Réessayer ». Après 30 jours d'échecs elle passe
+« en sommeil » : plus interrogée, toujours affichée, réveillable d'un
+clic. Une API officielle muette laisse la dernière observation affichée
+AVEC sa date (« au 2026-07 ») — un chiffre ancien daté vaut mieux qu'un
+chiffre absent, et jamais qu'un chiffre inventé. Dédoublonnage : URL
+canonique (hôte en minuscules, sans paramètres de suivi `utm_*`/`fbclid`,
+sans fragment), unique par organisation ; un même article vu par deux
+sources compte une fois, rattaché aux deux.
+
+### 1.2 Comment un segment reste rapide sur plusieurs milliers de contacts — mesuré
+
+**Le principe** : une cible-segment stocke ses critères (JSON validé par
+un schéma zod), et UNE fonction `segmentCondition(organizationId,
+criteria)` les compile en une condition SQL sur `contacts c` — un critère
+= une condition (`c.city = …`, `EXISTS (… contact_tag_assignments …)`,
+`EXISTS (… deals JOIN deal_statuses …)`, `NOT EXISTS (…)`, `c.created_at
+< now() - …`), combinées par AND ; « au moins une de ces étiquettes »
+est un OR à l'intérieur d'un critère. Cette fonction sert au compte, à la
+liste paginée, à l'appartenance d'un contact et à la photographie des
+destinataires (§1.3) : une définition, quatre lecteurs. Rien n'est
+matérialisé, rien n'est mis en cache — recalculé à chaque consultation,
+comme l'exige le cahier des charges.
+
+**Mesures** (jeu `_perf-test`, organisation jetable détruite ensuite ;
+étiquettes ajoutées par hachage : une sur trois, une sur cinq, une sur
+cinquante ; 500 affaires ; temps depuis le code, aller-retour HTTP Neon
+compris, médiane de 5 après une passe de chauffe) :
+
+| Segment | 5 000 contacts | | 50 000 contacts | |
+|---|---|---|---|---|
+| | compte | page de 50 | compte | page de 50 |
+| tous les contacts vivants (référence) | 18 ms | 18 ms | 25 ms | 18 ms |
+| étiquette « Investisseur » (1/3) | 21 ms | 21 ms | 32 ms | 19 ms |
+| « Investisseur » SANS « Primo-accédant » | 25 ms | 26 ms | 38 ms | 19 ms |
+| « VIP » (1/50) | 18 ms | 18 ms | 27 ms | 24 ms |
+| ville Lyon, pays France | 19 ms | 18 ms | 25 ms | 18 ms |
+| personnes physiques d'un conseiller | 18 ms | 18 ms | 22 ms | 18 ms |
+| au moins une affaire en cours | 19 ms | 20 ms | 19 ms | 19 ms |
+| affaire dans l'étape « Partagée » | 18 ms | 19 ms | 18 ms | 18 ms |
+| aucune affaire | 19 ms | 19 ms | 29 ms | 18 ms |
+| fiche créée il y a plus de 30 jours | 20 ms | 20 ms | 31 ms | 17 ms |
+| étiquette + pays + affaire en cours + conseiller | 21 ms | 22 ms | 21 ms | 20 ms |
+| appartenance d'UN contact à 11 cibles (un seul SELECT) | 21 ms | | 19 ms | |
+
+À 5 000 contacts, la latence est celle de l'aller-retour Neon (~18 ms) :
+l'exécution SQL elle-même prend 3,8 ms pour l'étiquette (jointure par
+index) et 4 ms pour la combinaison (index `contacts_org_owner_idx`,
+`deals_org_contact_idx`, clé primaire des étiquettes). À 50 000, le
+planificateur passe en parcours séquentiel des lignes de l'organisation
+(16 836 étiquetages) et exécute encore en 21 ms. **Le critère d'acceptation
+(5 000 contacts) est tenu avec une marge de dix fois**, sans aucun index
+nouveau. Le compte affiché en permanence dans l'éditeur de critères coûte
+une requête de 20 ms par frappe (avec un délai de 300 ms) ; celui du
+composer, une requête à l'ouverture.
+
+**Jusqu'où ça tient, et quoi faire ensuite.** Le seul coût qui croît avec
+le volume est le parcours des étiquetages et des contacts d'UNE
+organisation : 3,8 ms pour 1 700 étiquetages, 21 ms pour 17 000. En
+prolongeant linéairement — une extrapolation, pas une mesure — l'exécution
+atteindrait ~200 ms vers 150 000 contacts étiquetés dans une seule
+organisation, cent fois la taille d'un cabinet. Le jour venu : un index
+`contact_tag_assignments (organization_id, tag_id, contact_id)` (aujourd'hui
+la clé primaire sert « les étiquettes de ce contact », pas « les contacts
+de cette étiquette ») rend le critère étiquette lisible par index seul ;
+puis `(organization_id, country)` / `(organization_id, city)` si une
+organisation dépasse quelques dizaines de milliers de fiches. L'index sur
+les étiquettes coûte rien et se pose dès la migration de l'étape 2 si tu
+es d'accord — les mesures ci-dessus sont faites SANS lui, pour ne pas
+embellir.
+
+### 1.3 Les critères d'une cible changent alors que des newsletters lui ont été envoyées — l'historique reste juste
+
+**Le principe** : une cible est VIVANTE (recalculée), un envoi est un FAIT.
+L'histoire ne se recalcule jamais depuis des critères vivants : elle est
+photographiée au moment où elle se produit.
+
+- L'outil n'envoie pas (hors périmètre). Le moment de vérité est donc un
+  geste manuel : **« Marquer comme envoyée »**, avec la date (aujourd'hui
+  par défaut, modifiable — on peut le dire après coup). C'est le seul
+  moment où l'audience est figée.
+- À cet instant, la cible est évaluée et ses membres sont écrits dans une
+  table de destinataires : (newsletter, contact, organisation) — plus,
+  sur la newsletter, la photographie de l'audience (les critères tels
+  qu'ils étaient, le libellé de la cible, le nombre). Une cible statique
+  (sélection manuelle) est photographiée de la même façon.
+- Ensuite, **modifier, dupliquer, désactiver la cible ne change rien au
+  passé** : « envoyée le 12 mai à 1 214 contacts — Investisseurs à Lyon »
+  reste vrai pour toujours, même si la cible s'appelle autrement, filtre
+  autrement ou n'existe plus. Une cible ne se supprime pas : elle se
+  désactive (`archived_at`) ; `newsletters.target_id` continue de pointer
+  vers elle. L'éditeur prévient : « 3 newsletters ont été envoyées à cette
+  cible ; leur historique ne change pas », et propose la duplication.
+- Un contact qui entre dans le segment APRÈS l'envoi n'est pas dans la
+  photographie : il n'a pas reçu, et la fiche ne le dira pas. Un contact
+  supprimé (pierre tombale) garde ses lignes de destinataire, comme ses
+  affaires : le nombre reste juste, le nom devient « Contact supprimé ».
+- **L'anti-répétition lit la photographie, pas les critères** : au choix
+  d'une cible, « ce qui a déjà été envoyé récemment » = les newsletters
+  marquées envoyées dont les destinataires recoupent les membres ACTUELS
+  du segment (recouvrement en pourcentage, sujets traités, sources
+  utilisées, date). Une cible dont les critères ont changé montre donc
+  honnêtement ce que ses membres d'aujourd'hui ont réellement reçu, même
+  sous un autre découpage. La fiche contact liste, elle, ce que CE contact
+  a reçu — la section « Newsletters » cesse d'être vide.
+- Les « sujets traités » viennent de la newsletter elle-même : son objet,
+  les thèmes des articles du panier qu'elle a utilisés (table de liaison
+  newsletter ↔ article, qui sert aussi à signaler « déjà utilisé » dans le
+  panier), et les thèmes que la génération déclare.
+- Volume : une ligne par contact et par envoi — 1 000 contacts × 50
+  envois par an = 50 000 lignes par an et par organisation, avec un index
+  (organisation, contact) et un index (newsletter) : négligeable.
+
+---
+
+## 2. Ce que le schéma devra porter (aperçu — le détail à l'étape 2)
+
+Pour donner la forme, pas encore les colonnes :
+
+- `mail_targets` s'enrichit : nature (`segment` | `static`), critères
+  (jsonb, validés par le code), l'identité éditoriale en cinq facettes
+  structurées + « ce qu'on ne lui dit pas » (composées dans le prompt —
+  l'actuel `editorial_voice` devient l'une d'elles), `archived_at`
+  (désactivation), `description` ; une table de membres pour les cibles
+  statiques.
+- `newsletters` : `sent_at` (marquée envoyée), photographie de l'audience ;
+  table des destinataires ; table de liaison avec les articles utilisés ;
+  thèmes déclarés.
+- `verified_figures` : `source`, `source_url`, `as_of` (date de la donnée),
+  `indicator_key` quand le chiffre vient d'un indicateur de marché (mis à
+  jour automatiquement, jamais à la main) — tout chiffre affiché porte sa
+  date et sa source.
+- Veille (par organisation) : sujets, sources (flux/site/concurrent, pays,
+  langue, santé), articles (titre, lien canonique, date, source, pays,
+  langue, résumé original, thèmes, angle — **ni corps, ni extrait**),
+  panier (par organisation, article, ajouté par, utilisé dans), collectes
+  (journal des exécutions).
+- Indicateurs de marché : catalogue (clé, libellé, source, unité,
+  périodicité, spécification d'appel — des DONNÉES, par métier, dans le
+  code comme les packs) et observations (clé, période, valeur, date de
+  collecte) — **sans organisation** (donnée publique partagée, voir §3) ;
+  l'abonnement d'une organisation à un indicateur, lui, est scopé.
+- Cibles, sujets et indicateurs par défaut : dans `packs.ts`, par pack
+  métier, instanciés en lignes de l'organisation à sa demande (« créer les
+  cibles du pack Courtier en crédit ») puis modifiables — jamais lus depuis
+  le code par les écrans.
+
+---
+
+## 3. Décisions demandées à l'étape 1
+
+Les trois réponses ci-dessus, et ce qui les conditionne :
+
+1. **Déclenchement de la collecte** : à la visite + bouton (recommandé),
+   cron quotidien en préchauffage quand le plan Vercel le permet — quel
+   est le plan actuel (Hobby / Pro) ?
+2. **Dépendance externe — analyse XML des flux RSS/Atom** : `fast-xml-parser`
+   (MIT, sans dépendance, la référence) — ou un analyseur maison minimal
+   (RSS 2.0 + Atom, ~150 lignes, plus fragile sur les flux exotiques).
+   Recommandation : la dépendance.
+3. **Outils serveur Anthropic** `web_search` (recherche thématique et
+   concurrentielle) et `web_fetch` (lecture d'un article au moment du
+   résumé, rien n'est stocké) — même fournisseur qu'aujourd'hui, 10 $ les
+   1 000 recherches. D'accord ?
+4. **Modèle pour les résumés et la classification** : Sonnet 5 (le défaut
+   actuel du composer, un seul modèle partout), Haiku 4.5 (deux fois moins
+   cher sur ces tâches courtes) ou Opus 5 — ton choix, coûts en §1.1.
+5. **Indicateurs de marché** : BCE, Eurostat, Banque de France Webstat,
+   INSEE — tous accessibles sans clé (vérifié) ; un catalogue par métier
+   en données. Les observations sont la seule table SANS organisation du
+   chantier (donnée publique partagée) — exception assumée à l'isolation,
+   à valider.
+6. **« Marquer comme envoyée »** (geste manuel daté) comme l'événement qui
+   fige l'audience — d'accord ? (l'envoi effectif reste hors périmètre.)
+7. **Index `(organization_id, tag_id, contact_id)`** sur les étiquetages
+   dans la migration de l'étape 2 (coût nul, mesures faites sans lui).
+
+---
+
+## Avancement
+
+- **Étape 1 — exploration et conception** : ce document. STOP.
