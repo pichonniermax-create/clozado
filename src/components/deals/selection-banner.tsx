@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Funnel } from "lucide-react";
-import { periodPhrase } from "@/components/analytics/period-phrase";
+import { periodPhrase } from "@/lib/metrics/period-phrase";
 import { buttonVariants } from "@/components/ui/button";
 import { LOSS_NO_REASON, LOST_FROM_CREATION, ORIGIN_UNKNOWN, ORIGIN_UNMATCHED, type ParsedDealSelection } from "@/lib/metrics";
 

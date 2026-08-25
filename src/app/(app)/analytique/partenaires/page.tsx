@@ -4,7 +4,7 @@ import { Handshake } from "lucide-react";
 import { AnalyticsFiltersBar } from "@/components/analytics/filters-bar";
 import { rateText } from "@/components/analytics/funnel-steps";
 import { definitionAnchor, MetricDefinitions } from "@/components/analytics/metric-definitions";
-import { periodPhrase } from "@/components/analytics/period-phrase";
+import { periodPhrase } from "@/lib/metrics/period-phrase";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -174,7 +174,7 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
   return (
     <>
       {header}
-      <AnalyticsFiltersBar basePath={BASE_PATH} parsed={parsed} users={users} types={types} pipelines={pipelines} origins={origins} />
+      <AnalyticsFiltersBar basePath={BASE_PATH} parsed={parsed} users={users} types={types} pipelines={pipelines} origins={origins} exportView="partenaires" />
 
       {!hasData ? (
         <NotEnoughData report={report} filtered={parsed.active} />

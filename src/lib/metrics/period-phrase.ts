@@ -1,5 +1,5 @@
 import { formatDate } from "@/lib/format";
-import { PERIOD_PRESETS, type ParsedMetricFilters } from "@/lib/metrics";
+import { PERIOD_PRESETS, type ParsedMetricFilters } from "./search-params";
 
 /**
  * La période d'une vue analytique, en mots — la même phrase sur le funnel,

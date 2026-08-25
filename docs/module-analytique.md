@@ -1085,6 +1085,109 @@ un générateur reprenable (chaque étape ne s'exécute que si sa table est
 vide), à relancer tel quel s'il est interrompu. Mesurer les écrans
 quotidiens après `VACUUM ANALYZE`, comme à l'étape 4.
 
+## Étape 6 — le tableau de bord piloté par le pack métier, et les exports (branche `analytique-collecte`)
+
+### 6a — l'export CSV de toute vue analytique, avec les filtres appliqués
+
+Un lien « Exporter en CSV » dans la barre de filtres commune
+(`AnalyticsFiltersBar`, prop `exportView`) ouvre
+`GET /api/analytique/export?vue=<delais|funnel|pertes|partenaires>&…`
+avec EXACTEMENT les paramètres de l'écran : le fichier contient ce que
+l'écran montre, filtres compris.
+
+- **La route** (`src/app/api/analytique/export/route.ts`) : `requireUser`
+  (session, substitution du super admin comprise — sans organisation,
+  400 : rien à exporter, un agrégat ne traverse pas la frontière entre
+  clients), `parseMetricFilters` sur les mêmes paramètres que la page,
+  puis `exportTables()` et `csvDocument()`. `Cache-Control: no-store`.
+- **La projection** (`src/lib/metrics/export.ts`) : les quatre rapports
+  des écrans — `delaysReport`, `funnelReport`, `lossesReport`,
+  `partnersReport` — projetés en tableaux, jamais un calcul refait : l'écran
+  et le fichier lisent le même objet. Les règles d'affichage sont celles
+  des écrans : un indicateur masqué est une cellule vide et la colonne
+  « Affichage » dit ce qui lui manque (« masqué : il manque 3 observations
+  pour afficher un chiffre », « … au pas précédent », « … pertes pour
+  afficher une part ») ; un montant dont rien n'est connu est vide, jamais
+  0 ; un compte sans objet est vide, la note dit pourquoi. `periodPhrase`
+  passe dans la couche (`src/lib/metrics/period-phrase.ts`) : l'export en
+  a besoin, et une bibliothèque n'importe pas un composant.
+- **Le dialecte** (`src/lib/csv.ts`, LE sérialiseur du produit) :
+  séparateur « ; » (Excel en français ouvre en colonnes sans assistant, la
+  virgule étant décimale), CRLF, UTF-8 avec BOM (sans lui, Excel lit les
+  accents de travers), nombres à la virgule décimale, deux décimales au
+  plus, sans séparateur de milliers ni unité (l'unité est dans l'en-tête),
+  « oui » / « non », guillemets doublés quand il le faut ; `parseCsvDocument`
+  fait le chemin inverse pour les vérifications.
+- **Le fichier** : `clozado-<vue>-<période>-<jour>.csv` (`tout`, `30j`,
+  `90j`, `12m` ou `perso`). D'abord le tableau « Export Clozado » — vue,
+  organisation, période en mots, bornes, conseiller, type, pipeline,
+  origine (libellés, jamais des identifiants), exporté le, seuil
+  d'affichage, format — puis les tableaux de l'écran dans son ordre,
+  chacun avec son titre et sa ligne d'en-tête, séparés d'une ligne vide.
+  Un fichier par vue, ni archive ni « format long » : ce que l'écran
+  montre, tel quel dans Excel.
+- **Les tableaux.** Délais : le cycle (médiane, moyenne en jours décimaux,
+  observations, affichage, en cours, écartées reconstituées / date
+  inconnue), puis par pipeline le temps par étape et d'une étape à la
+  suivante. Funnel : la chaîne (nombre, taux, déperdition, affichage, note
+  — leads sans premier contact, perdues · en cours…), par pipeline (la
+  cohorte, chaque étape avec perdues depuis / en cours ici, Gagnées,
+  Perdues et En cours au total), par origine (les sept comptes, les deux
+  taux, l'affichage des taux, les comptes sans objet). Pertes : sur la
+  période (perdues, écartées, gagnées, taux), puis par motif, étape de
+  départ, conseiller, type (affaires, part, affichage de la part, montant
+  perdu, sans montant). Partenaires : par partenaire (26 colonnes, dont
+  chaque taux avec son affichage et le délai avec ses observations, puis
+  la ligne Ensemble — délai « non calculé pour l'ensemble »), l'encours
+  par état, le vieillissement (tranches, au-delà du seuil, date de
+  confirmation inconnue).
+- **Au passage** : l'écran Délais listait TOUTES les définitions du
+  registre (il n'y avait qu'une famille à l'étape 3) — il liste la sienne,
+  comme les autres écrans.
+- **Hors export** : Origines (un écran de rapprochement et de
+  configuration, pas une vue analytique) ; le tableau de bord (6b).
+
+### Vérifié (6a) — sur des organisations jetables, pas sur des données réelles
+
+Script temporaire contre la vraie base ET le serveur de production
+(`_p6-a` = le jeu de l'étape 5 aux chiffres connus, `_p6-b` témoin),
+**77 contrôles** : pour les 4 vues × 6 combinaisons de filtres (sans
+filtre, 30 j, conseiller, type + 90 j, origine inconnue, bornes libres),
+le fichier reçu par HTTP est **cellule pour cellule égal** à la projection
+du rapport calculée en mémoire — la route est la couche ; les chiffres
+connus du jeu dans le fichier (7 pertes, 310 000 €, 1 sans montant, taux
+77,78 %, reconstituée écartée 15 000 €, Projet abandonné 3 · 42,86 % ·
+70 000 € · 1 sans montant, En négociation au montant VIDE, part masquée
+sur 30 j + Placement « il manque 4 pertes pour afficher une part »,
+Confrère Deux 5 · 80 % · méd. 1 j · acquises 1 400 € · prévues VIDES (1
+sans montant), Ensemble 11 · 6 · 2 · 3 · 54,55 %, encours prévues 3 /
+caduques 4, vieillissement, inactif absent, chaîne à 7 pas avec « Leads
+reçus » sans objet, cohorte 12 / gagnées 2 / perdues 8 / en cours 2, les
+quatre indicateurs du cycle vides quand le rapport masque) ; cohérence
+entre rapports (7 pertes datées + 1 reconstituée = les 8 perdues du funnel,
+qui compte l'état courant) ; préambule (vue, organisation, période,
+conseiller « Alice », origine « Sans origine (aucun lead) », bornes libres
+en mots, paramètres invalides ignorés → « depuis le début », « Tous ») ;
+nom de fichier ; isolation (B : les 4 vues sans rien de A, 1 perte de
+5 000 € motif B) ; sans session → redirigé vers /login sans contenu ; vue
+inconnue → 400 ; super admin sans organisation → 400 ; suppression
+complète. **Navigateur** (Chromium, build de production, 20 contrôles) :
+sur les 4 écrans le lien pointe sur la route avec `vue=…`, le clic
+télécharge `clozado-<vue>-tout-<jour>.csv` avec BOM et préambule ; pertes :
+le nombre à l'écran = celui du fichier ; partenaires : l'ensemble de
+l'écran = celui du fichier ; funnel : les affaires créées ; avec
+`?periode=30j&type=…` le lien et le fichier gardent les filtres
+(`clozado-pertes-30j-…`, Période et Type dans le préambule, 1 perte) ;
+petit écran sans débordement, lien visible ; zéro erreur console. Un
+piège de vérification : `Response.text()` de `fetch` retire le BOM au
+décodage — le contrôler sur les octets.
+
+**Performance** : rien n'est ajouté aux écrans quotidiens ni aux écrans
+analytiques (un lien) ; un export coûte le rapport de sa vue, déjà mesuré
+(à 70 000 affaires : délais 1,7 s, funnel 835 ms, pertes 106 ms,
+partenaires 182 ms), plus une sérialisation de quelques centaines de
+lignes, négligeable.
+
 ## Avancement
 
 - **Étape 1 — audit** : `ea0de94`. STOP.
@@ -1106,5 +1209,8 @@ quotidiens après `VACUUM ANALYZE`, comme à l'étape 4.
   `/analytique/pertes` et `/analytique/partenaires`, familles `losses`
   (trois définitions) et `partners` (sept), la liste des affaires qui
   rend chaque ligne des pertes (`cohorte=perte`, `motif`, `depuis`).
-  STOP — prochaine étape : 6 (tableau de bord piloté par le pack métier,
-  exports CSV).
+  STOP.
+- **Étape 6a — exports CSV** (même branche) : `/api/analytique/export`,
+  `src/lib/metrics/export.ts`, `src/lib/csv.ts`, le lien dans la barre de
+  filtres. 6b (pack métier, tableau de bord) : en cours — migration à
+  soumettre.

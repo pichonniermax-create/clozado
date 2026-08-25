@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { Download } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import {
   metricQueryString,
   ORIGIN_UNKNOWN,
   ORIGIN_UNMATCHED,
   PERIOD_PRESETS,
+  type ExportView,
+  type MetricSearchParams,
   type ParsedMetricFilters,
 } from "@/lib/metrics";
 import { cn } from "@/lib/utils";
@@ -13,7 +16,8 @@ import { cn } from "@/lib/utils";
  * La barre de filtres commune aux vues analytiques : période (préréglages
  * en liens, bornes libres), conseiller, type d'affaire, pipeline, origine.
  * Un formulaire GET, sans état client : l'URL EST le filtre — un lien copié
- * garde sa sélection, et l'export (étape 6) lira les mêmes paramètres.
+ * garde sa sélection, et le lien « Exporter en CSV » porte exactement les
+ * mêmes paramètres : le fichier contient ce que l'écran montre.
  * Un sélecteur n'apparaît que s'il a de quoi choisir (un seul conseiller,
  * un seul pipeline : rien à filtrer).
  */
@@ -27,9 +31,12 @@ export function AnalyticsFiltersBar({
   types,
   pipelines,
   origins,
+  exportView,
 }: {
   basePath: string;
   parsed: ParsedMetricFilters;
+  /** La vue à exporter en CSV (`/api/analytique/export`), avec les filtres courants. */
+  exportView?: ExportView;
   users: { id: string; name: string | null; email: string }[];
   types: { id: string; label: string }[];
   pipelines: { id: string; label: string }[];
@@ -57,11 +64,23 @@ export function AnalyticsFiltersBar({
             </Link>
           ))}
         </div>
-        {active && (
-          <Link href={basePath} className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "ml-auto")}>
-            Retirer les filtres
-          </Link>
-        )}
+        <span className="ml-auto flex items-center gap-1">
+          {active && (
+            <Link href={basePath} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              Retirer les filtres
+            </Link>
+          )}
+          {exportView && (
+            <a
+              href={`/api/analytique/export${metricQueryString<MetricSearchParams & { vue?: string }>(params, { vue: exportView })}`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+              title="Télécharger cette vue, avec ses filtres, en CSV (Excel)"
+            >
+              <Download />
+              Exporter en CSV
+            </a>
+          )}
+        </span>
       </div>
 
       <form method="get" action={basePath} className="flex flex-wrap items-end gap-2">

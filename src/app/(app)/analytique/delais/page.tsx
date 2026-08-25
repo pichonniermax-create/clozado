@@ -13,8 +13,8 @@ import { listDealTypes } from "@/db/queries/deal-types";
 import { listPipelinesWithStages, type PipelineWithStages } from "@/db/queries/pipelines";
 import {
   delaysReport,
-  METRIC_LIST,
   METRICS,
+  metricsOfFamily,
   MIN_OBSERVATIONS,
   parseMetricFilters,
   reportShowsAnything,
@@ -230,7 +230,7 @@ export default async function DelaysPage({ searchParams }: { searchParams: Promi
   return (
     <>
       {header}
-      <AnalyticsFiltersBar basePath={BASE_PATH} parsed={parsed} users={users} types={types} pipelines={pipelines} origins={origins} />
+      <AnalyticsFiltersBar basePath={BASE_PATH} parsed={parsed} users={users} types={types} pipelines={pipelines} origins={origins} exportView="delais" />
 
       {!shows ? (
         <NotEnoughData report={report} filtered={parsed.active} />
@@ -251,7 +251,7 @@ export default async function DelaysPage({ searchParams }: { searchParams: Promi
         </>
       )}
 
-      <MetricDefinitions metrics={METRIC_LIST} />
+      <MetricDefinitions metrics={metricsOfFamily("delays")} />
 
       <p className="text-xs text-muted-foreground">
         Les délais se calculent à la volée sur le journal d&apos;événements de ton organisation ; la période porte sur l&apos;événement
