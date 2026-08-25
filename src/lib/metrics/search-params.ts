@@ -1,6 +1,7 @@
 import { parseLocalDateTime } from "@/db/queries/activities";
 import { ORIGIN_UNKNOWN, ORIGIN_UNMATCHED, type MetricFilters } from "./filters";
 import type { DealOutcomeFilter, DealSelection } from "./funnel";
+import { LOSS_NO_REASON, LOST_FROM_CREATION } from "./losses";
 
 /**
  * Les filtres d'une vue analytique tels qu'ils voyagent dans l'URL — les
@@ -115,6 +116,9 @@ export type DealSelectionParams = MetricSearchParams & {
   atteint?: string;
   jusqua?: string;
   issue?: string;
+  /** Analyse des pertes (`cohorte=perte`) : le motif au moment de la perte (identifiant ou `sans-motif`) et l'étape de départ (identifiant ou `creation`). */
+  motif?: string;
+  depuis?: string;
 };
 
 const OUTCOMES: DealOutcomeFilter[] = ["gagnee", "perdue", "en-cours"];
@@ -130,21 +134,26 @@ export type ParsedDealSelection = {
 
 export function parseDealSelection(raw: DealSelectionParams, now = new Date()): ParsedDealSelection {
   const parsed = parseMetricFilters(raw, now);
-  const cohort = raw.cohorte === "lead" ? "lead" : "creation";
+  const cohort = raw.cohorte === "lead" ? "lead" : raw.cohorte === "perte" ? "perte" : "creation";
   const reachedStageId = uuidOrUndefined(raw.atteint);
   const furthestStageId = uuidOrUndefined(raw.jusqua);
   const outcome = OUTCOMES.find((o) => o === raw.issue);
-  const selection: DealSelection = { filters: parsed.filters, cohort, reachedStageId, furthestStageId, outcome };
+  const lossReasonId = cohort === "perte" ? (raw.motif === LOSS_NO_REASON ? LOSS_NO_REASON : uuidOrUndefined(raw.motif)) : undefined;
+  const lostFromStageId =
+    cohort === "perte" ? (raw.depuis === LOST_FROM_CREATION ? LOST_FROM_CREATION : uuidOrUndefined(raw.depuis)) : undefined;
+  const selection: DealSelection = { filters: parsed.filters, cohort, reachedStageId, furthestStageId, outcome, lossReasonId, lostFromStageId };
   const params: DealSelectionParams = {
     ...parsed.params,
-    cohorte: cohort === "lead" ? "lead" : undefined,
+    cohorte: cohort === "creation" ? undefined : cohort,
     atteint: reachedStageId,
     jusqua: furthestStageId,
     issue: outcome,
+    motif: lossReasonId,
+    depuis: lostFromStageId,
   };
   const p = parsed.params;
   const analytic = Boolean(
-    p.periode || p.du || p.au || p.type || p.origine || cohort === "lead" || reachedStageId || furthestStageId || outcome
+    p.periode || p.du || p.au || p.type || p.origine || cohort !== "creation" || reachedStageId || furthestStageId || outcome
   );
   return { parsed, selection, params, analytic };
 }

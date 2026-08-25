@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Funnel } from "lucide-react";
+import { dealsListHref } from "@/components/analytics/deals-list-href";
 import { AnalyticsFiltersBar } from "@/components/analytics/filters-bar";
 import { CountCell, FunnelSteps, RATE_THRESHOLD_NOTE, rateText, type FunnelRow } from "@/components/analytics/funnel-steps";
 import { definitionAnchor, MetricDefinitions } from "@/components/analytics/metric-definitions";
@@ -35,11 +36,7 @@ function plural(n: number, singular: string, pluralForm = `${singular}s`) {
   return `${n} ${n > 1 ? pluralForm : singular}`;
 }
 
-/** Un lien vers la liste des affaires d'un pipeline, avec les filtres de l'écran et la sélection du pas — la liste montrera exactement ce qui est compté. */
-function listHref(parsed: ParsedMetricFilters, pipelineId: string, over: Partial<DealSelectionParams> = {}): string {
-  const qs = metricQueryString<DealSelectionParams>({ ...parsed.params, pipeline: undefined }, over);
-  return `/affaires?vue=liste&pipeline=${pipelineId}${qs ? `&${qs.slice(1)}` : ""}`;
-}
+const listHref = dealsListHref;
 
 function DefinitionLink({ id, children }: { id: keyof typeof METRICS; children: ReactNode }) {
   return (

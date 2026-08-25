@@ -879,6 +879,212 @@ est la plus coûteuse (un `EXISTS` par affaire pour le total) : 0,8 s à
 moins d'un pour cent de ce volume. Pour mesurer plus tard :
 `pipelineFunnelQuery(org, filters)` est exposée à cette fin seule.
 
+## Étape 5 — pertes, partenaires, commissions (branche `analytique-collecte`)
+
+Deux écrans, deux familles du registre (`losses`, `partners`), et la liste
+des affaires qui rend chaque ligne de l'analyse des pertes.
+
+### `/analytique/pertes` — l'analyse des pertes
+
+Entrée « Pertes » de la navigation. Tout vient de `lossesReport()`
+(`src/lib/metrics/losses.ts`) : le résumé de la période (« 7 affaires
+perdues depuis le début, 310 000 € de montant estimé perdu (1 sans
+montant) · 2 gagnées sur la même période · taux de perte 78 % »), puis
+quatre répartitions par UN composant, `BreakdownTable` (libellé, affaires,
+part, montant perdu, et « n sans montant » sous le montant) : par motif,
+par étape de départ, par conseiller, par type d'affaire. Chaque ligne
+ouvre la liste des affaires qu'elle compte. Les trois définitions de la
+famille, repliées.
+
+**Ce qui a été tranché.**
+
+- **Une perte = une affaire AUJOURD'HUI dans une étape marquée « perdu »**
+  (l'état courant, celui du kanban et du funnel), datée, située et
+  motivée par sa DERNIÈRE entrée dans l'étape perdue, lue dans le journal
+  des passages : le motif AU MOMENT de la perte (`deal_stage_changes.
+  loss_reason_id`, correction 4 de l'étape 2), pas la valeur courante de
+  la fiche ; l'étape de départ = celle d'où l'affaire est tombée (« dès la
+  création » si elle est née perdue). Une affaire perdue puis rouverte
+  n'est pas une perte ; une affaire perdue, rouverte, reperdue compte une
+  fois, à sa dernière perte. Le montant perdu = le montant estimé
+  (valeur courante, assumé) ; sans montant → compté à part, et une ligne
+  dont AUCUNE affaire ne porte de montant s'écrit « — » (« montant
+  inconnu » dans le résumé), jamais 0 € — même règle pour les
+  commissions, dans les cellules comme dans les phrases.
+- **Une perte antérieure au journal** (ligne d'entrée reconstituée à la
+  date de création) a une date inconnue : écartée du calcul et comptée à
+  part, montant compris (« 1 perte antérieure au journal écartée, 15 000 €
+  — jamais datées par une valeur plausible »).
+- **Le taux de perte** = perdues / (perdues + gagnées) sur la période,
+  gagnées suivant la même règle (dernière entrée dans une étape gagnée,
+  état courant) ; masqué sous 5 affaires closes. Les parts des lignes
+  sont masquées sous 5 pertes ; nombres et montants s'affichent toujours.
+- **La période porte sur la date de la perte** — une cohorte de plus,
+  après la création (funnel) et l'arrivée du lead (chaîne). La liste des
+  affaires l'exprime par `cohorte=perte`, plus `motif=<id|sans-motif>` et
+  `depuis=<étape|creation>` ; `lostDealCondition` (dans `losses.ts`) est
+  la condition qu'applique la liste — la même règle que l'agrégat, prouvée
+  égale ligne par ligne. Le bandeau dit la sélection (« Affaires perdues
+  depuis le début (à la date de la perte), motif « Projet abandonné » —
+  3 affaires ») et renvoie aux pertes.
+- Pas de lien pour la ligne « sans responsable » (le filtre conseiller ne
+  sait pas dire « personne ») ; sans pipeline en jeu (plusieurs pipelines,
+  aucun filtre), les lignes ne sont pas des liens et l'écran le dit.
+
+### `/analytique/partenaires` — partenaires et commissions
+
+Entrée « Partenariats » de la navigation (« Partenaires » désigne déjà les
+fiches, dans Dossiers). Tout vient de `partnersReport()` (`src/lib/
+metrics/partners.ts`). Trois blocs : **par partenaire** (partages,
+acceptés, refusés, sans réponse détaillé « 1 en attente · 1 expiré · 1
+révoqué », taux d'acceptation, délai de réponse « méd. · moy. · n »,
+gagnées, taux de transformation, commissions acquises, commissions
+prévues ; une ligne « Ensemble » ; le nom ouvre la fiche), **l'encours de
+commissions à aujourd'hui** (prévues vivantes, confirmées non réglées,
+réglées, prévues devenues caduques), **le vieillissement des confirmées
+non réglées** (0–30, 31–60, 61–90, > 90 jours, le nombre au-delà du
+seuil de relance de l'organisation, les dates de confirmation inconnues à
+part). Les sept définitions de la famille, repliées.
+
+**Ce qui a été tranché.**
+
+- **Un partage = une chaîne de renvois de lien**, la définition déjà
+  posée pour les délais (`shareChainsCte`, sortie de `durations.ts` pour
+  être partagée) : envoyé à la date du premier lien ; son issue, sa
+  réponse et sa commission sont celles de son DERNIER lien (le renvoi
+  copie la commission sur le nouveau lien : compter les deux doublerait).
+  Issues : accepté, refusé, sans réponse = en attente, expiré (date
+  d'expiration passée, jamais un état stocké), révoqué sans renvoi.
+- **Les partages de la période sont une cohorte** (premier envoi dans la
+  période), suivie jusqu'à aujourd'hui — comme le funnel. Conséquence à
+  connaître : le délai de réponse par partenaire borne sur l'ENVOI, l'écran
+  Délais borne sur la RÉPONSE ; les deux le disent.
+- **Taux d'acceptation = acceptés / envoyés** (un partage sans réponse
+  n'est pas accepté ; refusés et sans réponse affichés à côté), masqué
+  sous 5 envoyés. **Taux de transformation = gagnées / acceptés** (l'affaire
+  aujourd'hui gagnée), masqué sous 5 acceptés. Une ligne « Ensemble » avec
+  les mêmes règles, calculée dans la couche.
+- **Commissions générées par partenaire** : acquises = confirmées + réglées
+  (montant calculé, figé à la confirmation) ; prévues = vivantes seulement
+  (partage en attente ou accepté). **L'encours** est un état à aujourd'hui
+  — la période ne s'y applique pas, l'écran le dit ; les filtres d'affaire
+  (conseiller, type, pipeline, origine), si. Les prévues d'un partage
+  refusé, révoqué, expiré ou remplacé sont **caduques**, comptées à part :
+  sans cette ligne, chaque renvoi de lien gonflerait les prévues. Une
+  commission sans montant calculé compte dans le nombre, pas dans la
+  somme (« 1 sans montant »).
+- **Vieillissement** depuis `confirmed_at` observé ; une date de
+  confirmation inconnue est écartée et comptée (« 1 confirmée à la date
+  inconnue, 600 € »). Le seuil de relance est celui de l'organisation
+  (`commission_unpaid_days`), la même règle que la pile « commissions à
+  encaisser » du suivi — et le total de cette pile est PROUVÉ égal aux
+  « confirmées non réglées » de l'analyse (même somme, même nombre).
+- Un partenaire inactif sans partage dans la période n'apparaît pas ; un
+  partenaire actif sans partage apparaît à zéro.
+
+### Vérifié — sur des organisations jetables, pas sur des données réelles
+
+Script temporaire contre la vraie base (`_p5-a` : 12 affaires aux chemins
+connus — perdue depuis Partagée, depuis Nouveau, depuis En négociation,
+sans motif, hors période, rouverte, perdue-rouverte-reperdue, née perdue,
+perdue avant le journal (reconstituée), gagnée, gagnée hors période,
+gagnée puis rouverte ; 4 partenaires dont un inactif ; 11 partages —
+accepté, refusé, en attente, expiré, renvoyé puis accepté, révoqué, réglé,
+confirmé à la date inconnue, sans commission, commission sans montant ;
+`_p5-b` témoin ; `_p5-c` vide), **59 contrôles** : pertes (7 datées,
+310 000 €, 1 sans montant, 1 reconstituée écartée, 2 gagnées, taux 77,8 %,
+les quatre répartitions à la valeur attendue avec la dernière perte de
+D7 sous son second motif, parts, clés spéciales), filtres (30 j sur la
+date de la perte, conseiller, type avec parts masquées, combinés), **la
+liste rend exactement chaque ligne** (toutes les pertes, chaque motif,
+chaque étape de départ, chaque conseiller, chaque type, sur 5
+combinaisons de filtres ; la reconstituée jamais listée ; « nées perdues
+sans motif » = D8), paramètres d'URL, partenaires (6 partages dont la
+chaîne comptée une fois, 2/1/1/1/1 par issue, 33,3 %, délai masqué à 3
+réponses, transformation masquée à 2 acceptés, 1 000 € acquis, 2 400 €
+prévus avec le dernier lien ; Deux : 80 %, médiane 1 j / moyenne 1,2 j
+n = 5, 1 400 € acquis, 1 sans montant ; ensemble 11/6/2/3, 54,5 %, 33,3 %),
+commissions (prévues 3, confirmées 2 = 1 600 €, réglées 1, caduques 4 =
+1 400 €, vieillissement 0–30 j, date inconnue à part, seuil 14 j dépassé
+par 1, **égalité avec le total du suivi**), filtres (30 j n'affecte pas
+l'encours ; type ; conseiller), isolation (B ne voit que B, un motif ou
+une étape de A demandés par B donnent zéro et réciproquement, super admin
+sans organisation refusé sur les deux, aucune commission ne référence un
+partage d'une autre organisation), organisation vide, suppression
+complète. **Navigateur** (Chromium, build de production, 38 contrôles,
+rejoués sur le build final) : l'écran des pertes et ses chiffres, la
+ligne dont l'unique affaire n'a pas de montant écrite « — » (jamais
+0 €), le clic sur un motif → liste de 3 affaires avec le bandeau, retour,
+« nées perdues » → D8, préréglage 30 j, formulaire type sur 30 j (1
+perte, part masquée), paramètres invalides ;
+l'écran des partenaires (les deux lignes — dont la commission prévue
+sans montant écrite « — » —, l'ensemble, l'inactif absent, l'encours, le
+vieillissement, le seuil, la date inconnue), le nom qui
+ouvre la fiche, 30 j sans effet sur l'encours ; petit écran sans
+débordement ; B ; C (les deux états vides) ; super admin ; zéro erreur
+console.
+
+### Performance — mesures, et jusqu'où ça tient
+
+### Performance — mesures, et jusqu'où ça tient
+
+**Écrans quotidiens — avant / après.** Même protocole (jeu `_perf-test`,
+build de production, session forgée, médiane de 7). Référence (étape 4) →
+cette étape : tableau de bord 153 → 166 ms, contacts 124 → 140, tâches
+230 → 231, suivi 123 → 127, affaires kanban 193 → 185, liste 134 → 132,
+délais 130 → 137, funnel 128 → 124 ; les deux nouveaux écrans sur ce
+jeu : pertes 127 ms, partenaires 127 ms. Deux passes ont été faites : la
+première, juste après le `VACUUM ANALYZE` et la création du jeu, était
+plus lente de 5 à 30 ms partout (tableau de bord 195, tâches 252, kanban
+206 — caches froids) ; la seconde est celle retenue. Dans le bruit de
+mesure : la coquille n'a pas changé, et la liste des affaires n'ajoute la
+condition de perte que lorsque l'URL porte `cohorte=perte`.
+
+**Volume — à partir de quand ça casse.** Organisation jetable
+`_perf-analytique` générée côté base : 70 000 affaires (14 000 aujourd'hui
+perdues, motif tiré parmi trois ou aucun ; une sur sept sans montant),
+182 000 passages d'étape, 22 000 partages (20 000 envoyés à quatre
+partenaires, dont 2 000 renvoyés — l'ancien lien révoqué, le nouveau
+accepté), 22 000 commissions (8 996 prévues vivantes, 1 323 confirmées
+non réglées, 677 réglées, 11 004 caduques). Temps depuis le code de
+l'écran (aller-retour HTTP Neon compris, médiane de 3) :
+
+| Requête | 70 000 affaires |
+|---|---|
+| **Pertes** (`lossesReport` : l'agrégat, les gagnées et quatre listes de libellés, en parallèle) | **106 ms** (81 ms sur 90 jours) |
+| **Partenaires et commissions** (`partnersReport`, 4 requêtes en parallèle) | **182 ms** (93 ms sur 90 jours) |
+| Liste après un clic : pertes, motif « Taux concurrent » (page + total) | 132 ms |
+| Liste : toutes les pertes | 163 ms |
+| Liste sans sélection (référence mesurée à l'étape 4) | 104 ms |
+
+Pourquoi c'est cinq à huit fois moins cher que le funnel sur le même
+volume : les pertes ne lisent que les passages VERS une étape perdue (ou
+gagnée), par l'index (organisation, étape d'arrivée, date) de la
+migration 0010 — un cinquième du journal ici, moins dans la vraie vie —
+puis une dernière entrée par affaire ; les partenaires parcourent une
+fois les chaînes de partages de l'organisation et joignent affaires et
+commissions en une passe. Les deux croissent avec le nombre de pertes et
+de partages de l'organisation, pas avec tout le journal ; la condition de
+la liste est un `EXISTS … LIMIT 1` par affaire sur l'index (organisation,
+affaire, date). **Le choix « à la volée » tient ici bien au-delà de la
+limite posée pour le funnel et les délais** (~300 000 passages) : en
+prolongeant linéairement — une extrapolation, pas une mesure — ces deux
+écrans resteraient sous 500 ms à 300 000 passages et sous 2 s vers un
+million de passages ou 300 000 partages. Les cumuls quotidiens prévus
+pour les délais et le funnel viendront donc avant que ces écrans en aient
+besoin ; le jour venu, la même table de cumuls (organisation, étape,
+jour) porte les pertes en y ajoutant le motif et l'étape de départ. La
+base réelle en est à moins d'un pour cent de ce volume.
+
+Un piège de génération, à connaître : insérer les 70 000 premiers
+passages d'étape en une seule instruction a échoué (rien d'écrit, la
+table est restée vide) ; par tranches de 14 000 lignes (hachage de
+l'affaire modulo 5), chaque instruction a pris de 35 s à 3 min sur le
+compute de développement, et le jeu complet une quarantaine de minutes —
+un générateur reprenable (chaque étape ne s'exécute que si sa table est
+vide), à relancer tel quel s'il est interrompu. Mesurer les écrans
+quotidiens après `VACUUM ANALYZE`, comme à l'étape 4.
+
 ## Avancement
 
 - **Étape 1 — audit** : `ea0de94`. STOP.
@@ -895,5 +1101,10 @@ moins d'un pour cent de ce volume. Pour mesurer plus tard :
   branche) : `/analytique/funnel` (chaîne, par pipeline, par origine),
   famille `funnel` du registre (onze définitions), `finishRate`, la liste
   des affaires qui rend exactement ce que le funnel compte (`cohorte`,
-  `atteint`, `jusqua`, `issue`). STOP — prochaine étape : 5 (pertes,
-  partenaires, commissions).
+  `atteint`, `jusqua`, `issue`). STOP.
+- **Étape 5 — pertes, partenaires, commissions** (même branche) :
+  `/analytique/pertes` et `/analytique/partenaires`, familles `losses`
+  (trois définitions) et `partners` (sept), la liste des affaires qui
+  rend chaque ligne des pertes (`cohorte=perte`, `motif`, `depuis`).
+  STOP — prochaine étape : 6 (tableau de bord piloté par le pack métier,
+  exports CSV).

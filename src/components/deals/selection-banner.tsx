@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Funnel } from "lucide-react";
 import { periodPhrase } from "@/components/analytics/period-phrase";
 import { buttonVariants } from "@/components/ui/button";
-import { ORIGIN_UNKNOWN, ORIGIN_UNMATCHED, type ParsedDealSelection } from "@/lib/metrics";
+import { LOSS_NO_REASON, LOST_FROM_CREATION, ORIGIN_UNKNOWN, ORIGIN_UNMATCHED, type ParsedDealSelection } from "@/lib/metrics";
 
 /**
  * Le bandeau qui dit ce que la liste montre quand elle vient d'un clic sur
@@ -19,16 +19,34 @@ export function describeDealSelection(
     types: { id: string; label: string }[];
     origins: { id: string; label: string }[];
     users: { id: string; name: string | null; email: string }[];
+    reasons?: { id: string; label: string }[];
   }
 ): string {
   const { selection, parsed } = sel;
   const { filters } = selection;
   const parts: string[] = [];
 
-  const outcome = selection.outcome === "gagnee" ? "gagnées" : selection.outcome === "perdue" ? "perdues" : selection.outcome === "en-cours" ? "en cours" : null;
+  const outcome =
+    selection.cohort === "perte"
+      ? "perdues"
+      : selection.outcome === "gagnee"
+        ? "gagnées"
+        : selection.outcome === "perdue"
+          ? "perdues"
+          : selection.outcome === "en-cours"
+            ? "en cours"
+            : null;
 
   const period = periodPhrase(parsed);
-  parts.push(selection.cohort === "lead" ? `issues d'un lead reçu ${period}` : `créées ${period}`);
+  if (selection.cohort === "perte") {
+    parts.push(`${period} (à la date de la perte)`);
+    if (selection.lossReasonId === LOSS_NO_REASON) parts.push("sans motif");
+    else if (selection.lossReasonId) parts.push(`motif « ${lookups.reasons?.find((r) => r.id === selection.lossReasonId)?.label ?? "?"} »`);
+    if (selection.lostFromStageId === LOST_FROM_CREATION) parts.push("nées perdues");
+    else if (selection.lostFromStageId) parts.push(`perdues depuis « ${lookups.stages.find((s) => s.id === selection.lostFromStageId)?.label ?? "?"} »`);
+  } else {
+    parts.push(selection.cohort === "lead" ? `issues d'un lead reçu ${period}` : `créées ${period}`);
+  }
 
   if (filters.typeId) parts.push(`de type « ${lookups.types.find((t) => t.id === filters.typeId)?.label ?? "?"} »`);
   if (filters.originId === ORIGIN_UNKNOWN) parts.push("sans origine (aucun lead)");
@@ -51,26 +69,29 @@ export function DealSelectionBanner({
   description,
   total,
   clearHref,
-  funnelHref,
+  backHref,
+  backLabel,
 }: {
   description: string;
   total: number;
   clearHref: string;
-  funnelHref: string;
+  /** L'écran analytique d'où vient la sélection, avec ses filtres. */
+  backHref: string;
+  backLabel: string;
 }) {
   return (
     <section
-      aria-label="Sélection venue du funnel"
+      aria-label="Sélection venue de l'analytique"
       className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/30 bg-accent/40 px-4 py-3 text-sm"
     >
       <Funnel className="size-4 shrink-0 text-primary" aria-hidden />
       <p className="min-w-0 flex-1 text-pretty">
         <span className="font-medium">{description}</span>
-        <span className="text-muted-foreground tabular-nums"> — {total} affaire{total > 1 ? "s" : ""}, exactement ce que le funnel a compté.</span>
+        <span className="text-muted-foreground tabular-nums"> — {total} affaire{total > 1 ? "s" : ""}, exactement ce que l&apos;analyse a compté.</span>
       </p>
       <span className="flex shrink-0 items-center gap-1">
-        <Link href={funnelHref} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-          Revenir au funnel
+        <Link href={backHref} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+          {backLabel}
         </Link>
         <Link href={clearHref} className={buttonVariants({ variant: "outline", size: "sm" })}>
           Retirer la sélection

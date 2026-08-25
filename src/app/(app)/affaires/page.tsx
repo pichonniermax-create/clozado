@@ -317,6 +317,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
           orgUsers={orgUsers}
           types={types}
           origins={origins}
+          lossReasons={lossReasons}
           params={params}
           sel={sel}
           baseQuery={baseQuery}
@@ -387,6 +388,7 @@ async function ListeView({
   orgUsers,
   types,
   origins,
+  lossReasons,
   params,
   sel,
   baseQuery,
@@ -397,6 +399,7 @@ async function ListeView({
   orgUsers: Awaited<ReturnType<typeof listOrgUsers>>;
   types: Awaited<ReturnType<typeof listDealTypes>>;
   origins: { id: string; label: string }[];
+  lossReasons: { id: string; label: string }[];
   params: Params;
   sel: ParsedDealSelection;
   baseQuery: (over: Record<string, string | undefined>) => string;
@@ -440,10 +443,11 @@ async function ListeView({
     <section className="flex flex-col gap-3">
       {sel.analytic && (
         <DealSelectionBanner
-          description={describeDealSelection(sel, { stages, types, origins, users: orgUsers })}
+          description={describeDealSelection(sel, { stages, types, origins, users: orgUsers, reasons: lossReasons })}
           total={total}
           clearHref={`/affaires?vue=liste&pipeline=${pipelineId}`}
-          funnelHref={`/analytique/funnel${metricQueryString(sel.parsed.params)}`}
+          backHref={`${sel.selection.cohort === "perte" ? "/analytique/pertes" : "/analytique/funnel"}${metricQueryString(sel.parsed.params)}`}
+          backLabel={sel.selection.cohort === "perte" ? "Revenir aux pertes" : "Revenir au funnel"}
         />
       )}
       <form method="get" className="flex flex-wrap items-center gap-2">

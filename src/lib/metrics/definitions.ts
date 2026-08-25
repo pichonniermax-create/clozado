@@ -15,7 +15,7 @@ export const MIN_OBSERVATIONS = 5;
 export type MetricUnit = "days" | "count" | "ratio" | "euros";
 
 /** La famille d'une métrique — l'écran qui la porte. */
-export type MetricFamily = "delays" | "funnel";
+export type MetricFamily = "delays" | "funnel" | "losses" | "partners";
 
 export type MetricDefinition = {
   id: string;
@@ -43,6 +43,8 @@ const DEAL_FILTERS =
 const UPSTREAM_FILTERS =
   "Période : sur l'événement. Origine : celle transmise par la page (rattachée à une origine configurée, ou « à rapprocher »). Conseiller : sans objet — une visite n'est rattachée à personne ; avec ce filtre, le pas est sans objet. Type et pipeline : sans effet (rien n'est encore une affaire).";
 const COLLECT_TO_FEED = "Poser l'extrait JavaScript sur le site (Marque & réglages → Collecte) : chaque chargement de page équipée compte.";
+const SHARE_UNIT =
+  "Un partage = une chaîne de renvois de lien : le lien renvoyé n'est pas un second partage, c'est le même, envoyé à la date du premier, et seul le dernier lien de la chaîne porte la réponse et la commission.";
 
 export const METRICS = {
   stage_duration: {
@@ -288,6 +290,145 @@ export const METRICS = {
     whenInsufficient: `Les nombres s'affichent toujours ; chaque taux est masqué sous ${MIN_OBSERVATIONS} observations à son dénominateur.`,
     howToFeed: "Configurer les origines et rapprocher les textes reçus (Analytique → Origines) ; transmettre l'origine dans l'extrait et dans /api/leads.",
     filters: "Ceux de la chaîne, pas à pas ; avec un filtre origine, une seule ligne reste.",
+    minObservations: MIN_OBSERVATIONS,
+  },
+
+  // --- Les pertes : pourquoi, d'où, qui, quoi — et combien ------------------
+  lost_deal: {
+    id: "lost_deal",
+    label: "Affaires perdues",
+    unit: "count",
+    family: "losses",
+    definition:
+      "Une affaire AUJOURD'HUI dans une étape marquée « perdu » (l'état courant, celui du kanban). Sa date de perte, son étape de départ et son motif sont ceux de sa DERNIÈRE entrée dans l'étape perdue, lus dans le journal des passages — le motif au moment de la perte, pas la valeur courante de la fiche. Le montant perdu est le montant estimé de l'affaire (valeur courante).",
+    excludes:
+      "Une affaire perdue puis rouverte (elle vit). Une perte antérieure au journal — sa ligne d'entrée a été reconstituée à la date de création, la date réelle de la perte est inconnue : écartée du calcul et comptée à part, jamais datée par une valeur plausible. Les affaires sans montant estimé comptent dans le nombre, pas dans le montant — comptées à part.",
+    whenInsufficient: "Les nombres et les montants s'affichent toujours ; seules les parts (en pour-cent) sont masquées sous 5 pertes.",
+    howToFeed:
+      "Déplacer une affaire dans l'étape marquée « perdu » et choisir son motif (kanban ou fiche) — le motif se corrige sur la fiche tant qu'elle y est.",
+    filters: `Période : sur la date de la perte (dernière entrée dans l'étape perdue). ${DEAL_FILTERS}`,
+    minObservations: MIN_OBSERVATIONS,
+  },
+  loss_breakdown: {
+    id: "loss_breakdown",
+    label: "Répartition des pertes",
+    unit: "ratio",
+    family: "losses",
+    definition:
+      "Les affaires perdues de la période, réparties par motif (au moment de la perte), par étape de départ (celle d'où l'affaire est tombée — « dès la création » si elle est née perdue), par conseiller responsable et par type d'affaire ; pour chaque ligne, le nombre, le montant perdu et la part du total.",
+    excludes:
+      "Les mêmes que « Affaires perdues ». Une affaire perdue sans motif figure sur la ligne « Sans motif » — une information, pas un oubli du calcul.",
+    whenInsufficient: `La part d'une ligne est masquée tant que le total des pertes est inférieur à ${MIN_OBSERVATIONS} ; nombres et montants s'affichent toujours.`,
+    howToFeed: "Configurer les motifs (Marque & réglages) et choisir le motif au moment de perdre.",
+    filters: "Les mêmes que « Affaires perdues » ; chaque ligne ouvre la liste des affaires qu'elle compte.",
+    minObservations: MIN_OBSERVATIONS,
+  },
+  loss_rate: {
+    id: "loss_rate",
+    label: "Taux de perte",
+    unit: "ratio",
+    family: "losses",
+    definition:
+      "Sur la période, les affaires perdues rapportées aux affaires closes (perdues + gagnées) — gagnées suivant la même règle : aujourd'hui dans une étape marquée « gagné », à la date de leur dernière entrée dans cette étape.",
+    excludes: "Les affaires encore en cours (pas closes) ; les entrées reconstituées, des deux côtés.",
+    whenInsufficient: `Masqué sous ${MIN_OBSERVATIONS} affaires closes ; l'écran indique combien il en manque.`,
+    howToFeed: "Clore des affaires — gagnées ou perdues.",
+    filters: "Les mêmes que « Affaires perdues ».",
+    minObservations: MIN_OBSERVATIONS,
+  },
+
+  // --- Les partenaires et les commissions ----------------------------------
+  partner_shares: {
+    id: "partner_shares",
+    label: "Partages envoyés",
+    unit: "count",
+    family: "partners",
+    definition: `Par partenaire, les partages envoyés dans la période, suivis jusqu'à aujourd'hui. ${SHARE_UNIT} L'issue d'un partage est celle de son dernier lien : accepté, refusé, ou sans réponse (en attente, expiré, révoqué).`,
+    excludes: "Rien : un partage révoqué sans réponse compte comme sans réponse, pas comme refusé.",
+    whenInsufficient: COUNT_ALWAYS_SHOWN,
+    howToFeed: "Partager une affaire depuis sa fiche.",
+    filters: `Période : sur le PREMIER envoi de la chaîne (la cohorte). ${DEAL_FILTERS}`,
+    minObservations: MIN_OBSERVATIONS,
+  },
+  partner_acceptance_rate: {
+    id: "partner_acceptance_rate",
+    label: "Taux d'acceptation",
+    unit: "ratio",
+    family: "partners",
+    definition:
+      "Par partenaire, les partages acceptés rapportés aux partages envoyés — un partage sans réponse n'est pas accepté. Refusés et sans réponse sont affichés à côté.",
+    excludes: "Rien.",
+    whenInsufficient: `Masqué tant que le partenaire compte moins de ${MIN_OBSERVATIONS} partages envoyés.`,
+    howToFeed: "Le partenaire répond depuis son lien (accepter, refuser).",
+    filters: "Les mêmes que « Partages envoyés ».",
+    minObservations: MIN_OBSERVATIONS,
+  },
+  partner_response_delay: {
+    id: "partner_response_delay",
+    label: "Délai de réponse du partenaire",
+    unit: "days",
+    family: "partners",
+    definition:
+      "Par partenaire, la même mesure que « Délai partage → réponse du partenaire » de l'écran Délais : du premier envoi de la chaîne à la réponse (acceptation ou refus), médiane et moyenne.",
+    excludes: "Les partages sans réponse ; les liens remplacés par un renvoi (seul le dernier porte la réponse).",
+    whenInsufficient: INSUFFICIENT,
+    howToFeed: "Une observation = un partage auquel le partenaire a répondu.",
+    filters:
+      "Période : sur le premier envoi (la cohorte), pas sur la réponse — l'écran Délais, lui, borne sur la date de réponse. Conseiller, type, pipeline, origine : ceux de l'affaire.",
+    minObservations: MIN_OBSERVATIONS,
+  },
+  partner_transformation_rate: {
+    id: "partner_transformation_rate",
+    label: "Taux de transformation",
+    unit: "ratio",
+    family: "partners",
+    definition:
+      "Par partenaire, parmi les partages acceptés, ceux dont l'affaire est AUJOURD'HUI dans une étape marquée « gagné » (état courant), rapportés aux partages acceptés.",
+    excludes: "Les partages non acceptés ; une affaire gagnée puis rouverte n'est plus gagnée.",
+    whenInsufficient: `Masqué tant que le partenaire compte moins de ${MIN_OBSERVATIONS} partages acceptés.`,
+    howToFeed: "Déplacer l'affaire partagée dans l'étape marquée « gagné ».",
+    filters: "Les mêmes que « Partages envoyés ».",
+    minObservations: MIN_OBSERVATIONS,
+  },
+  partner_commissions: {
+    id: "partner_commissions",
+    label: "Commissions générées",
+    unit: "euros",
+    family: "partners",
+    definition:
+      "Par partenaire, sur les partages de la période : les commissions ACQUISES (confirmées ou réglées, au montant calculé figé à la confirmation) et les commissions PRÉVUES encore vivantes (partage en attente ou accepté). Une chaîne de renvois porte une seule commission : celle de son dernier lien.",
+    excludes:
+      "Les commissions prévues d'un partage refusé, révoqué, expiré ou remplacé par un renvoi (caduques) ; une commission sans montant calculé compte dans le nombre, pas dans la somme — comptée à part.",
+    whenInsufficient: "Les montants s'affichent toujours.",
+    howToFeed: "Fixer la commission à l'envoi du partage, la confirmer quand l'affaire aboutit, déclarer son règlement (écran de suivi).",
+    filters: "Les mêmes que « Partages envoyés ».",
+    minObservations: MIN_OBSERVATIONS,
+  },
+  commissions_outstanding: {
+    id: "commissions_outstanding",
+    label: "Encours de commissions par état",
+    unit: "euros",
+    family: "partners",
+    definition:
+      "Toutes les commissions de l'organisation, à AUJOURD'HUI, par état : prévues (partage en attente ou accepté), confirmées non réglées, réglées — nombre et montant calculé — plus les prévues devenues caduques (partage refusé, révoqué, expiré ou remplacé par un renvoi), comptées à part.",
+    excludes: "Les commissions sans montant calculé, dans les sommes (comptées à part).",
+    whenInsufficient: "Les montants s'affichent toujours.",
+    howToFeed: "Fixer une commission à l'envoi d'un partage.",
+    filters: "La PÉRIODE EST SANS EFFET : un encours est un état à aujourd'hui. Conseiller, type, pipeline, origine : ceux de l'affaire.",
+    minObservations: MIN_OBSERVATIONS,
+  },
+  commissions_aging: {
+    id: "commissions_aging",
+    label: "Vieillissement des commissions confirmées non réglées",
+    unit: "euros",
+    family: "partners",
+    definition:
+      "Les commissions confirmées et pas encore réglées, par ancienneté de la confirmation : 0 à 30 jours, 31 à 60, 61 à 90, plus de 90 — nombre et montant ; et celles qui dépassent le seuil de relance de l'organisation (Marque & réglages), la même règle que la pile « commissions à encaisser » du suivi.",
+    excludes:
+      "Celles dont la date de confirmation est inconnue (confirmées avant que la date soit journalisée) — comptées à part, jamais datées par une valeur plausible.",
+    whenInsufficient: "Les montants s'affichent toujours.",
+    howToFeed: "Confirmer la commission quand l'affaire aboutit ; déclarer le règlement quand il arrive.",
+    filters: "La PÉRIODE EST SANS EFFET (un état à aujourd'hui). Conseiller, type, pipeline, origine : ceux de l'affaire.",
     minObservations: MIN_OBSERVATIONS,
   },
 } as const satisfies Record<string, MetricDefinition>;

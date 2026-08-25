@@ -2,12 +2,14 @@ import {
   BookUser,
   Briefcase,
   Funnel,
+  Handshake,
   LayoutDashboard,
   ListTodo,
   Mail,
   Route,
   Target,
   Timer,
+  TrendingDown,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -58,6 +60,8 @@ export const NAVIGATION: NavSection[] = [
     entries: [
       { href: "/analytique/funnel", label: "Funnel", icon: Funnel, requiresOrganization: true },
       { href: "/analytique/delais", label: "Délais", icon: Timer, requiresOrganization: true },
+      { href: "/analytique/pertes", label: "Pertes", icon: TrendingDown, requiresOrganization: true },
+      { href: "/analytique/partenaires", label: "Partenariats", icon: Handshake, requiresOrganization: true },
       { href: "/analytique/origines", label: "Origines", icon: Route, requiresOrganization: true },
     ],
   },

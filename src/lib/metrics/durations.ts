@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import type { OrgScopeUser } from "@/lib/session";
 import {
@@ -177,21 +177,31 @@ export async function stagePairDelays(user: OrgScopeUser, filters: MetricFilters
   }));
 }
 
-/** METRICS.share_response_delay — depuis le PREMIER envoi de la chaîne de renvois. */
-export async function shareResponseDelay(user: OrgScopeUser, filters: MetricFilters = {}): Promise<DurationStat> {
-  const org = organizationOf(user);
-  const [r] = await rows(sql`
-    WITH RECURSIVE chain AS (
+/**
+ * Les chaînes de renvois de lien — LA définition « un partage = une chaîne,
+ * envoyé à la date du premier lien », partagée par les délais et par
+ * l'analyse par partenaire : `chain` relie chaque partage à sa racine,
+ * `roots` porte la date du PREMIER envoi. À poser après `WITH RECURSIVE`.
+ */
+export function shareChainsCte(organizationId: string): SQL {
+  return sql`chain AS (
       SELECT id, id AS root_id, sent_at, 1 AS depth
       FROM deal_shares
-      WHERE organization_id = ${org} AND replaces_share_id IS NULL
+      WHERE organization_id = ${organizationId} AND replaces_share_id IS NULL
       UNION ALL
       SELECT s.id, c.root_id, s.sent_at, c.depth + 1
       FROM deal_shares s
       JOIN chain c ON s.replaces_share_id = c.id
-      WHERE s.organization_id = ${org} AND c.depth < 50
+      WHERE s.organization_id = ${organizationId} AND c.depth < 50
     ),
-    roots AS (SELECT root_id, min(sent_at) AS first_sent_at FROM chain GROUP BY root_id)
+    roots AS (SELECT root_id, min(sent_at) AS first_sent_at FROM chain GROUP BY root_id)`;
+}
+
+/** METRICS.share_response_delay — depuis le PREMIER envoi de la chaîne de renvois. */
+export async function shareResponseDelay(user: OrgScopeUser, filters: MetricFilters = {}): Promise<DurationStat> {
+  const org = organizationOf(user);
+  const [r] = await rows(sql`
+    WITH RECURSIVE ${shareChainsCte(org)}
     SELECT count(*) AS n,
       percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM s.responded_at - r.first_sent_at)) AS median_seconds,
       avg(extract(epoch FROM s.responded_at - r.first_sent_at)) AS mean_seconds

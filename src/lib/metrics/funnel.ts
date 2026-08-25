@@ -11,6 +11,7 @@ import {
   periodCondition,
   type MetricFilters,
 } from "./filters";
+import { lostDealCondition } from "./losses";
 import { finishRate, type RateStat } from "./types";
 
 /**
@@ -163,19 +164,29 @@ export function dealOutcomeCondition(outcome: DealOutcomeFilter, d: SQL): SQL {
  */
 export type DealSelection = {
   filters: MetricFilters;
-  cohort: "creation" | "lead";
+  /** Sur quoi porte la période : la création de l'affaire, l'arrivée de son lead (la chaîne), ou la date de sa perte (l'analyse des pertes). */
+  cohort: "creation" | "lead" | "perte";
   reachedStageId?: string;
   furthestStageId?: string;
   outcome?: DealOutcomeFilter;
+  /** Avec la cohorte « perte » : le motif au moment de la perte (ou `sans-motif`) et l'étape de départ (ou `creation`). */
+  lossReasonId?: string;
+  lostFromStageId?: string;
 };
 
 export function dealSelectionCondition(organizationId: string, selection: DealSelection, d: SQL): SQL {
   const parts: SQL[] = [dealConditions(organizationId, selection.filters, d)];
-  parts.push(
-    selection.cohort === "lead"
-      ? leadCohortCondition(organizationId, selection.filters, d)
-      : periodCondition(sql`${d}.created_at`, selection.filters)
-  );
+  if (selection.cohort === "perte") {
+    parts.push(
+      lostDealCondition(organizationId, selection.filters, { lossReasonId: selection.lossReasonId, lostFromStageId: selection.lostFromStageId }, d)
+    );
+  } else {
+    parts.push(
+      selection.cohort === "lead"
+        ? leadCohortCondition(organizationId, selection.filters, d)
+        : periodCondition(sql`${d}.created_at`, selection.filters)
+    );
+  }
   if (selection.reachedStageId) parts.push(dealReachedStage(organizationId, selection.reachedStageId, d));
   if (selection.furthestStageId) parts.push(dealFurthestStage(organizationId, selection.furthestStageId, d));
   if (selection.outcome) parts.push(dealOutcomeCondition(selection.outcome, d));

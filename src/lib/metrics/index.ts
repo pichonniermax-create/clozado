@@ -39,6 +39,27 @@ export {
   type PipelineFunnelStage,
 } from "./funnel";
 export {
+  LOSS_NO_OWNER,
+  LOSS_NO_REASON,
+  LOST_FROM_CREATION,
+  lossesHasAnyData,
+  lossesReport,
+  lostDealCondition,
+  type LossBreakdownRow,
+  type LossesReport,
+  type LossSelection,
+} from "./losses";
+export {
+  partnersHasAnyData,
+  partnersReport,
+  type AgingBucket,
+  type CommissionStateKey,
+  type CommissionStateRow,
+  type MoneyCount,
+  type PartnerRow,
+  type PartnersReport,
+} from "./partners";
+export {
   DEFAULT_PERIOD,
   PERIOD_PRESETS,
   metricQueryString,
