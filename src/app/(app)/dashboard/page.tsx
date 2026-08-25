@@ -1,38 +1,28 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  Banknote,
-  BellRing,
-  BookUser,
-  Briefcase,
-  Check,
-  Flag,
-  Handshake,
-  ListTodo,
-  PauseCircle,
-  Plus,
-  Sparkles,
-} from "lucide-react";
+import { Suspense } from "react";
+import { ArrowRight, Banknote, BellRing, BookUser, Check, ListTodo, PauseCircle, Plus, Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListCard, ListRow, ListRowLink } from "@/components/ui/list-card";
+import { SkeletonTiles } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { StatTile } from "@/components/stat-tile";
 import { Journal } from "@/components/activities/journal";
+import { PackIndicators } from "@/components/dashboard/pack-indicators";
 import { TASK_AUTO_RULE_LABELS } from "@/components/tasks/labels";
 import { TaskMetaLine } from "@/components/tasks/task-section";
 import { listOrganizationJournal } from "@/db/queries/activities";
 import { countContacts } from "@/db/queries/contacts";
 import { getFollowUpBoard } from "@/db/queries/deal-follow-up";
-import { getPipelineSummary } from "@/db/queries/deals";
 import { getOwnOrganization, getVisibleOrganizations } from "@/db/queries/organizations";
 import { listPartners } from "@/db/queries/partners";
 import { generateAutoTasks, getTasksDueSummary } from "@/db/queries/tasks";
 import { setActiveOrganizationAction } from "@/lib/admin/actions";
 import { completeTaskAction } from "@/lib/tasks/actions";
 import { formatDays, formatEuros } from "@/lib/format";
+import { DASHBOARD_PERIOD, hasAnyDeal, openDeals, parseMetricFilters, PERIOD_PRESETS } from "@/lib/metrics";
 import { requireUser } from "@/lib/session";
 
 /** Tâches montrées sur le tableau de bord — le reste vit sur l'écran des tâches. */
@@ -49,10 +39,14 @@ function plural(n: number, singular: string, pluralForm = `${singular}s`) {
  * contacts — et n'est plus le seul reflet du PRM. Il annonce ce qui attend
  * et renvoie vers l'écran où l'on travaille ; la seule action possible ici
  * est d'achever une tâche d'un clic (exigence du module tâches : depuis
- * n'importe quelle vue).
+ * n'importe quelle vue). Les indicateurs mis en avant viennent du pack
+ * métier de l'organisation (module analytique, étape 6), sur la période
+ * de l'URL (`periode`, 90 jours sans paramètre) — jamais une liste figée
+ * ici.
  */
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ periode?: string }> }) {
   const user = await requireUser();
+  const raw = await searchParams;
 
   // Le super_admin SANS organisation choisie : aucun chiffre métier ne le
   // concerne, il voit la liste des organisations — et peut entrer dans
@@ -100,14 +94,17 @@ export default async function DashboardPage() {
   // tant qu'on n'a pas ouvert /taches. Le tableau déjà calculé est réutilisé.
   await generateAutoTasks(user, board);
 
-  const [org, pipeline, contactsCount, partners, tasksDue, journal] = await Promise.all([
+  const [org, open, anyDeal, contactsCount, partners, tasksDue, journal] = await Promise.all([
     getOwnOrganization(user),
-    getPipelineSummary(user),
+    openDeals(user),
+    hasAnyDeal(user),
     countContacts(user),
     listPartners(user),
     getTasksDueSummary(user, TASKS_PREVIEW),
     listOrganizationJournal(user, JOURNAL_PREVIEW),
   ]);
+  // La période des indicateurs : celle de l'URL si c'est un préréglage, sinon celle du tableau de bord (pas celle des écrans analytiques).
+  const parsed = parseMetricFilters({ periode: PERIOD_PRESETS.some((p) => p.key === raw.periode) ? raw.periode : DASHBOARD_PERIOD });
 
   const unpaidTotal = board.unpaidCommissions.reduce(
     (sum, c) => sum + (Number(c.computedAmount) || 0),
@@ -118,8 +115,7 @@ export default async function DashboardPage() {
   // Un espace neuf : ni contact ni affaire. Des tuiles à zéro ne disent pas
   // par où commencer — on le dit, avec les premiers gestes (les partenaires
   // ne comptent pas : on peut en avoir sans avoir encore rien suivi).
-  const isFreshSpace =
-    contactsCount === 0 && pipeline.open.n + pipeline.won.n + pipeline.lost.n === 0;
+  const isFreshSpace = contactsCount === 0 && !anyDeal;
 
   // Les trois piles d'action, remises bout à bout et tronquées : le tableau
   // de bord annonce ce qui attend, l'écran de suivi est celui où l'on
@@ -152,7 +148,7 @@ export default async function DashboardPage() {
     <>
       <PageHeader
         title={org?.name ?? "Tableau de bord"}
-        description={`${plural(contactsCount, "contact")} · ${plural(pipeline.open.n, "affaire en cours", "affaires en cours")} · ${plural(activePartners, "partenaire actif", "partenaires actifs")}`}
+        description={`${plural(contactsCount, "contact")} · ${plural(open.n, "affaire en cours", "affaires en cours")} · ${plural(activePartners, "partenaire actif", "partenaires actifs")}`}
         actions={
           <>
             <Link href="/contacts" className={buttonVariants({ variant: "outline" })}>
@@ -233,38 +229,10 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* Les dossiers : la matière, pas l'urgence — ton neutre. */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile
-          label="Contacts"
-          value={contactsCount}
-          hint="Personnes et sociétés"
-          icon={<BookUser />}
-          href="/contacts"
-        />
-        <StatTile
-          label="Affaires en cours"
-          value={pipeline.open.n}
-          hint={pipeline.open.amount > 0 ? `≈ ${formatEuros(pipeline.open.amount)} au pipeline` : "Dans le pipeline"}
-          icon={<Briefcase />}
-          href="/affaires"
-        />
-        <StatTile
-          label="Gagnées"
-          value={pipeline.won.n}
-          hint={pipeline.won.amount > 0 ? `≈ ${formatEuros(pipeline.won.amount)}` : "Affaires conclues"}
-          icon={<Flag />}
-          tone="success"
-          href="/affaires?vue=liste"
-        />
-        <StatTile
-          label="Partages actifs"
-          value={board.inProgress.length}
-          hint="Rien à faire pour l'instant"
-          icon={<Handshake />}
-          href="/suivi"
-        />
-      </div>
+      {/* Les indicateurs du pack métier : la matière, pas l'urgence — ton neutre. Ils arrivent après le reste (streaming) : l'analytique n'attend pas le travail du jour. */}
+      <Suspense fallback={<SkeletonTiles count={8} />}>
+        <PackIndicators user={user} businessPack={org?.businessPack ?? null} parsed={parsed} />
+      </Suspense>
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">

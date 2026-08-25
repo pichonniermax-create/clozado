@@ -1,13 +1,15 @@
 import type { CsvCell, CsvTable } from "@/lib/csv";
 import type { OrgScopeUser } from "@/lib/session";
+import { dashboardIndicators, type DashboardIndicator } from "./dashboard";
 import { MIN_OBSERVATIONS } from "./definitions";
 import { delaysReport, type DelaysReport } from "./delays-report";
 import { ORIGIN_UNKNOWN, ORIGIN_UNMATCHED, type MetricFilters } from "./filters";
 import { funnelReport, type FunnelChain, type FunnelCount, type FunnelReport, type FunnelStep } from "./funnel";
 import { lossesReport, type LossBreakdownRow, type LossesReport } from "./losses";
+import type { BusinessPack } from "./packs";
 import { partnersReport, type MoneyCount, type PartnersReport } from "./partners";
 import { periodPhrase } from "./period-phrase";
-import type { ParsedMetricFilters } from "./search-params";
+import type { MetricSearchParams, ParsedMetricFilters } from "./search-params";
 import type { DurationStat, RateStat } from "./types";
 
 /**
@@ -26,6 +28,7 @@ export const EXPORT_VIEWS = {
   funnel: { label: "Funnel de conversion", path: "/analytique/funnel" },
   pertes: { label: "Analyse des pertes", path: "/analytique/pertes" },
   partenaires: { label: "Partenaires et commissions", path: "/analytique/partenaires" },
+  "tableau-de-bord": { label: "Tableau de bord — les indicateurs du pack métier", path: "/dashboard" },
 } as const;
 
 export type ExportView = keyof typeof EXPORT_VIEWS;
@@ -41,6 +44,8 @@ export type ExportLookups = {
   types: { id: string; label: string }[];
   pipelines: { id: string; label: string }[];
   origins: { id: string; label: string }[];
+  /** Le pack métier de l'organisation (vue « tableau de bord ») — résolu par `resolveBusinessPack`. */
+  dashboard?: { pack: BusinessPack; chosen: boolean };
 };
 
 const SHOWN = "affiché";
@@ -352,6 +357,33 @@ function partnersTables(report: PartnersReport): CsvTable[] {
   ];
 }
 
+// ---------------------------------------------------------------- Tableau de bord
+
+function dashboardTables(indicators: DashboardIndicator[], pack: BusinessPack, chosen: boolean): CsvTable[] {
+  const rows: CsvCell[][] = indicators.map(({ metric, value, periodApplies }) => {
+    const period = periodApplies ? "" : "état à aujourd'hui, la période ne s'applique pas";
+    switch (value.kind) {
+      case "count":
+        return [metric.label, value.n, "nombre", null, null, SHOWN, [value.detail, period].filter(Boolean).join(" · ")];
+      case "euros":
+        return [metric.label, amount(value.money), "euros", null, value.money.n, SHOWN, [`${value.money.n} ${value.money.n > 1 ? value.countWord[1] : value.countWord[0]}`, value.money.withoutAmount > 0 ? `${value.money.withoutAmount} sans montant` : "", value.detail, period].filter(Boolean).join(" · ")];
+      case "days":
+        return [metric.label, days(value.stat, value.stat.medianDays), "jours (médiane)", days(value.stat, value.stat.meanDays), observations(value.stat), durationDisplay(value.stat), period];
+      case "ratio":
+        return [metric.label, percent(value.rate), "%", null, value.rate.base, rateDisplay(value.rate, "(le dénominateur)"), [value.detail, period].filter(Boolean).join(" · ")];
+      case "unavailable":
+        return [metric.label, null, "", null, null, `sans objet : ${value.reason}`, period];
+    }
+  });
+  return [
+    {
+      title: `Indicateurs du pack « ${pack.label} »${chosen ? "" : " (pack par défaut : aucun pack choisi dans Marque & réglages)"}`,
+      columns: ["Indicateur", "Valeur", "Unité", "Moyenne (jours)", "Observations", "Affichage", "Détail"],
+      rows,
+    },
+  ];
+}
+
 // ---------------------------------------------------------------- Le document
 
 /** Le premier tableau du fichier : la vue, l'organisation et les filtres appliqués — un export sans son contexte ne vaut rien. */
@@ -384,7 +416,14 @@ export function exportPreamble(view: ExportView, parsed: ParsedMetricFilters, lo
 }
 
 /** Les tableaux de la vue — le rapport de l'écran, projeté. */
-export async function exportTables(view: ExportView, user: OrgScopeUser, filters: MetricFilters, lookups: ExportLookups): Promise<CsvTable[]> {
+export async function exportTables(
+  view: ExportView,
+  user: OrgScopeUser,
+  filters: MetricFilters,
+  lookups: ExportLookups,
+  /** Les paramètres nettoyés de l'URL — les liens du tableau de bord les portent. */
+  params: MetricSearchParams = {}
+): Promise<CsvTable[]> {
   switch (view) {
     case "delais":
       return delaysTables(await delaysReport(user, filters), lookups);
@@ -394,6 +433,11 @@ export async function exportTables(view: ExportView, user: OrgScopeUser, filters
       return lossesTables(await lossesReport(user, filters));
     case "partenaires":
       return partnersTables(await partnersReport(user, filters));
+    case "tableau-de-bord": {
+      if (!lookups.dashboard) throw new Error("L'export du tableau de bord a besoin du pack métier de l'organisation.");
+      const { pack, chosen } = lookups.dashboard;
+      return dashboardTables(await dashboardIndicators(user, pack.indicators, filters, params), pack, chosen);
+    }
   }
 }
 

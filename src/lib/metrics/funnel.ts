@@ -231,6 +231,11 @@ function leadCohort(organizationId: string, filters: MetricFilters): SQL {
   `;
 }
 
+/** METRICS.funnel_leads et funnel_contacted, seuls — le même calcul que la chaîne, pour le tableau de bord. */
+export async function leadFunnelCounts(user: OrgScopeUser, filters: MetricFilters = {}) {
+  return leadCounts(organizationOf(user), filters);
+}
+
 async function leadCounts(organizationId: string, filters: MetricFilters) {
   const [r] = await rows(sql`
     WITH cohort AS (${leadCohort(organizationId, filters)})

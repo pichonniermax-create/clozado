@@ -85,6 +85,13 @@
       "when": 1787585914074,
       "tag": "0011_acquisition",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1787653329771,
+      "tag": "0012_pack_metier",
+      "breakpoints": true
     }
   ]
 }

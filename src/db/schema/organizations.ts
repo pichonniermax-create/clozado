@@ -68,6 +68,16 @@ export const organizations = pgTable("organizations", {
    * funnel amont.
    */
   allowedDomains: text("allowed_domains").array().notNull().default([]),
+  // --- Pack métier (module analytique, étape 6) ---
+  /**
+   * La clé du pack métier choisi dans Marque & réglages (`BUSINESS_PACKS`,
+   * src/lib/metrics/packs.ts) : c'est lui qui décide des indicateurs mis
+   * en avant sur le tableau de bord. NULL = pas encore choisi — le tableau
+   * de bord montre alors le pack « tout métier » et le dit. Validée dans le
+   * code contre le registre des packs, pas par une contrainte : un pack
+   * s'ajoute sans migration.
+   */
+  businessPack: text("business_pack"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

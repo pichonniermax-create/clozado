@@ -11,6 +11,7 @@ import {
   exportTables,
   parseExportView,
   parseMetricFilters,
+  resolveBusinessPack,
   type ExportLookups,
   type MetricSearchParams,
 } from "@/lib/metrics";
@@ -29,7 +30,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const view = parseExportView(url.searchParams.get("vue"));
   if (!view) {
-    return new NextResponse("Vue inconnue : vue=delais, funnel, pertes ou partenaires.", { status: 400 });
+    return new NextResponse("Vue inconnue : vue=delais, funnel, pertes, partenaires ou tableau-de-bord.", { status: 400 });
   }
   if (!user.organizationId) {
     return new NextResponse("L'export se fait pour une organisation précise : choisis une organisation dans le bandeau super admin.", {
@@ -52,9 +53,10 @@ export async function GET(req: Request) {
     types,
     pipelines: pipelines.map((p) => ({ id: p.id, label: p.label })),
     origins,
+    dashboard: resolveBusinessPack(org?.businessPack),
   };
   const now = new Date();
-  const tables = await exportTables(view, user, parsed.filters, lookups);
+  const tables = await exportTables(view, user, parsed.filters, lookups, parsed.params);
   const body = csvDocument([exportPreamble(view, parsed, lookups, now), ...tables]);
 
   return new NextResponse(body, {

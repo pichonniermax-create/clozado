@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ApiKeyCreator } from "@/components/acquisition/api-key-creator";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import {
   getOwnOrganization,
   updateOrganizationBranding,
+  updateOrganizationPack,
 } from "@/db/queries/organizations";
 import { listLossReasons } from "@/db/queries/loss-reasons";
 import { listPipelinesWithStages } from "@/db/queries/pipelines";
@@ -38,6 +40,7 @@ import {
   updateStageAction,
 } from "@/lib/deals/actions";
 import { DEFAULT_BRAND_PRIMARY } from "@/lib/brand";
+import { BUSINESS_PACK_LIST, METRICS, resolveBusinessPack } from "@/lib/metrics";
 import { requireUser } from "@/lib/session";
 
 async function saveBranding(formData: FormData) {
@@ -57,6 +60,19 @@ async function saveBranding(formData: FormData) {
   });
 
   redirect("/settings");
+}
+
+async function savePack(formData: FormData) {
+  "use server";
+  const user = await requireUser();
+  await updateOrganizationPack(user, String(formData.get("businessPack") ?? ""));
+  // La cible ne diffère de la page courante que par l'ancre : sans
+  // revalidation, le routeur remonte la page depuis son cache et le
+  // formulaire réapparaît dans l'état d'AVANT (aucun pack coché, la mention
+  // « aucun pack choisi » encore là) — vu au navigateur. Les autres actions
+  // de cette page redirigent sans ancre et n'en ont pas besoin.
+  revalidatePath("/settings");
+  redirect("/settings#pack-metier");
 }
 
 // Au niveau module, pas dans le composant : une closure d'action serveur
@@ -225,6 +241,51 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             {!readOnly && (
               <Button type="submit" className="w-fit">
                 Enregistrer
+              </Button>
+            )}
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* ------------------------------------------------------------------
+          Le pack métier : la liste des indicateurs mis en avant sur le
+          tableau de bord vient d'ici — une donnée de l'organisation, pas
+          une condition dans le code du tableau de bord.
+      ------------------------------------------------------------------ */}
+      <Card id="pack-metier" className="scroll-mt-24">
+        <CardHeader>
+          <CardTitle>Pack métier</CardTitle>
+          <CardDescription>
+            Les indicateurs mis en avant sur le tableau de bord sont ceux de ton métier — un CGP suit ses encours et sa
+            collecte, un courtier ses volumes et ses délais.
+            {!resolveBusinessPack(org.businessPack).chosen && " Aucun pack n'est choisi pour l'instant : le tableau de bord montre le pack « Tout métier »."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={savePack} className="flex flex-col gap-3">
+            {BUSINESS_PACK_LIST.map((pack) => (
+              <label key={pack.key} className="flex cursor-pointer gap-3 rounded-lg border border-border p-3 has-[:checked]:border-primary has-[:checked]:bg-accent/40">
+                <input
+                  type="radio"
+                  name="businessPack"
+                  value={pack.key}
+                  defaultChecked={org.businessPack === pack.key}
+                  disabled={readOnly}
+                  className="mt-1 accent-primary"
+                />
+                <span className="flex min-w-0 flex-col gap-1">
+                  <span className="text-sm font-medium">{pack.label}</span>
+                  <span className="text-xs text-muted-foreground">{pack.audience}</span>
+                  <span className="text-xs text-pretty">{pack.description}</span>
+                  <span className="text-xs text-muted-foreground text-pretty">
+                    Sur le tableau de bord : {pack.indicators.map((id) => METRICS[id].label.toLowerCase()).join(" · ")}.
+                  </span>
+                </span>
+              </label>
+            ))}
+            {!readOnly && (
+              <Button type="submit" className="w-fit">
+                Enregistrer le pack
               </Button>
             )}
           </form>

@@ -47,6 +47,7 @@ async function main() {
   const { getVisibleOrganizations } = await import("../src/db/queries/organizations");
   const contactsQ = await import("../src/db/queries/contacts");
   const dealsQ = await import("../src/db/queries/deals");
+  const metrics = await import("../src/lib/metrics");
   const sharesQ = await import("../src/db/queries/deal-shares");
   const tasksQ = await import("../src/db/queries/tasks");
   const activitiesQ = await import("../src/db/queries/activities");
@@ -155,8 +156,8 @@ async function main() {
     expect("kanban de B sur le pipeline de A : vide", boardB.length === 0);
     const tableB = await dealsQ.listDealsTable(b.admin, { pipelineId: a.pipelineId });
     expect("liste de B sur le pipeline de A : total 0", tableB.total === 0);
-    const summaryB = await dealsQ.getPipelineSummary(b.admin);
-    expect("résumé pipeline de B = sa seule affaire", summaryB.open.n === 1 && summaryB.won.n === 0);
+    const volumesB = await metrics.volumesReport(b.admin, {});
+    expect("volumes de B (couche des métriques) = sa seule affaire en cours, rien de signé", volumesB.open.n === 1 && volumesB.won.n === 0);
     expect("countContacts(B) = 1", (await contactsQ.countContacts(b.admin)) === 1);
 
     const tasksB = await tasksQ.listTasksBoard(b.admin);

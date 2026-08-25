@@ -95,13 +95,30 @@ export type LossesReport = {
 };
 
 /** La dernière entrée de chaque affaire dans une étape d'un marqueur donné. */
-function lastEntryCte(organizationId: string, outcome: "lost" | "won"): SQL {
+export function lastEntryCte(organizationId: string, outcome: "lost" | "won"): SQL {
   return sql`
     SELECT DISTINCT ON (s.deal_id) s.deal_id, s.changed_at, s.from_status_id, s.loss_reason_id, s.reconstructed
     FROM deal_stage_changes s
     JOIN deal_statuses st ON st.id = s.to_status_id
     WHERE s.organization_id = ${organizationId} AND st.outcome = ${outcome}
     ORDER BY s.deal_id, s.changed_at DESC, s.id DESC
+  `;
+}
+
+/**
+ * METRICS.deals_won (et le dénominateur du taux de perte) : les affaires
+ * aujourd'hui gagnées dont la DERNIÈRE entrée dans une étape gagnée, datée
+ * (pas reconstituée), tombe dans la période — nombre, montant estimé,
+ * affaires sans montant. Une seule requête pour les pertes et les volumes.
+ */
+export function wonDealsQuery(organizationId: string, filters: MetricFilters): SQL {
+  return sql`
+    WITH last_won AS (${lastEntryCte(organizationId, "won")})
+    SELECT count(*) AS n, coalesce(sum(d.estimated_amount), 0) AS amount, count(*) FILTER (WHERE d.estimated_amount IS NULL) AS without_amount
+    FROM last_won lw
+    JOIN deals d ON d.id = lw.deal_id
+    JOIN deal_statuses cur ON cur.id = d.status_id
+    WHERE cur.outcome = 'won' AND ${dealConditions(organizationId, filters)} AND NOT lw.reconstructed AND ${periodCondition(sql`lw.changed_at`, filters)}
   `;
 }
 
@@ -126,14 +143,7 @@ export async function lossesReport(user: OrgScopeUser, filters: MetricFilters = 
       UNION ALL SELECT 'owner', owner_id::text, ${measure} FROM in_period GROUP BY owner_id
       UNION ALL SELECT 'type', type_id::text, ${measure} FROM in_period GROUP BY type_id
     `),
-    rows(sql`
-      WITH last_won AS (${lastEntryCte(org, "won")})
-      SELECT count(*) AS n
-      FROM last_won lw
-      JOIN deals d ON d.id = lw.deal_id
-      JOIN deal_statuses cur ON cur.id = d.status_id
-      WHERE cur.outcome = 'won' AND ${dealConditions(org, filters)} AND NOT lw.reconstructed AND ${periodCondition(sql`lw.changed_at`, filters)}
-    `),
+    rows(wonDealsQuery(org, filters)),
     rows(sql`SELECT id, label FROM loss_reasons WHERE organization_id = ${org}`),
     rows(sql`SELECT id, label FROM deal_statuses WHERE organization_id = ${org}`),
     rows(sql`SELECT id, coalesce(name, email) AS label FROM users WHERE organization_id = ${org}`),

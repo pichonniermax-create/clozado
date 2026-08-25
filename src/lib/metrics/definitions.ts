@@ -15,7 +15,7 @@ export const MIN_OBSERVATIONS = 5;
 export type MetricUnit = "days" | "count" | "ratio" | "euros";
 
 /** La famille d'une métrique — l'écran qui la porte. */
-export type MetricFamily = "delays" | "funnel" | "losses" | "partners";
+export type MetricFamily = "delays" | "funnel" | "losses" | "partners" | "volumes";
 
 export type MetricDefinition = {
   id: string;
@@ -429,6 +429,61 @@ export const METRICS = {
     whenInsufficient: "Les montants s'affichent toujours.",
     howToFeed: "Confirmer la commission quand l'affaire aboutit ; déclarer le règlement quand il arrive.",
     filters: "La PÉRIODE EST SANS EFFET (un état à aujourd'hui). Conseiller, type, pipeline, origine : ceux de l'affaire.",
+    minObservations: MIN_OBSERVATIONS,
+  },
+
+  // --- Les volumes : ce qui entre, ce qui se signe, ce qui est en cours ---
+  deals_created: {
+    id: "deals_created",
+    label: "Affaires créées",
+    unit: "count",
+    family: "volumes",
+    definition:
+      "Les affaires créées dans la période (date de création) — la même cohorte que le funnel d'un pipeline, tous pipelines confondus.",
+    excludes: "Rien : une affaire créée compte, quoi qu'elle soit devenue.",
+    whenInsufficient: "Le nombre s'affiche toujours — c'est un fait.",
+    howToFeed: "Créer une affaire (fiche contact, pipeline, menu « Nouveau »).",
+    filters: `Période : sur la date de création. ${DEAL_FILTERS}`,
+    minObservations: MIN_OBSERVATIONS,
+  },
+  deals_won: {
+    id: "deals_won",
+    label: "Affaires signées",
+    unit: "count",
+    family: "volumes",
+    definition:
+      "Les affaires AUJOURD'HUI dans une étape marquée « gagné » dont la dernière entrée dans cette étape tombe dans la période — la date de la signature, la même règle que le taux de perte et que le délai création → signature.",
+    excludes:
+      "Une affaire gagnée puis rouverte (elle n'est plus gagnée) ; une signature antérieure au journal (ligne reconstituée, date inconnue) — écartée, jamais datée par une valeur plausible.",
+    whenInsufficient: "Le nombre s'affiche toujours — c'est un fait.",
+    howToFeed: "Déplacer l'affaire dans l'étape marquée « gagné ».",
+    filters: `Période : sur la date de la signature. ${DEAL_FILTERS}`,
+    minObservations: MIN_OBSERVATIONS,
+  },
+  won_amount: {
+    id: "won_amount",
+    label: "Montant signé",
+    unit: "euros",
+    family: "volumes",
+    definition:
+      "La somme des montants estimés des affaires signées de la période (« Affaires signées », même règle) — la collecte d'un conseiller en patrimoine, le volume d'un courtier. Le montant estimé de l'affaire, valeur courante, assumé.",
+    excludes: "Les affaires signées sans montant estimé : dans le nombre, pas dans la somme — comptées à part, et un montant dont rien n'est connu s'écrit « — », jamais 0 €.",
+    whenInsufficient: "Les montants s'affichent toujours.",
+    howToFeed: "Renseigner le montant estimé sur la fiche de l'affaire.",
+    filters: "Les mêmes qu'« Affaires signées ».",
+    minObservations: MIN_OBSERVATIONS,
+  },
+  pipeline_open: {
+    id: "pipeline_open",
+    label: "Affaires en cours",
+    unit: "euros",
+    family: "volumes",
+    definition:
+      "À AUJOURD'HUI, les affaires dans une étape sans issue (ni gagnée ni perdue) et la somme de leurs montants estimés — l'encours du pipeline, ce qui peut encore se signer.",
+    excludes: "Les affaires sans montant estimé, dans la somme (comptées à part) ; les affaires closes.",
+    whenInsufficient: "Le nombre et le montant s'affichent toujours.",
+    howToFeed: "Créer des affaires et les faire avancer dans le pipeline.",
+    filters: "La PÉRIODE EST SANS EFFET : un encours est un état à aujourd'hui. Conseiller, type, pipeline, origine : ceux de l'affaire.",
     minObservations: MIN_OBSERVATIONS,
   },
 } as const satisfies Record<string, MetricDefinition>;

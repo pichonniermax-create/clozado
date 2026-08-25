@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { organizations } from "@/db/schema";
 import { assertOrgAccess, orgScope } from "@/db/scope";
+import { parseBusinessPack, type BusinessPackKey } from "@/lib/metrics/packs";
 import type { OrgScopeUser } from "@/lib/session";
 
 /**
@@ -75,4 +76,19 @@ export async function updateOrganizationBranding(
     .update(organizations)
     .set({ ...data, updatedAt: new Date() })
     .where(eq(organizations.id, user.organizationId));
+}
+
+/**
+ * Choisit le pack métier de l'organisation — le même garde-fou que la
+ * marque : un admin, sur SA propre organisation. La clé est validée contre
+ * le registre des packs : rien d'autre n'entre en base.
+ */
+export async function updateOrganizationPack(user: OrgScopeUser, pack: string): Promise<BusinessPackKey> {
+  if (user.role !== "admin" || !user.organizationId) {
+    throw new Error("Accès refusé : seul l'admin de l'organisation peut choisir le pack métier.");
+  }
+  const key = parseBusinessPack(pack);
+  if (!key) throw new Error("Pack métier inconnu.");
+  await db.update(organizations).set({ businessPack: key, updatedAt: new Date() }).where(eq(organizations.id, user.organizationId));
+  return key;
 }

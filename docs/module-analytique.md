@@ -1026,8 +1026,6 @@ console.
 
 ### Performance — mesures, et jusqu'où ça tient
 
-### Performance — mesures, et jusqu'où ça tient
-
 **Écrans quotidiens — avant / après.** Même protocole (jeu `_perf-test`,
 build de production, session forgée, médiane de 7). Référence (étape 4) →
 cette étape : tableau de bord 153 → 166 ms, contacts 124 → 140, tâches
@@ -1188,6 +1186,263 @@ analytiques (un lien) ; un export coûte le rapport de sa vue, déjà mesuré
 partenaires 182 ms), plus une sérialisation de quelques centaines de
 lignes, négligeable.
 
+### 6b — le tableau de bord piloté par le pack métier (migration `0012`, appliquée le 2026-08-25)
+
+**Le modèle.** Une colonne `organizations.business_pack text`, nullable,
+sans valeur par défaut — migration `0012_pack_metier` (une ligne : `ALTER
+TABLE … ADD COLUMN`). NULL = pas encore choisi, et le tableau de bord le
+dit. Les packs eux-mêmes sont des DONNÉES dans le code
+(`src/lib/metrics/packs.ts`) : un pack = une clé, un libellé, son public,
+ce qu'il met en avant, et la liste ordonnée de ses indicateurs parmi les
+quinze qu'un tableau de bord sait afficher (`DASHBOARD_INDICATOR_IDS`,
+tous du registre). Pourquoi pas une table : un pack référence des
+métriques qui n'existent que dans le code — versionnés ensemble, un pack
+ne peut pas nommer une métrique absente ; et une clé inconnue en base
+retombe sur le pack par défaut sans rien casser. Quatre packs : Courtier
+en crédit (volumes et délais), Conseil en gestion de patrimoine (encours
+et collecte), Courtier en assurance (transformation et réactivité), Tout
+métier (le défaut). `resolveBusinessPack(colonne)` → `{ pack, chosen }`.
+
+**Le tableau de bord.** La rangée figée « Dossiers » (Contacts, Affaires
+en cours, Gagnées, Partages actifs) disparaît — c'était la liste figée
+que le cahier des charges refuse ; la rangée d'action « Aujourd'hui »
+(À faire, À relancer, Sans suite, À encaisser) reste, et l'en-tête garde
+ses comptes. À la place, un bloc « Indicateurs — <pack> » : une tuile par
+indicateur du pack, dans son ordre, rendue par UN composant
+(`PackIndicators`) qui parcourt la liste sans savoir quel pack il affiche
+— aucune condition sur le pack dans le code du tableau de bord.
+`dashboardIndicators(user, ids, filters, params)` (`src/lib/metrics/
+dashboard.ts`) lit UNE valeur par indicateur dans les rapports des
+familles — volumes, délais du cycle, pertes, chaîne (leads reçus),
+partenaires — et ne calcule que les rapports dont le pack a besoin, en
+parallèle. La période est dans l'URL (`/dashboard?periode=30j|90j|12m|
+tout`), 90 jours sans paramètre : assez large pour que les délais passent
+le seuil, assez courte pour que les volumes parlent ; les préréglages en
+liens dans le bloc. Chaque tuile ouvre l'écran analytique de sa famille
+avec la même période (les affaires en cours ouvrent le pipeline). Les
+règles d'affichage tiennent dans une fonction (`tileOf`) : un nombre
+s'affiche toujours ; un montant dont rien n'est connu s'écrit « — » ; un
+délai montre sa médiane, la note dit « moyenne · n observations » ou
+« masqué : il manque k observations » ; un taux sous le seuil s'écrit
+« — » avec ce qui manque ; un indicateur sans objet s'écrit « — » avec la
+raison et le geste. Le bloc arrive en streaming (`Suspense`) après le
+travail du jour : l'analytique n'attend pas la rangée d'action. Sans pack
+choisi : le pack « Tout métier » et une phrase qui le dit, avec le lien
+vers les réglages. Un lien « CSV » exporte le bloc (`vue=tableau-de-bord`,
+même route, même projection : titre « Indicateurs du pack « … » », une
+ligne par indicateur avec valeur, unité, moyenne, observations,
+affichage, détail).
+
+**La famille « volumes » du registre** : `deals_created` (la cohorte du
+funnel, tous pipelines), `deals_won` (aujourd'hui gagnée, dernière entrée
+dans une étape gagnée dans la période — la même règle que le taux de
+perte, et le MÊME SQL : `wonDealsQuery`, partagée par les pertes, le
+montant signé et le tableau de bord), `won_amount` (la somme des montants
+estimés des signées — la collecte d'un CGP, le volume d'un courtier ; sans
+montant compté à part), `pipeline_open` (à aujourd'hui, les affaires sans
+issue et leur montant — l'encours du pipeline ; la période sans effet).
+`getPipelineSummary`, requête propre au tableau de bord, est supprimée :
+l'en-tête lit `openDeals` de la couche, le test d'isolation lit
+`volumesReport` — une définition, un calcul.
+
+**Le réglage** : Marque & réglages → « Pack métier » (`#pack-metier`),
+les quatre packs avec leur public, leur description et la liste de leurs
+indicateurs, en boutons radio ; admin seulement (`updateOrganizationPack`
+: clé validée contre le registre, SA propre organisation, jamais un
+identifiant fourni par l'appelant) ; lecture seule pour un membre.
+L'action revalide `/settings` avant de rediriger vers l'ancre
+`#pack-metier` — sans quoi le formulaire réapparaît dans l'état d'avant
+(voir « Vérifié (6b) — après la migration »).
+
+**Ce qui a été tranché.** Un pack pointe des indicateurs existants, jamais
+une métrique à lui, et ne les relabelle pas (une définition, un libellé).
+« À encaisser » (confirmées non réglées) reste dans la rangée d'action ;
+les packs portent les commissions ACQUISES sur les partages de la période
+(`partner_commissions`, avec les prévues en détail) — pas deux fois le même
+chiffre sur un écran. La période du tableau de bord (90 j) n'est pas
+celle des écrans analytiques (tout) : un tableau de bord parle du
+trimestre, une analyse de tout l'historique.
+
+### Vérifié (6b) — la couche, avant la migration
+
+Script temporaire contre la vraie base (`_p6b-a` / `_p6b-b` = le jeu de
+l'étape 5, insérés en SQL brut : avant la migration, l'insert Drizzle
+émet toutes les colonnes du schéma), **31 contrôles** : volumes (créées 12,
+signées 2 · 140 000 €, en cours 2 · 100 000 € ; sur 30 j signées 1 ·
+80 000 €, l'encours inchangé), une seule définition (créées = la cohorte
+du funnel ; signées = les gagnées du taux de perte, tout et 30 j ;
+`openDeals` = `volumesReport.open`), les packs (4 × 8 indicateurs, tous du
+registre ; résolution NULL / cgp / clé inconnue), les indicateurs (les 15
+dans l'ordre, chacun avec sa définition ; valeurs = les rapports des
+familles, délais = les fonctions de la famille, taux de perte = celui des
+pertes, acceptation et transformation = les ensembles des partenaires,
+commissions acquises = l'ensemble avec les prévues en détail, leads sans
+objet avec le geste, liens avec la période et état pour l'encours, un pack
+ne calcule que ce qu'il demande, le pack CGP sur 90 j dans son ordre),
+l'export « tableau-de-bord » (un tableau, 8 lignes dans l'ordre du pack,
+montant signé 140000 · 2 · « 2 affaires signées », délai VIDE avec
+« masqué : il manque 2 observations », « état à aujourd'hui », le titre
+qui dit « aucun pack choisi »), isolation (B : ses chiffres seulement ;
+super admin sans organisation refusé par la couche).
+
+### Vérifié (6b) — après la migration, sur le build de production
+
+Migration `0012` appliquée le 2026-08-25 (`npm run db:migrate:http` : la
+colonne `business_pack text NULL`, sans défaut ; 13 entrées au journal).
+Puis `npm run build` (TypeScript compris) et `next start`.
+
+**La couche, le réglage et l'export par HTTP** — le même script, phase
+complète, **39 contrôles** : les 31 d'avant la migration rejoués à
+l'identique, plus le réglage (A sans pack → NULL ; l'admin de A choisit
+« cgp » et B reste NULL ; un membre, une clé inconnue, un super admin
+sans organisation : refusés, A reste « cgp ») et l'export par HTTP
+(`GET /api/analytique/export?vue=tableau-de-bord&periode=90j` avec la
+session de A : 200, `clozado-tableau-de-bord-90j-…`, cellule pour cellule
+la projection du pack CGP calculée par la couche, le titre porte le pack
+choisi).
+
+**Au navigateur** (Chromium, session forgée, **26 contrôles**) : A sans
+pack — le bloc arrive en streaming (« Indicateurs — Tout métier »), la
+mention « Aucun pack métier choisi » avec le lien vers les réglages, la
+rangée d'action toujours là, 8 tuiles dans l'ordre du pack, les valeurs
+(créées 12, signées 2, montant signé 140 000 € « 2 affaires signées »,
+en cours 100 000 € « 2 affaires en cours · à aujourd'hui », taux de perte
+75 % « 6 perdues pour 2 signées » — sur 90 jours, D5, perdue il y a
+100 jours, sort de la période ; sur tout l'historique le taux est 77,8 %
+—, délai création → signature « — » « masqué : il manque 2
+observations », commissions 2 400 € « 3 commissions acquises · prévues
+2 400 € (3) »), chaque tuile ouvre son écran avec la période (les
+affaires en cours → le pipeline), l'en-tête lit la couche ; la période
+du bloc (30 jours : signées 1, les liens portent `periode=30j` ; une
+période invalide → 90 jours) ; le réglage (la carte, 4 packs, aucun
+coché, la mention ; après enregistrement : redirigé sur
+`/settings#pack-metier`, « Conseil en gestion de patrimoine » coché, la
+mention disparue ; le tableau de bord passe au pack CGP, première tuile
+le montant signé, 8 tuiles dans l'ordre) ; l'export du bloc (lien
+`vue=tableau-de-bord&periode=90j`, téléchargement
+`clozado-tableau-de-bord-90j-<date>.csv`, le tableau du pack CGP,
+8 lignes) ; un membre lit et ne choisit pas (radios désactivées, pas de
+bouton ; son tableau de bord montre le pack de l'organisation) ; B isolée
+(« Tout métier », créées 2, rien de A) ; C, espace neuf (« Bienvenue dans
+ton espace » et le bloc à zéro / masqué) ; le super admin en vue globale
+(la liste des organisations, aucun indicateur) ; petit écran (390 px)
+sans débordement ; zéro erreur console. Le test d'isolation du dépôt
+(`npm run db:test-isolation`, qui lit désormais `volumesReport`) rejoué :
+succès. Organisations jetables supprimées, base vérifiée vide de tout
+`_p6b-*`.
+
+**Un bug trouvé au navigateur, invisible à la lecture.** Au premier
+passage, après « Enregistrer le pack », la page redirigée
+(`/settings#pack-metier`) montrait l'état d'AVANT : aucun pack coché, la
+mention « aucun pack choisi » encore là — alors que la base contenait
+« cgp » et que le tableau de bord, ouvert juste après, montrait le pack
+CGP ; un rechargement complet donnait le bon état. La cause : la cible ne
+diffère de la page courante que par l'ancre. Côté serveur, la page
+redirigée est bien rendue après l'écriture (`createRedirectRenderResult`
+refait un GET RSC complet) ; côté client, sans revalidation
+(`ActionDidNotRevalidate`), le routeur ne remplace pas les segments du
+même chemin déjà en cache et le `RedirectBoundary` remonte le formulaire
+— sur les anciennes données. L'action « marque » (`redirect("/settings")`,
+sans ancre) n'a pas ce défaut (vérifié : le nouveau nom est là 3 s après
+l'enregistrement). Le correctif est celui de la doc de Next (« place
+revalidation calls before redirect if the destination needs the fresh
+data ») : `revalidatePath("/settings")` avant
+`redirect("/settings#pack-metier")`, l'ancre conservée. Sonde après
+correctif : 3 s après l'enregistrement, « cgp » coché, mention disparue,
+URL `/settings#pack-metier`.
+
+Deux attentes du script étaient fausses, pas le code : le taux de perte
+attendu sur tout l'historique alors que le tableau de bord est sur
+90 jours (75 %, pas 77,8 % — confirmé par la couche : `lossesReport` sur
+90 j = 6 perdues, 2 signées) ; et `waitForURL(/\/settings/)`, satisfait
+par l'URL courante avant même la redirection (remplacé par l'attente du
+re-rendu). Un piège de vérification a coûté une passe entière :
+`lsof -ti:3000` ne voit pas le listener de `next start` sur cette machine
+— un « port libéré » mensonger a laissé l'ancien serveur en vie sous un
+`.next` reconstruit (pages bloquées en chargement, `EADDRINUSE` dans le
+journal du nouveau) ; tuer par `pkill -f "next[-]server"` et vérifier par
+`pgrep` et `/proc/<pid>/cwd`. Et un `| grep -v` masque le code de sortie
+de `tsx` : `set -o pipefail` avant d'enchaîner des scripts par `&&`.
+
+### Performance (6b)
+
+**Volume — à partir de quand ça casse.** Le même jeu jetable qu'aux
+étapes 3 à 5 (`_perf-analytique`, généré côté base : 70 000 affaires,
+182 000 passages, 22 000 partages et commissions, 4 partenaires — 1 799
+affaires créées et 440 signées sur les 90 derniers jours), temps depuis le
+code du bloc (aller-retour HTTP Neon compris, médiane de 3) :
+
+| Requête | 70 000 affaires |
+|---|---|
+| `volumesReport` (créées, signées, en cours) | 60 ms sur 90 j (66 ms depuis le début) |
+| `openDeals` (l'en-tête du tableau de bord) | 33 ms |
+| **Le bloc**, pack « Courtier en crédit » (8 indicateurs, 90 j) | **216 ms** |
+| Le bloc, pack « Conseil en gestion de patrimoine » (90 j) | 191 ms |
+| Le bloc, pack « Courtier en assurance » (90 j) | 172 ms |
+| Le bloc, pack « Tout métier » (90 j) | 191 ms (309 ms depuis le début) |
+| Les 15 indicateurs possibles à la fois (90 j) | 217 ms |
+
+Le bloc coûte le plus cher de ses rapports, pas leur somme (ils partent en
+parallèle) : ce sont les partenaires (182 ms à ce volume, étape 5) qui
+donnent le pas, puis les délais du cycle et les pertes ; les volumes sont
+négligeables. Sans période (« depuis le début »), tout l'historique de
+l'organisation est lu : 309 ms. **Le choix « à la volée » tient** : à
+~300 000 passages (la limite posée pour le funnel et les délais) le bloc
+resterait sous une seconde en extrapolant linéairement — et il arrive en
+streaming après la rangée d'action, qui ne l'attend pas. Le jour où il
+faudra les cumuls quotidiens des délais et du funnel, le bloc les lira par
+les mêmes fonctions de famille, sans changer. Mesure faite avant le
+remplacement de l'encours de commissions par les commissions acquises dans
+les packs : les deux viennent du même rapport (`partnersReport`), le coût
+est le même. La base réelle en est à moins d'un pour cent de ce volume.
+Génération : ~35 min par tranches de 14 000 passages, comme à l'étape 5.
+
+**Écrans quotidiens — avant / après, dans la même session.** Même
+protocole (jeu `_perf-test` : 5 000 contacts, 500 affaires, 2 000 tâches,
+3 000 interactions, 1 000 passages ; build de production, session forgée,
+médiane de 7), mais cette fois l'« avant » est mesuré EN MÊME TEMPS que
+l'« après » : le commit précédent (`42d7675`, étape 6a) bâti dans un
+worktree et servi sur le port 3001, cette étape sur le port 3000, le
+même jeu, deux passes alternées — la dérive des statistiques de la base
+entre deux sessions (vue à l'étape 5) ne compte plus. Passe 2 (retenue,
+comme à l'étape 5 ; la passe 1 était à quelques ms près la même, jusqu'à
++15 ms sur le tableau de bord et les tâches, caches froids), avant →
+après :
+
+| Écran | avant (6a) | après (6b) |
+|---|---|---|
+| **Tableau de bord** (bloc du pack compris, streamé) | 168 ms | **184 ms** |
+| Tableau de bord, `?periode=tout` (paramètre ignoré par 6a) | 165 ms | 186 ms |
+| Contacts | 141 ms | 142 ms |
+| Tâches | 245 ms | 224 ms |
+| Suivi | 130 ms | 127 ms |
+| Affaires (kanban) | 197 ms | 195 ms |
+| Affaires (liste) | 144 ms | 141 ms |
+| Délais | 135 ms | 130 ms |
+| Funnel | 144 ms | 133 ms |
+| Pertes | 134 ms | 129 ms |
+| Partenaires | 131 ms | 126 ms |
+| Réglages (la carte « Pack métier » en plus) | 131 ms | 131 ms |
+
+Le tableau de bord coûte **16 ms de plus** (passe 1 : 179 → 191 ms) : la
+rangée figée lisait une requête (`getPipelineSummary`) ; le bloc du pack
+« Tout métier » en lit quatre en parallèle (volumes, pertes, partenaires,
+délai création → signature) plus `openDeals` et `hasAnyDeal` pour
+l'en-tête — et le temps mesuré est la réponse COMPLÈTE, bloc streamé
+compris ; la rangée d'action, elle, arrive avant. Tout le reste est dans
+le bruit de mesure (± 10 ms, dans les deux sens) : les autres écrans ne
+touchent pas à ce qui a changé. À 70 000 affaires, le bloc reste sous
+220 ms (mesures ci-dessus). Après les mesures : jeu supprimé, `VACUUM
+ANALYZE` sur les tables touchées.
+
+Pour refaire une mesure avant/après dans la même session : `git worktree
+add --detach ../clozado-avant HEAD`, `cp -al node_modules
+../clozado-avant/node_modules` (des liens durs — Turbopack refuse un
+`node_modules` en lien symbolique hors de la racine), copier
+`.env.local`, `npm run build` puis `next start -p 3001` dans le
+worktree ; le script de mesure prend `BASE_URL` ; `git worktree remove
+--force` à la fin.
+
 ## Avancement
 
 - **Étape 1 — audit** : `ea0de94`. STOP.
@@ -1212,5 +1467,11 @@ lignes, négligeable.
   STOP.
 - **Étape 6a — exports CSV** (même branche) : `/api/analytique/export`,
   `src/lib/metrics/export.ts`, `src/lib/csv.ts`, le lien dans la barre de
-  filtres. 6b (pack métier, tableau de bord) : en cours — migration à
-  soumettre.
+  filtres.
+- **Étape 6b — pack métier et tableau de bord** (même branche) :
+  migration `0012_pack_metier` appliquée le 2026-08-25, quatre packs en
+  données, famille `volumes` (quatre définitions), le bloc du tableau de
+  bord piloté par le pack, le réglage, l'export `tableau-de-bord` ;
+  39 contrôles par script + 26 au navigateur, écrans quotidiens mesurés
+  avant/après dans la même session. Le module est complet ; la branche
+  est à relire avant `main`. STOP.
