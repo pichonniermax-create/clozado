@@ -69,3 +69,34 @@ export function unavailableStat(reason: string): DurationStat {
     unavailable: reason,
   };
 }
+
+/**
+ * Un TAUX entre deux pas d'un funnel : le compte d'un pas rapporté à celui
+ * du pas précédent. Un compte est un fait (3 leads sont 3 leads) et
+ * s'affiche toujours ; un taux est une statistique : calculé sur moins de
+ * `MIN_OBSERVATIONS` cas au pas précédent, il est MASQUÉ — « 1 affaire sur
+ * 2 leads » n'est pas un taux de 50 %. La règle vit ici (`finishRate`),
+ * une fois pour toutes.
+ */
+export type RateStat = {
+  /** Le dénominateur — le pas précédent. */
+  base: number;
+  /** Le numérateur — le pas mesuré. */
+  value: number;
+  /** En pour-cent (0–100, PEUT dépasser 100 quand un pas compte plus que le précédent) ; null quand masqué. */
+  percent: number | null;
+  hidden: boolean;
+  /** Observations manquantes au pas précédent pour afficher le taux. */
+  missing: number;
+};
+
+export function finishRate(value: number, base: number): RateStat {
+  const hidden = base < MIN_OBSERVATIONS;
+  return {
+    base,
+    value,
+    percent: hidden ? null : (value / base) * 100,
+    hidden,
+    missing: hidden ? MIN_OBSERVATIONS - base : 0,
+  };
+}

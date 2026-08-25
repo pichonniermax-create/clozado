@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { KanbanBoard } from "@/components/deals/kanban-board";
+import { DealSelectionBanner, describeDealSelection, selectionQuery } from "@/components/deals/selection-banner";
 import { PageHeader } from "@/components/app-shell/page-header";
 import {
   Select,
@@ -18,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { listOrigins } from "@/db/queries/acquisition";
 import { getContact, listOrgUsers } from "@/db/queries/contacts";
 import { listDealTypes } from "@/db/queries/deal-types";
 import {
@@ -30,10 +32,17 @@ import { listLossReasons } from "@/db/queries/loss-reasons";
 import { listPipelinesWithStages } from "@/db/queries/pipelines";
 import { createDealAction, createDealTypeAction } from "@/lib/deals/actions";
 import { formatDate, formatEuros, formatPercent } from "@/lib/format";
+import { metricQueryString, parseDealSelection, type DealSelectionParams, type ParsedDealSelection } from "@/lib/metrics";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
-type Params = {
+/**
+ * Les paramètres natifs de la liste, plus ceux d'une SÉLECTION venue du
+ * funnel (`DealSelectionParams` : période, type, origine, cohorte, étape
+ * atteinte, issue) — validés par la couche de métriques, jamais transmis
+ * bruts à la base.
+ */
+type Params = DealSelectionParams & {
   vue?: string;
   pipeline?: string;
   etape?: string;
@@ -57,13 +66,28 @@ async function addDealType(formData: FormData) {
 export default async function DealsPage({ searchParams }: { searchParams: Promise<Params> }) {
   const user = await requireUser();
   const params = await searchParams;
-  const vue = params.vue === "liste" ? "liste" : "kanban";
+  // Une sélection analytique n'a de sens qu'en liste : le kanban ne filtre pas.
+  const sel = parseDealSelection(params);
+  const vue = params.vue === "liste" || sel.analytic ? "liste" : "kanban";
 
-  const [pipelines, types, orgUsers, lossReasons] = await Promise.all([
+  if (sel.analytic && !user.organizationId) {
+    return (
+      <>
+        <PageHeader title="Affaires" description="Les dossiers que tu suis, du premier contact à la signature." />
+        <EmptyState title="Tu es en vue globale">
+          Cette sélection vient du funnel d&apos;une organisation : choisis-la dans le bandeau super admin en haut de
+          l&apos;écran pour voir ses affaires.
+        </EmptyState>
+      </>
+    );
+  }
+
+  const [pipelines, types, orgUsers, lossReasons, origins] = await Promise.all([
     listPipelinesWithStages(user),
     listDealTypes(user),
     listOrgUsers(user),
     listLossReasons(user),
+    sel.analytic ? listOrigins(user) : Promise.resolve([]),
   ]);
 
   if (pipelines.length === 0) {
@@ -98,13 +122,18 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
     ? await getContact(user, params.contact).catch(() => null)
     : null;
 
+  // Les paramètres de la sélection analytique voyagent avec le tri, la
+  // pagination et les filtres natifs — et disparaissent en repassant au kanban.
+  const selectionParams = sel.analytic ? selectionQuery(sel) : {};
+  const clearSelection = Object.fromEntries(Object.keys(selectionParams).map((k) => [k, undefined]));
   const baseQuery = (over: Record<string, string | undefined>) => {
     const sp = new URLSearchParams();
     const merged: Record<string, string | undefined> = {
+      ...selectionParams,
       vue,
       pipeline: pipeline.id,
       etape: params.etape,
-      conseiller: params.conseiller,
+      conseiller: sel.parsed.filters.ownerId,
       tri: params.tri,
       dir: params.dir,
       ...over,
@@ -143,7 +172,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
         actions={
           <div className="flex rounded-lg border border-border p-0.5">
             <Link
-              href={baseQuery({ vue: "kanban", page: undefined })}
+              href={baseQuery({ vue: "kanban", page: undefined, ...clearSelection })}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm transition-colors",
                 vue === "kanban" ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:text-foreground"
@@ -286,7 +315,10 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
           pipelineId={pipeline.id}
           stages={stages}
           orgUsers={orgUsers}
+          types={types}
+          origins={origins}
           params={params}
+          sel={sel}
           baseQuery={baseQuery}
         />
       )}
@@ -353,14 +385,20 @@ async function ListeView({
   pipelineId,
   stages,
   orgUsers,
+  types,
+  origins,
   params,
+  sel,
   baseQuery,
 }: {
   user: Awaited<ReturnType<typeof requireUser>>;
   pipelineId: string;
   stages: Awaited<ReturnType<typeof listPipelinesWithStages>>[number]["stages"];
   orgUsers: Awaited<ReturnType<typeof listOrgUsers>>;
+  types: Awaited<ReturnType<typeof listDealTypes>>;
+  origins: { id: string; label: string }[];
   params: Params;
+  sel: ParsedDealSelection;
   baseQuery: (over: Record<string, string | undefined>) => string;
 }) {
   const sort = (["title", "amount", "close", "stage", "updated"] as const).includes(
@@ -374,11 +412,14 @@ async function ListeView({
   const { rows, total, pageCount } = await listDealsTable(user, {
     pipelineId,
     statusId: params.etape || undefined,
-    ownerId: params.conseiller || undefined,
+    // Le conseiller passe par la même validation que les paramètres analytiques (UUID ou rien).
+    ownerId: sel.parsed.filters.ownerId,
+    selection: sel.analytic ? sel.selection : undefined,
     sort,
     dir,
     page,
   });
+  const selectionParams = sel.analytic ? selectionQuery(sel) : {};
 
   const sortLink = (key: DealsTableSort, label: string) => {
     const active = sort === key;
@@ -397,9 +438,18 @@ async function ListeView({
 
   return (
     <section className="flex flex-col gap-3">
+      {sel.analytic && (
+        <DealSelectionBanner
+          description={describeDealSelection(sel, { stages, types, origins, users: orgUsers })}
+          total={total}
+          clearHref={`/affaires?vue=liste&pipeline=${pipelineId}`}
+          funnelHref={`/analytique/funnel${metricQueryString(sel.parsed.params)}`}
+        />
+      )}
       <form method="get" className="flex flex-wrap items-center gap-2">
         <input type="hidden" name="vue" value="liste" />
         <input type="hidden" name="pipeline" value={pipelineId} />
+        {Object.entries(selectionParams).map(([k, v]) => v && <input key={k} type="hidden" name={k} value={v} />)}
         <select
           name="etape"
           defaultValue={params.etape ?? ""}
@@ -416,7 +466,7 @@ async function ListeView({
         {orgUsers.length > 1 && (
           <select
             name="conseiller"
-            defaultValue={params.conseiller ?? ""}
+            defaultValue={sel.parsed.filters.ownerId ?? ""}
             className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
             aria-label="Filtrer par conseiller"
           >
@@ -437,7 +487,19 @@ async function ListeView({
       </form>
 
       {rows.length === 0 ? (
-        params.etape || params.conseiller ? (
+        sel.analytic ? (
+          <EmptyState
+            title="Aucune affaire dans cette sélection"
+            action={
+              <Link href={`/affaires?vue=liste&pipeline=${pipelineId}`} className={buttonVariants({ variant: "outline" })}>
+                Retirer la sélection
+              </Link>
+            }
+          >
+            Le funnel compte zéro affaire ici — ou bien un filtre natif de la liste (étape, conseiller) s&apos;y ajoute et
+            ne laisse rien passer.
+          </EmptyState>
+        ) : params.etape || sel.parsed.filters.ownerId ? (
           <EmptyState
             title="Aucune affaire ne correspond à ces filtres"
             action={

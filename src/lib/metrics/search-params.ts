@@ -1,5 +1,6 @@
 import { parseLocalDateTime } from "@/db/queries/activities";
 import { ORIGIN_UNKNOWN, ORIGIN_UNMATCHED, type MetricFilters } from "./filters";
+import type { DealOutcomeFilter, DealSelection } from "./funnel";
 
 /**
  * Les filtres d'une vue analytique tels qu'ils voyagent dans l'URL — les
@@ -93,10 +94,57 @@ export function parseMetricFilters(raw: MetricSearchParams, now = new Date()): P
 }
 
 /** Reconstruit une chaîne de requête à partir des paramètres nettoyés, avec des remplacements (undefined = retirer). */
-export function metricQueryString(params: MetricSearchParams, over: Partial<MetricSearchParams> = {}): string {
-  const merged: MetricSearchParams = { ...params, ...over };
+export function metricQueryString<P extends Record<string, string | undefined>>(params: P, over: Partial<P> = {}): string {
+  const merged: Record<string, string | undefined> = { ...params, ...over };
   const sp = new URLSearchParams();
   for (const [key, value] of Object.entries(merged)) if (value) sp.set(key, value);
   const s = sp.toString();
   return s ? `?${s}` : "";
+}
+
+/**
+ * Ce qu'un clic sur un pas du funnel ajoute à l'URL de la liste des
+ * affaires, en plus des filtres communs : `cohorte` (`lead` : la période
+ * porte sur l'arrivée du lead ; sinon sur la création de l'affaire),
+ * `atteint` (a atteint cette étape), `jusqua` (au plus loin dans cette
+ * étape, pas gagnée), `issue` (`gagnee`, `perdue`, `en-cours`). Validés
+ * comme le reste : un identifiant qui n'en est pas un est ignoré.
+ */
+export type DealSelectionParams = MetricSearchParams & {
+  cohorte?: string;
+  atteint?: string;
+  jusqua?: string;
+  issue?: string;
+};
+
+const OUTCOMES: DealOutcomeFilter[] = ["gagnee", "perdue", "en-cours"];
+
+export type ParsedDealSelection = {
+  parsed: ParsedMetricFilters;
+  selection: DealSelection;
+  /** Les paramètres nettoyés, sélection comprise — pour les liens qui la gardent. */
+  params: DealSelectionParams;
+  /** Vrai dès qu'un paramètre ANALYTIQUE est posé (période, type, origine, cohorte, étape atteinte, issue) — pas le pipeline ni le conseiller, filtres natifs de la liste. */
+  analytic: boolean;
+};
+
+export function parseDealSelection(raw: DealSelectionParams, now = new Date()): ParsedDealSelection {
+  const parsed = parseMetricFilters(raw, now);
+  const cohort = raw.cohorte === "lead" ? "lead" : "creation";
+  const reachedStageId = uuidOrUndefined(raw.atteint);
+  const furthestStageId = uuidOrUndefined(raw.jusqua);
+  const outcome = OUTCOMES.find((o) => o === raw.issue);
+  const selection: DealSelection = { filters: parsed.filters, cohort, reachedStageId, furthestStageId, outcome };
+  const params: DealSelectionParams = {
+    ...parsed.params,
+    cohorte: cohort === "lead" ? "lead" : undefined,
+    atteint: reachedStageId,
+    jusqua: furthestStageId,
+    issue: outcome,
+  };
+  const p = parsed.params;
+  const analytic = Boolean(
+    p.periode || p.du || p.au || p.type || p.origine || cohort === "lead" || reachedStageId || furthestStageId || outcome
+  );
+  return { parsed, selection, params, analytic };
 }

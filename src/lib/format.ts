@@ -92,3 +92,15 @@ export function formatDuration(days: number): string {
   const formatted = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: days < 10 ? 1 : 0 }).format(days);
   return `${formatted}${NNBSP}j`;
 }
+
+/**
+ * Un TAUX (pour-cent, 0–100, parfois au-delà) : « 62 % », « 3,5 % » — une
+ * décimale sous dix pour cent, aucune au-delà ; un taux non nul mais
+ * inférieur à un dixième s'écrit « < 0,1 % » plutôt que « 0 % ».
+ */
+export function formatRate(percent: number): string {
+  if (!Number.isFinite(percent) || percent < 0) return "—";
+  if (percent > 0 && percent < 0.1) return `<${NNBSP}0,1${NNBSP}%`;
+  const formatted = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: percent < 10 ? 1 : 0 }).format(percent);
+  return `${formatted}${NNBSP}%`;
+}

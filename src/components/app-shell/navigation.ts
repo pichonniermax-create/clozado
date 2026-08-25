@@ -1,6 +1,7 @@
 import {
   BookUser,
   Briefcase,
+  Funnel,
   LayoutDashboard,
   ListTodo,
   Mail,
@@ -55,6 +56,7 @@ export const NAVIGATION: NavSection[] = [
   {
     label: "Analytique",
     entries: [
+      { href: "/analytique/funnel", label: "Funnel", icon: Funnel, requiresOrganization: true },
       { href: "/analytique/delais", label: "Délais", icon: Timer, requiresOrganization: true },
       { href: "/analytique/origines", label: "Origines", icon: Route, requiresOrganization: true },
     ],

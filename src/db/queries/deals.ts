@@ -12,6 +12,7 @@ import {
   users,
 } from "@/db/schema";
 import { assertOrgAccess, orgScope } from "@/db/scope";
+import { dealSelectionCondition, type DealSelection } from "@/lib/metrics/funnel";
 import { latestLeadBefore } from "./acquisition";
 import { getDefaultDealStatus } from "./deal-statuses";
 import type { OrgScopeUser } from "@/lib/session";
@@ -314,6 +315,13 @@ export type DealsTableOptions = {
   pipelineId: string;
   statusId?: string;
   ownerId?: string;
+  /**
+   * La sélection venue de l'analytique (clic sur un pas du funnel) : la
+   * condition est celle de la couche de métriques, telle quelle — la liste
+   * montre exactement ce que le funnel a compté. Ignorée sans organisation
+   * (l'écran refuse la vue globale avant d'arriver ici).
+   */
+  selection?: DealSelection;
   sort?: DealsTableSort;
   dir?: "asc" | "desc";
   page?: number;
@@ -328,6 +336,9 @@ export async function listDealsTable(user: OrgScopeUser, opts: DealsTableOptions
   ];
   if (opts.statusId) conditions.push(eq(deals.statusId, opts.statusId));
   if (opts.ownerId) conditions.push(eq(deals.ownerId, opts.ownerId));
+  if (opts.selection && user.organizationId) {
+    conditions.push(dealSelectionCondition(user.organizationId, opts.selection, sql`${deals}`));
+  }
   const where = and(...conditions.filter((c): c is SQL => Boolean(c)));
 
   const dir = opts.dir === "asc" ? asc : desc;

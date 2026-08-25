@@ -670,6 +670,215 @@ planifiée — l'écran lira les cumuls, le registre restera la seule
 définition. La base réelle en est aujourd'hui à moins d'un pour cent de ce
 volume.
 
+## Étape 4 — le funnel de conversion, relié à l'acquisition (branche `analytique-collecte`)
+
+### L'écran `/analytique/funnel`
+
+Entrée « Funnel » de la section Analytique, avant Délais. Tout ce qu'il
+affiche vient de `funnelReport()` (`src/lib/metrics/funnel.ts`) — un seul
+objet, `{ chain, pipelines, origins }`, que l'export CSV (étape 6) écrira
+tel quel — et passe par UN composant, `FunnelSteps` : un pas par ligne, sa
+barre proportionnelle au pas le plus large (une seule teinte, la couleur
+ne porte aucune identité : elle dessine l'entonnoir), son nombre, le taux
+de passage depuis le pas précédent et la déperdition, chiffres tabulaires
+en encre de texte. Un pas sans objet le dit à la place de sa barre ; un
+taux masqué dit ce qui lui manque (« masqué : il manque 2 observations au
+pas précédent »). Les mêmes filtres que les délais (`AnalyticsFiltersBar`,
+l'URL est le filtre).
+
+- **La chaîne — de la visite à la signature** : visiteurs → simulations
+  démarrées → terminées → leads reçus → contacts établis → affaires issues
+  de ces leads → gagnées. Sous les pas, ce qui manque au suivant (« 6 leads
+  sans premier contact consigné », « 3 perdues · 3 en cours ») et, avec
+  plusieurs pipelines, la répartition par pipeline en liens.
+- **Par étape du pipeline** (un bloc par pipeline) : « 9 affaires créées
+  depuis le début, dont 8 issues d'un lead », puis chaque étape
+  intermédiaire (le libellé ouvre les affaires qui l'ont atteinte), sa
+  déperdition en deux liens (« 1 perdue depuis cette étape · 2 en cours,
+  au plus loin ici »), et « Gagnées » en dernière ligne avec le total des
+  perdues et des en cours.
+- **Par origine — laquelle génère des affaires qui se signent** : un
+  tableau, une ligne par origine configurée (même à zéro : c'est une
+  information), « À rapprocher » et « Sans origine (aucun lead) » quand
+  elles portent quelque chose ; visiteurs, simulations, leads, contacts
+  établis, affaires, gagnées, lead → affaire, affaire → gagnée ; tri par
+  gagnées puis affaires puis leads. Le libellé d'une origine filtre tout
+  l'écran dessus.
+- **Définitions** : les onze entrées de la famille `funnel` du registre,
+  repliées (`metricsOfFamily("funnel")`).
+
+**Les trois états.** Chargement et erreur : le segment `/analytique`.
+« Pas encore de quoi dessiner le funnel » : l'inventaire pas par pas (le
+nombre, ou pourquoi le pas est sans objet) et la phrase du registre qui
+dit ce qui crée une observation ; gestes : créer une affaire, brancher la
+collecte. Le même bloc quand des filtres ne laissent rien passer
+(« Rien ne se compte avec ces filtres »). Le mode DÉGRADÉ est par pas, pas
+par écran : une organisation sans extrait voit ses trois pas amont « pas
+encore branché : aucune visite n'a jamais été reçue » avec le lien pour
+poser l'extrait, et son funnel commercial entier ; sans lead, les pas de
+leads le disent de même. Vue globale super admin : refusée, sur l'écran et
+sur la liste quand elle porte une sélection.
+
+### Les définitions retenues — ce qui a été tranché
+
+- **Deux cohortes, dites à l'écran.** La chaîne suit les LEADS reçus dans
+  la période jusqu'à aujourd'hui (contactés, devenus affaires, gagnés,
+  quelle que soit la date) ; le funnel d'un pipeline suit les AFFAIRES
+  créées dans la période jusqu'à aujourd'hui. Un taux de conversion est
+  une propriété d'une cohorte ; compter des flux par période (créées ce
+  mois, gagnées ce mois) donne deux nombres dont le rapport n'est pas un
+  taux. Les trois pas amont, anonymes, comptent les navigateurs distincts
+  de la période (identifiant de l'extrait, jamais une IP) — l'unité change
+  au pas du lead, l'écran le dit.
+- **« A atteint l'étape »** = entrée dans l'étape ou dans une étape
+  intermédiaire plus avancée du même pipeline, ou gagnée aujourd'hui : une
+  affaire glissée de la première à la troisième étape a atteint la
+  deuxième — elle est allée au moins aussi loin. La première étape compte
+  toutes les affaires créées. Une entrée reconstituée compte (c'est le fait
+  d'être entré qui compte, pas la date). Les étapes finales ne sont pas des
+  pas : gagné est l'arrivée, perdu est la déperdition.
+- **Gagnée, perdue, en cours = l'état COURANT** (celui du kanban) ; la
+  déperdition d'une étape = les perdues (à l'étape la plus avancée qu'elles
+  ont atteinte) + les en cours (au plus loin dans cette étape, même
+  redescendues) — ce qui fait que « atteint k − atteint k+1 = perdues +
+  en cours » exactement, vérifié sur chaque étape.
+- **Contact établi** = la règle du délai lead → premier contact effectif
+  (appel, email, rendez-vous consigné à partir de l'arrivée ; pas une note,
+  pas une interaction antérieure, pas une fiche supprimée). Une affaire
+  créée sans interaction consignée n'y compte PAS : le pas mesure ce qui
+  est consigné. Conséquence assumée : un taux peut dépasser 100 % (plus
+  d'affaires que de contacts établis, plus de leads que de simulations
+  terminées mesurées) — affiché tel quel avec la phrase qui l'explique, la
+  déperdition devient sans objet. Jamais plafonné, jamais une inférence à
+  la place d'une observation.
+- **Les taux passent par le seuil, pas les nombres.** Un compte est un
+  fait (3 leads sont 3 leads) et s'affiche toujours ; un taux calculé sur
+  moins de 5 observations au pas précédent est masqué (`finishRate`,
+  `types.ts`, la règle appliquée une fois). Le taux se calcule depuis le
+  dernier pas MESURABLE : un pas sans objet est sauté.
+- **Les filtres, pas par pas** (le registre le dit sur chaque entrée) :
+  période sur l'événement (visites), l'arrivée du lead (chaîne) ou la
+  création (pipeline) ; conseiller — sans objet sur les visites (elles ne
+  sont rattachées à personne : les trois pas amont deviennent sans objet),
+  fiche contact pour les leads, responsable pour les affaires ; type et
+  pipeline à partir des affaires seulement ; origine partout — et le
+  filtre « sans origine » rend la chaîne entière sans objet (elle part des
+  leads) pendant que le funnel par pipeline compte les affaires sans lead.
+
+### Le clic mène à la liste — exactement ce qui est compté
+
+La liste des affaires accepte désormais les paramètres de l'analytique
+(`periode`, `du`, `au`, `type`, `origine`, `conseiller`) plus quatre
+paramètres de sélection : `cohorte=lead` (la période porte sur l'arrivée
+du lead, pas sur la création), `atteint=<étape>`, `jusqua=<étape>` (au
+plus loin dans l'étape, pas gagnée), `issue=gagnee|perdue|en-cours`.
+`parseDealSelection` (`search-params.ts`) les valide comme le reste — un
+identifiant qui n'en est pas un est ignoré — et `listDealsTable` applique
+`dealSelectionCondition` (`funnel.ts`) telle quelle : la condition SQL
+« a atteint l'étape » de la liste et l'agrégat du funnel sont deux
+formulations de la même règle, dans le même fichier, et la vérification
+prouve qu'elles comptent pareil (8 combinaisons de filtres × 17 liens).
+Une étape d'un autre pipeline ou d'une autre organisation donne une
+condition FAUSSE, jamais « tout » ; une étape finale demandée comme
+« atteinte » ne donne rien. Sur la liste, un bandeau dit la sélection en
+toutes lettres (« Affaires perdues créées sur les 30 derniers jours, au
+plus loin dans « Partagée » — 1 affaire, exactement ce que le funnel a
+compté »), avec « Revenir au funnel » (mêmes filtres) et « Retirer la
+sélection » ; les filtres natifs (étape courante, conseiller) la gardent
+par champs cachés ; repasser au kanban l'efface (le kanban ne filtre pas).
+
+Pas de liste pour les pas anonymes (visiteurs, simulations) ni pour les
+leads : la liste des contacts n'a pas de filtre par lead. La liste la plus
+actionnable qui manque est « les leads sans premier contact consigné » —
+le nombre est affiché, la liste est à construire quand l'écran des
+contacts saura filtrer par lead (noté, hors de cette étape).
+
+### Vérifié — sur des organisations jetables, pas sur des données réelles
+
+Script temporaire contre la vraie base, deux organisations jetables
+détruites après (`_funnel-a` : 8 navigateurs, 5 simulations démarrées,
+3 terminées, 10 leads dont un second lead pour la même personne et un lead
+vieux de 100 jours, 9 affaires aux chemins connus — gagnée, perdue depuis
+Partagée, saut direct en négociation, gagnée d'un coup, perdue d'un coup,
+créée à la main sans lead, fiche supprimée après création ; `_funnel-b`
+témoin ; `_funnel-c` vide), **87 contrôles** : chaque pas de la chaîne à
+la valeur attendue (note, interaction antérieure au lead et fiche
+supprimée écartées ; second lead compté ; origine figée sur le dernier
+lead antérieur ; lead conservé après la tombale), les taux (62,5 %, 60 %,
+40 %, 25 %) et les masquages (bases 3 et 4), le funnel du pipeline
+(atteint 9/6/4, perdues 1/1/1, en cours 2/1/1, gagnées 2 masqué,
+« déperdition = perdues + en cours » sur chaque étape), le tableau par
+origine (lignes, tri, taux, ligne « sans origine » sans amont), les
+filtres (30 j sur l'arrivée du lead ET sur la création, conseiller sur la
+fiche puis sur l'affaire avec les visites sans objet, type à partir des
+affaires, origine configurée, à rapprocher, sans origine), **la liste
+rend exactement les comptes du funnel** pour créées / gagnées / perdues /
+en cours / atteint / perdues depuis / en cours au plus loin / chaîne, sur
+8 combinaisons de filtres, paramètres d'URL invalides ignorés, isolation
+(B ne voit rien de A, une étape de A demandée par B donne zéro, le
+pipeline de B demandé par A donne zéro, super admin sans organisation
+refusé, aucune affaire de B ne peut référencer un lead de A — FK
+composite), l'organisation vide (« pas encore branché » partout, pipeline
+à zéro), et la suppression complète. **Navigateur** (Chromium, build de
+production, session forgée, 47 contrôles) : l'écran d'A et ses chiffres,
+l'entrée de navigation, le clic sur « Partagée » → liste « ayant atteint
+« Partagée » — 6 affaires » avec 6 lignes et la sélection gardée dans les
+champs cachés, retour au funnel, « 1 perdue depuis cette étape » → liste
+d'une affaire (D2), retirer la sélection, le kanban qui l'efface, les
+préréglages, le formulaire de filtres (conseiller → visites sans objet),
+le clic sur une origine, « sans origine », paramètres invalides (200,
+écran normal), petit écran sans débordement, B en dégradé (visites jamais
+reçues, ses seules données), C vide (inventaire et gestes, puis « rien ne
+se compte avec ces filtres »), super admin en vue globale sur l'écran et
+sur la liste ; zéro erreur console.
+
+### Performance — mesures, et jusqu'où ça tient
+
+**Écrans quotidiens — avant / après.** Même protocole (jeu `_perf-test`,
+build de production, session forgée, médiane de 7). Référence (étape 3) →
+cette étape : tableau de bord 188 → 153 ms, contacts 142 → 124, tâches
+251 → 230, suivi 127 → 123, affaires kanban 210 → 193, liste 143 → 134,
+délais 143 → 130 ; le funnel sur ce jeu : 128 ms (128 ms sur 90 jours).
+Rien n'a bougé : la liste des affaires n'ajoute sa condition de sélection
+que lorsque l'URL en porte une. Un piège rencontré, à connaître : après
+le jeu de volume ci-dessous (70 000 affaires insérées puis supprimées), le
+tableau de bord mesurait 280–300 ms sans qu'une ligne y ait changé — les
+statistiques du planificateur reflétaient encore le volume disparu ; un
+`VACUUM ANALYZE` des tables touchées l'a ramené à sa référence. Mesurer
+les écrans quotidiens AVANT un jeu de volume, ou analyser après.
+
+**Volume — à partir de quand ça casse.** Organisation jetable
+`_perf-analytique` générée côté base (`generate_series`, jamais ligne à
+ligne) : 70 000 affaires (la moitié issues d'un lead), 182 000 passages
+d'étape, 35 000 contacts venus par un lead, 24 500 interactions, 150 000
+événements de visite et de simulation, trois origines. Temps depuis le
+code de l'écran (aller-retour HTTP Neon compris, médiane de 3) :
+
+| Requête | 70 000 affaires |
+|---|---|
+| La chaîne (`funnelChain`, 3 requêtes) | 223 ms |
+| Par pipeline (`pipelineFunnels`) | 354 ms |
+| Par origine (`funnelByOrigin`, 4 requêtes) | 278 ms |
+| **L'écran** (`funnelReport`, les trois en parallèle) | **835 ms** (124 ms sur 90 jours) |
+| Liste après un clic : « a atteint l'étape 2 » (page + total) | 765 ms |
+| Liste : « au plus loin dans l'étape 2, perdues » | 354 ms |
+| Liste : chaîne (cohorte lead), gagnées | 94 ms |
+| Liste sans sélection (référence) | 104 ms |
+
+Le plan du funnel par pipeline est sain (`EXPLAIN ANALYZE` : jointures par
+hachage, un seul passage sur les 182 000 lignes, agrégat matérialisé,
+381 ms) et croît linéairement avec l'historique : sans période, la
+cohorte est toute l'organisation. **Le choix « à la volée » tient jusqu'à
+~300 000 passages par organisation** (l'écran sous 2 s, comme les
+délais) ; vers un million de passages, l'écran dépassera 5 s et il faudra
+les mêmes cumuls quotidiens que pour les délais — plus une colonne
+« étape la plus avancée atteinte » posée sur l'affaire à chaque passage,
+qui rendrait le funnel ET la liste instantanés. La liste « a atteint »
+est la plus coûteuse (un `EXISTS` par affaire pour le total) : 0,8 s à
+70 000 affaires, à surveiller à partir de 150 000. La base réelle en est à
+moins d'un pour cent de ce volume. Pour mesurer plus tard :
+`pipelineFunnelQuery(org, filters)` est exposée à cette fin seule.
+
 ## Avancement
 
 - **Étape 1 — audit** : `ea0de94`. STOP.
@@ -682,3 +891,9 @@ volume.
 - **Étape 3 — délais et durées** (même branche) : `/analytique/delais`,
   filtres dans l'URL, lead → premier contact mesurable, filtre origine,
   défaut des paires corrigé. STOP.
+- **Étape 4 — funnel de conversion relié à l'acquisition** (même
+  branche) : `/analytique/funnel` (chaîne, par pipeline, par origine),
+  famille `funnel` du registre (onze définitions), `finishRate`, la liste
+  des affaires qui rend exactement ce que le funnel compte (`cohorte`,
+  `atteint`, `jusqua`, `issue`). STOP — prochaine étape : 5 (pertes,
+  partenaires, commissions).
