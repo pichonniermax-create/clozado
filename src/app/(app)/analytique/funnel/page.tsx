@@ -1,3 +1,4 @@
+import { use } from "react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Funnel } from "lucide-react";
@@ -31,6 +32,7 @@ import { requireUser } from "@/lib/session";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import type { TranslatorOf } from "@/i18n/translator";
+import { getFormats } from "@/i18n/formats";
 
 const BASE_PATH = "/analytique/funnel";
 
@@ -183,6 +185,7 @@ function chainNote(
 function ChainSection({ report, parsed, scopedPipelineId }: { report: FunnelReport; parsed: ParsedMetricFilters; scopedPipelineId: string | null }) {
   const t = useTranslations("analytics.funnel");
   const tm = useTranslations("metrics");
+  const fmt = use(getFormats());
   const { chain } = report;
   const rows: FunnelRow[] = chain.steps.map((step) => {
     const id = step.metric.id as keyof typeof METRICS;
@@ -199,7 +202,7 @@ function ChainSection({ report, parsed, scopedPipelineId }: { report: FunnelRepo
     <section className="flex flex-col gap-3">
       <h2 className="text-sm font-semibold">{t("la_chaine_de_la_visite_a_fa8a")}</h2>
       <p className="-mt-1 text-xs text-muted-foreground text-pretty">
-        {t("les_trois_premiers_pas_comptent_des_9da4", { periodPhrase: periodPhrase(parsed, tm) })}
+        {t("les_trois_premiers_pas_comptent_des_9da4", { periodPhrase: periodPhrase(parsed, tm, fmt) })}
       </p>
       <FunnelSteps rows={rows} />
     </section>
@@ -213,6 +216,7 @@ function StageDot({ color }: { color: string | null }) {
 function PipelineSection({ funnel, parsed, single }: { funnel: PipelineFunnel; parsed: ParsedMetricFilters; single: boolean }) {
   const t = useTranslations("analytics.funnel");
   const tm = useTranslations("metrics");
+  const fmt = use(getFormats());
   const href = (over: Partial<DealSelectionParams> = {}) => listHref(parsed, funnel.pipelineId, over);
   const prefix = single ? "" : `${funnel.label} — `;
   const rows: FunnelRow[] = funnel.stages.map((s) => {
@@ -266,7 +270,7 @@ function PipelineSection({ funnel, parsed, single }: { funnel: PipelineFunnel; p
       </h2>
       <p className="-mt-1 text-xs text-muted-foreground text-pretty">
         <ListLink href={href()}>
-          {t.rich("affaire_creee_affaires_creees_c2f7", { created: funnel.created, periodPhrase: periodPhrase(parsed, tm), span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
+          {t.rich("affaire_creee_affaires_creees_c2f7", { created: funnel.created, periodPhrase: periodPhrase(parsed, tm, fmt), span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
         </ListLink>
         {funnel.created > 0 && (
           <>
@@ -276,7 +280,7 @@ function PipelineSection({ funnel, parsed, single }: { funnel: PipelineFunnel; p
         {t("chaque_etape_compte_les_affaires_allees_4547")}
       </p>
       {funnel.created === 0 ? (
-        <EmptyState>{t("aucune_affaire_creee_dans_ce_pipeline_53a0", { periodPhrase: periodPhrase(parsed, tm) })}</EmptyState>
+        <EmptyState>{t("aucune_affaire_creee_dans_ce_pipeline_53a0", { periodPhrase: periodPhrase(parsed, tm, fmt) })}</EmptyState>
       ) : (
         <FunnelSteps rows={rows} labelHeader={t("etape")} />
       )}
@@ -286,6 +290,7 @@ function PipelineSection({ funnel, parsed, single }: { funnel: PipelineFunnel; p
 
 function OriginsSection({ rows, parsed }: { rows: OriginFunnelRow[]; parsed: ParsedMetricFilters }) {
   const t = useTranslations("analytics.funnel");
+  const fmt = use(getFormats());
   const header = (label: string, align: "left" | "right" = "right") => (
     <th scope="col" className={`px-3 py-2.5 font-medium ${align === "right" ? "text-right" : "text-left"}`}>
       {label}
@@ -347,8 +352,8 @@ function OriginsSection({ rows, parsed }: { rows: OriginFunnelRow[]; parsed: Par
                   {cell(<CountCell count={row.contacted} />)}
                   {cell(<CountCell count={row.deals} />)}
                   {cell(<CountCell count={row.won} />)}
-                  {cell(rateText(row.leadToDeal, true))}
-                  {cell(rateText(row.dealToWon, true))}
+                  {cell(rateText(row.leadToDeal, fmt, true))}
+                  {cell(rateText(row.dealToWon, fmt, true))}
                 </tr>
               ))}
             </tbody>
@@ -362,6 +367,7 @@ function OriginsSection({ rows, parsed }: { rows: OriginFunnelRow[]; parsed: Par
 export default async function FunnelPage({ searchParams }: { searchParams: Promise<MetricSearchParams> }) {
   const t = await getTranslations("analytics.funnel");
   const tm = await getTranslations("metrics");
+  const fmt = await getFormats();
   const user = await requireUser();
   const raw = await searchParams;
 
@@ -383,7 +389,7 @@ export default async function FunnelPage({ searchParams }: { searchParams: Promi
     );
   }
 
-  const parsed = parseMetricFilters(raw);
+  const parsed = parseMetricFilters(raw, fmt.timeZone);
   const [pipelines, types, users, origins, report] = await Promise.all([
     listPipelinesWithStages(user),
     listDealTypes(user),

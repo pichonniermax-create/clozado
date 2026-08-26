@@ -837,9 +837,125 @@ Rien de construit maintenant ; rien de codé qui l'empêche. Le jour venu :
   un préfixe dynamique typé).
 - Au navigateur (build de production, session forgée) : deux passes, 99 contrôles, 0 constat : 47 écrans sur une organisation sans données (états vides, formulaires dépliés, import, composer, réglages, vue globale du super admin, connexion/inscription/vérification, vitrine de partage invalide, mobile) puis 52 sur l’organisation `_perf-test` peuplée (5 000 contacts, 500 affaires, 2 000 tâches, 3 000 interactions : fiches, journal, kanban et liste, analytique avec données et filtres, recherche et pagination, tâches terminées, affaires perdues, vitrine partenaire sur un partage réel — créé puis supprimé, jeu de données détruit) ; à chaque écran : statut, erreurs de console et de page, réponses 5xx, texte visible sans clé brute (`[a-z]+(_[a-z0-9]+){2,}`), sans accolade, sans MISSING_MESSAGE ni balise `<link>` ni `undefined` ; journal serveur sans MISSING_MESSAGE. Captures dans le scratchpad de la session.
 
+## Étape 5 — l'anglais, la langue par personne et par organisation, les devises et les formats
+
+### Ce qui est construit
+
+- **L'anglais** : `src/messages/en/*.json`, les mêmes vingt-trois espaces et
+  les mêmes 2 458 clés que le français, vérifiés par le vrai analyseur ICU
+  de next-intl (`@formatjs/icu-messageformat-parser`) : mêmes arguments et
+  mêmes types, mêmes balises, chaque pluriel anglais avec `one` et `other`
+  — là où le français accorde deux mots sur un même nombre (« 3 sujets
+  suivis »), l'anglais n'a qu'un pluriel, et c'est voulu. Les termes de
+  recherche des sujets de veille (`templates.topics.*.terms`) restent en
+  français : ils filtrent des sources françaises, la langue des termes est
+  celle des sources, pas celle de l'interface. Les noms de sources et
+  d'institutions sont des noms propres. Le glossaire qui a tenu la
+  traduction (contact → contact record, affaire → deal, cible → audience,
+  veille → Monitoring, chiffres → Figures, délais → Timings, suivi →
+  Follow-up, partage → share, pack métier → business pack, « Tout métier » →
+  « Any profession », taux de passage → conversion rate, transformation →
+  win rate, passage d'étape → stay) vit dans le scratchpad de la session ;
+  ce qu'il faut en retenir est ici. L'anglais s'écrit à l'américaine
+  (*optimize*), ses formats sont britanniques (jour-mois-année, « 26 August
+  2026 ») — la clientèle est européenne ; décision réversible en changeant
+  `INTL_LOCALES.en`.
+- **La langue par personne et par organisation.** `LOCALES = ["fr", "en"]`
+  (`src/i18n/locales.ts`, avec `INTL_LOCALES` et `localeDisplayName` — le
+  nom d'une langue vient d'`Intl`, jamais d'un fichier). La langue d'une
+  requête est celle de la personne (`users.locale`), sinon celle par défaut
+  de son organisation (`organizations.default_locale`), sinon le français.
+  Chacun choisit la sienne dans le **menu de compte** (« Langue » : Français,
+  English, ou « Celle de l'organisation ») — une action serveur écrit
+  `users.locale` et revalide toute la coquille ; l'admin choisit celle de
+  l'espace dans **Marque & réglages → Langue, devise et fuseau**.
+- **Les devises et les formats.** `src/lib/format.ts` ne formate plus « en
+  français » : `createFormats({ locale, currency, timeZone })` construit un
+  objet `Formats` — `money`, `percent`, `days`, `duration`, `rate`, `date`,
+  `dateTime`, `shortDate`, `relative` (passé et futur), `country`, `list`,
+  `commission`, `todayInput` — tout par `Intl`, sur l'étiquette de la
+  langue, la devise et le fuseau de l'organisation. Un composant serveur
+  l'obtient par `getFormats()` (`src/i18n/formats.ts`, une fois par requête :
+  `resolveRequestSettings` lit la langue de la personne et la devise et le
+  fuseau de l'organisation EFFECTIVE — celle du bandeau pour un super
+  admin), un composant client par `useFormats()` (`FormatsProvider`, posé
+  par la coquille racine avec les mêmes réglages : pas de décalage
+  d'hydratation), une fonction de bibliothèque le reçoit en paramètre —
+  comme un traducteur. Hors requête (tâches générées, chiffres synchronisés
+  par le cron), `createFormats(await settingsOfOrganization(id))`. La devise
+  ne convertit rien : elle dit comment lire les montants stockés (`CURRENCIES`
+  : EUR, USD, GBP, CHF, CAD — la liste vit dans `src/lib/currencies.ts`, la
+  base n'impose rien). Le fuseau de l'organisation remplace celui du
+  produit partout où une heure de la journée se lit ou se saisit : les
+  échéances (`todayAsStoredDate(timeZone)`), la date d'une interaction et
+  les bornes des filtres analytiques (`parseLocalDateTime(value, timeZone)`),
+  la date d'envoi d'une newsletter, le champ « aujourd'hui ». `next-intl`
+  reçoit aussi ce fuseau (`timeZone` de la configuration de requête).
+- **La vitrine de partage** (`/partage/[jeton]`) parle la langue de
+  l'organisation ÉMETTRICE, dans sa devise et son fuseau : un
+  `NextIntlClientProvider` et un `FormatsProvider` imbriqués remplacent ceux
+  de la coquille racine — le partenaire n'a pas de session, la requête n'a
+  pas de langue à lui.
+- **Les contenus générés** : le composer envoie désormais `lang` = la
+  langue par défaut de l'organisation (la langue des contenus pour SES
+  clients), plus « fr » en dur.
+- **L'email de connexion** était déjà dans la langue du destinataire
+  (étape 4) ; l'anglais existe maintenant (`auth.magicLink`), la preuve le
+  rend pour une personne qui suit une organisation anglaise.
+- **Ce que la traduction a fait remonter** — du français en dur que le lint
+  ne voyait pas (des mots courts, des gabarits `« du … au … »`, des
+  en-têtes de CSV) : la description des critères d'une cible (« ou »,
+  « entre X et Y ans », « pays : »), la bannière de sélection des affaires
+  (« Affaires … », « perdues », « motif « … » »), les en-têtes et mentions
+  de l'export CSV (« Moyenne (jours) », « Montant (€) » → « Montant ({devise}) »…),
+  les « pour »/« sur » du tableau de bord, « anglais »/« français » de la
+  veille, le « dans » du prochain essai. Tout est passé dans les messages,
+  dans les deux langues.
+
+### Ce qu'il faut savoir
+
+- **Les données restent dans la langue où elles ont été écrites.** Les
+  noms des pipelines, statuts, cibles et sujets semés à la création d'un
+  espace, les tâches générées, les résumés de veille sont écrits dans la
+  langue de l'organisation AU MOMENT de l'écriture : changer la langue par
+  défaut ne réécrit pas l'existant — ce sont des contenus du client.
+- **Le fuseau change la lecture des échéances.** Une tâche « pour
+  aujourd'hui » se juge sur le calendrier du fuseau de l'organisation ;
+  changer le fuseau peut faire basculer une échéance d'un jour à l'autre
+  autour de minuit.
+- **`<html lang>` est celui de la requête**, la vitrine de partage porte
+  le sien sur son conteneur (`lang` sur la div) — le document racine ne
+  connaît pas l'organisation émettrice.
+- **L'export CSV** écrit la devise dans l'en-tête (« Montant (USD) »), les
+  nombres restent des nombres.
+- **Les champs de date natifs** (`<input type=date>`) affichent le format du
+  navigateur, pas celui de l'organisation — c'est le navigateur qui décide.
+- **Le glossaire anglais** est à tenir à la main : un nouveau message se
+  traduit en respectant les choix ci-dessus (le contrôle ICU garantit la
+  forme, pas le vocabulaire).
+
+### Décisions réversibles
+
+- Anglais britannique pour les formats (`en-GB`), orthographe américaine
+  dans les messages ; une variante `en-US` serait une étiquette de plus,
+  pas une traduction de plus.
+- Cinq devises proposées ; la liste s'allonge dans `currencies.ts`.
+- La langue des contenus générés = celle de l'organisation ; un choix par
+  cible (une audience anglophone dans une organisation française) est une
+  colonne à ajouter, pas une architecture.
+
+### Preuves
+
+- `node check-en-ast.mjs` (scratchpad) : 2 458 messages comparés au vrai
+  analyseur ICU, **0 problème** ; `npx eslint .` : 0 message ; `tsc` : 0 ;
+  `next build` : réussi.
+- Au navigateur, build de production, session forgée, organisation de test
+  peuplée : deux langues, deux passes complètes sur l’organisation de test peuplée (5 000 contacts, 500 affaires) : en français (EUR, Europe/Paris) puis en anglais (USD, America/New_York), 30 écrans chacune — tableau de bord, tâches, suivi, contacts (liste, fiche, formulaire, import), affaires (kanban, liste, fiche, formulaire), partenaires, les cinq écrans analytiques avec filtres et période personnalisée, cibles, veille, chiffres, newsletters, réglages, introuvable, mobile — plus le menu de compte (les deux langues proposées, la bascule vers l’autre langue vérifiée par `users.locale` et `<html lang>`), l’email de connexion rendu dans la langue de la personne (« Connexion à Clozado » / « Sign in to Clozado »), la connexion publique et une vitrine partenaire réelle (créée puis supprimée). À chaque écran : statut, erreurs de console et de page, 5xx, texte visible sans clé brute ni accolade, sans aucun message de l’AUTRE langue (comparaison ligne à ligne aux valeurs des messages), `<html lang>` attendu, la devise attendue sur les écrans à montants (un « $ », jamais un « € » sur l’organisation en USD). Première passe anglaise : trois constats réels — « (€) » écrit en dur dans sept libellés (montants des affaires et des partages, en-têtes CSV) ; passés sur `{currency}` dans les deux langues, rebâti, re-parcouru : **0 constat** dans les deux langues, journal serveur sans erreur. Captures dans le scratchpad de la session.
+
 ## Avancement
 
-- **Étape 4 — les textes sortis du code** : `next-intl` sans routage, 23 espaces et 2 422 messages typés contre le français, les registres en clés, `AppError` en clés, l'email de connexion en français, le nom du produit en constante ; le lint `local/no-visible-text` à 0 sur tout `src` (12 exceptions déclarées, aucune d'interface) et `local/client-namespaces` ; prouvée au navigateur (99 contrôles sur deux passes, organisation vide puis peuplée, 0 constat). Prochaine : étape 5 — l'anglais, les devises et formats par organisation, les emails système dans la langue du destinataire.
+- **Étape 5 — l'anglais, la langue par personne et par organisation, les devises et les formats** : `src/messages/en` (2 458 clés, vérifiées par l'analyseur ICU), `LOCALES` fr/en, le menu de compte et la carte « Langue, devise et fuseau », `createFormats` sur langue + devise + fuseau partout (`getFormats`/`useFormats`/paramètre), la vitrine dans la langue de l'émetteur, le composer dans la langue de l'organisation ; prouvée au navigateur (deux langues × 30 écrans + menu de langue + email + vitrine, 0 constat après correction des « (€) » en dur). Chantier terminé.
+- **Étape 4 — les textes sortis du code** : `434c9e2`, `next-intl` sans routage, 23 espaces et 2 422 messages typés contre le français, les registres en clés, `AppError` en clés, l'email de connexion en français, le nom du produit en constante ; le lint `local/no-visible-text` à 0 sur tout `src` (12 exceptions déclarées, aucune d'interface) et `local/client-namespaces` ; prouvée au navigateur (99 contrôles sur deux passes, organisation vide puis peuplée, 0 constat). Prochaine : étape 5 — l'anglais, les devises et formats par organisation, les emails système dans la langue du destinataire.
 - **Étape 3 — propagation** : `3207509`, prouvée au navigateur (deux organisations,
   deux interfaces : 54 contrôles, zéro erreur) et à blanc. STOP.
 - **Étape 2 — jetons dérivés, sélecteur, logo** : `52e2279`, prouvée à

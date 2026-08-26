@@ -1,0 +1,261 @@
+{
+  "sources": {
+    "amf_communiques_de_presse": "AMF — communiqués de presse",
+    "amf_epargnants": "AMF — épargnants",
+    "anil_information_sur_le_54f6": "ANIL — information sur le logement",
+    "bank_of_england_news": "Bank of England — news",
+    "banque_centrale_europeenne_communiques": "Banque centrale européenne — communiqués",
+    "ministere_de_l_economie_ac97": "Ministère de l’Économie — actualités"
+  },
+  "targets": {
+    "assures-emprunteurs": {
+      "label": "Insured borrowers",
+      "description": "People insured on a loan: the law lets them switch, they need to know it at the right time.",
+      "persona": "Someone with an ongoing loan and borrower insurance, often the bank’s, never really compared.",
+      "concerns": "Am I paying too much, can I switch safely, what does my policy really cover.",
+      "knowledgeLevel": "Beginner: knows the word, not the cover or the right to cancel.",
+      "editorialVoice": "Educational and practical: what can be done, how, and how long it takes.",
+      "interests": "Canceling at any time, possible savings, useful cover, health questionnaires.",
+      "avoid": "Fear, unverified promises of savings in figures, professional insurance topics.",
+      "tagsAny": "Borrower"
+    },
+    "chefs-d-entreprise": {
+      "label": "Business owners",
+      "description": "Executives and the self-employed: business and personal wealth go hand in hand.",
+      "persona": "An executive or a self-employed person thinking about their pay, their retirement and passing on their business.",
+      "concerns": "Optimizing without risk, protecting the family, preparing the sale or handover, taking cash out of the business cleanly.",
+      "knowledgeLevel": "Well-informed about their business, often less so about private wealth.",
+      "editorialVoice": "Peer to peer, concrete, focused on decisions and timing.",
+      "interests": "Holding companies, PER, executive protection cover, company cash, sale and succession.",
+      "avoid": "Beginner-level personal topics, generalities, any categorical legal advice.",
+      "tagsAny": "Business owner"
+    },
+    "clients": {
+      "label": "Clients",
+      "description": "Records with at least one won deal.",
+      "persona": "A client who has already closed with us.",
+      "concerns": "Being looked after, knowing who to turn to, not missing anything important.",
+      "knowledgeLevel": "Knows our services.",
+      "editorialVoice": "Loyal and attentive, no sales pitch.",
+      "interests": "Follow-up, useful news, a next project.",
+      "avoid": "Prospecting, repeating what they already know."
+    },
+    "clients-assures": {
+      "label": "Insured clients",
+      "description": "Clients with a signed policy — follow-up keeps the trust alive.",
+      "persona": "A client covered by a policy placed by the firm, who expects us to think of them before the renewal date.",
+      "concerns": "Am I still properly covered, has my situation changed, when should the policy be reviewed.",
+      "knowledgeLevel": "Knows their policy in broad terms.",
+      "editorialVoice": "Loyal, attentive, no sales pitch.",
+      "interests": "Renewal dates, life changes (a birth, a move, a new loan), cover to adjust.",
+      "avoid": "Prospecting, pushing a second policy, cover jargon."
+    },
+    "clients-finances": {
+      "label": "Financed clients",
+      "description": "Clients whose loan was signed thanks to the firm — the relationship lasts beyond the signing.",
+      "persona": "A client whose financing is complete: they went through a whole file with us, start to finish, and trust us.",
+      "concerns": "Living well with their loan: knowing when to renegotiate or refinance, what their borrower insurance is worth, how to prepare a next project.",
+      "knowledgeLevel": "Knows what a file looks like from A to Z; doesn’t need the basics explained again.",
+      "editorialVoice": "Close and loyal: we’re talking to someone who knows us, no sales pitch.",
+      "interests": "Renegotiation, switching borrower insurance, a new project (second home, rental), referring a relative.",
+      "avoid": "A prospecting tone, reminders of what they already know, selling a new loan without a real reason."
+    },
+    "investisseurs": {
+      "label": "Investors",
+      "description": "Clients and prospects financing a rental property or a wealth project.",
+      "persona": "An individual who already owns a property or is preparing a rental purchase, looking to finance and optimize rather than learn the basics.",
+      "concerns": "Net yield, remaining borrowing capacity, leverage, rental taxation, the right time to borrow.",
+      "knowledgeLevel": "Informed to expert: knows the vocabulary, wants precision and sourced orders of magnitude.",
+      "editorialVoice": "Direct and factual, decision-oriented: straight to the dated figure and what it changes for them.",
+      "interests": "Bank terms for rentals, LMNP and SCI, deferred and staggered repayments, refinancing to reinvest, the usury rate.",
+      "avoid": "Basic explanations, a patronizing tone, generalities without figures, and any categorical tax advice.",
+      "tagsAny": "Investor"
+    },
+    "jeunes-actifs": {
+      "label": "Young professionals",
+      "description": "Under-40s: building, not yet reallocating.",
+      "persona": "Someone under 40 starting to save seriously, often with a first purchase in mind.",
+      "concerns": "Where to start, how much to set aside, how to combine buying a home with saving.",
+      "knowledgeLevel": "Beginner: the big ideas, not the mechanics.",
+      "editorialVoice": "Simple and encouraging, never condescending.",
+      "interests": "The first building blocks (emergency savings, life insurance, PEA), the first purchase, employee savings plans.",
+      "avoid": "Succession and near-retirement topics, jargon, complex structures."
+    },
+    "preparation-retraite": {
+      "label": "Preparing for retirement",
+      "description": "People aged 50 and over: the horizon is getting closer, decisions count double.",
+      "persona": "Someone aged 50 or over who wants to know what their retirement will be made of and what there’s still time to do.",
+      "concerns": "The level of their future income, the right time to leave, what needs deciding now.",
+      "knowledgeLevel": "Varies: knows what a PER or life insurance is, less so the payout mechanics.",
+      "editorialVoice": "Reassuring and concrete, calendar-driven: what gets decided this year, what can wait.",
+      "interests": "The retirement calendar, the PER, life insurance, the main home, succession.",
+      "avoid": "An anxious tone, unsuitable long-horizon products, young-professional topics."
+    },
+    "primo-accedants": {
+      "label": "First-time buyers",
+      "description": "People buying their first home — the firm’s educational audience.",
+      "persona": "A person or couple buying a first home, often aged 25 to 40, with a concrete project but a file that’s still vague.",
+      "concerns": "How much can I borrow, will my file get through, what does it really cost (fees, insurance, deposit), and where do I start.",
+      "knowledgeLevel": "Beginner: discovering the vocabulary of lending — rate, deposit, borrower insurance, notary fees, deferral.",
+      "editorialVoice": "Educational and reassuring: one idea at a time, simple words, a concrete example when a verified figure allows it.",
+      "interests": "The steps of a purchase, the deposit and aid schemes (zero-rate loan), a file’s timeline, the mistakes to avoid before signing a preliminary agreement.",
+      "avoid": "Unexplained banking jargon, investor structures, comparisons with seasoned files, any promise of a rate or a timeline.",
+      "tagsAny": "First-time buyer"
+    },
+    "professionnels-tns": {
+      "label": "Professionals and the self-employed",
+      "description": "Self-employed workers: protection, health and retirement are thought through together.",
+      "persona": "A self-employed person, a professional or an executive who has to protect themselves because no employer does it for them.",
+      "concerns": "What happens if I stop working, how do I protect my family and my business, what can I deduct.",
+      "knowledgeLevel": "Well-informed about their trade, little about their own cover.",
+      "editorialVoice": "Peer to peer, direct, focused on decisions and deadlines.",
+      "interests": "Executive protection cover, health, supplementary pension, deductibility, professional liability.",
+      "avoid": "A consumer tone, generalities, any unsourced commitment in figures.",
+      "tagsAny": "Self-employed"
+    },
+    "projets-en-cours": {
+      "label": "Projects in progress",
+      "description": "People with an open financing file — every email moves it one step forward.",
+      "persona": "Someone whose file is being reviewed or assembled: they wait, they send documents, they worry about the timeline.",
+      "concerns": "Where is my file, what’s the next step, which documents are missing, what can make a bank balk.",
+      "knowledgeLevel": "Learning as they go, in the thick of the process: understands the vocabulary already explained to them.",
+      "editorialVoice": "Precise, available, concrete: we say what’s happening and what needs doing, nothing more.",
+      "interests": "The timeline to an approval, the documents in the file, the borrower insurance to choose, signing at the notary.",
+      "avoid": "Needless uncertainty, generalities about the market, anything that isn’t about THEIR file."
+    },
+    "prospects": {
+      "label": "Prospects",
+      "description": "Records with at least one open deal.",
+      "persona": "Someone still hesitating, with an open project.",
+      "concerns": "Making the right choice, understanding what they’re being offered.",
+      "knowledgeLevel": "Beginner to informed.",
+      "editorialVoice": "Clear and honest, no pressure.",
+      "interests": "Concrete explanations, cases close to their own.",
+      "avoid": "Pressure, superlatives, unsourced figures."
+    },
+    "prospects-en-cours": {
+      "label": "Active prospects",
+      "description": "People with a quote or an open file: the email helps close without rushing.",
+      "persona": "Someone who asked for a quote or a study and is still comparing.",
+      "concerns": "Is it the right policy, the right price, the right person to deal with.",
+      "knowledgeLevel": "Beginner to informed, depending on the policy.",
+      "editorialVoice": "Clear, honest, available: we answer the questions that are holding things up.",
+      "interests": "Understanding the cover, comparing without getting it wrong, how long setup takes.",
+      "avoid": "Pressure, disparaging comparisons, unsourced figures."
+    },
+    "prospects-en-reflexion": {
+      "label": "Prospects thinking it over",
+      "description": "People with an open deal: they’re thinking, the email should help them decide.",
+      "persona": "Someone who has voiced a project (savings, retirement, succession) and is still hesitating about what comes next.",
+      "concerns": "Is it the right time, do I understand what I’m being offered, what risks am I taking.",
+      "knowledgeLevel": "Beginner to informed: has understood their need, not necessarily the solutions.",
+      "editorialVoice": "Clear and honest, one solution explained at a time, no pressure.",
+      "interests": "Comparing solutions, understanding fees, investment horizons, concrete cases close to their own.",
+      "avoid": "Pressure, superlatives, unsourced return figures, advanced management topics."
+    },
+    "sans-nouvelles": {
+      "label": "No news for six months",
+      "description": "Records at least six months old with no activity at all for six months: to wake up gently.",
+      "persona": "Someone we once knew — an exchange, a file, a request — who drifted away without unsubscribing.",
+      "concerns": "Not being hounded; finding a useful contact again the day a need comes back.",
+      "knowledgeLevel": "Varies: we no longer know where they stand, we assume nothing.",
+      "editorialVoice": "Sober and useful, no reproach and no “it’s been a while”: we give information worth having, we stay reachable.",
+      "interests": "What has changed in six months: a rule, a rate, a deadline that may concern them.",
+      "avoid": "Guilt-tripping, reminders of their inactivity, pushy offers, anything that assumes a project in progress."
+    },
+    "societes": {
+      "label": "Companies",
+      "description": "The legal entities in the base.",
+      "persona": "A company or an organization, read by the person who represents it.",
+      "concerns": "Saving time, deciding quickly with reliable information.",
+      "knowledgeLevel": "Professional.",
+      "editorialVoice": "Peer to peer, concrete, results-oriented.",
+      "interests": "Whatever affects the business: rules, deadlines, opportunities.",
+      "avoid": "A consumer tone, individual-customer topics."
+    },
+    "tous-les-contacts": {
+      "label": "All contacts",
+      "description": "The whole base: for information that concerns everyone.",
+      "persona": "Every person and company in the base, whatever their relationship with us.",
+      "concerns": "Receiving what concerns them, nothing more.",
+      "knowledgeLevel": "Mixed: we write for someone who’s discovering.",
+      "editorialVoice": "Clear, short, accessible to all.",
+      "interests": "News from the firm, rule changes that affect everyone.",
+      "avoid": "Niche topics, jargon, messages that assume an ongoing relationship."
+    }
+  },
+  "topics": {
+    "actualite_economique": {
+      "label": "Economic news",
+      "terms": "actualité économique France|euro area economic outlook"
+    },
+    "aides_a_l_achat_0e62": {
+      "label": "Home-buying aid and first-time buyers",
+      "terms": "prêt à taux zéro|aides accession propriété"
+    },
+    "assurance_emprunteur": {
+      "label": "Borrower insurance",
+      "terms": "assurance emprunteur loi Lemoine"
+    },
+    "assurance_habitation_et_automobile": {
+      "label": "Home and car insurance",
+      "terms": "assurance habitation|assurance auto tarifs"
+    },
+    "assurance_vie_et_placements": {
+      "label": "Life insurance and investments",
+      "terms": "assurance-vie rendement fonds euros|placements épargne"
+    },
+    "credit_immobilier": {
+      "label": "Mortgages",
+      "terms": "taux crédit immobilier|prêt immobilier banques"
+    },
+    "epargne_et_assurance_vie": {
+      "label": "Savings and life insurance",
+      "terms": "assurance-vie"
+    },
+    "epargne_et_placements": {
+      "label": "Savings and investments",
+      "terms": "épargne placements"
+    },
+    "fiscalite": {
+      "label": "Taxation",
+      "terms": "fiscalité particuliers entreprises"
+    },
+    "fiscalite_du_patrimoine": {
+      "label": "Wealth taxation",
+      "terms": "fiscalité patrimoine|succession donation impôt"
+    },
+    "immobilier": {
+      "label": "Real estate",
+      "terms": "marché immobilier"
+    },
+    "marche_immobilier": {
+      "label": "Real estate market",
+      "terms": "prix immobilier ancien|marché immobilier"
+    },
+    "marches_financiers": {
+      "label": "Financial markets",
+      "terms": "marchés financiers|central banks interest rates markets"
+    },
+    "prevoyance_et_sante": {
+      "label": "Protection and health insurance",
+      "terms": "prévoyance|complémentaire santé"
+    },
+    "reglementation_de_l_assurance": {
+      "label": "Insurance regulation",
+      "terms": "ACPR assurance|réglementation assurance"
+    },
+    "retraite": {
+      "label": "Retirement",
+      "terms": "retraite réforme|plan épargne retraite PER"
+    },
+    "scpi_et_immobilier_locatif": {
+      "label": "SCPI and rental property",
+      "terms": "SCPI|investissement locatif fiscalité"
+    },
+    "taux_d_usure_et_d2e9": {
+      "label": "Usury rate and lending conditions",
+      "terms": "taux d'usure|conditions d'octroi crédit immobilier HCSF"
+    }
+  }
+}

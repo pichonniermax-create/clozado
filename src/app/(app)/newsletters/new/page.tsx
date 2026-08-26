@@ -10,6 +10,9 @@ import { requestOrigin } from "@/lib/request-origin";
 import { requireUser } from "@/lib/session";
 import { buildBasketBrief } from "@/lib/watch/brief";
 import { getTranslations } from "next-intl/server";
+import { getFormats } from "@/i18n/formats";
+import { settingsOfOrganization } from "@/i18n/locale-lookup";
+import { DEFAULT_LOCALE } from "@/i18n/locales";
 
 export default async function NewNewsletterPage({
   searchParams,
@@ -18,7 +21,9 @@ export default async function NewNewsletterPage({
   searchParams: Promise<{ cible?: string; panier?: string }>;
 }) {
   const tr = await getTranslations("newsletters.new");
+  const fmt = await getFormats();
   const user = await requireUser();
+  const contentLocale = user.organizationId ? (await settingsOfOrganization(user.organizationId)).locale : DEFAULT_LOCALE;
   const { cible, panier } = await searchParams;
   const targets = await listMailTargets(user);
   // La matière du panier : titres, liens, dates et nos résumés — rattachés à
@@ -32,7 +37,7 @@ export default async function NewNewsletterPage({
     publishedAt: b.publishedAt?.toISOString() ?? null,
     summary: b.summary,
   }));
-  const initialBrief = sources.length > 0 ? buildBasketBrief(basket) : undefined;
+  const initialBrief = sources.length > 0 ? buildBasketBrief(basket, fmt) : undefined;
   const initialTargetId = targets.some((t) => t.id === cible) ? cible : undefined;
 
   // La marque doit être connue AVANT toute saisie : l'éditeur affiche le
@@ -68,6 +73,7 @@ export default async function NewNewsletterPage({
     <>
       <PageHeader title={tr("nouvelle_newsletter")} backTo={{ href: "/newsletters", label: tr("newsletters") }} />
       <NewsletterEditor
+        lang={contentLocale}
         targets={targets.map((t) => ({ id: t.id, label: t.label, count: counts.get(t.id) ?? 0 }))}
         initialTargetId={initialTargetId}
         initialBrief={initialBrief}

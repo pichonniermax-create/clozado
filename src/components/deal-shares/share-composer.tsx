@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PartnerShareView } from "@/components/deal-shares/partner-share-view";
 import type { PublicShareView } from "@/db/queries/deal-shares-public";
 import { createDealShareAction } from "@/lib/deals/actions";
-import { formatCommission } from "@/lib/format";
+import { useFormats } from "@/components/i18n/formats-provider";
 import type { RenderBrand } from "@/lib/newsletter/render-email";
 import { useTranslations } from "next-intl";
 
@@ -88,6 +88,7 @@ export function ShareComposer({
   partners,
 }: Props) {
   const t = useTranslations("shares.shareComposer");
+  const fmt = useFormats();
   const router = useRouter();
 
   const [phase, setPhase] = useState<"compose" | "confirm" | "sending" | "done">("compose");
@@ -132,7 +133,7 @@ export function ShareComposer({
   const draftView: PublicShareView = {
     shareId: "preview",
     status: "pending",
-    organization: { name: organizationName },
+    organization: { defaultLocale: fmt.locale, currency: fmt.currency, timezone: fmt.timeZone, name: organizationName },
     issuedByName,
     partnerName: selectedPartner?.name ?? t("votre_partenaire"),
     deal,
@@ -351,7 +352,7 @@ export function ShareComposer({
                     onChange={(e) => setRate(e.target.value)}
                   />
                 </Field>
-                <Field label={t("montant_de_reference")} htmlFor="baseAmount">
+                <Field label={t("montant_de_reference", { currency: fmt.currency })} htmlFor="baseAmount">
                   <Input
                     id="baseAmount"
                     type="number"
@@ -362,7 +363,7 @@ export function ShareComposer({
                 </Field>
               </div>
             ) : (
-              <Field label={t("montant")} htmlFor="fixedAmount">
+              <Field label={t("montant", { currency: fmt.currency })} htmlFor="fixedAmount">
                 <Input
                   id="fixedAmount"
                   type="number"
@@ -376,7 +377,7 @@ export function ShareComposer({
             {/* Calcul explicite, pas juste un champ rempli. */}
             <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
               {draftCommission ? (
-                <span className="font-medium">{formatCommission(draftCommission)}</span>
+                <span className="font-medium">{fmt.commission(draftCommission)}</span>
               ) : (
                 <span className="text-muted-foreground">
                   {t("renseigne_pour_voir_le_calcul", { value: basis === "percentage" ? t("le_taux_et_le_montant_de_fa0e") : t("le_montant") })}
@@ -419,7 +420,7 @@ export function ShareComposer({
               </p>
               {draftCommission && (
                 <p className="text-sm">
-                  {t("commission_4315")} <Badge variant="secondary">{formatCommission(draftCommission)}</Badge>
+                  {t("commission_4315")} <Badge variant="secondary">{fmt.commission(draftCommission)}</Badge>
                 </p>
               )}
               {proposedTerms && (

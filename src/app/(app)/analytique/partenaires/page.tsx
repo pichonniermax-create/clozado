@@ -1,3 +1,4 @@
+import { use } from "react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Handshake } from "lucide-react";
@@ -12,7 +13,7 @@ import { listOrigins } from "@/db/queries/acquisition";
 import { listOrgUsers } from "@/db/queries/contacts";
 import { listDealTypes } from "@/db/queries/deal-types";
 import { listPipelinesWithStages } from "@/db/queries/pipelines";
-import { formatDays, formatDuration, formatEuros } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import {
   METRICS,
   MIN_OBSERVATIONS,
@@ -29,6 +30,7 @@ import { requireUser } from "@/lib/session";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import type { TranslatorOf } from "@/i18n/translator";
+import type { Formats } from "@/lib/format";
 
 const BASE_PATH = "/analytique/partenaires";
 
@@ -46,6 +48,7 @@ const MASKED = <span className="text-muted-foreground">—</span>;
 /** Médiane et moyenne côte à côte, ou le tiret avec ce qui manque — la même règle que le tableau des délais, en une cellule. */
 function DelayCell({ stat }: { stat: DurationStat }) {
   const t = useTranslations("analytics.partenaires");
+  const fmt = use(getFormats());
   if (stat.hidden || stat.medianDays === null || stat.meanDays === null) {
     return (
       <span className="text-muted-foreground" title={stat.n === 0 ? t("aucune_reponse") : t("masque_il_manque_reponse_reponses", { missing: stat.missing })}>
@@ -55,7 +58,7 @@ function DelayCell({ stat }: { stat: DurationStat }) {
   }
   return (
     <>
-      {t.rich("med_moy_n", { formatDuration: formatDuration(stat.medianDays), formatDuration2: formatDuration(stat.meanDays), n: stat.n, span: (chunks) => <span className="block whitespace-nowrap">{chunks}</span>, span2: (chunks) => <span className="block whitespace-nowrap text-xs text-muted-foreground">{chunks}</span> })}
+      {t.rich("med_moy_n", { formatDuration: fmt.duration(stat.medianDays), formatDuration2: fmt.duration(stat.meanDays), n: stat.n, span: (chunks) => <span className="block whitespace-nowrap">{chunks}</span>, span2: (chunks) => <span className="block whitespace-nowrap text-xs text-muted-foreground">{chunks}</span> })}
     </>
   );
 }
@@ -67,21 +70,22 @@ function DelayCell({ stat }: { stat: DurationStat }) {
  */
 function MoneyCell({ money, showCount = true }: { money: MoneyCount; showCount?: boolean }) {
   const t = useTranslations("analytics.partenaires");
+  const fmt = use(getFormats());
   const parts = [showCount && money.n > 0 ? t("commission_commissions", { n: money.n }) : null, money.withoutAmount > 0 ? `${money.withoutAmount} sans montant` : null].filter(Boolean);
   return (
     <>
-      {money.n === 0 || money.withoutAmount === money.n ? MASKED : formatEuros(money.amount)}
+      {money.n === 0 || money.withoutAmount === money.n ? MASKED : fmt.money(money.amount)}
       {parts.length > 0 && <span className="block text-xs text-muted-foreground">{parts.join(", ")}</span>}
     </>
   );
 }
 
 /** « pour 600 € », « pour 600 € (1 sans montant) », ou « au montant inconnu » quand aucune ne porte de montant — la même règle que les cellules. */
-function forAmount(money: MoneyCount, t: TranslatorOf<"analytics.partenaires">): ReactNode {
+function forAmount(money: MoneyCount, t: TranslatorOf<"analytics.partenaires">, fmt: Formats): ReactNode {
   if (money.withoutAmount === money.n) return t("au_montant_inconnu");
   return (
     <>
-      {t.rich("pour", { formatEuros: (formatEuros(money.amount)) ?? "", span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
+      {t.rich("pour", { formatEuros: (fmt.money(money.amount)) ?? "", span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
       {money.withoutAmount > 0 && <span className="text-muted-foreground"> {t("sans_montant", { withoutAmount: money.withoutAmount })}</span>}
     </>
   );
@@ -135,6 +139,7 @@ function NotEnoughData({ report, filtered }: { report: PartnersReport; filtered:
 export default async function PartnersAnalyticsPage({ searchParams }: { searchParams: Promise<MetricSearchParams> }) {
   const t = await getTranslations("analytics.partenaires");
   const tm = await getTranslations("metrics");
+  const fmt = await getFormats();
   const user = await requireUser();
   const raw = await searchParams;
 
@@ -156,7 +161,7 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
     );
   }
 
-  const parsed = parseMetricFilters(raw);
+  const parsed = parseMetricFilters(raw, fmt.timeZone);
   const [pipelines, types, users, origins, report] = await Promise.all([
     listPipelinesWithStages(user),
     listDealTypes(user),
@@ -181,7 +186,7 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
               <DefinitionLink id="partner_shares">{t("par_partenaire")}</DefinitionLink>
             </h2>
             <p className="-mt-1 text-xs text-muted-foreground text-pretty">
-              {t("les_partages_envoyes_suivis_jusqu_a_4cbd", { periodPhrase: periodPhrase(parsed, tm) })}
+              {t("les_partages_envoyes_suivis_jusqu_a_4cbd", { periodPhrase: periodPhrase(parsed, tm, fmt) })}
             </p>
             {report.partners.length === 0 ? (
               <EmptyState
@@ -240,10 +245,10 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
                             )}
                           </>
                         )}
-                        {td(rateText(p.acceptanceRate, true))}
+                        {td(rateText(p.acceptanceRate, fmt, true))}
                         {td(<DelayCell stat={p.responseDelay} />)}
                         {td(p.won)}
-                        {td(rateText(p.transformationRate, true))}
+                        {td(rateText(p.transformationRate, fmt, true))}
                         {td(<MoneyCell money={p.earned} />)}
                         {td(<MoneyCell money={p.planned} />)}
                       </tr>
@@ -258,10 +263,10 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
                       {td(totals.accepted)}
                       {td(totals.declined)}
                       {td(totals.noResponse)}
-                      {td(rateText(totals.acceptanceRate, true))}
+                      {td(rateText(totals.acceptanceRate, fmt, true))}
                       {td(MASKED)}
                       {td(totals.won)}
-                      {td(rateText(totals.transformationRate, true))}
+                      {td(rateText(totals.transformationRate, fmt, true))}
                       {td(<MoneyCell money={totals.earned} />)}
                       {td(<MoneyCell money={totals.planned} />)}
                     </tr>
@@ -307,13 +312,13 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
               <DefinitionLink id="commissions_aging">{t("vieillissement_des_commissions_confirmees_non_reglees")}</DefinitionLink>
             </h2>
             <p className="-mt-1 text-xs text-muted-foreground text-pretty">
-              {t.rich("depuis_la_date_de_confirmation_observee_703b", { n: commissions.overdue.n, formatDays: formatDays(commissions.overdue.thresholdDays), span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
-              {commissions.overdue.n > 0 && <>, {forAmount(commissions.overdue, t)}</>}
+              {t.rich("depuis_la_date_de_confirmation_observee_703b", { n: commissions.overdue.n, formatDays: fmt.days(commissions.overdue.thresholdDays), span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
+              {commissions.overdue.n > 0 && <>, {forAmount(commissions.overdue, t, fmt)}</>}
               .
               {commissions.unknownConfirmedAt.n > 0 && (
                 <>
                   {t.rich("confirmee_confirmees_a_la_date_inconnue", { n: commissions.unknownConfirmedAt.n, span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
-                  {forAmount(commissions.unknownConfirmedAt, t)} {t("ecartee_ecartees_du_vieillissement_jamais_datee_ca24", { n: commissions.unknownConfirmedAt.n })}
+                  {forAmount(commissions.unknownConfirmedAt, t, fmt)} {t("ecartee_ecartees_du_vieillissement_jamais_datee_ca24", { n: commissions.unknownConfirmedAt.n })}
                 </>
               )}
             </p>

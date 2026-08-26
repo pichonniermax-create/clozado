@@ -10,6 +10,7 @@ import { metricQueryString, type MetricSearchParams } from "./search-params";
 import type { DurationStat, RateStat } from "./types";
 import { volumesReport, type AmountCount } from "./volumes";
 import type { TranslatorOf } from "@/i18n/translator";
+import type { Formats } from "@/lib/format";
 
 /**
  * Les indicateurs du tableau de bord — UNE valeur par indicateur du pack,
@@ -45,7 +46,7 @@ export async function dashboardIndicators(
   filters: MetricFilters,
   params: MetricSearchParams,
   t: TranslatorOf<"metrics">
-): Promise<DashboardIndicator[]> {
+, fmt: Formats): Promise<DashboardIndicator[]> {
   const wants = (...candidates: DashboardIndicatorId[]) => candidates.some((c) => ids.includes(c));
   const [volumes, losses, partners, leads, creationToWon, leadToFirstContact, shareResponse, commissionSettlement] = await Promise.all([
     wants("deals_created", "deals_won", "won_amount", "pipeline_open") ? volumesReport(user, filters) : null,
@@ -84,7 +85,7 @@ export async function dashboardIndicators(
         return { value: { kind: "days", stat: commissionSettlement! }, href: href("/analytique/delais") };
       case "loss_rate":
         return {
-          value: { kind: "ratio", rate: losses!.lossRate, detail: `${t("dashboard.perdue_perdues", { n: losses!.total.n })} pour ${t("dashboard.signee_signees", { n: losses!.won })}` },
+          value: { kind: "ratio", rate: losses!.lossRate, detail: t("dashboard.x_pour_y", { lost: t("dashboard.perdue_perdues", { n: losses!.total.n }), won: t("dashboard.signee_signees", { n: losses!.won }) }) },
           href: href("/analytique/pertes"),
         };
       case "lost_deal":
@@ -92,7 +93,7 @@ export async function dashboardIndicators(
           value: {
             kind: "count",
             n: losses!.total.n,
-            detail: losses!.total.n > 0 && losses!.total.withoutAmount < losses!.total.n ? t("dashboard.de_montant_estime_perdu", { formatEurosPlain: formatEurosPlain(losses!.total.amount) }) : undefined,
+            detail: losses!.total.n > 0 && losses!.total.withoutAmount < losses!.total.n ? t("dashboard.de_montant_estime_perdu", { formatEurosPlain: (fmt.money(losses!.total.amount) ?? "") }) : undefined,
           },
           href: href("/analytique/pertes"),
         };
@@ -108,12 +109,12 @@ export async function dashboardIndicators(
         };
       case "partner_acceptance_rate":
         return {
-          value: { kind: "ratio", rate: partners!.totals.acceptanceRate, detail: `${t("dashboard.accepte_acceptes", { n: partners!.totals.accepted })} sur ${t("dashboard.partage_envoye_partages_envoyes", { n: partners!.totals.sent })}` },
+          value: { kind: "ratio", rate: partners!.totals.acceptanceRate, detail: t("dashboard.x_sur_y", { a: t("dashboard.accepte_acceptes", { n: partners!.totals.accepted }), b: t("dashboard.partage_envoye_partages_envoyes", { n: partners!.totals.sent }) }) },
           href: href("/analytique/partenaires"),
         };
       case "partner_transformation_rate":
         return {
-          value: { kind: "ratio", rate: partners!.totals.transformationRate, detail: `${t("dashboard.gagnee_gagnees", { n: partners!.totals.won })} sur ${t("dashboard.partage_accepte_partages_acceptes", { n: partners!.totals.accepted })}` },
+          value: { kind: "ratio", rate: partners!.totals.transformationRate, detail: t("dashboard.x_sur_y", { a: t("dashboard.gagnee_gagnees", { n: partners!.totals.won }), b: t("dashboard.partage_accepte_partages_acceptes", { n: partners!.totals.accepted }) }) },
           href: href("/analytique/partenaires"),
         };
       case "partner_commissions": {
@@ -123,7 +124,7 @@ export async function dashboardIndicators(
             kind: "euros",
             money: earned,
             countPhrase: t("dashboard.commission_acquise_commissions_acquises", { n: earned.n }),
-            detail: planned.n > 0 ? t("dashboard.prevues", { value: planned.withoutAmount === planned.n ? t("dashboard.au_montant_inconnu") : formatEurosPlain(planned.amount), n: planned.n }) : undefined,
+            detail: planned.n > 0 ? t("dashboard.prevues", { value: planned.withoutAmount === planned.n ? t("dashboard.au_montant_inconnu") : (fmt.money(planned.amount) ?? ""), n: planned.n }) : undefined,
           },
           href: href("/analytique/partenaires"),
         };
@@ -137,7 +138,3 @@ export async function dashboardIndicators(
   });
 }
 
-/** Un montant en euros sans dépendre de l'affichage (la couche ne connaît pas `format.ts`) — pour un détail en texte. */
-function formatEurosPlain(amount: number): string {
-  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(amount)} €`;
-}

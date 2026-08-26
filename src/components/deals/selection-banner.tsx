@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { LOSS_NO_REASON, LOST_FROM_CREATION, ORIGIN_UNKNOWN, ORIGIN_UNMATCHED, type ParsedDealSelection } from "@/lib/metrics";
 import { useTranslations } from "next-intl";
 import type { TranslatorOf } from "@/i18n/translator";
+import type { Formats } from "@/lib/format";
 
 /**
  * Le bandeau qui dit ce que la liste montre quand elle vient d'un clic sur
@@ -24,7 +25,8 @@ export function describeDealSelection(
     reasons?: { id: string; label: string }[];
   },
   t: TranslatorOf<"deals.selectionBanner">,
-  tm: TranslatorOf<"metrics">
+  tm: TranslatorOf<"metrics">,
+  fmt: Formats
 ): string {
   const { selection, parsed } = sel;
   const { filters } = selection;
@@ -32,20 +34,20 @@ export function describeDealSelection(
 
   const outcome =
     selection.cohort === "perte"
-      ? "perdues"
+      ? t("perdues")
       : selection.outcome === "gagnee"
         ? t("gagnees")
         : selection.outcome === "perdue"
-          ? "perdues"
+          ? t("perdues")
           : selection.outcome === "en-cours"
             ? t("en_cours")
             : null;
 
-  const period = periodPhrase(parsed, tm);
+  const period = periodPhrase(parsed, tm, fmt);
   if (selection.cohort === "perte") {
     parts.push(t("a_la_date_de_la_perte", { period }));
     if (selection.lossReasonId === LOSS_NO_REASON) parts.push(t("sans_motif"));
-    else if (selection.lossReasonId) parts.push(`motif « ${lookups.reasons?.find((r) => r.id === selection.lossReasonId)?.label ?? "?"} »`);
+    else if (selection.lossReasonId) parts.push(t("motif", { n: lookups.reasons?.find((r) => r.id === selection.lossReasonId)?.label ?? "?" }));
     if (selection.lostFromStageId === LOST_FROM_CREATION) parts.push(t("nees_perdues"));
     else if (selection.lostFromStageId) parts.push(t("perdues_depuis", { n: lookups.stages.find((s) => s.id === selection.lostFromStageId)?.label ?? "?" }));
   } else {
@@ -66,7 +68,7 @@ export function describeDealSelection(
   if (selection.furthestStageId) {
     parts.push(t("au_plus_loin_dans", { n: lookups.stages.find((s) => s.id === selection.furthestStageId)?.label ?? "?" }));
   }
-  return `Affaires ${outcome ? `${outcome} ` : ""}${parts.join(", ")}`;
+  return t("affaires", { outcome: outcome ? `${outcome} ` : "", parts: parts.join(", ") });
 }
 
 export function DealSelectionBanner({

@@ -1,3 +1,4 @@
+import { use } from "react";
 import Link from "next/link";
 import { after } from "next/server";
 import { ExternalLink, RefreshCw } from "lucide-react";
@@ -19,7 +20,7 @@ import {
 import { getOwnOrganization } from "@/db/queries/organizations";
 import type { VerifiedFigure } from "@/db/schema";
 import { createFigureAction, deleteFigureAction, followIndicatorAction, followPackIndicatorsAction, refreshIndicatorsAction, unfollowIndicatorAction, updateFigureAction } from "@/lib/figures/actions";
-import { formatDate, formatRelativeTime } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { resolveBusinessPack } from "@/lib/metrics/packs";
 import { requireUser } from "@/lib/session";
 import { formatIndicatorValue, getIndicator, type MarketIndicator } from "@/lib/watch/indicators";
@@ -39,6 +40,7 @@ export default async function FiguresPage({
   const t = await getTranslations("figures.page");
   const tf = await getTranslations("figures");
   const tm = await getTranslations("metrics");
+  const fmt = await getFormats();
   const user = await requireUser();
   const params = await searchParams;
 
@@ -130,10 +132,10 @@ export default async function FiguresPage({
               return (
                 <div key={key} className="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-4 shadow-xs">
                   <span className="text-sm font-medium text-muted-foreground">{tf(`indicators.${indicator.key}.label`)}</span>
-                  <p className="text-3xl font-semibold tracking-tight">{obs ? formatIndicatorValue(obs.valueText, indicator.unit) : "—"}</p>
+                  <p className="text-3xl font-semibold tracking-tight">{obs ? formatIndicatorValue(obs.valueText, indicator.unit, fmt.tag) : "—"}</p>
                   <p className="text-xs tabular-nums text-muted-foreground">
                     {obs
-                      ? `${indicator.periodicity === "on_change" ? "depuis le" : indicator.periodicity === "daily" ? "au" : ""} ${formatPeriod(obs.period, tf)}`.trim()
+                      ? `${indicator.periodicity === "on_change" ? "depuis le" : indicator.periodicity === "daily" ? "au" : ""} ${formatPeriod(obs.period, tf, fmt)}`.trim()
                       : status?.lastError
                         ? t("source_muette_aucune_valeur_encore_lue", { lastError: status.lastError })
                         : t("pas_encore_lu_a_la_prochaine_a1d1")}
@@ -142,7 +144,7 @@ export default async function FiguresPage({
                     <a href={indicator.sourceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
                       {tf(`indicators.${indicator.key}.sourceName`)} <ExternalLink className="inline size-3" />
                     </a>
-                    {status?.lastOkAt && t("lu", { formatRelativeTime: formatRelativeTime(status.lastOkAt) })}
+                    {status?.lastOkAt && t("lu", { formatRelativeTime: fmt.relative(status.lastOkAt) })}
                     {obs && status?.lastError && t("source_muette_depuis_derniere_valeur_conservee", { lastError: status.lastError })}
                   </p>
                   <form action={unfollowIndicatorAction.bind(null, key)} className="pt-1">
@@ -226,6 +228,7 @@ function IndicatorProposal({ indicator, fromPack }: { indicator: MarketIndicator
 
 function FigureRow({ figure }: { figure: VerifiedFigure }) {
   const t = useTranslations("figures.page");
+  const fmt = use(getFormats());
   const complete = isFigureComplete(figure);
   return (
     <li id={`chiffre-${figure.id}`} className="flex flex-col gap-2 px-4 py-3 scroll-mt-24">
@@ -251,7 +254,7 @@ function FigureRow({ figure }: { figure: VerifiedFigure }) {
             )}
             {" · "}
             {figure.asOf ?? t("date_manquante")}
-            {figure.updatedAt && t("modifie_le", { formatDate: formatDate(figure.updatedAt) })}
+            {figure.updatedAt && t("modifie_le", { formatDate: fmt.date(figure.updatedAt) })}
           </span>
         </span>
         <form action={deleteFigureAction.bind(null, figure.id)}>

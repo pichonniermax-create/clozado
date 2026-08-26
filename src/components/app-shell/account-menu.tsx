@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, Settings } from "lucide-react";
+import { Check, LogOut, Settings } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -12,7 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { LOCALES, localeDisplayName, type AppLocale } from "@/i18n/locales";
 
 /** « Camille Rousseau » → « CR », « camille@… » → « C ». */
 function initialsOf(name: string | null, email: string | null): string {
@@ -36,14 +37,20 @@ export function AccountMenu({
   name,
   email,
   hasOrganization,
+  localeChoice,
   signOutAction,
+  setLocaleAction,
 }: {
   name: string | null;
   email: string | null;
   hasOrganization: boolean;
+  /** La langue mémorisée de la personne — null quand elle suit celle de l'organisation. */
+  localeChoice: AppLocale | null;
   signOutAction: () => Promise<void>;
+  setLocaleAction: (formData: FormData) => Promise<void>;
 }) {
   const t = useTranslations("shell.accountMenu");
+  const current = useLocale();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -76,6 +83,29 @@ export function AccountMenu({
             {t("marque_reglages")}
           </DropdownMenuItem>
         )}
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>{t("langue")}</DropdownMenuLabel>
+          {LOCALES.map((locale) => (
+            <form action={setLocaleAction} key={locale}>
+              <input type="hidden" name="locale" value={locale} />
+              <DropdownMenuItem nativeButton render={<button type="submit" className="w-full" />}>
+                {localeChoice === locale ? <Check /> : <span aria-hidden className="size-4" />}
+                {localeDisplayName(locale)}
+              </DropdownMenuItem>
+            </form>
+          ))}
+          {hasOrganization && (
+            <form action={setLocaleAction}>
+              <input type="hidden" name="locale" value="" />
+              <DropdownMenuItem nativeButton render={<button type="submit" className="w-full" />}>
+                {localeChoice === null ? <Check /> : <span aria-hidden className="size-4" />}
+                {t("celle_de_l_organisation", { language: localeDisplayName(current as AppLocale) })}
+              </DropdownMenuItem>
+            </form>
+          )}
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
         <form action={signOutAction}>
           {/* Un vrai <button> de formulaire : Base UI doit le savoir (nativeButton) pour lui laisser son comportement natif. */}
           <DropdownMenuItem nativeButton render={<button type="submit" className="w-full" />}>

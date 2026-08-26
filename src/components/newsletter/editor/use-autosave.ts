@@ -111,9 +111,9 @@ export function useAutosave({
 }
 
 /** « il y a 3 s », « il y a 2 min », « maintenant » — par `Intl.RelativeTimeFormat` (aucun mot en dur), sans faire tourner d'horloge inutilement. */
-export function formatSavedAt(at: number, now: number): string {
+export function formatSavedAt(at: number, now: number, intlLocale: string): string {
   const s = Math.max(0, Math.round((now - at) / 1000));
-  const relative = new Intl.RelativeTimeFormat("fr-FR", { style: "short", numeric: "auto" });
+  const relative = new Intl.RelativeTimeFormat(intlLocale, { style: "short", numeric: "auto" });
   if (s < 5) return relative.format(0, "second");
   if (s < 60) return relative.format(-s, "second");
   const m = Math.round(s / 60);

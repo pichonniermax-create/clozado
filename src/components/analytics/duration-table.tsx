@@ -1,5 +1,6 @@
+import { use } from "react";
 import type { ReactNode } from "react";
-import { formatDuration } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import type { DurationStat } from "@/lib/metrics";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
@@ -25,9 +26,10 @@ export type DurationRow = {
 const MASKED = <span className="text-muted-foreground">—</span>;
 
 function Cell({ stat, value }: { stat: DurationStat; value: number | null }) {
+  const fmt = use(getFormats());
   return (
     <td className="px-4 py-3 text-right tabular-nums">
-      {stat.hidden || value === null ? MASKED : formatDuration(value)}
+      {stat.hidden || value === null ? MASKED : fmt.duration(value)}
     </td>
   );
 }

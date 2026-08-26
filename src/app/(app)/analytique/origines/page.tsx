@@ -12,7 +12,7 @@ import {
   listUnmatchedOrigins,
 } from "@/db/queries/acquisition";
 import { attachOriginAction, createOriginAction } from "@/lib/acquisition/actions";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
 
@@ -24,6 +24,7 @@ import { getTranslations } from "next-intl/server";
  */
 export default async function OriginsPage({ searchParams }: { searchParams: Promise<{ erreur?: string }> }) {
   const t = await getTranslations("analytics.origines");
+  const fmt = await getFormats();
   const user = await requireUser();
   const { erreur } = await searchParams;
 
@@ -64,7 +65,7 @@ export default async function OriginsPage({ searchParams }: { searchParams: Prom
             {unmatched.map((u) => (
               <li key={u.raw} className="flex flex-col gap-2 px-4 py-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  {t.rich("lead_leads_visite_visites_simulation_simulations_d0e8", { raw: u.raw, leads: u.leads, events: u.events, formatDateTime: formatDateTime(u.lastSeenAt), span: (chunks) => <span className="text-sm font-medium">{chunks}</span>, span2: (chunks) => <span className="text-xs tabular-nums text-muted-foreground">{chunks}</span> })}
+                  {t.rich("lead_leads_visite_visites_simulation_simulations_d0e8", { raw: u.raw, leads: u.leads, events: u.events, formatDateTime: fmt.dateTime(u.lastSeenAt), span: (chunks) => <span className="text-sm font-medium">{chunks}</span>, span2: (chunks) => <span className="text-xs tabular-nums text-muted-foreground">{chunks}</span> })}
                 </div>
                 <form action={attachOriginAction} className="flex flex-wrap items-end gap-2">
                   <input type="hidden" name="raw" value={u.raw} />
@@ -99,7 +100,7 @@ export default async function OriginsPage({ searchParams }: { searchParams: Prom
           <ListCard>
             {origins.map((o) => (
               <ListRow key={o.id}>
-                {t.rich("creee_le", { label: o.label, formatDate: formatDate(o.createdAt), span: (chunks) => <span className="text-sm font-medium">{chunks}</span>, span2: (chunks) => <span className="text-xs tabular-nums text-muted-foreground">{chunks}</span> })}
+                {t.rich("creee_le", { label: o.label, formatDate: fmt.date(o.createdAt), span: (chunks) => <span className="text-sm font-medium">{chunks}</span>, span2: (chunks) => <span className="text-xs tabular-nums text-muted-foreground">{chunks}</span> })}
               </ListRow>
             ))}
           </ListCard>
@@ -128,7 +129,7 @@ export default async function OriginsPage({ searchParams }: { searchParams: Prom
                 key={d.dealId}
                 href={`/affaires/${d.dealId}`}
                 title={d.title}
-                subtitle={t("lead_leads_creee_le", { contactName: d.contactName, leadCount: d.leadCount, formatDate: formatDate(d.createdAt) })}
+                subtitle={t("lead_leads_creee_le", { contactName: d.contactName, leadCount: d.leadCount, formatDate: fmt.date(d.createdAt) })}
                 trailing={<span className={buttonVariants({ variant: "ghost", size: "sm" })}>{t("rattacher")}</span>}
                 chevron={false}
               />

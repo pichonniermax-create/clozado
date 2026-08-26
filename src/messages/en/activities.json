@@ -1,0 +1,71 @@
+{
+  "headlines": {
+    "lead_received": "Lead received · {origin}",
+    "share_accepted": "Share accepted by {partner}",
+    "share_declined": "Share declined by {partner}",
+    "share_expired": "Share expired (observed) · {partner}",
+    "share_revoked": "Share revoked · {partner}",
+    "share_sent": "Share sent to {partner}",
+    "share_viewed": "Share viewed by {partner}",
+    "task_done": "Task completed: {body}"
+  },
+  "journal": {
+    "affaire": "· deal <link>{dealTitle}</link>",
+    "ce_qui_s_est_dit_ce_870e": "What was said, what was agreed…",
+    "compte_rendu": "Summary",
+    "consigner": "Log",
+    "contact": "· contact <link>{contactName}</link>",
+    "date_et_heure": "Date and time",
+    "date_vide_maintenant_le_journal_consigne_7b91": "Empty date = now. The log records what has happened — for an upcoming meeting, create a task.",
+    "gagnee": "(won)",
+    "les_entrees_les_plus_recentes": "The {count} most recent entries",
+    "perdue": "(lost)",
+    "rien_encore_les_appels_rendez_vous_2f2c": "Nothing yet. Calls, meetings and notes are logged above; stages, shares and completed tasks show up on their own.",
+    "supprimer_cette_interaction": "Delete this interaction",
+    "systeme": "System",
+    "type_d_interaction": "Interaction type"
+  },
+  "kinds": {
+    "call": "Call",
+    "commented": "Comment",
+    "commission_updated": "Commission",
+    "deal_created": "Deal created",
+    "email": "Email",
+    "lead_received": "Lead received",
+    "meeting": "Meeting",
+    "note": "Note",
+    "origin_changed": "Deal origin",
+    "share_accepted": "Share accepted",
+    "share_declined": "Share declined",
+    "share_expired": "Share expired (observed)",
+    "share_revoked": "Share revoked",
+    "share_sent": "Share sent",
+    "share_viewed": "Share viewed",
+    "stage": "Stage change",
+    "task_done": "Task completed"
+  },
+  "queries": {
+    "fiche_existante_completee": "Existing record completed: {join}.",
+    "fiche_existante_deja_a_jour_rien_e67c": "Existing record, already up to date: nothing to complete.",
+    "fields": {
+      "firstName": "first name",
+      "lastName": "last name",
+      "phone": "phone",
+      "companyName": "company",
+      "jobTitle": "job title",
+      "city": "city",
+      "postalCode": "postal code",
+      "country": "country",
+      "notes": "notes"
+    },
+    "nouvelle_fiche_creee": "New record created.",
+    "origine_non_renseignee": "origin not provided",
+    "utilisateur": "User"
+  },
+  "types": {
+    "call": "Call",
+    "email": "Email",
+    "meeting": "Meeting",
+    "note": "Note"
+  }
+}

@@ -1,9 +1,11 @@
+import { use } from "react";
 import type { ReactNode } from "react";
-import { formatRate } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { type FunnelCount, type RateStat } from "@/lib/metrics";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import type { TranslatorOf } from "@/i18n/translator";
+import type { Formats } from "@/lib/format";
 
 /**
  * LE tableau d'un funnel — la seule façon d'afficher une suite de pas dans
@@ -35,7 +37,7 @@ function maskedReason(rate: RateStat): string {
  * compacte (tableaux denses), l'explication passe dans le `title` natif du
  * tiret au lieu d'une ligne sous la cellule.
  */
-export function rateText(rate: RateStat | null, compact = false): ReactNode {
+export function rateText(rate: RateStat | null, fmt: Formats, compact = false): ReactNode {
   if (!rate) return MASKED;
   if (rate.hidden || rate.percent === null) {
     if (compact) {
@@ -51,10 +53,10 @@ export function rateText(rate: RateStat | null, compact = false): ReactNode {
       </span>
     );
   }
-  return formatRate(rate.percent);
+  return fmt.rate(rate.percent);
 }
 
-export function dropText(rate: RateStat | null, t: TranslatorOf<"analytics.funnelSteps">): ReactNode {
+export function dropText(rate: RateStat | null, t: TranslatorOf<"analytics.funnelSteps">, fmt: Formats): ReactNode {
   if (!rate || rate.hidden || rate.percent === null) return MASKED;
   if (rate.percent > 100) {
     return (
@@ -63,7 +65,7 @@ export function dropText(rate: RateStat | null, t: TranslatorOf<"analytics.funne
       </span>
     );
   }
-  return formatRate(100 - rate.percent);
+  return fmt.rate(100 - rate.percent);
 }
 
 export function CountCell({ count }: { count: FunnelCount }) {
@@ -72,6 +74,7 @@ export function CountCell({ count }: { count: FunnelCount }) {
 
 export function FunnelSteps({ rows, labelHeader = "Pas" }: { rows: FunnelRow[]; labelHeader?: string }) {
   const t = useTranslations("analytics.funnelSteps");
+  const fmt = use(getFormats());
   const max = Math.max(1, ...rows.map((r) => (r.count.unavailable ? 0 : r.count.n)));
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-card">
@@ -112,8 +115,8 @@ export function FunnelSteps({ rows, labelHeader = "Pas" }: { rows: FunnelRow[]; 
                 <td className="px-4 py-3 text-right align-top tabular-nums">
                   <CountCell count={row.count} />
                 </td>
-                <td className="px-4 py-3 text-right align-top tabular-nums">{rateText(row.rate)}</td>
-                <td className="px-4 py-3 text-right align-top tabular-nums">{dropText(row.rate, t)}</td>
+                <td className="px-4 py-3 text-right align-top tabular-nums">{rateText(row.rate, fmt)}</td>
+                <td className="px-4 py-3 text-right align-top tabular-nums">{dropText(row.rate, t, fmt)}</td>
               </tr>
             );
           })}

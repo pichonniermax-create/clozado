@@ -96,7 +96,7 @@
     "inserer_un_bloc_ici": "Insérer un bloc ici"
   },
   "list": {
-    "a_contact_contacts": "à {count} {count, plural, one {contact} other {contacts}} — {label}",
+    "a_contact_contacts": " à {count} {count, plural, one {contact} other {contacts}} — {label}",
     "aucune_newsletter_pour_l_instant": "Aucune newsletter pour l’instant",
     "brouillon": "Brouillon",
     "choisis_une_cible_decris_ce_que_baa4": "Choisis une cible, décris ce que l’email doit dire, et le composer rédige avec l’identité de la personne à qui tu écris.",
@@ -148,7 +148,7 @@
     "redaction_en_cours": "Rédaction en cours…",
     "rediger_l_email": "Rédiger l’email",
     "rien_d_envoye_a_ces_contacts_95af": "Rien d’envoyé à ces contacts sur les douze derniers mois.",
-    "sujets": "· sujets : {join}",
+    "sujets": " · sujets : {join}",
     "supprimer_ce_bloc": "Supprimer ce bloc",
     "termine": "Terminé",
     "un_chiffre_n_est_ni_dans_5699": "Un chiffre n’est ni dans tes chiffres vérifiés, ni entre crochets — vérifie-le ou mets-le entre crochets.",

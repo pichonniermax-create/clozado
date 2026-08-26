@@ -1,0 +1,196 @@
+{
+  "apiAiDesign": {
+    "authentification_requise": "Authentication required.",
+    "erreur_de_generation_ia": "AI generation error.",
+    "requete_invalide": "Invalid request."
+  },
+  "apiRender": {
+    "authentification_requise": "Authentication required.",
+    "requete_invalide": "Invalid request."
+  },
+  "blockEditor": {
+    "ajouter_une_fiche": "Add a card",
+    "ce_qu_il_mesure": "What it measures",
+    "deux_chiffres_cles_qui_se_suivent_b859": "Two key figures in a row are displayed side by side in the email.",
+    "deux_ou_trois_lignes_suffisent": "Two or three lines are enough.",
+    "ecris_ici": "Write here…",
+    "entre_2_et_4_fiches": "Between 2 and 4 cards.",
+    "ex_3_1": "e.g. 3.1%",
+    "ex_avant_de_signer": "e.g. Before you sign",
+    "ex_hors_assurance": "e.g. excluding insurance",
+    "ex_les_taux_repassent_sous_les_ed77": "e.g. Rates fall back below 3%",
+    "ex_marche": "e.g. Market",
+    "ex_prendre_rendez_vous": "e.g. Book a meeting",
+    "ex_taux_moyen_sur_20_ans": "e.g. Average rate over 20 years",
+    "ex_un_projet_en_cours": "e.g. A project underway?",
+    "facultatif_si_tu_en_mets_une_8985": "Optional. If you add one, add one to every figure in the row — otherwise it is ignored.",
+    "facultatif_un_ou_deux_mots_au_48c2": "Optional — one or two words above the title, in small caps.",
+    "fiche": "Card {n}",
+    "https": "https://…",
+    "l_adresse_vers_laquelle_le_bouton_360b": "The address the button sends to.",
+    "laisse_une_ligne_vide_pour_commencer_dc83": "Leave an empty line to start a new paragraph.",
+    "le_chiffre": "The figure",
+    "levels": {
+      "1": {
+        "label": "Main title",
+        "hint": "At the top of the email, only once"
+      },
+      "2": {
+        "label": "Subtitle",
+        "hint": "Opens a section"
+      },
+      "3": {
+        "label": "Small heading",
+        "hint": "Inside a section"
+      }
+    },
+    "lien": "Link",
+    "niveau": "Level",
+    "precision": "Note",
+    "retirer": "Remove",
+    "surtitre": "Overline",
+    "tel_qu_il_doit_s_afficher_191c": "Exactly as it should appear, unit included.",
+    "texte": "Text",
+    "texte_de_l_encart": "Box text",
+    "texte_du_bouton": "Button text",
+    "titre": "Title",
+    "titre_de_l_encart": "Box title",
+    "un_trait_horizontal_qui_separe_deux_6e97": "A horizontal line that separates two parts of the email. Nothing to configure.",
+    "une_phrase_qui_donne_envie_de_ae4d": "A sentence that makes people want to click."
+  },
+  "blocks": {
+    "bouton": {
+      "label": "Button",
+      "hint": "A simple button"
+    },
+    "chiffre_cle": {
+      "label": "Key figure",
+      "hint": "A striking figure, displayed large"
+    },
+    "cta": {
+      "label": "Call to action",
+      "hint": "A box that prompts a click"
+    },
+    "fiches": {
+      "label": "Cards",
+      "hint": "2 to 4 short boxes, side by side"
+    },
+    "separateur": {
+      "label": "Divider",
+      "hint": "Separates two parts"
+    },
+    "texte": {
+      "label": "Text",
+      "hint": "One or more paragraphs"
+    },
+    "titre": {
+      "label": "Title",
+      "hint": "Opens a section"
+    }
+  },
+  "detail": {
+    "desactivee": "{label} (deactivated)",
+    "newsletters": "Newsletters"
+  },
+  "insertionPoint": {
+    "inserer_un_bloc_ici": "Insert a block here"
+  },
+  "list": {
+    "a_contact_contacts": " to {count} {count, plural, one {contact} other {contacts}} — {label}",
+    "aucune_newsletter_pour_l_instant": "No newsletters yet",
+    "brouillon": "Draft",
+    "choisis_une_cible_decris_ce_que_baa4": "Choose an audience, describe what the email should say, and the composer writes it with the identity of the person you’re writing to.",
+    "ecrire_la_premiere_voir_les_cibles": "<link>Write the first one</link><link2>See audiences</link2>",
+    "envoyee": "Sent",
+    "envoyee_le": "· sent on {formatDate}{value}",
+    "les_emails_que_tu_prepares_pour_b188": "The emails you prepare for your audiences. A draft becomes a mailing once you mark it “sent”: its audience is then frozen.",
+    "modifiee_le": "· edited on {formatDateTime}",
+    "newsletters": "Newsletters",
+    "nouvelle_newsletter": "New newsletter",
+    "objet_a_ecrire": "Subject to write",
+    "supprimer": "Delete"
+  },
+  "new": {
+    "aucune_cible_pour_l_instant": "No audiences yet",
+    "creer_une_cible": "Create an audience",
+    "newsletters": "Newsletters",
+    "nouvelle_newsletter": "New newsletter",
+    "un_email_s_ecrit_pour_quelqu_76e5": "An email is written for someone: you need at least one audience — a segment of your contacts and the identity of the person you’re talking to. Your profession suggests some to get you started."
+  },
+  "newsletterEditor": {
+    "a_verifier_avant_d_envoyer": "Check before sending",
+    "annuler": "Cancel",
+    "annuler_la_derniere_action_z": "Undo the last action (⌘Z)",
+    "apercu": "Preview",
+    "brouillon_sans_titre": "Untitled draft",
+    "calcul_des_destinataires": "Counting recipients…",
+    "ce_que_le_lecteur_voit_en_2bcb": "What the reader sees first",
+    "cette_cible_est_vide_personne_ne_5121": "— this audience is empty, nobody will receive this email as it stands.",
+    "chiffre": "Figure {n}",
+    "choisir_la_cible": "Choose the audience",
+    "connexion_impossible_reessaie": "Connection failed. Try again.",
+    "contact_contacts_reel_reels_aujourd_hui": "<span>{count}</span> real {count, plural, one {contact} other {contacts}} today",
+    "deja_recu_par_ces_contacts_a_fe0a": "Already received by these contacts — don’t repeat:",
+    "ecrire_moi_meme": "write it myself",
+    "ex_la_baisse_des_taux_et_6b32": "e.g. the drop in rates and what it changes for a home purchase this summer.",
+    "il_y_a_plusieurs_invitations_a_a0a4": "There are several invitations to click. Only one button or call-to-action box per email.",
+    "l_apercu_est_un_peu_long_d84d": "The preview is a bit long: it may get cut off.",
+    "l_objet_est_un_peu_long_0f43": "The subject is a bit long: it may get cut off in some inboxes.",
+    "la_ligne_grise_sous_l_objet_ec2d": "The grey line under the subject, in the inbox",
+    "la_redaction_a_echoue": "Writing failed.",
+    "le_de_la_cible": "<link>{n}</link> — on {formatDate}, <span>{n2}%</span> of the audience{n3}",
+    "matiere_article_articles_mis_de_cote_0c6a": "Material: {count} {count, plural, one {article} other {articles}} set aside — every source used will be cited with its link",
+    "modifier": "Edit: {blockEditorTitle}",
+    "objet": "Subject",
+    "ou": "or",
+    "pour": "To",
+    "que_doit_dire_cet_email": "What should this email say?",
+    "redaction_en_cours": "Writing…",
+    "rediger_l_email": "Write the email",
+    "rien_d_envoye_a_ces_contacts_95af": "Nothing sent to these contacts in the last twelve months.",
+    "sujets": " · topics: {join}",
+    "supprimer_ce_bloc": "Delete this block",
+    "termine": "Done",
+    "un_chiffre_n_est_ni_dans_5699": "A figure is neither in your verified figures nor in brackets — check it or put it in brackets.",
+    "un_peu_long_risque_d_etre_49a6": "A bit long: it may get cut off in some inboxes."
+  },
+  "review": {
+    "blocs_d_appel_a_l_action_c471": "{ctaCount} call-to-action blocks (cta/button) — only one is allowed per newsletter.",
+    "chiffre_non_autorise_dans_un_bloc_3f72": "Unauthorized figure “{figure}” in a {type} block — neither a verified figure of the organization nor a [placeholder].",
+    "objet_de_caracteres_maximum": "Subject is {count} characters — maximum {subjectMax}.",
+    "preheader_de_caracteres_maximum": "Preheader is {count} characters — maximum {preheaderMax}."
+  },
+  "saveIndicator": {
+    "enregistre": "Saved {formatSavedAt}",
+    "enregistrement": "Saving…",
+    "modifications_en_cours": "Changes pending…",
+    "non_enregistre": "Not saved — {message}"
+  },
+  "sendStatusCard": {
+    "a_contact_contacts_tels_qu_ils_9bcd": "To <span>{count}</span> {count, plural, one {contact} other {contacts}} — <link>{label}</link>{n}, as they were that day. This history no longer changes, even if the audience changes.",
+    "annuler_le_marquage": "Unmark as sent",
+    "brouillon_pas_encore_envoyee": "Draft — not sent yet",
+    "date_d_envoi": "Send date",
+    "enregistrer_les_sujets": "Save topics",
+    "envoyee_le": "Sent on {formatDate}",
+    "l_audience_a_ete_figee_a_aadf": "The audience was frozen on that date.",
+    "l_envoi_se_fait_depuis_ton_f872": "Sending happens from your emailing tool. Once it has gone out, mark it here: the recipient list is frozen as it stands today — that’s what the contact records’ history and the anti-repetition check will read.",
+    "marquee_par_erreur_annuler_efface_la_fcbf": "Marked by mistake? Unmarking clears the recipient list and the snapshot of the audience.",
+    "marquer_comme_envoyee": "Mark as sent",
+    "separes_par_des_virgules": "Separated by commas.",
+    "separes_par_des_virgules_c_est_ee64": "Separated by commas — this is what the composer will bring up next time you write to these contacts.",
+    "sujets_traites": "Topics covered",
+    "taux_assurance_emprunteur": "rates, borrower insurance"
+  },
+  "unitFrame": {
+    "deplacer_ce_bloc": "Move this block",
+    "dupliquer": "Duplicate",
+    "dupliquer_ce_bloc": "Duplicate this block",
+    "glisser_pour_deplacer": "Drag to move",
+    "supprimer": "Delete",
+    "supprimer_ce_bloc": "Delete this block"
+  },
+  "useAutosave": {
+    "enregistrement_impossible": "Could not save."
+  }
+}

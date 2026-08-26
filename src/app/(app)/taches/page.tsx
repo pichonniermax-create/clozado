@@ -28,7 +28,7 @@ import {
   reopenTaskAction,
   updateTaskAction,
 } from "@/lib/tasks/actions";
-import { formatDateTime } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
@@ -44,6 +44,7 @@ type OrgUser = { id: string; name: string | null; email: string | null };
 
 export default async function TasksPage({ searchParams }: { searchParams: Promise<Params> }) {
   const t = await getTranslations("tasks.page");
+  const fmt = await getFormats();
   const user = await requireUser();
   const params = await searchParams;
 
@@ -206,7 +207,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
                   </span>
                   {task.completedAt && (
                     <span className="text-xs tabular-nums text-muted-foreground">
-                      {t("achevee_le", { formatDateTime: formatDateTime(task.completedAt), n: (task.assigneeLabel && ` · ${task.assigneeLabel}`) ?? "" })}
+                      {t("achevee_le", { formatDateTime: fmt.dateTime(task.completedAt), n: (task.assigneeLabel && ` · ${task.assigneeLabel}`) ?? "" })}
                     </span>
                   )}
                 </div>

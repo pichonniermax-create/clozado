@@ -21,7 +21,7 @@ import { listPartners } from "@/db/queries/partners";
 import { generateAutoTasks, getTasksDueSummary } from "@/db/queries/tasks";
 import { setActiveOrganizationAction } from "@/lib/admin/actions";
 import { completeTaskAction } from "@/lib/tasks/actions";
-import { formatDays, formatEuros } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { DASHBOARD_PERIOD, hasAnyDeal, openDeals, parseMetricFilters, PERIOD_PRESETS } from "@/lib/metrics";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
@@ -45,6 +45,7 @@ const JOURNAL_PREVIEW = 8;
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ periode?: string }> }) {
   const t = await getTranslations("dashboard.page");
   const tt = await getTranslations("tasks");
+  const fmt = await getFormats();
   const user = await requireUser();
   const raw = await searchParams;
 
@@ -104,7 +105,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     listOrganizationJournal(user, JOURNAL_PREVIEW, await getTranslations("activities.queries")),
   ]);
   // La période des indicateurs : celle de l'URL si c'est un préréglage, sinon celle du tableau de bord (pas celle des écrans analytiques).
-  const parsed = parseMetricFilters({ periode: PERIOD_PRESETS.some((p) => p.key === raw.periode) ? raw.periode : DASHBOARD_PERIOD });
+  const parsed = parseMetricFilters({ periode: PERIOD_PRESETS.some((p) => p.key === raw.periode) ? raw.periode : DASHBOARD_PERIOD }, fmt.timeZone);
 
   const unpaidTotal = board.unpaidCommissions.reduce(
     (sum, c) => sum + (Number(c.computedAmount) || 0),
@@ -130,8 +131,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         row.daysUntilExpiry !== null && row.daysUntilExpiry <= board.thresholds.expiringSoonDays
           ? row.daysUntilExpiry <= 0
             ? t("lien_expire")
-            : t("expire_dans", { formatDays: formatDays(row.daysUntilExpiry) })
-          : t("sans_reponse_depuis", { formatDays: formatDays(row.daysSinceSent) }),
+            : t("expire_dans", { formatDays: fmt.days(row.daysUntilExpiry) })
+          : t("sans_reponse_depuis", { formatDays: fmt.days(row.daysSinceSent) }),
       critical: row.critical,
     })),
     ...board.acceptedStale.map((row) => ({
@@ -139,7 +140,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       dealId: row.dealId,
       title: row.dealTitle,
       partner: row.partnerName,
-      detail: t("acceptee_rien_depuis", { formatDays: formatDays(row.daysSinceActivity) }),
+      detail: t("acceptee_rien_depuis", { formatDays: fmt.days(row.daysSinceActivity) }),
       critical: false,
     })),
   ].slice(0, 5);
@@ -219,7 +220,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         />
         <StatTile
           label={t("a_encaisser")}
-          value={unpaidTotal > 0 ? (formatEuros(unpaidTotal) ?? "—") : "—"}
+          value={unpaidTotal > 0 ? (fmt.money(unpaidTotal) ?? "—") : "—"}
           hint={`${t("commission_confirmee_commissions_confirmees", { n: board.unpaidCommissions.length })}`}
           icon={<Banknote />}
           tone="success"

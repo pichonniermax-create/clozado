@@ -1,6 +1,7 @@
+import { use } from "react";
 import type { ReactNode } from "react";
 import { rateText } from "@/components/analytics/funnel-steps";
-import { formatEuros } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import type { RateStat } from "@/lib/metrics";
 import { useTranslations } from "next-intl";
 
@@ -34,6 +35,7 @@ export function BreakdownTable({
   amountHeader?: string;
 }) {
   const t = useTranslations("analytics.breakdownTable");
+  const fmt = use(getFormats());
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full min-w-[32rem] text-sm">
@@ -60,9 +62,9 @@ export function BreakdownTable({
                 {row.label}
               </th>
               <td className="px-4 py-3 text-right align-top tabular-nums">{row.n}</td>
-              <td className="px-4 py-3 text-right align-top tabular-nums">{rateText(row.share, true)}</td>
+              <td className="px-4 py-3 text-right align-top tabular-nums">{rateText(row.share, fmt, true)}</td>
               <td className="px-4 py-3 text-right align-top tabular-nums">
-                {row.withoutAmount === row.n ? <span className="text-muted-foreground">—</span> : formatEuros(row.amount)}
+                {row.withoutAmount === row.n ? <span className="text-muted-foreground">—</span> : fmt.money(row.amount)}
                 {row.withoutAmount > 0 && (
                   <span className="block text-xs text-muted-foreground">
                     {t("sans_montant", { withoutAmount: row.withoutAmount })}

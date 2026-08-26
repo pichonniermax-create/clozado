@@ -1,3 +1,4 @@
+import { use } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,7 @@ import { ListCard } from "@/components/ui/list-card";
 import { autoRuleLabel, formatRecurrence, priorityLabel } from "@/components/tasks/labels";
 import { todayAsStoredDate, type TaskRow } from "@/db/queries/tasks";
 import { completeTaskAction, createTaskFromFicheAction } from "@/lib/tasks/actions";
-import { formatDate } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { useTranslations } from "next-intl";
 
 /**
@@ -124,7 +125,8 @@ export function TaskMetaLine({
 }) {
   const t = useTranslations("tasks.taskSection");
   const tt = useTranslations("tasks");
-  const overdue = task.status === "open" && task.dueAt !== null && task.dueAt < todayAsStoredDate();
+  const fmt = use(getFormats());
+  const overdue = task.status === "open" && task.dueAt !== null && task.dueAt < todayAsStoredDate(fmt.timeZone);
   const showDeal = task.dealId && task.dealTitle && task.dealId !== hideDealId;
   const showContact = task.contactId && task.contactName && task.contactId !== hideContactId;
 
@@ -132,8 +134,8 @@ export function TaskMetaLine({
     <span className="flex flex-wrap items-center gap-x-1.5 text-xs tabular-nums text-muted-foreground">
       {task.dueAt ? (
         <span className={overdue ? "font-medium text-destructive" : undefined}>
-          {overdue ? t("en_retard_echeance_le") : t("echeance_le")}
-          {formatDate(task.dueAt)}
+          {overdue ? t("en_retard_echeance_le") : t("echeance_le")}{" "}
+          {fmt.date(task.dueAt)}
         </span>
       ) : (
         <span>{t("sans_echeance")}</span>

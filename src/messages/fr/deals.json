@@ -25,7 +25,7 @@
     "lead_a_l_origine_de_l_9387": "Lead à l’origine de l’affaire",
     "lead_du": "Lead du {formatDate} — <span>{leadOriginLabel}</span>",
     "moins_d_un_jour": "moins d’un jour",
-    "montant_estime": "Montant estimé (€)",
+    "montant_estime": "Montant estimé ({currency})",
     "motif_de_perte": "Motif de perte",
     "origine": "Origine",
     "partage_partages": "{count} {count, plural, one {partage} other {partages}}",
@@ -95,7 +95,7 @@
     "liste": "Liste",
     "m_et_mme_perrin": "M. et Mme Perrin",
     "montant": "Montant",
-    "montant_estime": "Montant estimé (€)",
+    "montant_estime": "Montant estimé ({currency})",
     "nom_du_type": "Nom du type",
     "nouvelle_affaire": "Nouvelle affaire",
     "nouvelle_affaire_pour": "Nouvelle affaire pour {name}",
@@ -145,6 +145,9 @@
     "sans_motif": "sans motif",
     "sans_origine_aucun_lead": "sans origine (aucun lead)",
     "selection_venue_de_l_analytique": "Sélection venue de l’analytique",
-    "suivies_par": "suivies par {n}"
+    "suivies_par": "suivies par {n}",
+    "perdues": "perdues",
+    "motif": "motif « {n} »",
+    "affaires": "Affaires {outcome}{parts}"
   }
 }

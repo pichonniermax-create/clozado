@@ -31,7 +31,7 @@ import {
 import { listLossReasons } from "@/db/queries/loss-reasons";
 import { listPipelinesWithStages } from "@/db/queries/pipelines";
 import { createDealAction, createDealTypeAction } from "@/lib/deals/actions";
-import { formatDate, formatEuros, formatPercent } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { metricQueryString, parseDealSelection, type DealSelectionParams, type ParsedDealSelection } from "@/lib/metrics";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -66,10 +66,11 @@ async function addDealType(formData: FormData) {
 
 export default async function DealsPage({ searchParams }: { searchParams: Promise<Params> }) {
   const tr = await getTranslations("deals.list");
+  const fmt = await getFormats();
   const user = await requireUser();
   const params = await searchParams;
   // Une sélection analytique n'a de sens qu'en liste : le kanban ne filtre pas.
-  const sel = parseDealSelection(params);
+  const sel = parseDealSelection(params, fmt.timeZone);
   const vue = params.vue === "liste" || sel.analytic ? "liste" : "kanban";
 
   if (sel.analytic && !user.organizationId) {
@@ -289,7 +290,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label={tr("montant_estime")} htmlFor="estimatedAmount">
+              <Field label={tr("montant_estime", { currency: fmt.currency })} htmlFor="estimatedAmount">
                 <Input id="estimatedAmount" name="estimatedAmount" type="number" min="0" />
               </Field>
             </div>
@@ -401,6 +402,7 @@ async function ListeView({
   baseQuery: (over: Record<string, string | undefined>) => string;
 }) {
   const t = await getTranslations("deals.list");
+  const fmt = await getFormats();
   const sort = (["title", "amount", "close", "stage", "updated"] as const).includes(
     params.tri as DealsTableSort
   )
@@ -440,7 +442,7 @@ async function ListeView({
     <section className="flex flex-col gap-3">
       {sel.analytic && (
         <DealSelectionBanner
-          description={describeDealSelection(sel, { stages, types, origins, users: orgUsers, reasons: lossReasons }, await getTranslations("deals.selectionBanner"), await getTranslations("metrics"))}
+          description={describeDealSelection(sel, { stages, types, origins, users: orgUsers, reasons: lossReasons }, await getTranslations("deals.selectionBanner"), await getTranslations("metrics"), fmt)}
           total={total}
           clearHref={`/affaires?vue=liste&pipeline=${pipelineId}`}
           backHref={`${sel.selection.cohort === "perte" ? "/analytique/pertes" : "/analytique/funnel"}${metricQueryString(sel.parsed.params)}`}
@@ -561,13 +563,13 @@ async function ListeView({
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-right font-medium tabular-nums">
-                      {deal.estimatedAmount ? formatEuros(deal.estimatedAmount) : "—"}
+                      {deal.estimatedAmount ? fmt.money(deal.estimatedAmount) : "—"}
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
-                      {probability != null ? formatPercent(probability) : "—"}
+                      {probability != null ? fmt.percent(probability) : "—"}
                     </td>
                     <td className="px-4 py-2.5 tabular-nums">
-                      {deal.expectedCloseDate ? formatDate(deal.expectedCloseDate) : "—"}
+                      {deal.expectedCloseDate ? fmt.date(deal.expectedCloseDate) : "—"}
                     </td>
                     <td className="max-w-32 truncate px-4 py-2.5">{ownerName ?? "—"}</td>
                   </tr>

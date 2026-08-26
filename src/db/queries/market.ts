@@ -15,6 +15,7 @@ import type { Observation } from "@/lib/watch/market-readers";
 import { formatPeriod } from "@/lib/watch/periods";
 import { AppError } from "@/lib/errors";
 import type { TranslatorOf } from "@/i18n/translator";
+import type { Formats } from "@/lib/format";
 
 /**
  * LES CHIFFRES — les observations de marché partagées (`market_observations`,
@@ -176,7 +177,7 @@ export function proposedIndicators(followed: readonly string[], packKeys: readon
  * écrites. La valeur est celle qui se cite (« 2,25 % »), la date la
  * période telle que publiée, la source celle du catalogue.
  */
-export async function syncIndicatorFigures(organizationId: string, t: TranslatorOf<"figures">): Promise<number> {
+export async function syncIndicatorFigures(organizationId: string, t: TranslatorOf<"figures">, fmt: Formats): Promise<number> {
   const keys = await listFollowedIndicatorKeys(organizationId);
   const observations = await getLatestObservations(keys);
   let written = 0;
@@ -186,10 +187,10 @@ export async function syncIndicatorFigures(organizationId: string, t: Translator
     if (!indicator || !obs) continue;
     const row = {
       label: t(`indicators.${indicator.key}.label`),
-      value: formatIndicatorValue(obs.valueText, indicator.unit),
+      value: formatIndicatorValue(obs.valueText, indicator.unit, fmt.tag),
       sourceName: obs.sourceName,
       sourceUrl: obs.sourceUrl,
-      asOf: formatPeriod(obs.period, t),
+      asOf: formatPeriod(obs.period, t, fmt),
       asOfDate: obs.periodStart,
       updatedAt: new Date(),
     };

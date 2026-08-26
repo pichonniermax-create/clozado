@@ -19,7 +19,7 @@ import {
   loadCriteriaOptions,
   searchContactsToAdd,
 } from "@/db/queries/mail-targets";
-import { formatDate } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { requireUser } from "@/lib/session";
 import {
   addMembersAction,
@@ -41,6 +41,7 @@ export default async function TargetPage({
 }) {
   const t = await getTranslations("targets.detail");
   const tt = await getTranslations("targets");
+  const fmt = await getFormats();
   const user = await requireUser();
   const { id } = await params;
   const query = await searchParams;
@@ -122,7 +123,7 @@ export default async function TargetPage({
 
       {archived && (
         <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-          {t("desactivee_le_elle_n_est_plus_159e", { formatDate: formatDate(target.archivedAt!) })}
+          {t("desactivee_le_elle_n_est_plus_159e", { formatDate: fmt.date(target.archivedAt!) })}
         </p>
       )}
 
@@ -284,7 +285,7 @@ export default async function TargetPage({
                 href={`/newsletters/${s.id}`}
                 title={s.subject || s.title}
                 subtitle={
-                  `Envoyée le ${formatDate(s.sentAt)} à ${s.recipients} contact${s.recipients > 1 ? "s" : ""} · ${s.overlap} dans la cible actuelle` +
+                  `Envoyée le ${fmt.date(s.sentAt)} à ${s.recipients} contact${s.recipients > 1 ? "s" : ""} · ${s.overlap} dans la cible actuelle` +
                   (s.overlapPercent !== null ? ` (${s.overlapPercent} %)` : "") +
                   (s.topics.length > 0 ? ` · sujets : ${s.topics.join(", ")}` : "")
                 }

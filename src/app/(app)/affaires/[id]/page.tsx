@@ -34,7 +34,7 @@ import { toRenderBrand } from "@/db/queries/newsletters";
 import { listOrganizationAssetMeta } from "@/db/queries/organization-assets";
 import { getOrganizationOfRecord } from "@/db/queries/organizations";
 import { listPartners } from "@/db/queries/partners";
-import { formatCommission, formatDate, formatDays, formatEuros, formatPercent } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
 import type { TranslatorOf } from "@/i18n/translator";
@@ -55,6 +55,7 @@ export default async function DealPage({
 }) {
   const tr = await getTranslations("deals.detail");
   const tq = await getTranslations("settings.queries");
+  const fmt = await getFormats();
   const user = await requireUser();
   const { id } = await params;
   const query = await searchParams;
@@ -146,7 +147,7 @@ export default async function DealPage({
         description={
           <>
             {typeLabel} · {deal.clientName}
-            {deal.estimatedAmount && ` · ≈ ${formatEuros(deal.estimatedAmount)}`}
+            {deal.estimatedAmount && ` · ≈ ${fmt.money(deal.estimatedAmount)}`}
           </>
         }
         backTo={{ href: "/affaires", label: tr("affaires") }}
@@ -196,7 +197,7 @@ export default async function DealPage({
 
           <form action={saveDetails} className="flex flex-col gap-4 border-t border-border pt-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label={tr("montant_estime")} htmlFor="estimatedAmount">
+              <Field label={tr("montant_estime", { currency: fmt.currency })} htmlFor="estimatedAmount">
                 <Input
                   id="estimatedAmount"
                   name="estimatedAmount"
@@ -210,7 +211,7 @@ export default async function DealPage({
                 htmlFor="probability"
                 hint={
                   "outcome" in currentDealStatus && currentDealStatus.probability != null
-                    ? tr("vide_celle_de_l_etape", { formatPercent: (formatPercent(currentDealStatus.probability)) ?? "" })
+                    ? tr("vide_celle_de_l_etape", { formatPercent: (fmt.percent(currentDealStatus.probability)) ?? "" })
                     : tr("vide_celle_de_l_etape_f17a")
                 }
               >
@@ -287,7 +288,7 @@ export default async function DealPage({
                       />
                       <span>{d.label}</span>
                       <span className="tabular-nums text-muted-foreground">
-                        {days < 1 ? tr("moins_d_un_jour") : formatDays(days)}
+                        {days < 1 ? tr("moins_d_un_jour") : fmt.days(days)}
                         {d.current && tr("en_cours")}
                       </span>
                     </li>
@@ -309,7 +310,7 @@ export default async function DealPage({
           <p className="text-sm">
             {currentLead ? (
               <>
-                {tr.rich("lead_du", { formatDate: formatDate(currentLead.receivedAt), leadOriginLabel: leadOriginLabel(currentLead, tq), span: (chunks) => <span className="font-medium">{chunks}</span> })}
+                {tr.rich("lead_du", { formatDate: fmt.date(currentLead.receivedAt), leadOriginLabel: leadOriginLabel(currentLead, tq), span: (chunks) => <span className="font-medium">{chunks}</span> })}
                 {currentLead.pageUrl && <span className="text-muted-foreground"> · {currentLead.pageUrl}</span>}
               </>
             ) : (
@@ -331,7 +332,7 @@ export default async function DealPage({
                   <option value="">{tr("aucune_origine")}</option>
                   {contactLeads.map((l) => (
                     <option key={l.id} value={l.id}>
-                      {formatDate(l.receivedAt)} — {leadOriginLabel(l, tq)}
+                      {fmt.date(l.receivedAt)} — {leadOriginLabel(l, tq)}
                     </option>
                   ))}
                 </select>
@@ -354,7 +355,7 @@ export default async function DealPage({
                 <li key={share.id} className="flex flex-col gap-2 px-4 py-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex min-w-0 flex-col">
-                      {tr.rich("envoye_le", { partnerName, formatDate: formatDate(share.sentAt), n: (share.expiresAt && tr("expire_le", { formatDate: formatDate(share.expiresAt) })) ?? "", span: (chunks) => <span className="truncate text-sm font-medium">{chunks}</span>, span2: (chunks) => <span className="text-xs tabular-nums text-muted-foreground">{chunks}</span> })}
+                      {tr.rich("envoye_le", { partnerName, formatDate: fmt.date(share.sentAt), n: (share.expiresAt && tr("expire_le", { formatDate: fmt.date(share.expiresAt) })) ?? "", span: (chunks) => <span className="truncate text-sm font-medium">{chunks}</span>, span2: (chunks) => <span className="text-xs tabular-nums text-muted-foreground">{chunks}</span> })}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <ShareStatusBadge status={share.status} />
@@ -375,7 +376,7 @@ export default async function DealPage({
                   {commission && (
                     <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 px-3 py-2">
                       <span className="text-xs">
-                        {tr.rich("commission", { formatCommission: formatCommission(commission), n: commissionStateLabel(commission.state, tr), span: (chunks) => <span className="text-muted-foreground">{chunks}</span>, span2: (chunks) => <span className="font-medium tabular-nums">{chunks}</span>, span3: (chunks) => <span className="text-muted-foreground">{chunks}</span> })}
+                        {tr.rich("commission", { formatCommission: fmt.commission(commission), n: commissionStateLabel(commission.state, tr), span: (chunks) => <span className="text-muted-foreground">{chunks}</span>, span2: (chunks) => <span className="font-medium tabular-nums">{chunks}</span>, span3: (chunks) => <span className="text-muted-foreground">{chunks}</span> })}
                       </span>
                       {commission.state === "prevue" && (
                         <ConfirmCommissionButton commissionId={commission.id} />

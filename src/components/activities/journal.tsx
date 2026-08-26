@@ -1,3 +1,4 @@
+import { use } from "react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
@@ -28,7 +29,7 @@ import { autoRuleLabel } from "@/components/tasks/labels";
 import { ACTIVITY_TYPES, journalHeadline } from "@/components/activities/labels";
 import type { Journal as JournalData, JournalEntry, JournalKind } from "@/db/queries/activities";
 import { deleteActivityAction, logActivityAction } from "@/lib/activities/actions";
-import { formatDateTime } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { useTranslations } from "next-intl";
 
 /**
@@ -179,6 +180,7 @@ function JournalRow({
   const t = useTranslations("activities.journal");
   const ta = useTranslations("activities");
   const tt = useTranslations("tasks");
+  const fmt = use(getFormats());
   const showDeal = entry.dealId && entry.dealTitle && context !== "deal";
   const showContact = entry.contactId && entry.contactName && context !== "contact";
   // Le titre de la tâche est déjà dans l'intitulé (journalHeadline).
@@ -221,7 +223,7 @@ function JournalRow({
         </div>
         {body && <p className="text-sm whitespace-pre-line text-muted-foreground">{body}</p>}
         <p className="text-xs tabular-nums text-muted-foreground">
-          {entry.actorLabel ?? t("systeme")} · {formatDateTime(entry.at)}
+          {entry.actorLabel ?? t("systeme")} · {fmt.dateTime(entry.at)}
           {showDeal && (
             <>
               {t.rich("affaire", { dealTitle: (entry.dealTitle) ?? "", link: (chunks) => <Link href={`/affaires/${entry.dealId}`}

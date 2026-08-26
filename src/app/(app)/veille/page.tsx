@@ -1,3 +1,4 @@
+import { use } from "react";
 import Link from "next/link";
 import { ExternalLink, RefreshCw, ShoppingBasket, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +27,7 @@ import {
   type WatchItemRow,
 } from "@/db/queries/watch";
 import type { WatchRun, WatchSource, WatchTopic } from "@/db/schema";
-import { formatCountry, formatDate, formatDateTime, formatRelativeTime } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { resolveBusinessPack } from "@/lib/metrics/packs";
 import { requireUser } from "@/lib/session";
 import {
@@ -51,6 +52,7 @@ import { scheduleWatchRefresh } from "@/lib/watch/schedule";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import type { TranslatorOf } from "@/i18n/translator";
+import type { Formats } from "@/lib/format";
 
 /** La collecte lancée à la visite s'exécute après la réponse : la fonction reste en vie le temps de son budget (120 s) et d'une marge. */
 export const maxDuration = 180;
@@ -69,6 +71,7 @@ export default async function WatchPage({
   const tr = await getTranslations("watch.page");
   const tm = await getTranslations("metrics");
   const tt = await getTranslations("templates");
+  const fmt = await getFormats();
   const user = await requireUser();
   const params = await searchParams;
 
@@ -242,13 +245,13 @@ export default async function WatchPage({
             {runs.map((run) => (
               <li key={run.id} className="flex flex-col gap-0.5 px-4 py-2.5">
                 <span className="tabular-nums">
-                  {formatDateTime(run.startedAt)} — {run.trigger === "manual" ? tr("a_la_main") : run.trigger === "cron" ? tr("programmee") : tr("a_la_visite")}
+                  {fmt.dateTime(run.startedAt)} — {run.trigger === "manual" ? tr("a_la_main") : run.trigger === "cron" ? tr("programmee") : tr("a_la_visite")}
                   {run.finishedAt ? "" : <>{" "}{tr("en_cours")}</>}
                 </span>
                 <span className="text-xs tabular-nums text-muted-foreground">
                   {run.finishedAt
                     ? tr("nouveau_nouveaux_resume_resumes_source_sources_44fe", { itemsNew: run.itemsNew, itemsSummarized: run.itemsSummarized, sourcesOk: run.sourcesOk, value: run.sourcesFailed ? tr("en_echec", { sourcesFailed: run.sourcesFailed }) : "" })
-                    : "démarrée " + formatRelativeTime(run.startedAt)}
+                    : "démarrée " + fmt.relative(run.startedAt)}
                   {run.error ? ` — ${run.error}` : ""}
                 </span>
               </li>
@@ -262,10 +265,11 @@ export default async function WatchPage({
 
 function RunStatus({ running, latestFinished }: { running: WatchRun | null; latestFinished: WatchRun | null }) {
   const t = useTranslations("watch.page");
+  const fmt = use(getFormats());
   if (running) {
     return (
       <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-        {t("collecte_en_cours_demarree_les_nouveautes_2443", { formatRelativeTime: formatRelativeTime(running.startedAt) })}
+        {t("collecte_en_cours_demarree_les_nouveautes_2443", { formatRelativeTime: fmt.relative(running.startedAt) })}
       </p>
     );
   }
@@ -275,13 +279,14 @@ function RunStatus({ running, latestFinished }: { running: WatchRun | null; late
   const r = latestFinished;
   return (
     <p className="text-sm tabular-nums text-muted-foreground">
-      {t("derniere_collecte_nouveau_nouveaux_article_articles_2c84", { formatRelativeTime: formatRelativeTime(r.finishedAt!), itemsNew: r.itemsNew, itemsSummarized: r.itemsSummarized, sourcesOk: r.sourcesOk, value: r.sourcesFailed ? t("en_echec", { sourcesFailed: r.sourcesFailed }) : "", value2: r.error ? ` ${r.error}` : "" })}
+      {t("derniere_collecte_nouveau_nouveaux_article_articles_2c84", { formatRelativeTime: fmt.relative(r.finishedAt!), itemsNew: r.itemsNew, itemsSummarized: r.itemsSummarized, sourcesOk: r.sourcesOk, value: r.sourcesFailed ? t("en_echec", { sourcesFailed: r.sourcesFailed }) : "", value2: r.error ? ` ${r.error}` : "" })}
     </p>
   );
 }
 
 function BasketSection({ basket, targets }: { basket: WatchItemRow[]; targets: { id: string; label: string; count: number }[] }) {
   const tr = useTranslations("watch.page");
+  const fmt = use(getFormats());
   if (basket.length === 0) {
     return (
       <p id="panier" className="text-sm text-muted-foreground">
@@ -311,7 +316,7 @@ function BasketSection({ basket, targets }: { basket: WatchItemRow[]; targets: {
                 {item.title}
               </a>
               <span className="truncate text-xs tabular-nums text-muted-foreground">
-                {[item.publisher, item.publishedAt ? formatDate(item.publishedAt) : null].filter(Boolean).join(" · ")}
+                {[item.publisher, item.publishedAt ? fmt.date(item.publishedAt) : null].filter(Boolean).join(" · ")}
                 {item.usedIn > 0 ? tr("deja_utilise_dans_newsletter_newsletters", { usedIn: item.usedIn }) : ""}
               </span>
             </span>
@@ -378,10 +383,11 @@ function summaryStateLabel(item: WatchItemRow, t: TranslatorOf<"watch.page">): s
 
 function ArticleRow({ item }: { item: WatchItemRow }) {
   const t = useTranslations("watch.page");
+  const fmt = use(getFormats());
   const meta = [
     item.publisher,
-    formatCountry(item.country),
-    item.publishedAt ? formatDate(item.publishedAt) : "date inconnue",
+    fmt.country(item.country),
+    item.publishedAt ? fmt.date(item.publishedAt) : "date inconnue",
     item.discoveredVia === "feed" ? "flux" : "recherche",
   ]
     .filter(Boolean)
@@ -483,6 +489,7 @@ function TopicForm({ topic, action, submitLabel }: { topic?: WatchTopic; action:
 
 function TopicsSection({ topics, archived, defaultOpen }: { topics: WatchTopic[]; archived: WatchTopic[]; defaultOpen: boolean }) {
   const t = useTranslations("watch.page");
+  const fmt = use(getFormats());
   return (
     <section id="sujets" className="flex flex-col gap-3 scroll-mt-24">
       <h2 className="text-sm font-semibold tabular-nums">
@@ -497,8 +504,8 @@ function TopicsSection({ topics, archived, defaultOpen }: { topics: WatchTopic[]
                   <span className="text-sm font-medium">{topic.label}</span>
                   <span className="truncate text-xs tabular-nums text-muted-foreground">
                     {topic.searchTerms.length ? topic.searchTerms.join(" · ") : t("recherche_par_son_libelle")} —{" "}
-                    {topic.searchLanguages.map((l) => (l === "en" ? "anglais" : "français")).join(" et ")} —{" "}
-                    {topic.lastSearchedAt ? t("cherche", { formatRelativeTime: formatRelativeTime(topic.lastSearchedAt) }) : t("jamais_cherche")}
+                    {fmt.list(topic.searchLanguages.map((l) => (l === "en" ? t("anglais") : t("francais"))))} —{" "}
+                    {topic.lastSearchedAt ? t("cherche", { formatRelativeTime: fmt.relative(topic.lastSearchedAt) }) : t("jamais_cherche")}
                   </span>
                 </div>
                 <form action={archiveTopicAction.bind(null, topic.id)}>
@@ -540,24 +547,25 @@ function TopicsSection({ topics, archived, defaultOpen }: { topics: WatchTopic[]
   );
 }
 
-function sourceHealth(source: WatchSource, t: TranslatorOf<"watch.page">): { text: string; tone: "ok" | "warning" | "asleep" | "never" } {
+function sourceHealth(source: WatchSource, t: TranslatorOf<"watch.page">, fmt: Formats): { text: string; tone: "ok" | "warning" | "asleep" | "never" } {
   if (source.asleepAt) {
-    return { text: t("en_sommeil_depuis_le_trente_jours_f5f9", { formatDate: formatDate(source.asleepAt), n: source.lastError ?? t("cause_inconnue") }), tone: "asleep" };
+    return { text: t("en_sommeil_depuis_le_trente_jours_f5f9", { formatDate: fmt.date(source.asleepAt), n: source.lastError ?? t("cause_inconnue") }), tone: "asleep" };
   }
   if (source.lastError) {
     const since = source.lastOkAt ?? source.createdAt;
     const due = sourceDueAt(source);
     return {
-      text: t("injoignable_depuis_le", { formatDate: formatDate(since), lastError: source.lastError, value: due ? t("nouvel_essai", { replace: formatRelativeTime(due).replace(t("il_y_a"), "dans") }) : "" }),
+      text: t("injoignable_depuis_le", { formatDate: fmt.date(since), lastError: source.lastError, value: due ? t("nouvel_essai", { replace: fmt.relative(due) }) : "" }),
       tone: "warning",
     };
   }
-  if (source.lastOkAt) return { text: t("lue", { formatRelativeTime: formatRelativeTime(source.lastOkAt) }), tone: "ok" };
+  if (source.lastOkAt) return { text: t("lue", { formatRelativeTime: fmt.relative(source.lastOkAt) }), tone: "ok" };
   return { text: t("pas_encore_lue"), tone: "never" };
 }
 
 function SourcesSection({ sources, archived, topics }: { sources: WatchSource[]; archived: WatchSource[]; topics: WatchTopic[] }) {
   const tr = useTranslations("watch.page");
+  const fmt = use(getFormats());
   const topicLabel = (id: string | null) => (id ? (topics.find((t) => t.id === id)?.label ?? null) : null);
   return (
     <section id="sources" className="flex flex-col gap-3 scroll-mt-24">
@@ -567,7 +575,7 @@ function SourcesSection({ sources, archived, topics }: { sources: WatchSource[];
       {sources.length > 0 && (
         <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
           {sources.map((source) => {
-            const health = sourceHealth(source, tr);
+            const health = sourceHealth(source, tr, fmt);
             const topic = topicLabel(source.topicId);
             return (
               <li key={source.id} className="flex flex-col gap-1 px-4 py-3">
@@ -582,8 +590,8 @@ function SourcesSection({ sources, archived, topics }: { sources: WatchSource[];
                     </span>
                     <span className="truncate text-xs tabular-nums text-muted-foreground">
                       {[
-                        formatCountry(source.country),
-                        source.lang === "en" ? "anglais" : source.lang === "fr" ? "français" : null,
+                        fmt.country(source.country),
+                        source.lang === "en" ? tr("anglais") : source.lang === "fr" ? tr("francais") : null,
                         topic ? `sujet : ${topic}` : null,
                         source.feedUrl ? `flux : ${source.feedUrl}` : null,
                       ]

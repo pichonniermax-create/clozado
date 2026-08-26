@@ -5,6 +5,13 @@ import { PartnerShareView } from "@/components/deal-shares/partner-share-view";
 import { resolvePublicShare } from "@/db/queries/deal-shares-public";
 import { deriveBrandTokens } from "@/lib/brand/derive";
 import { useTranslations } from "next-intl";
+import { NextIntlClientProvider } from "next-intl";
+import { FormatsProvider } from "@/components/i18n/formats-provider";
+import { toAppLocale } from "@/i18n/locales";
+import { loadMessages, pickClientMessages } from "@/i18n/messages";
+import { toCurrency } from "@/lib/currencies";
+import type { FormatSettings } from "@/lib/format";
+import { toTimeZone } from "@/lib/timezone";
 
 /**
  * Page publique, sans compte — accès par jeton uniquement. Ne jamais
@@ -54,12 +61,22 @@ export default async function PartnerSharePage({
   // le document : la même fonction que la coquille et que l'aperçu des
   // réglages — la vitrine montre ce que l'organisation a vu.
   const hex = result.view.brand.primaryColor ?? "";
+  // La vitrine parle la langue de l'organisation ÉMETTRICE, dans sa devise et
+  // son fuseau — pas ceux de la requête (le partenaire n'a pas de session) :
+  // un fournisseur imbriqué remplace celui de la coquille racine.
+  const { organization } = result.view;
+  const settings: FormatSettings = { locale: toAppLocale(organization.defaultLocale), currency: toCurrency(organization.currency), timeZone: toTimeZone(organization.timezone) };
+  const messages = pickClientMessages(await loadMessages(settings.locale));
   return (
     <>
       <BrandStyle light={deriveBrandTokens(hex, "light").tokens} dark={deriveBrandTokens(hex, "dark").tokens} />
-      <div className="min-h-screen bg-muted/40 px-4">
-        <PartnerShareView token={token} initialView={result.view} />
-      </div>
+      <NextIntlClientProvider locale={settings.locale} messages={messages} timeZone={settings.timeZone}>
+        <FormatsProvider settings={settings}>
+          <div className="min-h-screen bg-muted/40 px-4" lang={settings.locale}>
+            <PartnerShareView token={token} initialView={result.view} />
+          </div>
+        </FormatsProvider>
+      </NextIntlClientProvider>
     </>
   );
 }

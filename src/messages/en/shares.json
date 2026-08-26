@@ -1,0 +1,121 @@
+{
+  "confirmCommissionButton": {
+    "confirmer": "Confirm"
+  },
+  "markCommissionSettledButton": {
+    "marquer_reglee": "Mark as settled"
+  },
+  "partnerShareView": {
+    "a_confirmer_avant_le": "To be confirmed before {formatDate}.",
+    "acceptees_le_cette_page_fait_foi_6457": "Accepted on {formatDate} — this page is the authoritative record in case of disagreement.",
+    "accepter": "Accept",
+    "ajouter_un_commentaire": "Add a comment",
+    "annuler": "Cancel",
+    "apercu_ce_que_le_partenaire_verra": "Preview — what the partner will see",
+    "aucun_echange_pour_l_instant": "No messages yet.",
+    "bonjour": "Hello {firstNameOf},",
+    "client": "{typeLabel} · Client: {clientName}{n}",
+    "commission": "Commission {formatCommission} — {value}",
+    "conditions": "Terms: {proposedTerms}",
+    "conditions_proposees": "Proposed terms",
+    "confirmee": "confirmed",
+    "confirmer_l_acceptation": "Confirm acceptance",
+    "confirmer_le_refus": "Confirm refusal",
+    "confirmez_votre_acceptation": "Confirm your acceptance",
+    "confirmez_votre_refus": "Confirm your refusal",
+    "echanges": "Conversation",
+    "envoyer": "Send",
+    "errors": {
+      "not_found": "This link is no longer valid.",
+      "revoked": "This link is no longer valid. Contact the person who sent it to you directly.",
+      "expired": "This link is no longer valid. Contact the person who sent it to you directly.",
+      "already_resolved": "You have already replied to this share.",
+      "rate_limited": "Too many attempts — try again in a minute.",
+      "invalid_action": "An error occurred.",
+      "network": "Connection failed. Try again."
+    },
+    "le": "— on {formatDate}",
+    "le_partenaire_pourra_commenter_une_fois_6de0": "The partner will be able to comment once the link is sent.",
+    "motif_facultatif": "Reason (optional)",
+    "prevue": "expected",
+    "refuser": "Decline",
+    "reglee": "settled",
+    "status": {
+      "pending": "Awaiting your reply",
+      "accepted": "You accepted this share",
+      "declined": "You declined this share",
+      "revoked": "This share has been revoked"
+    },
+    "statut_de_l_affaire": "Deal status:",
+    "vous": "You"
+  },
+  "public": {
+    "ce_lien_n_est_pas_valide_a29e": "This link is not valid. Check that you copied it in full, or contact the person who sent it to you.",
+    "ce_lien_n_est_plus_valable_ef02": "This link is no longer valid. Contact the person who sent it to you directly to get a new one."
+  },
+  "publicError": {
+    "cette_page_n_a_pas_pu_6ee9": "This page could not be displayed.",
+    "reessaie_dans_un_instant_si_le_1279": "Try again in a moment. If the problem persists, contact the person who sent you this link."
+  },
+  "queries": {
+    "commission_confirmee": "Commission confirmed.",
+    "commission_marquee_reglee": "Commission marked as settled."
+  },
+  "reissueShareButton": {
+    "copie": "Copied!",
+    "copier_le_lien": "Copy link",
+    "nouveau_lien_il_ne_sera_plus_0f7a": "New link — it will never be shown again.",
+    "renvoyer_le_lien": "Resend link",
+    "termine": "Done"
+  },
+  "shareComposer": {
+    "apercu": "Preview",
+    "aucun_partenaire_actif_ajoutez_en_un_de95": "No active partner. Add one from the Partners screen.",
+    "ce_lien_ne_sera_plus_jamais_4980": "This link will never be shown again. Copy it now and pass it on to {name}. If you lose it, you’ll have to resend the share — which will cancel this one and create a new one.",
+    "choisir_un_partenaire": "Choose a partner",
+    "choisis_d_abord_un_partenaire": "First choose a partner.",
+    "comment_la_calculer": "How to calculate it",
+    "commission": "Commission",
+    "commission_4315": "Commission:",
+    "conditions": "Terms: {proposedTerms}",
+    "conditions_proposees": "Proposed terms",
+    "confirme_l_envoi": "Confirm sending",
+    "confirmer_et_generer_le_lien": "Confirm and generate the link",
+    "copie": "Copied!",
+    "copier_le_lien": "Copy link",
+    "envoi": "Sending…",
+    "envoyer_le_partage": "Send the share",
+    "ex_commission_versee_a_l_acte_ddd2": "e.g. commission paid at closing, subject to signature.",
+    "facultatif_sans_date_le_lien_reste_98db": "Optional. Without a date, the link stays valid until you revoke it.",
+    "fixer_une_commission_pour_ce_partage_2a94": "Set a commission for this share<span>Uncheck if it will be negotiated later.</span>",
+    "j_ai_copie_le_lien_termine": "I’ve copied the link — Done",
+    "l_envoi_a_echoue_de_notre_2adc": "Sending failed on our side — nothing was created, try again.",
+    "la_fixer_maintenant_c_est_ce_9dcd": "Setting it now is what commits you to your fellow professional — rather than leaving it as free text to interpret later.",
+    "le_lien_cesse_de_fonctionner_le": "The link stops working on",
+    "le_montant": "the amount",
+    "le_taux_et_le_montant_de_fa0e": "the rate and the reference amount",
+    "lien_cree_a_copier_maintenant": "Link created — copy it now",
+    "message_au_partenaire": "Message to the partner",
+    "modifier": "Edit",
+    "montant": "Amount ({currency})",
+    "montant_de_reference": "Reference amount ({currency})",
+    "montant_fixe": "Fixed amount",
+    "partager_cette_affaire": "Share this deal",
+    "partenaire": "Partner",
+    "pourcentage": "Percentage",
+    "renseigne_le_montant_de_la_commission_a84e": "Enter the commission amount, or uncheck “Set a commission”.",
+    "renseigne_le_taux_et_le_montant_ddd6": "Enter the rate and the reference amount, or uncheck “Set a commission”.",
+    "renseigne_pour_voir_le_calcul": "Enter {value} to see the calculation.",
+    "taux": "Rate (%)",
+    "tu_partages_avec": "You’re sharing <span>{title}</span> with <span2>{name}</span2>.",
+    "votre_partenaire": "Your partner"
+  },
+  "shareStatusBadge": {
+    "status": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "declined": "Declined",
+      "revoked": "Revoked"
+    }
+  }
+}

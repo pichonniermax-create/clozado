@@ -26,6 +26,7 @@ import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import type { TranslatorOf } from "@/i18n/translator";
 import type { StatNoteWords } from "@/components/analytics/duration-table";
+import { getFormats } from "@/i18n/formats";
 
 const BASE_PATH = "/analytique/delais";
 
@@ -177,6 +178,7 @@ export default async function DelaysPage({ searchParams }: { searchParams: Promi
   const t = await getTranslations("analytics.delais");
   const tm = await getTranslations("metrics");
   const td = await getTranslations("analytics.durationTable");
+  const fmt = await getFormats();
   const user = await requireUser();
   const raw = await searchParams;
 
@@ -198,7 +200,7 @@ export default async function DelaysPage({ searchParams }: { searchParams: Promi
     );
   }
 
-  const parsed = parseMetricFilters(raw);
+  const parsed = parseMetricFilters(raw, fmt.timeZone);
   const [pipelines, types, users, origins, report] = await Promise.all([
     listPipelinesWithStages(user),
     listDealTypes(user),

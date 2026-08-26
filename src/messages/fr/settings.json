@@ -104,7 +104,18 @@
     "une_famille_d_affaires_avec_ses_e8c5": "Une famille d’affaires avec ses propres étapes (crédit, placement, transaction…).",
     "une_version_pour_fond_clair_une_0410": "Une version pour fond clair, une version pour fond sombre si tu l’as, et l’icône d’onglet dérivée automatiquement. Sans logo, la marque par défaut s’affiche.",
     "visites_30_jours": "Visites (30 jours)",
-    "www_mon_cabinet_fr_simulateur_mon_c2b2": "www.mon-cabinet.fr\nsimulateur.mon-cabinet.fr"
+    "www_mon_cabinet_fr_simulateur_mon_c2b2": "www.mon-cabinet.fr\nsimulateur.mon-cabinet.fr",
+    "langue_devise_et_fuseau": "Langue, devise et fuseau",
+    "la_langue_de_l_espace_par_defaut_1a2b": "La langue de l’espace par défaut, la devise dans laquelle les montants se lisent, le fuseau des dates et des échéances.",
+    "langue_par_defaut": "Langue par défaut",
+    "chaque_membre_peut_choisir_la_sienne_c3d4": "Chaque membre peut choisir la sienne dans son menu de compte.",
+    "devise": "Devise",
+    "les_montants_s_affichent_dans_cette_e5f6": "Les montants s’affichent dans cette devise — rien n’est converti.",
+    "fuseau_horaire": "Fuseau horaire",
+    "dates_heures_et_echeances_se_lisent_a7b8": "Dates, heures et échéances se lisent dans ce fuseau.",
+    "enregistrer_langue_devise_et_fuseau": "Enregistrer",
+    "langue_devise_ou_fuseau_inconnu": "Langue, devise ou fuseau inconnu.",
+    "langue_devise_et_fuseau_enregistres": "Langue, devise et fuseau enregistrés."
   },
   "queries": {
     "fields": {

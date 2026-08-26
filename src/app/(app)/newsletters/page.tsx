@@ -7,12 +7,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { parseAudienceSnapshot } from "@/db/queries/newsletters";
 import { deleteNewsletter, listNewsletters } from "@/lib/newsletter/actions";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
 
 export default async function NewslettersPage() {
   const t = await getTranslations("newsletters.list");
+  const fmt = await getFormats();
   await requireUser();
   const items = await listNewsletters();
 
@@ -57,8 +58,8 @@ export default async function NewslettersPage() {
                   <span className="truncate text-xs tabular-nums text-muted-foreground">
                     {n.subject ?? t("objet_a_ecrire")}
                     {n.sentAt
-                      ? t("envoyee_le", { formatDate: formatDate(n.sentAt), value: snapshot ? t("a_contact_contacts", { count: snapshot.count, label: snapshot.label }) : "" })
-                      : t("modifiee_le", { formatDateTime: formatDateTime(n.updatedAt) })}
+                      ? t("envoyee_le", { formatDate: fmt.date(n.sentAt), value: snapshot ? t("a_contact_contacts", { count: snapshot.count, label: snapshot.label }) : "" })
+                      : t("modifiee_le", { formatDateTime: fmt.dateTime(n.updatedAt) })}
                   </span>
                 </Link>
                 <div className="flex shrink-0 items-center gap-1 pr-3">

@@ -17,6 +17,7 @@ import {
 } from "@/lib/metrics";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
+import { getFormats } from "@/i18n/formats";
 
 /**
  * GET /api/analytique/export?vue=<delais|funnel|pertes|partenaires>&<filtres>
@@ -27,6 +28,7 @@ import { getTranslations } from "next-intl/server";
  * traverse jamais la frontière entre deux clients.
  */
 export async function GET(req: Request) {
+  const fmt = await getFormats();
   const user = await requireUser();
   const url = new URL(req.url);
   const view = parseExportView(url.searchParams.get("vue"));
@@ -40,7 +42,7 @@ export async function GET(req: Request) {
   }
 
   const raw: MetricSearchParams = Object.fromEntries(url.searchParams);
-  const parsed = parseMetricFilters(raw);
+  const parsed = parseMetricFilters(raw, fmt.timeZone);
   const [org, users, types, pipelines, origins] = await Promise.all([
     getOwnOrganization(user),
     listOrgUsers(user),
@@ -58,8 +60,8 @@ export async function GET(req: Request) {
   };
   const now = new Date();
   const tm = await getTranslations("metrics");
-  const tables = await exportTables(tm, view, user, parsed.filters, lookups, parsed.params);
-  const body = csvDocument([exportPreamble(tm, view, parsed, lookups, now), ...tables]);
+  const tables = await exportTables(tm, view, user, parsed.filters, lookups, parsed.params, fmt);
+  const body = csvDocument([exportPreamble(tm, view, parsed, lookups, fmt, now), ...tables]);
 
   return new NextResponse(body, {
     headers: {

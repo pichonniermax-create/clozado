@@ -1,4 +1,4 @@
-import { formatDate } from "@/lib/format";
+import type { Formats } from "@/lib/format";
 
 /**
  * Le brief prérempli quand une newsletter part du panier (« écrire à
@@ -15,14 +15,14 @@ export type BriefSource = {
   summary: string | null;
 };
 
-export function buildBasketBrief(items: BriefSource[]): string {
+export function buildBasketBrief(items: BriefSource[], fmt: Formats): string {
   const lines: string[] = [
     // eslint-disable-next-line local/no-visible-text -- une consigne au modèle (le brief), pas un texte d'interface : sa langue est celle des contenus générés
     "À partir des articles mis de côté ci-dessous. Cite chaque source utilisée avec son lien ; ne reprends aucune formulation d'origine — les résumés sont écrits avec nos mots.",
     "",
   ];
   items.forEach((item, i) => {
-    const date = item.publishedAt ? `, ${formatDate(item.publishedAt)}` : "";
+    const date = item.publishedAt ? `, ${fmt.date(item.publishedAt)}` : "";
     lines.push(`${i + 1}. « ${item.title} » — ${item.publisher}${date} — ${item.url}`);
     if (item.summary) lines.push(`   ${item.summary}`);
     lines.push("");

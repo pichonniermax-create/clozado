@@ -1,0 +1,123 @@
+{
+  "actions": {
+    "indicateur_indicateurs_relu_relus_aupres_de_2c94": "{read} {read, plural, one {indicator re-read from its source} other {indicators re-read from their sources}}.",
+    "indicateur_indicateurs_suivi_suivis_lu_lus_ede8": "{added} {added, plural, one {indicator} other {indicators}} tracked, read and copied into the verified figures.",
+    "tous_les_indicateurs_de_ton_metier_dde4": "All the indicators for your business are already tracked."
+  },
+  "indicators": {
+    "bce_facilite_depot": {
+      "label": "Deposit facility rate (ECB)",
+      "description": "The euro area’s benchmark policy rate: what the ECB pays banks on their deposits. The date is that of the latest decision.",
+      "sourceName": "European Central Bank"
+    },
+    "bce_refinancement": {
+      "label": "Main refinancing operations rate (ECB)",
+      "description": "The rate at which banks refinance for one week with the ECB. The date is that of the latest decision.",
+      "sourceName": "European Central Bank"
+    },
+    "estr": {
+      "label": "€STR (euro short-term rate)",
+      "description": "The overnight rate of the euro interbank market, published every morning by the ECB.",
+      "sourceName": "European Central Bank"
+    },
+    "fr_inflation_ipc": {
+      "label": "Inflation in France (CPI, year on year)",
+      "description": "The rise in consumer prices over twelve months, all households, France — INSEE’s benchmark index (2025 base).",
+      "sourceName": "INSEE"
+    },
+    "fr_irl": {
+      "label": "Rent reference index (IRL)",
+      "description": "The quarterly index that caps the annual revision of residential rents.",
+      "sourceName": "INSEE"
+    },
+    "fr_irl_variation": {
+      "label": "Annual change in the IRL",
+      "description": "The maximum increase for a residential rent revised this quarter, as a percentage year on year.",
+      "sourceName": "INSEE"
+    },
+    "fr_prix_logements_anciens": {
+      "label": "Existing home prices (Notaires-INSEE index, metropolitan France)",
+      "description": "The quarterly price index for existing homes, all types, seasonally adjusted, base 100 in 2015.",
+      "sourceName": "INSEE (Notaires-INSEE)"
+    },
+    "fr_taux_long_terme": {
+      "label": "France long-term rate (10-year, monthly average)",
+      "description": "The monthly average yield on 10-year French government bonds, as published by the ECB for convergence purposes.",
+      "sourceName": "European Central Bank"
+    },
+    "fr_tec10": {
+      "label": "10-year OAT (TEC 10)",
+      "description": "The 10-year constant maturity rate of French government bonds — the benchmark for long-term rates, published every business day.",
+      "sourceName": "Banque de France (Webstat)"
+    },
+    "fr_tem_immo_20ans": {
+      "label": "Average effective rate — fixed-rate mortgages of 20 years and over",
+      "description": "The average annual percentage rate of charge on mortgages of 20 years and over granted to individuals during the previous quarter.",
+      "sourceName": "Banque de France (Webstat)"
+    },
+    "fr_usure_immo_10_20ans": {
+      "label": "Usury rate — fixed-rate mortgages of 10 to under 20 years",
+      "description": "The maximum annual percentage rate of charge at which a mortgage of 10 to under 20 years can be granted this quarter.",
+      "sourceName": "Banque de France (Webstat)"
+    },
+    "fr_usure_immo_20ans": {
+      "label": "Usury rate — fixed-rate mortgages of 20 years and over",
+      "description": "The maximum annual percentage rate of charge at which a mortgage of 20 years and over can be granted this quarter.",
+      "sourceName": "Banque de France (Webstat)"
+    },
+    "ze_inflation_ipch": {
+      "label": "Inflation in the euro area (HICP, year on year)",
+      "description": "The rise in harmonized consumer prices over twelve months in the euro area, the one the ECB tracks.",
+      "sourceName": "Eurostat"
+    }
+  },
+  "page": {
+    "a_completer": "· {incomplete} to complete",
+    "a_completer_b061": "To complete",
+    "ajouter_le_chiffre": "Add the figure",
+    "ajouter_un_chiffre": "Add a figure",
+    "aucun_indicateur_suivi_pour_l_instant": "No indicator tracked yet",
+    "aucun_pack_metier_n_est_choisi_757c": "No business pack is chosen: these are the “Any profession” indicators. <link>Choose my business</link>.",
+    "autres_indicateurs_disponibles": "Other available indicators ({n})",
+    "cabinet_dupont_bilan_2025": "Dupont Advisors — 2025 review",
+    "chaque_indicateur_suivi_est_copie_dans_659c": "Each tracked indicator is copied into the verified figures with its period and its source, updated by each collection run — never by hand. A silent source leaves the last value displayed, with its date.",
+    "chiffre_chiffres_de_l_organisation": "{count} organization {count, plural, one {figure} other {figures}}",
+    "chiffres_verifies": "Verified figures",
+    "completer": "Complete",
+    "date_manquante": "date missing",
+    "date_ou_periode_telle_qu_on_affe": "Date or period, as it’s cited",
+    "dossiers_finances_en_2025": "Loans funded in 2025",
+    "enregistrer_le_chiffre": "Save the figure",
+    "exactement_comme_elle_doit_apparaitre_910_b9bb": "Exactly as it should appear: “910”, “95 %”, “680 M€”.",
+    "https": "https://…",
+    "indicateur_indicateurs_de_marche_suivi_suivis": "{count} market {count, plural, one {indicator} other {indicators}} tracked",
+    "libelle": "Label",
+    "lien_de_la_source_facultatif": "Source link (optional)",
+    "lu": "· read {formatRelativeTime}",
+    "modifie_le": "· edited on {formatDate}",
+    "modifier": "Edit",
+    "n_2025_juin_2026_au_30_juin_60fc": "“2025”, “June 2026”, “as of June 30, 2026”…",
+    "ne_plus_suivre": "Stop tracking",
+    "pas_encore_lu_a_la_prochaine_a1d1": "Not read yet — at the next collection run.",
+    "premier_jour_de_la_periode_pour_9b63": "First day of the period (for sorting, optional)",
+    "qui_publie_ce_chiffre_ton_cabinet_be41": "Who publishes this figure — your firm for internal data.",
+    "relire_les_indicateurs": "Re-read indicators",
+    "source": "Source",
+    "source_manquante": "source missing",
+    "source_muette_aucune_valeur_encore_lue": "Silent source ({lastError}) — no value read yet.",
+    "source_muette_depuis_derniere_valeur_conservee": "· source silent since ({lastError}): last value kept",
+    "suivre": "Track",
+    "suivre_les_indicateurs_du_metier": "Track the {count} indicators for “{label}”",
+    "supprimer": "Delete",
+    "taux_directeurs_oat_taux_d_usure_0d21": "Policy rates, OAT, usury rates, inflation, rent and price indices: official figures (ECB, Banque de France, INSEE, Eurostat), read at the source, dated, and copied into your verified figures so the composer can cite them.",
+    "tes_propres_chiffres_dossiers_finances_clients_673b": "Your own figures — loans funded, clients served, assets under management — with their source (you) and the date on which they were true. Without both, the composer won’t cite them.",
+    "ton_metier": "Your business",
+    "tu_es_en_vue_globale_choisis_d645": "You’re in global view: choose an organization in the super admin banner at the top of the screen to see its figures.",
+    "un_chiffre_sans_source_ou_sans_0ada": "A figure without a source or a date is marked “to complete” and isn’t passed to the composer as long as it stays that way — the rule “no figure without its date and its source” applies to internal figures too.",
+    "valeur_telle_qu_elle_se_cite": "Value, as it’s cited",
+    "description": "The single source of the figures the composer is allowed to cite — each with its source and its date. Market indicators copy themselves in, dated and sourced."
+  },
+  "periods": {
+    "quarter": "{quarter, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} quarter {year}"
+  }
+}

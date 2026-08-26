@@ -7,6 +7,7 @@ import type { AppLocale } from "./locales";
  */
 const LOADERS: Record<AppLocale, () => Promise<{ default: Messages }>> = {
   fr: () => import("@/messages/fr"),
+  en: () => import("@/messages/en"),
 };
 
 export type Messages = typeof import("@/messages/fr").default;

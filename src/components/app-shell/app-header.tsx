@@ -7,6 +7,10 @@ import { QuickCreateMenu } from "@/components/app-shell/quick-create-menu";
 import type { WorkspaceMarkProps } from "@/components/app-shell/workspace-mark";
 import { Input } from "@/components/ui/input";
 import { useTranslations } from "next-intl";
+import { revalidatePath } from "next/cache";
+import { updateUserLocale } from "@/db/queries/users";
+import { isAppLocale, type AppLocale } from "@/i18n/locales";
+import { requireSessionUser } from "@/lib/session";
 
 /**
  * L'en-tête des écrans internes — la coquille n'en avait pas (inventaire
@@ -30,12 +34,20 @@ export function AppHeader({
   hasOrganization: boolean;
   /** Les compteurs de la navigation — le panneau replié les affiche comme la barre latérale. */
   badges: Record<NavBadge, number>;
-  user: { name: string | null; email: string | null };
+  user: { name: string | null; email: string | null; localeChoice: AppLocale | null };
 }) {
   const t = useTranslations("shell.appHeader");
   async function signOutAction() {
     "use server";
     await signOut({ redirectTo: "/login" });
+  }
+  // La langue de la personne : la sienne, mémorisée — ou vide pour suivre celle de l'organisation. Toute la coquille change de langue : revalidation entière.
+  async function setLocaleAction(formData: FormData) {
+    "use server";
+    const value = String(formData.get("locale") ?? "");
+    const sessionUser = await requireSessionUser();
+    await updateUserLocale(sessionUser.id, isAppLocale(value) ? value : null);
+    revalidatePath("/", "layout");
   }
 
   return (
@@ -68,7 +80,9 @@ export function AppHeader({
         name={user.name}
         email={user.email}
         hasOrganization={hasOrganization}
+        localeChoice={user.localeChoice}
         signOutAction={signOutAction}
+        setLocaleAction={setLocaleAction}
       />
     </header>
   );

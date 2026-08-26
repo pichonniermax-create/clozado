@@ -1,6 +1,9 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { organizations, users } from "@/db/schema";
+import { toCurrency } from "@/lib/currencies";
+import type { FormatSettings } from "@/lib/format";
+import { PRODUCT_TIMEZONE, toTimeZone } from "@/lib/timezone";
 import { DEFAULT_LOCALE, toAppLocale, type AppLocale } from "./locales";
 
 /**
@@ -30,3 +33,22 @@ export async function localeOfOrganization(organizationId: string): Promise<AppL
   return toAppLocale(row[0]?.locale);
 }
 
+
+/**
+ * Les RÉGLAGES d'affichage d'une organisation — langue par défaut, devise,
+ * fuseau — pour ce qui s'écrit ou se lit en son nom hors requête.
+ */
+export async function settingsOfOrganization(organizationId: string): Promise<FormatSettings> {
+  const row = await db
+    .select({ locale: organizations.defaultLocale, currency: organizations.currency, timezone: organizations.timezone })
+    .from(organizations)
+    .where(eq(organizations.id, organizationId))
+    .limit(1);
+  return { locale: toAppLocale(row[0]?.locale), currency: toCurrency(row[0]?.currency), timeZone: toTimeZone(row[0]?.timezone) };
+}
+
+/** Le fuseau d'une organisation — celui du produit sans organisation (vue globale). */
+export async function timeZoneOfOrganization(organizationId: string | null | undefined): Promise<string> {
+  if (!organizationId) return PRODUCT_TIMEZONE;
+  return (await settingsOfOrganization(organizationId)).timeZone;
+}

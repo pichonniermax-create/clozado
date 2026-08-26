@@ -1,5 +1,5 @@
 import type { TranslatorOf } from "@/i18n/translator";
-import { PRODUCT_TIMEZONE } from "@/lib/timezone";
+import type { Formats } from "@/lib/format";
 
 /**
  * Les PÉRIODES des observations de marché, telles qu'elles sont stockées
@@ -51,15 +51,15 @@ export function periodStart(period: string): string | null {
  * Les jours et les mois viennent d'`Intl` ; le trimestre, d'un message
  * (`figures.periods.quarter`) — aucun mot en dur.
  */
-export function formatPeriod(period: string, t: TranslatorOf<"figures">): string {
+export function formatPeriod(period: string, t: TranslatorOf<"figures">, fmt: Formats): string {
   let m: RegExpExecArray | null;
   if ((m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(period))) {
-    return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: PRODUCT_TIMEZONE }).format(
+    return new Intl.DateTimeFormat(fmt.tag, { day: "numeric", month: "long", year: "numeric", timeZone: fmt.timeZone }).format(
       new Date(`${period}T12:00:00Z`)
     );
   }
   if ((m = /^(\d{4})-(\d{2})$/.exec(period))) {
-    return new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${period}-15T12:00:00Z`));
+    return new Intl.DateTimeFormat(fmt.tag, { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${period}-15T12:00:00Z`));
   }
   if ((m = /^(\d{4})-T([1-4])$/.exec(period))) return t("periods.quarter", { quarter: Number(m[2]), year: m[1] });
   return period;

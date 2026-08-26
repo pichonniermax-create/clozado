@@ -1,0 +1,45 @@
+{
+  "detail": {
+    "affaires_partagees": "Shared deals",
+    "aucune_affaire_partagee_avec_ce_partenaire": "No deals shared with this partner",
+    "email": "Email",
+    "enregistrer": "Save",
+    "envoyee_le": "Sent on {formatDate}",
+    "fiche": "Record",
+    "inactif": "Inactive",
+    "le_partage_se_fait_depuis_la_143b": "Sharing happens from a deal’s page: a link in your name, a one-click answer — the history will show up here.",
+    "metier": "Profession",
+    "nom": "Name",
+    "notes": "Notes",
+    "partenaire_actif": "Active partner",
+    "partenaires": "Partners",
+    "societe": "Company",
+    "telephone": "Phone",
+    "voir_les_affaires": "See deals"
+  },
+  "detailNotFound": {
+    "ce_partenaire_n_existe_pas": "This partner doesn’t exist.",
+    "le_lien_est_peut_etre_perime_4d7c": "The link may be out of date, or the record belongs to another workspace.",
+    "retour_aux_partenaires": "Back to partners"
+  },
+  "list": {
+    "ajouter_le_partenaire": "Add the partner",
+    "ajouter_un_partenaire": "Add a partner",
+    "aucun_partenaire_pour_l_instant": "No partners yet",
+    "camille_rousseau": "Camille Rousseau",
+    "cgp_courtier_credit": "Wealth advisor, mortgage broker…",
+    "email": "Email",
+    "inactif": "Inactive",
+    "inactif_inactifs": "{count} {count, plural, one {inactive} other {inactive}}",
+    "les_confreres_vers_qui_tu_partages_12b6": "The fellow professionals you share deals with: they receive a link in your name and answer in one click, with no account to create on their side.",
+    "les_confreres_vers_qui_tu_partages_8084": "The fellow professionals you share deals with — they aren’t product accounts, they have nothing to install.",
+    "metier": "Profession",
+    "nom": "Name",
+    "notes": "Notes",
+    "partenaire_partenaires_actif_actifs": "{count} active {count, plural, one {partner} other {partners}}",
+    "partenaires": "Partners",
+    "rousseau_patrimoine": "Rousseau Patrimoine",
+    "societe": "Company",
+    "telephone": "Phone"
+  }
+}

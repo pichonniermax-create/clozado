@@ -17,13 +17,8 @@ import type {
   PublicShareStatus,
   PublicShareView,
 } from "@/db/queries/deal-shares-public";
-import {
-  firstNameOf,
-  formatCommission,
-  formatDate,
-  formatDateTime,
-  formatEuros,
-} from "@/lib/format";
+import { firstNameOf } from "@/lib/format";
+import { useFormats } from "@/components/i18n/formats-provider";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 
@@ -120,6 +115,7 @@ export function PartnerShareView({
   preview?: boolean;
 }) {
   const t = useTranslations("shares.partnerShareView");
+  const fmt = useFormats();
   const [committedView, setCommittedView] = useState(initialView);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -203,21 +199,21 @@ export function PartnerShareView({
           {view.status === "accepted" && view.respondedAt && (
             <span className="font-normal text-muted-foreground">
               {" "}
-              {t("le", { formatDate: formatDate(view.respondedAt) })}
+              {t("le", { formatDate: fmt.date(view.respondedAt) })}
             </span>
           )}
         </span>
       </div>
 
       {isPending && view.expiresAt && (
-        <p className="text-sm text-warning">{t("a_confirmer_avant_le", { formatDate: formatDate(view.expiresAt) })}</p>
+        <p className="text-sm text-warning">{t("a_confirmer_avant_le", { formatDate: fmt.date(view.expiresAt) })}</p>
       )}
 
       {/* L'affaire */}
       <div className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold">{view.deal.title}</h2>
         <p className="text-sm text-muted-foreground">
-          {t("client", { typeLabel: view.deal.typeLabel, clientName: view.deal.clientName, n: (view.deal.estimatedAmount && ` · ≈ ${formatEuros(view.deal.estimatedAmount)}`) ?? "" })}
+          {t("client", { typeLabel: view.deal.typeLabel, clientName: view.deal.clientName, n: (view.deal.estimatedAmount && ` · ≈ ${fmt.money(view.deal.estimatedAmount)}`) ?? "" })}
         </p>
         {view.deal.description && <p className="text-sm">{view.deal.description}</p>}
       </div>
@@ -231,7 +227,7 @@ export function PartnerShareView({
           {view.message && <p className="text-sm text-muted-foreground">{view.message}</p>}
           {view.status === "accepted" && view.respondedAt && (
             <p className="text-xs text-muted-foreground">
-              {t("acceptees_le_cette_page_fait_foi_6457", { formatDate: formatDate(view.respondedAt) })}
+              {t("acceptees_le_cette_page_fait_foi_6457", { formatDate: fmt.date(view.respondedAt) })}
             </p>
           )}
         </div>
@@ -338,7 +334,7 @@ export function PartnerShareView({
       {/* Niveau 3 — commission : silencieux si elle n'existe pas encore. */}
       {view.commission && (
         <p className="text-sm text-muted-foreground">
-          {t("commission", { formatCommission: formatCommission(view.commission), value: view.commission.state === "prevue"
+          {t("commission", { formatCommission: fmt.commission(view.commission), value: view.commission.state === "prevue"
             ? t("prevue")
             : view.commission.state === "confirmee"
               ? t("confirmee")
@@ -354,7 +350,7 @@ export function PartnerShareView({
             <li key={e.id} className="text-sm">
               <span className="font-medium">{e.actor === "vous" ? t("vous") : view.organization.name}</span>
               {e.message && <span> — {e.message}</span>}
-              <span className="ml-1 text-xs text-muted-foreground">{formatDateTime(e.createdAt)}</span>
+              <span className="ml-1 text-xs text-muted-foreground">{fmt.dateTime(e.createdAt)}</span>
             </li>
           ))}
           {view.events.length === 0 && (

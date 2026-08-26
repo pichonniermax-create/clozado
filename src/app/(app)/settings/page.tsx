@@ -11,7 +11,7 @@ import {
   revokeSiteKeyAction,
   updateAllowedDomainsAction,
 } from "@/lib/acquisition/actions";
-import { formatDateTime } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { PageHeader } from "@/components/app-shell/page-header";
 import {
   Card,
@@ -52,6 +52,12 @@ import { requestOrigin } from "@/lib/request-origin";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
 import type { TranslatorOf } from "@/i18n/translator";
+import { isAppLocale, LOCALES, localeDisplayName } from "@/i18n/locales";
+import { CURRENCIES, currencyDisplayName, isCurrency } from "@/lib/currencies";
+import { isTimeZone, listTimeZones } from "@/lib/timezone";
+import { updateOrganizationSettings } from "@/db/queries/organizations";
+
+const SELECT_CLASS = "h-9 w-full rounded-lg border border-input bg-transparent px-2 text-sm";
 
 async function saveBranding(formData: FormData) {
   "use server";
@@ -90,6 +96,23 @@ async function saveBranding(formData: FormData) {
   redirect(withError("/settings", t("marque_enregistree"), "info"));
 }
 
+async function saveRegionalSettings(formData: FormData) {
+  "use server";
+  const t = await getTranslations("settings.page");
+  const user = await requireUser();
+  const defaultLocale = String(formData.get("defaultLocale") ?? "");
+  const currency = String(formData.get("currency") ?? "");
+  const timezone = String(formData.get("timezone") ?? "");
+  // Validé contre les listes du code, jamais contre le formulaire : une valeur inconnue ne passe pas.
+  if (!isAppLocale(defaultLocale) || !isCurrency(currency) || !isTimeZone(timezone)) {
+    redirect(withError("/settings", t("langue_devise_ou_fuseau_inconnu")));
+  }
+  await updateOrganizationSettings(user, { defaultLocale, currency, timezone });
+  // Toute l'interface en dépend (la langue par défaut, les montants, les dates) : la coquille entière est revalidée.
+  revalidatePath("/", "layout");
+  redirect(withError("/settings", t("langue_devise_et_fuseau_enregistres"), "info"));
+}
+
 async function savePack(formData: FormData) {
   "use server";
   const user = await requireUser();
@@ -125,6 +148,7 @@ function rejectionLabel(reason: string, t: TranslatorOf<"settings.page">): strin
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ erreur?: string; info?: string }> }) {
   const t = await getTranslations("settings.page");
   const tm = await getTranslations("metrics");
+  const fmt = await getFormats();
   const user = await requireUser();
   const { erreur, info } = await searchParams;
 
@@ -254,6 +278,51 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             {!readOnly && (
               <Button type="submit" className="w-fit">
                 {t("enregistrer_la_marque")}
+              </Button>
+            )}
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card id="langue" className="scroll-mt-24">
+        <CardHeader>
+          <CardTitle>{t("langue_devise_et_fuseau")}</CardTitle>
+          <CardDescription>{t("la_langue_de_l_espace_par_defaut_1a2b")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={saveRegionalSettings} className="flex flex-col gap-5">
+            <div className="grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
+              <Field label={t("langue_par_defaut")} htmlFor="defaultLocale" hint={t("chaque_membre_peut_choisir_la_sienne_c3d4")}>
+                <select id="defaultLocale" name="defaultLocale" defaultValue={org.defaultLocale} disabled={readOnly} className={SELECT_CLASS}>
+                  {LOCALES.map((locale) => (
+                    <option key={locale} value={locale}>
+                      {localeDisplayName(locale)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label={t("devise")} htmlFor="currency" hint={t("les_montants_s_affichent_dans_cette_e5f6")}>
+                <select id="currency" name="currency" defaultValue={org.currency} disabled={readOnly} className={SELECT_CLASS}>
+                  {CURRENCIES.map((currency) => (
+                    <option key={currency} value={currency}>
+                      {currency} — {currencyDisplayName(currency, fmt.tag)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label={t("fuseau_horaire")} htmlFor="timezone" hint={t("dates_heures_et_echeances_se_lisent_a7b8")}>
+                <select id="timezone" name="timezone" defaultValue={org.timezone} disabled={readOnly} className={SELECT_CLASS}>
+                  {listTimeZones().map((zone) => (
+                    <option key={zone} value={zone}>
+                      {zone.replace(/_/g, " ")}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            {!readOnly && (
+              <Button type="submit" className="w-fit">
+                {t("enregistrer_langue_devise_et_fuseau")}
               </Button>
             )}
           </form>
@@ -465,7 +534,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 <p className="text-xs text-muted-foreground">{t("visites_30_jours")}</p>
                 <p className="text-2xl font-semibold tabular-nums">{collection.visits30d}</p>
                 <p className="text-xs text-muted-foreground">
-                  {collection.lastEventAt ? t("dernier_evenement_le", { formatDateTime: formatDateTime(collection.lastEventAt) }) : t("aucun_evenement")}
+                  {collection.lastEventAt ? t("dernier_evenement_le", { formatDateTime: fmt.dateTime(collection.lastEventAt) }) : t("aucun_evenement")}
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
@@ -476,7 +545,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 <p className="text-xs text-muted-foreground">{t("leads_30_jours")}</p>
                 <p className="text-2xl font-semibold tabular-nums">{collection.leads30d}</p>
                 <p className="text-xs text-muted-foreground">
-                  {collection.lastLeadAt ? t("dernier_le", { formatDateTime: formatDateTime(collection.lastLeadAt) }) : t("aucun_lead")}
+                  {collection.lastLeadAt ? t("dernier_le", { formatDateTime: fmt.dateTime(collection.lastLeadAt) }) : t("aucun_lead")}
                 </p>
               </div>
             </div>
@@ -495,7 +564,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                       )}
                     </span>
                     <span className="text-xs tabular-nums text-muted-foreground">
-                      {t("fois_derniere_le", { count: r.count, formatDateTime: formatDateTime(r.lastSeenAt) })}
+                      {t("fois_derniere_le", { count: r.count, formatDateTime: fmt.dateTime(r.lastSeenAt) })}
                     </span>
                   </li>
                 ))}
@@ -508,7 +577,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             {activeSiteKeys.map((k) => (
               <div key={k.id} className="flex flex-col gap-1.5">
                 <p className="text-xs text-muted-foreground">
-                  {t("cle_creee_le", { label: k.label, formatDateTime: formatDateTime(k.createdAt) })}
+                  {t("cle_creee_le", { label: k.label, formatDateTime: fmt.dateTime(k.createdAt) })}
                 </p>
                 <code className="block rounded-md bg-muted px-3 py-2 text-xs break-all select-all">
                   {t("script_src_s_js_data_site_ae81", { appOrigin, key: k.key })}
@@ -563,7 +632,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 {apiKeyRows.map((k) => (
                   <li key={k.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
                     <span className="flex min-w-0 flex-col">
-                      {t.rich("creee_le", { label: k.label, keyPrefix: k.keyPrefix, formatDateTime: formatDateTime(k.createdAt), value: k.lastUsedAt ? t("dernier_usage_le", { formatDateTime: formatDateTime(k.lastUsedAt) }) : t("jamais_utilisee"), n: (k.revokedAt && t("revoquee_le", { formatDateTime: formatDateTime(k.revokedAt) })) ?? "", code: (chunks) => <code className="text-xs text-muted-foreground">{chunks}</code>, span: (chunks) => <span className="font-medium">{chunks}</span>, span2: (chunks) => <span className="text-xs tabular-nums text-muted-foreground">{chunks}</span> })}
+                      {t.rich("creee_le", { label: k.label, keyPrefix: k.keyPrefix, formatDateTime: fmt.dateTime(k.createdAt), value: k.lastUsedAt ? t("dernier_usage_le", { formatDateTime: fmt.dateTime(k.lastUsedAt) }) : t("jamais_utilisee"), n: (k.revokedAt && t("revoquee_le", { formatDateTime: fmt.dateTime(k.revokedAt) })) ?? "", code: (chunks) => <code className="text-xs text-muted-foreground">{chunks}</code>, span: (chunks) => <span className="font-medium">{chunks}</span>, span2: (chunks) => <span className="text-xs tabular-nums text-muted-foreground">{chunks}</span> })}
                     </span>
                     {!readOnly && !k.revokedAt && (
                       <form action={revokeApiKeyAction.bind(null, k.id)}>

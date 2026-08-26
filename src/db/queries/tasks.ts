@@ -2,9 +2,10 @@ import { and, asc, count, desc, eq, gte, inArray, isNotNull, isNull, lt, type SQ
 import { db } from "@/db";
 import { contacts, deals, tasks, users, type NewTask, type Task } from "@/db/schema";
 import { assertOrgAccess, orgScope } from "@/db/scope";
-import { formatCommission, formatDate, formatDays } from "@/lib/format";
+import { createFormats } from "@/lib/format";
+import { settingsOfOrganization, timeZoneOfOrganization } from "@/i18n/locale-lookup";
 import type { OrgScopeUser } from "@/lib/session";
-import { PRODUCT_TIMEZONE } from "@/lib/timezone";
+import { todayInTimeZone } from "@/lib/timezone";
 import { daysBetween, getFollowUpBoard, type FollowUpBoard } from "./deal-follow-up";
 import { getOwnOrganizationOrThrow } from "./newsletters";
 import { AppError } from "@/lib/errors";
@@ -28,16 +29,9 @@ import { translatorFor } from "@/i18n/translator";
  * la date choisie, comparées à la date calendrier du produit — le
  * « aujourd'hui » d'Europe/Paris (lib/timezone.ts), pas celui du serveur.
  */
-/** La date du jour (calendrier Europe/Paris), représentée à minuit UTC — même convention que les échéances stockées. */
-export function todayAsStoredDate(): Date {
-  // en-CA donne « YYYY-MM-DD » directement.
-  const day = new Intl.DateTimeFormat("en-CA", {
-    timeZone: PRODUCT_TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-  return new Date(`${day}T00:00:00.000Z`);
+/** La date du jour (calendrier de l'organisation), représentée à minuit UTC — même convention que les échéances stockées. */
+export function todayAsStoredDate(timeZone: string): Date {
+  return new Date(`${todayInTimeZone(timeZone)}T00:00:00.000Z`);
 }
 
 /** « 2026-08-24 » (champ <input type=date>) → minuit UTC. Chaîne vide ou invalide → null. */
@@ -92,8 +86,8 @@ function addInterval(date: Date, unit: RecurUnit, every: number): Date {
  * aujourd'hui une tâche hebdomadaire en retard d'un mois crée UNE tâche à
  * venir, pas quatre tâches déjà en retard.
  */
-function nextOccurrence(dueAt: Date, unit: RecurUnit, every: number): Date {
-  const today = todayAsStoredDate();
+function nextOccurrence(dueAt: Date, unit: RecurUnit, every: number, timeZone: string): Date {
+  const today = todayAsStoredDate(timeZone);
   let next = addInterval(dueAt, unit, every);
   while (next <= today) {
     next = addInterval(next, unit, every);
@@ -189,7 +183,7 @@ export async function listTasksBoard(
   const page = Math.max(1, filters.page ?? 1);
   const assigneeFilter = filters.assigneeId ? eq(tasks.assigneeId, filters.assigneeId) : undefined;
   const open = and(orgScope(user, tasks.organizationId), eq(tasks.status, "open"), assigneeFilter);
-  const today = todayAsStoredDate();
+  const today = todayAsStoredDate(await timeZoneOfOrganization(user.organizationId));
   const tomorrow = addInterval(today, "day", 1);
 
   const base = () =>
@@ -247,7 +241,7 @@ export async function listTasksBoard(
 
 /** Le compteur de la barre latérale : tâches ouvertes en retard ou du jour. */
 export async function countTasksDueNow(user: OrgScopeUser): Promise<number> {
-  const tomorrow = addInterval(todayAsStoredDate(), "day", 1);
+  const tomorrow = addInterval(todayAsStoredDate(await timeZoneOfOrganization(user.organizationId)), "day", 1);
   const [row] = await db
     .select({ value: count() })
     .from(tasks)
@@ -275,7 +269,7 @@ export type TasksDueSummary = {
  * (c'est l'écran des tâches qui les montre).
  */
 export async function getTasksDueSummary(user: OrgScopeUser, limit: number): Promise<TasksDueSummary> {
-  const today = todayAsStoredDate();
+  const today = todayAsStoredDate(await timeZoneOfOrganization(user.organizationId));
   const tomorrow = addInterval(today, "day", 1);
   const openDated = and(
     orgScope(user, tasks.organizationId),
@@ -436,7 +430,7 @@ export async function completeTask(user: OrgScopeUser, taskId: string, actorId: 
       organizationId: task.organizationId,
       title: task.title,
       notes: task.notes,
-      dueAt: nextOccurrence(task.dueAt, task.recurUnit, task.recurEvery),
+      dueAt: nextOccurrence(task.dueAt, task.recurUnit, task.recurEvery, await timeZoneOfOrganization(user.organizationId)),
       priority: task.priority,
       assigneeId: task.assigneeId,
       contactId: task.contactId,
@@ -489,10 +483,11 @@ export async function generateAutoTasks(user: OrgScopeUser, knownBoard?: FollowU
   const org = await getOwnOrganizationOrThrow(user);
   // Les tâches générées appartiennent à l'organisation : dans SA langue, pas dans celle de la personne qui a ouvert l'écran.
   const t = await translatorFor(toAppLocale(org.defaultLocale), "tasks.queries");
+  const fmt = createFormats(await settingsOfOrganization(org.id));
   // Le tableau de bord l'a déjà calculé pour ses tuiles : on ne le recalcule pas.
   const board = knownBoard ?? (await getFollowUpBoard(user));
   const now = new Date();
-  const today = todayAsStoredDate();
+  const today = todayAsStoredDate(await timeZoneOfOrganization(user.organizationId));
 
   // Une commission dont la date de confirmation est inconnue ne déclenche
   // pas la règle : on ne compte pas des jours depuis une date qu'on n'a pas.
@@ -531,7 +526,7 @@ export async function generateAutoTasks(user: OrgScopeUser, knownBoard?: FollowU
     values.push({
       ...common(alert.dealId),
       title: t("relancer_partage_sans_reponse_sur", { partnerName: alert.partnerName, dealTitle: alert.dealTitle }),
-      notes: t("generee_automatiquement_partage_envoye_le_sans_172c", { formatDate: formatDate(alert.sentAt), formatDays: formatDays(alert.daysSinceSent), formatDays2: formatDays(board.thresholds.pendingReminderDays) }),
+      notes: t("generee_automatiquement_partage_envoye_le_sans_172c", { formatDate: fmt.date(alert.sentAt), formatDays: fmt.days(alert.daysSinceSent), formatDays2: fmt.days(board.thresholds.pendingReminderDays) }),
       autoRule: "share_pending",
       sourceShareId: alert.shareId,
     });
@@ -541,7 +536,7 @@ export async function generateAutoTasks(user: OrgScopeUser, knownBoard?: FollowU
     values.push({
       ...common(stale.dealId),
       title: t("faire_le_point_avec_sans_nouvelle", { partnerName: stale.partnerName, dealTitle: stale.dealTitle }),
-      notes: t("generee_automatiquement_partage_accepte_sans_activite_3240", { formatDays: formatDays(stale.daysSinceActivity), formatDays2: formatDays(board.thresholds.acceptedStaleDays) }),
+      notes: t("generee_automatiquement_partage_accepte_sans_activite_3240", { formatDays: fmt.days(stale.daysSinceActivity), formatDays2: fmt.days(board.thresholds.acceptedStaleDays) }),
       autoRule: "deal_accepted_stale",
       sourceShareId: stale.shareId,
     });
@@ -551,7 +546,7 @@ export async function generateAutoTasks(user: OrgScopeUser, knownBoard?: FollowU
     values.push({
       ...common(commission.dealId),
       title: t("solder_la_commission_de", { partnerName: commission.partnerName, dealTitle: commission.dealTitle }),
-      notes: t("generee_automatiquement_commission_confirmee_le_non_2d64", { formatCommission: formatCommission(commission), formatDate: formatDate(commission.confirmedAt!), formatDays: formatDays(org.commissionUnpaidDays) }),
+      notes: t("generee_automatiquement_commission_confirmee_le_non_2d64", { formatCommission: fmt.commission(commission), formatDate: fmt.date(commission.confirmedAt!), formatDays: fmt.days(org.commissionUnpaidDays) }),
       autoRule: "commission_unpaid",
       sourceCommissionId: commission.commissionId,
     });

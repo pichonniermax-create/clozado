@@ -61,7 +61,7 @@ export type ParsedMetricFilters = {
   active: boolean;
 };
 
-export function parseMetricFilters(raw: MetricSearchParams, now = new Date()): ParsedMetricFilters {
+export function parseMetricFilters(raw: MetricSearchParams, timeZone: string, now = new Date()): ParsedMetricFilters {
   const du = dayOrUndefined(raw.du);
   const au = dayOrUndefined(raw.au);
   const filters: MetricFilters = {
@@ -74,9 +74,9 @@ export function parseMetricFilters(raw: MetricSearchParams, now = new Date()): P
   let period: ParsedMetricFilters["period"] = DEFAULT_PERIOD;
   if (du || au) {
     period = "perso";
-    // Les jours sont lus comme des jours de Paris (même convention que les interactions), la borne haute est INCLUSE.
-    if (du) filters.from = parseLocalDateTime(`${du}T00:00`) ?? undefined;
-    if (au) filters.to = parseLocalDateTime(`${nextDay(au)}T00:00`) ?? undefined;
+    // Les jours sont lus comme des jours du fuseau de l'organisation (même convention que les interactions), la borne haute est INCLUSE.
+    if (du) filters.from = parseLocalDateTime(`${du}T00:00`, timeZone) ?? undefined;
+    if (au) filters.to = parseLocalDateTime(`${nextDay(au)}T00:00`, timeZone) ?? undefined;
   } else {
     const preset = PERIOD_PRESETS.find((p) => p.key === raw.periode) ?? PERIOD_PRESETS.find((p) => p.key === DEFAULT_PERIOD)!;
     period = preset.key;
@@ -133,8 +133,8 @@ export type ParsedDealSelection = {
   analytic: boolean;
 };
 
-export function parseDealSelection(raw: DealSelectionParams, now = new Date()): ParsedDealSelection {
-  const parsed = parseMetricFilters(raw, now);
+export function parseDealSelection(raw: DealSelectionParams, timeZone: string, now = new Date()): ParsedDealSelection {
+  const parsed = parseMetricFilters(raw, timeZone, now);
   const cohort = raw.cohorte === "lead" ? "lead" : raw.cohorte === "perte" ? "perte" : "creation";
   const reachedStageId = uuidOrUndefined(raw.atteint);
   const furthestStageId = uuidOrUndefined(raw.jusqua);

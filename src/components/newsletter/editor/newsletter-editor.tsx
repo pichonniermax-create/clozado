@@ -35,10 +35,11 @@ import {
 import { PREHEADER_MAX, SUBJECT_MAX, type ReviewIssue } from "@/lib/newsletter/review";
 import { saveNewsletter } from "@/lib/newsletter/actions";
 import { targetSummaryAction, type TargetSummary } from "@/lib/targets/actions";
-import { formatDate } from "@/lib/format";
+import { useFormats } from "@/components/i18n/formats-provider";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import type { TranslatorOf } from "@/i18n/translator";
+import type { AppLocale } from "@/i18n/locales";
 
 /** Une cible telle que le sélecteur la montre : son nom et le nombre RÉEL de contacts qu'elle réunit aujourd'hui. */
 export type EditorTarget = { id: string; label: string; count: number };
@@ -83,6 +84,8 @@ export type NewsletterEditorProps = {
   initialBrief?: string;
   /** La matière : les articles rattachés (nouvel email depuis le panier, ou email déjà enregistré). */
   sources?: EditorSource[];
+  /** La langue des contenus GÉNÉRÉS — celle de l'organisation par défaut, pas celle de la personne qui écrit. */
+  lang: AppLocale;
   initial?: {
     id: string;
     title: string;
@@ -104,9 +107,10 @@ export type NewsletterEditorProps = {
  * d'affichage à tenir synchronisé, et sans aller-retour réseau : ce qu'on
  * voit se met à jour à la frappe.
  */
-export function NewsletterEditor({ targets, brand, signatory, initialTargetId, initialBrief, sources = [], initial }: NewsletterEditorProps) {
+export function NewsletterEditor({ targets, brand, signatory, initialTargetId, initialBrief, sources = [], initial, lang }: NewsletterEditorProps) {
   const tr = useTranslations("newsletters.newsletterEditor");
   const tb = useTranslations("newsletters");
+  const fmt = useFormats();
   const [newsletterId, setNewsletterId] = useState(initial?.id);
   const [targetId, setTargetId] = useState(initial?.targetId ?? initialTargetId ?? targets[0]?.id ?? "");
   const [subject, setSubject] = useState(initial?.subject ?? "");
@@ -228,7 +232,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
       const res = await fetch("/api/newsletters/ai/design", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetId, brief, lang: "fr" }),
+        body: JSON.stringify({ targetId, brief, lang }),
       });
 
       if (!res.ok || !res.body) {
@@ -390,7 +394,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
                 </a>
                 <span className="text-xs tabular-nums text-muted-foreground">
                   {s.publisher}
-                  {s.publishedAt ? ` · ${formatDate(s.publishedAt)}` : ""}
+                  {s.publishedAt ? ` · ${fmt.date(s.publishedAt)}` : ""}
                 </span>
                 {s.summary && <p className="text-xs text-muted-foreground text-pretty">{s.summary}</p>}
               </li>
@@ -597,6 +601,7 @@ function targetLabel(t: EditorTarget): string {
  */
 function TargetInsight({ targetId }: { targetId: string }) {
   const t = useTranslations("newsletters.newsletterEditor");
+  const fmt = useFormats();
   // Le résumé porte l'id de la cible qui l'a produit : tant qu'il diffère de
   // la cible choisie, on est en chargement — rien n'est posé dans l'effet
   // lui-même, seulement à la réponse.
@@ -638,7 +643,7 @@ function TargetInsight({ targetId }: { targetId: string }) {
           <ul className="flex flex-col gap-0.5 text-xs text-muted-foreground">
             {summary.recentSends.map((s) => (
               <li key={s.id}>
-                {t.rich("le_de_la_cible", { n: s.subject || s.title, formatDate: formatDate(s.sentAt), n2: s.overlapPercent ?? 0, n3: (s.topics.length > 0 && t("sujets", { join: s.topics.join(", ") })) || "", link: (chunks) => <Link href={`/newsletters/${s.id}`} className="underline underline-offset-2 hover:text-foreground">{chunks}</Link>, span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
+                {t.rich("le_de_la_cible", { n: s.subject || s.title, formatDate: fmt.date(s.sentAt), n2: s.overlapPercent ?? 0, n3: (s.topics.length > 0 && t("sujets", { join: s.topics.join(", ") })) || "", link: (chunks) => <Link href={`/newsletters/${s.id}`} className="underline underline-offset-2 hover:text-foreground">{chunks}</Link>, span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
               </li>
             ))}
           </ul>

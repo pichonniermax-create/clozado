@@ -14,6 +14,7 @@ import { requireUser } from "@/lib/session";
 import { NEWSLETTER_DRAFT_SCHEMA, parseBlockPayload, type AnyBlock } from "./blocks";
 import { AppError } from "@/lib/errors";
 import { getTranslations } from "next-intl/server";
+import { resolveRequestSettings } from "@/i18n/locale";
 
 /**
  * Server actions Drizzle pour `newsletters`/`newsletter_blocks`. Toute
@@ -190,10 +191,10 @@ export async function deleteNewsletter(id: string) {
 // « Marquer comme envoyée » (chantier ciblage et contenu, étape 3)
 // ---------------------------------------------------------------------------
 
-/** La date saisie (« 2026-08-26 », champ date) lue à midi, heure de Paris — jamais minuit UTC, qui ferait glisser la veille. */
-function readSentDate(formData: FormData): Date {
+/** La date saisie (« 2026-08-26 », champ date) lue à midi dans le fuseau de l'organisation — jamais minuit UTC, qui ferait glisser la veille. */
+async function readSentDate(formData: FormData): Promise<Date> {
   const raw = String(formData.get("sentAt") ?? "").trim();
-  const parsed = raw ? parseLocalDateTime(`${raw}T12:00`) : null;
+  const parsed = raw ? parseLocalDateTime(`${raw}T12:00`, (await resolveRequestSettings()).timeZone) : null;
   if (!parsed) throw new AppError("la_date_d_envoi_est_illisible");
   if (parsed.getTime() > Date.now() + 24 * 3600 * 1000) throw new AppError("la_date_d_envoi_ne_peut_pas_bd16");
   return parsed;
@@ -204,7 +205,7 @@ export async function markNewsletterSentAction(id: string, formData: FormData) {
   let destination = `/newsletters/${id}`;
   try {
     await markNewsletterSent(user, id, {
-      sentAt: readSentDate(formData),
+      sentAt: await readSentDate(formData),
       topics: String(formData.get("topics") ?? "").split(/[,;\n]/),
       markedBy: user.id,
     }, await getTranslations("targets"));

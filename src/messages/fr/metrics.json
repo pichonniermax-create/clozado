@@ -27,7 +27,9 @@
     "prevues": "prévues {value} ({n})",
     "refuse_refuses": "{n, plural, one {# refusé} other {# refusés}}",
     "sans_montant_sans_montant": "{n, plural, one {# sans montant} other {# sans montant}}",
-    "signee_signees": "{n, plural, one {# signée} other {# signées}}"
+    "signee_signees": "{n, plural, one {# signée} other {# signées}}",
+    "x_pour_y": "{lost} pour {won}",
+    "x_sur_y": "{a} sur {b}"
   },
   "definitions": {
     "commission_settlement_delay": {
@@ -302,8 +304,8 @@
     "aucun_lead_recu_entree_des_leads_c689": "aucun lead reçu (entrée des leads à brancher)",
     "aucune_observation_il_en_faut_pour_9ee9": "aucune observation — il en faut {missing} pour afficher un chiffre",
     "commissions": "Commissions",
-    "commissions_acquises": "Commissions acquises (€)",
-    "commissions_prevues": "Commissions prévues (€)",
+    "commissions_acquises": "Commissions acquises ({currency})",
+    "commissions_prevues": "Commissions prévues ({currency})",
     "conseiller": "Conseiller",
     "contacts_etablis": "Contacts établis",
     "d_une_etape_a_la_suivante": "D’une étape à la suivante — {label}",
@@ -348,7 +350,7 @@
     "masque_il_manque_observation_observations_pour_2e1c": "masqué : il manque {missing, plural, one {# observation} other {# observations}} pour afficher un chiffre",
     "mediane_jours": "Médiane (jours)",
     "metier": "Métier",
-    "montant_perdu": "Montant perdu (€)",
+    "montant_perdu": "Montant perdu ({currency})",
     "motif": "Motif",
     "nombre": "Nombre",
     "non_calcule_pour_l_ensemble_voir_2480": "non calculé pour l’ensemble — voir Délais",
@@ -390,7 +392,7 @@
     "refuses": "Refusés",
     "reponses_observations": "Réponses (observations)",
     "sans_montant": "Sans montant",
-    "sans_objet": "sans objet",
+    "sans_objet": "sans objet : {value}",
     "sans_objet_4087": "sans objet : {join}",
     "sans_objet_a6d2": "sans objet : {reason}",
     "sans_origine_aucun_lead": "Sans origine (aucun lead)",
@@ -414,7 +416,20 @@
     "unite": "Unité",
     "valeur": "Valeur",
     "vieillissement_des_commissions_confirmees_non_reglees_212c": "Vieillissement des commissions confirmées non réglées, à aujourd’hui",
-    "visiteurs": "Visiteurs"
+    "visiteurs": "Visiteurs",
+    "moyenne_jours": "Moyenne (jours)",
+    "pas": "Pas",
+    "dont": "dont {value}",
+    "lead_affaire_pct": "Lead → affaire (%)",
+    "part_pct": "Part (%)",
+    "masque_il_manque": "masqué : il manque {value} pour afficher une part",
+    "montant_devise": "Montant ({currency})",
+    "taux_pct": "Taux (%)",
+    "acquises_nombre": "Acquises — nombre",
+    "sans_montant_n": "{n} sans montant",
+    "vue": "Vue",
+    "du": "Du",
+    "au_inclus": "Au (inclus)"
   },
   "losses": {
     "deleted": "(supprimé)",
@@ -451,7 +466,9 @@
   },
   "periodPhrase": {
     "depuis_le_debut": "depuis le début",
-    "sur_les": "sur les {toLowerCase}"
+    "sur_les": "sur les {toLowerCase}",
+    "du": "du {formatDate}",
+    "au_inclus": "au {formatDate} inclus"
   },
   "periods": {
     "12m": "12 derniers mois",

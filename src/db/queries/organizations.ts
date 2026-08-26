@@ -5,6 +5,8 @@ import { assertOrgAccess, orgScope } from "@/db/scope";
 import { parseBusinessPack, type BusinessPackKey } from "@/lib/metrics/packs";
 import type { OrgScopeUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
+import type { AppLocale } from "@/i18n/locales";
+import type { Currency } from "@/lib/currencies";
 
 /**
  * Première utilisation du garde-fou générique orgScope (src/db/scope.ts) :
@@ -79,6 +81,21 @@ export async function updateOrganizationBranding(
     .update(organizations)
     .set({ ...data, updatedAt: new Date() })
     .where(eq(organizations.id, user.organizationId));
+}
+
+export type RegionalSettingsInput = { defaultLocale: AppLocale; currency: Currency; timezone: string };
+
+/**
+ * La langue par défaut, la devise et le fuseau de l'organisation — le même
+ * garde-fou que la marque : un admin, sur SA propre organisation. Les
+ * valeurs sont validées par l'appelant contre les listes du code
+ * (`LOCALES`, `CURRENCIES`, `Intl`) : rien d'autre n'entre en base.
+ */
+export async function updateOrganizationSettings(user: OrgScopeUser, data: RegionalSettingsInput): Promise<void> {
+  if (user.role !== "admin" || !user.organizationId) {
+    throw new AppError("acces_refuse_seul_l_admin_de_l_7ac9", undefined, 403);
+  }
+  await db.update(organizations).set({ ...data, updatedAt: new Date() }).where(eq(organizations.id, user.organizationId));
 }
 
 /**

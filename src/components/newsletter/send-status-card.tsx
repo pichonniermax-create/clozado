@@ -1,3 +1,4 @@
+import { use } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,15 +11,8 @@ import {
   unmarkNewsletterSentAction,
   updateNewsletterTopicsAction,
 } from "@/lib/newsletter/actions";
-import { formatDate } from "@/lib/format";
-import { PRODUCT_TIMEZONE } from "@/lib/timezone";
+import { getFormats } from "@/i18n/formats";
 import { useTranslations } from "next-intl";
-
-/** « 2026-08-26 » dans le fuseau du produit — la valeur par défaut du champ date. */
-function todayInputValue(): string {
-  const parts = new Intl.DateTimeFormat("fr-CA", { timeZone: PRODUCT_TIMEZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-  return parts;
-}
 
 /**
  * « Marquer comme envoyée » — l'outil n'envoie rien (l'envoi effectif est
@@ -31,6 +25,7 @@ function todayInputValue(): string {
  */
 export function SendStatusCard({ newsletter, error }: { newsletter: Newsletter; error?: string }) {
   const t = useTranslations("newsletters.sendStatusCard");
+  const fmt = use(getFormats());
   const snapshot = parseAudienceSnapshot(newsletter.audienceSnapshot);
   const topics = newsletter.topics.join(", ");
 
@@ -38,7 +33,7 @@ export function SendStatusCard({ newsletter, error }: { newsletter: Newsletter; 
     return (
       <Card id="envoi">
         <CardHeader>
-          <CardTitle>{t("envoyee_le", { formatDate: formatDate(newsletter.sentAt) })}</CardTitle>
+          <CardTitle>{t("envoyee_le", { formatDate: fmt.date(newsletter.sentAt) })}</CardTitle>
           <CardDescription>
             {snapshot ? (
               <>
@@ -84,7 +79,7 @@ export function SendStatusCard({ newsletter, error }: { newsletter: Newsletter; 
         {error && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{error}</p>}
         <form action={markNewsletterSentAction.bind(null, newsletter.id)} className="flex flex-wrap items-end gap-3">
           <Field label={t("date_d_envoi")} htmlFor="sentAt">
-            <Input id="sentAt" name="sentAt" type="date" defaultValue={todayInputValue()} required className="w-44" />
+            <Input id="sentAt" name="sentAt" type="date" defaultValue={fmt.todayInput()} required className="w-44" />
           </Field>
           <Field label={t("sujets_traites")} htmlFor="topics" hint={t("separes_par_des_virgules")} className="min-w-72 flex-1">
             <Input id="topics" name="topics" defaultValue={topics || (newsletter.subject ?? "")} placeholder={t("taux_assurance_emprunteur")} />

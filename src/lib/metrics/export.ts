@@ -13,6 +13,7 @@ import { periodPhrase } from "./period-phrase";
 import type { MetricSearchParams, ParsedMetricFilters } from "./search-params";
 import type { DurationStat, RateStat } from "./types";
 import { AppError } from "@/lib/errors";
+import { createFormats, PRODUCT_FORMATS, type Formats } from "@/lib/format";
 
 /**
  * L'export CSV d'une vue analytique — la projection en tableaux du MÊME
@@ -89,7 +90,7 @@ function delaysTables(t: TranslatorOf<"metrics">, report: DelaysReport, lookups:
   const tables: CsvTable[] = [
     {
       title: t("export.le_cycle"),
-      columns: [t("export.indicateur"), t("export.mediane_jours"), "Moyenne (jours)", t("export.observations"), t("export.affichage"), t("export.en_cours"), t("export.ecartees_reconstituees"), t("export.ecartees_date_inconnue")],
+      columns: [t("export.indicateur"), t("export.mediane_jours"), t("export.moyenne_jours"), t("export.observations"), t("export.affichage"), t("export.en_cours"), t("export.ecartees_reconstituees"), t("export.ecartees_date_inconnue")],
       rows: report.cycle.map(({ metric, stat }) => [
         t(`definitions.${metric.id}.label`),
         days(stat, stat.medianDays),
@@ -110,14 +111,14 @@ function delaysTables(t: TranslatorOf<"metrics">, report: DelaysReport, lookups:
     if (stages.length > 0) {
       tables.push({
         title: t("export.temps_passe_par_etape", { label: pipeline.label }),
-        columns: [t("export.etape"), t("export.mediane_jours"), "Moyenne (jours)", t("export.observations_passages_termines"), t("export.affichage"), t("export.affaires_dans_l_etape_aujourd_hui"), t("export.passages_reconstitues_ecartes")],
+        columns: [t("export.etape"), t("export.mediane_jours"), t("export.moyenne_jours"), t("export.observations_passages_termines"), t("export.affichage"), t("export.affaires_dans_l_etape_aujourd_hui"), t("export.passages_reconstitues_ecartes")],
         rows: stages.map((s) => [s.label, days(s, s.medianDays), days(s, s.meanDays), observations(s), durationDisplay(t, s), s.pending, s.excludedReconstructed]),
       });
     }
     if (pairs.length > 0) {
       tables.push({
         title: t("export.d_une_etape_a_la_suivante", { label: pipeline.label }),
-        columns: [t("export.etapes"), t("export.mediane_jours"), "Moyenne (jours)", t("export.observations"), t("export.affichage")],
+        columns: [t("export.etapes"), t("export.mediane_jours"), t("export.moyenne_jours"), t("export.observations"), t("export.affichage")],
         rows: pairs.map((p) => [`${p.fromLabel} → ${p.toLabel}`, days(p, p.medianDays), days(p, p.meanDays), observations(p), durationDisplay(t, p)]),
       });
     }
@@ -158,12 +159,12 @@ function funnelTables(t: TranslatorOf<"metrics">, report: FunnelReport): CsvTabl
   const rateCells = (rate: RateStat | null, unavailable?: string): CsvCell[] => [
     percent(rate),
     drop(rate),
-    unavailable ? `sans objet : ${unavailable}` : rateDisplay(t, rate),
+    unavailable ? t("export.sans_objet", { value: unavailable }) : rateDisplay(t, rate),
   ];
   const tables: CsvTable[] = [
     {
       title: t("export.la_chaine_de_la_visite_a_fa8a"),
-      columns: ["Pas", t("export.nombre"), ...rateColumns, t("export.note")],
+      columns: [t("export.pas"), t("export.nombre"), ...rateColumns, t("export.note")],
       rows: report.chain.steps.map((step) => [
         t(`definitions.${step.metric.id}.label`),
         count(step.count),
@@ -174,7 +175,7 @@ function funnelTables(t: TranslatorOf<"metrics">, report: FunnelReport): CsvTabl
   ];
   for (const funnel of report.pipelines) {
     const rows: CsvCell[][] = [
-      [t("export.affaires_creees_la_cohorte"), funnel.created, null, null, t("export.sans_objet"), null, null, funnel.created > 0 ? `dont ${t("export.issue_d_un_lead_issues_d_2dc2", { n: funnel.createdFromLead })}` : ""],
+      [t("export.affaires_creees_la_cohorte"), funnel.created, null, null, t("export.sans_objet"), null, null, funnel.created > 0 ? t("export.dont", { value: t("export.issue_d_un_lead_issues_d_2dc2", { n: funnel.createdFromLead }) }) : ""],
       ...funnel.stages.map((s): CsvCell[] => [s.label, s.reached, ...rateCells(s.rate), s.lostHere, s.openHere, ""]),
       [t("export.gagnees"), funnel.won, ...rateCells(funnel.wonRate), null, null, t("export.taux_depuis_la_derniere_etape_intermediaire_0db5")],
       [t("export.perdues_au_total"), funnel.lost, null, null, t("export.sans_objet"), null, null, ""],
@@ -197,7 +198,7 @@ function funnelTables(t: TranslatorOf<"metrics">, report: FunnelReport): CsvTabl
       t("export.contacts_etablis"),
       t("export.affaires"),
       t("export.gagnees"),
-      "Lead → affaire (%)",
+      t("export.lead_affaire_pct"),
       t("export.affaire_gagnee"),
       t("export.affichage_des_taux"),
       t("export.note"),
@@ -220,16 +221,16 @@ function funnelTables(t: TranslatorOf<"metrics">, report: FunnelReport): CsvTabl
 
 // ---------------------------------------------------------------- Pertes
 
-function lossesTables(t: TranslatorOf<"metrics">, report: LossesReport): CsvTable[] {
+function lossesTables(t: TranslatorOf<"metrics">, fmt: Formats, report: LossesReport): CsvTable[] {
   const { total, excludedReconstructed: ex, lossRate } = report;
   const breakdown = (title: string, labelHeader: string, rows: LossBreakdownRow[]): CsvTable => ({
     title,
-    columns: [labelHeader, t("export.affaires"), "Part (%)", t("export.affichage_de_la_part"), t("export.montant_perdu"), t("export.sans_montant")],
+    columns: [labelHeader, t("export.affaires"), t("export.part_pct"), t("export.affichage_de_la_part"), t("export.montant_perdu", { currency: fmt.currency }), t("export.sans_montant")],
     rows: rows.map((r) => [
       r.label,
       r.n,
       percent(r.share),
-      r.share.hidden ? `masqué : il manque ${t("export.perte_pertes", { n: r.share.missing })} pour afficher une part` : t("export.affiche"),
+      r.share.hidden ? t("export.masque_il_manque", { value: t("export.perte_pertes", { n: r.share.missing }) }) : t("export.affiche"),
       amount(r),
       r.withoutAmount,
     ]),
@@ -237,7 +238,7 @@ function lossesTables(t: TranslatorOf<"metrics">, report: LossesReport): CsvTabl
   return [
     {
       title: t("export.sur_la_periode"),
-      columns: [t("export.indicateur"), t("export.affaires"), "Montant (€)", t("export.sans_montant"), "Taux (%)", t("export.affichage")],
+      columns: [t("export.indicateur"), t("export.affaires"), t("export.montant_devise", { currency: fmt.currency }), t("export.sans_montant"), t("export.taux_pct"), t("export.affichage")],
       rows: [
         [t("export.affaires_perdues"), total.n, amount(total), total.withoutAmount, null, ""],
         [t("export.pertes_anterieures_au_journal_ecartees_date_72d8"), ex.n, amount(ex), ex.withoutAmount, null, t("export.ecartees_du_calcul_jamais_datees_par_c88c")],
@@ -254,7 +255,7 @@ function lossesTables(t: TranslatorOf<"metrics">, report: LossesReport): CsvTabl
 
 // ---------------------------------------------------------------- Partenaires
 
-function partnersTables(t: TranslatorOf<"metrics">, report: PartnersReport): CsvTable[] {
+function partnersTables(t: TranslatorOf<"metrics">, fmt: Formats, report: PartnersReport): CsvTable[] {
   const { totals, commissions } = report;
   const moneyCells = (m: MoneyCount): CsvCell[] => [amount(m), m.n, m.withoutAmount];
   return [
@@ -281,10 +282,10 @@ function partnersTables(t: TranslatorOf<"metrics">, report: PartnersReport): Csv
         t("export.gagnees"),
         t("export.taux_de_transformation"),
         t("export.affichage_du_taux_de_transformation"),
-        t("export.commissions_acquises"),
-        "Acquises — nombre",
+        t("export.commissions_acquises", { currency: fmt.currency }),
+        t("export.acquises_nombre"),
         t("export.acquises_sans_montant"),
-        t("export.commissions_prevues"),
+        t("export.commissions_prevues", { currency: fmt.currency }),
         t("export.prevues_nombre"),
         t("export.prevues_sans_montant"),
       ],
@@ -341,12 +342,12 @@ function partnersTables(t: TranslatorOf<"metrics">, report: PartnersReport): Csv
     },
     {
       title: t("export.encours_de_commissions_a_aujourd_hui_100b"),
-      columns: [t("export.etat"), t("export.commissions"), "Montant (€)", t("export.sans_montant")],
+      columns: [t("export.etat"), t("export.commissions"), t("export.montant_devise", { currency: fmt.currency }), t("export.sans_montant")],
       rows: commissions.states.map((s) => [s.label, s.n, amount(s), s.withoutAmount]),
     },
     {
       title: t("export.vieillissement_des_commissions_confirmees_non_reglees_212c"),
-      columns: [t("export.anciennete"), t("export.commissions"), "Montant (€)", t("export.sans_montant")],
+      columns: [t("export.anciennete"), t("export.commissions"), t("export.montant_devise", { currency: fmt.currency }), t("export.sans_montant")],
       rows: [
         ...commissions.aging.map((b): CsvCell[] => [b.label, b.n, amount(b), b.withoutAmount]),
         [t("export.au_dela_du_seuil_de_relance_98d8", { thresholdDays: commissions.overdue.thresholdDays }), commissions.overdue.n, amount(commissions.overdue), commissions.overdue.withoutAmount],
@@ -358,14 +359,14 @@ function partnersTables(t: TranslatorOf<"metrics">, report: PartnersReport): Csv
 
 // ---------------------------------------------------------------- Tableau de bord
 
-function dashboardTables(t: TranslatorOf<"metrics">, indicators: DashboardIndicator[], pack: BusinessPack, chosen: boolean): CsvTable[] {
+function dashboardTables(t: TranslatorOf<"metrics">, fmt: Formats, indicators: DashboardIndicator[], pack: BusinessPack, chosen: boolean): CsvTable[] {
   const rows: CsvCell[][] = indicators.map(({ metric, value, periodApplies }) => {
     const period = periodApplies ? "" : t("export.etat_a_aujourd_hui_la_periode_e6d5");
     switch (value.kind) {
       case "count":
         return [t(`definitions.${metric.id}.label`), value.n, "nombre", null, null, t("export.affiche"), [value.detail, period].filter(Boolean).join(" · ")];
       case "euros":
-        return [t(`definitions.${metric.id}.label`), amount(value.money), "euros", null, value.money.n, t("export.affiche"), [value.countPhrase, value.money.withoutAmount > 0 ? `${value.money.withoutAmount} sans montant` : "", value.detail, period].filter(Boolean).join(" · ")];
+        return [t(`definitions.${metric.id}.label`), amount(value.money), "euros", null, value.money.n, t("export.affiche"), [value.countPhrase, value.money.withoutAmount > 0 ? t("export.sans_montant_n", { n: value.money.withoutAmount }) : "", value.detail, period].filter(Boolean).join(" · ")];
       case "days":
         return [t(`definitions.${metric.id}.label`), days(value.stat, value.stat.medianDays), t("export.jours_mediane"), days(value.stat, value.stat.meanDays), observations(value.stat), durationDisplay(t, value.stat), period];
       case "ratio":
@@ -377,7 +378,7 @@ function dashboardTables(t: TranslatorOf<"metrics">, indicators: DashboardIndica
   return [
     {
       title: t("export.indicateurs_du_pack", { t: t(`packs.${pack.key}.label`), value: chosen ? "" : t("export.pack_par_defaut_aucun_pack_choisi_159d") }),
-      columns: [t("export.indicateur"), t("export.valeur"), t("export.unite"), "Moyenne (jours)", t("export.observations"), t("export.affichage"), t("export.detail")],
+      columns: [t("export.indicateur"), t("export.valeur"), t("export.unite"), t("export.moyenne_jours"), t("export.observations"), t("export.affichage"), t("export.detail")],
       rows,
     },
   ];
@@ -386,7 +387,7 @@ function dashboardTables(t: TranslatorOf<"metrics">, indicators: DashboardIndica
 // ---------------------------------------------------------------- Le document
 
 /** Le premier tableau du fichier : la vue, l'organisation et les filtres appliqués — un export sans son contexte ne vaut rien. */
-export function exportPreamble(t: TranslatorOf<"metrics">, view: ExportView, parsed: ParsedMetricFilters, lookups: ExportLookups, exportedAt = new Date()): CsvTable {
+export function exportPreamble(t: TranslatorOf<"metrics">, view: ExportView, parsed: ParsedMetricFilters, lookups: ExportLookups, fmt: Formats, exportedAt = new Date()): CsvTable {
   const { filters, params } = parsed;
   const user = lookups.users.find((u) => u.id === filters.ownerId);
   const originLabel =
@@ -396,12 +397,12 @@ export function exportPreamble(t: TranslatorOf<"metrics">, view: ExportView, par
         ? t("export.origine_a_rapprocher")
         : (lookups.origins.find((o) => o.id === filters.originId)?.label ?? t("export.toutes"));
   const rows: CsvCell[][] = [
-    ["Vue", t(`views.${view}`)],
+    [t("export.vue"), t(`views.${view}`)],
     [t("export.organisation"), lookups.organizationName],
-    [t("export.periode"), periodPhrase(parsed, t)],
+    [t("export.periode"), periodPhrase(parsed, t, fmt)],
   ];
-  if (params.du) rows.push(["Du", params.du]);
-  if (params.au) rows.push(["Au (inclus)", params.au]);
+  if (params.du) rows.push([t("export.du"), params.du]);
+  if (params.au) rows.push([t("export.au_inclus"), params.au]);
   rows.push(
     [t("export.conseiller"), user ? user.name || user.email : t("export.tous")],
     [t("export.type_d_affaire"), lookups.types.find((t) => t.id === filters.typeId)?.label ?? t("export.tous")],
@@ -422,7 +423,8 @@ export async function exportTables(
   filters: MetricFilters,
   lookups: ExportLookups,
   /** Les paramètres nettoyés de l'URL — les liens du tableau de bord les portent. */
-  params: MetricSearchParams = {}
+  params: MetricSearchParams = {},
+  fmt: Formats = createFormats(PRODUCT_FORMATS)
 ): Promise<CsvTable[]> {
   switch (view) {
     case "delais":
@@ -430,13 +432,13 @@ export async function exportTables(
     case "funnel":
       return funnelTables(t, await funnelReport(user, filters, t));
     case "pertes":
-      return lossesTables(t, await lossesReport(user, filters, t));
+      return lossesTables(t, fmt, await lossesReport(user, filters, t));
     case "partenaires":
-      return partnersTables(t, await partnersReport(user, filters, t));
+      return partnersTables(t, fmt, await partnersReport(user, filters, t));
     case "tableau-de-bord": {
       if (!lookups.dashboard) throw new AppError("l_export_du_tableau_de_bord_a_351c");
       const { pack, chosen } = lookups.dashboard;
-      return dashboardTables(t, await dashboardIndicators(user, pack.indicators, filters, params, t), pack, chosen);
+      return dashboardTables(t, fmt, await dashboardIndicators(user, pack.indicators, filters, params, t, fmt), pack, chosen);
     }
   }
 }

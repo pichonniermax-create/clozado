@@ -4,7 +4,7 @@ import { ArrowRight, Banknote, Briefcase, Download, Funnel, Handshake, Percent, 
 import { statNotes } from "@/components/analytics/duration-table";
 import { StatTile } from "@/components/stat-tile";
 import { buttonVariants } from "@/components/ui/button";
-import { formatDuration, formatEuros, formatRate } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import {
   dashboardIndicators,
   metricQueryString,
@@ -18,6 +18,7 @@ import type { OrgScopeUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { getTranslations } from "next-intl/server";
 import type { TranslatorOf } from "@/i18n/translator";
+import type { Formats } from "@/lib/format";
 
 /**
  * Les indicateurs du tableau de bord — ceux du pack métier de
@@ -38,7 +39,7 @@ const FAMILY_ICON: Record<string, ReactNode> = {
 
 
 /** Valeur, note et icône d'une tuile — la règle d'affichage par unité, en un seul endroit. */
-function tileOf({ metric, value, periodApplies }: DashboardIndicator, t: TranslatorOf<"dashboard.packIndicators">, tm: TranslatorOf<"metrics">, td: TranslatorOf<"analytics.durationTable">): { value: string | number; hint: string; icon: ReactNode } {
+function tileOf({ metric, value, periodApplies }: DashboardIndicator, t: TranslatorOf<"dashboard.packIndicators">, tm: TranslatorOf<"metrics">, td: TranslatorOf<"analytics.durationTable">, fmt: Formats): { value: string | number; hint: string; icon: ReactNode } {
   const today = periodApplies ? undefined : t("a_aujourd_hui");
   const icon = metric.unit === "euros" ? <Banknote /> : metric.unit === "ratio" ? <Percent /> : (FAMILY_ICON[metric.family] ?? <Briefcase />);
   switch (value.kind) {
@@ -48,21 +49,21 @@ function tileOf({ metric, value, periodApplies }: DashboardIndicator, t: Transla
       const { money } = value;
       const unknown = money.n > 0 && money.withoutAmount === money.n;
       const parts = [value.countPhrase, money.withoutAmount > 0 ? t("sans_montant", { withoutAmount: money.withoutAmount }) : null, value.detail, today];
-      return { value: unknown ? "—" : (formatEuros(money.amount) ?? "—"), hint: parts.filter(Boolean).join(" · "), icon };
+      return { value: unknown ? "—" : (fmt.money(money.amount) ?? "—"), hint: parts.filter(Boolean).join(" · "), icon };
     }
     case "days": {
       const { stat } = value;
       if (stat.hidden || stat.medianDays === null || stat.meanDays === null) {
         return { value: "—", hint: statNotes(stat, td) ?? "", icon };
       }
-      return { value: formatDuration(stat.medianDays), hint: t("mediane_moyenne_observation_observations", { formatDuration: formatDuration(stat.meanDays), n: stat.n }), icon };
+      return { value: fmt.duration(stat.medianDays), hint: t("mediane_moyenne_observation_observations", { formatDuration: fmt.duration(stat.meanDays), n: stat.n }), icon };
     }
     case "ratio": {
       const { rate } = value;
       if (rate.hidden || rate.percent === null) {
         return { value: "—", hint: t("masque_il_manque_observation_observations_pour_dc5a", { missing: rate.missing }), icon };
       }
-      return { value: formatRate(rate.percent), hint: [value.detail, today].filter(Boolean).join(" · "), icon };
+      return { value: fmt.rate(rate.percent), hint: [value.detail, today].filter(Boolean).join(" · "), icon };
     }
     case "unavailable":
       return { value: "—", hint: value.reason, icon };
@@ -73,9 +74,10 @@ export async function PackIndicators({ user, businessPack, parsed }: { user: Org
   const t = await getTranslations("dashboard.packIndicators");
   const tm = await getTranslations("metrics");
   const td = await getTranslations("analytics.durationTable");
+  const fmt = await getFormats();
   const { pack, chosen } = resolveBusinessPack(businessPack);
-  const indicators = await dashboardIndicators(user, pack.indicators, parsed.filters, parsed.params, tm);
-  const period = periodPhrase(parsed, tm);
+  const indicators = await dashboardIndicators(user, pack.indicators, parsed.filters, parsed.params, tm, fmt);
+  const period = periodPhrase(parsed, tm, fmt);
 
   return (
     <section className="flex flex-col gap-3" aria-label={t("indicateurs_du_pack_metier")}>
@@ -123,7 +125,7 @@ export async function PackIndicators({ user, businessPack, parsed }: { user: Org
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {indicators.map((indicator) => {
-          const tile = tileOf(indicator, t, tm, td);
+          const tile = tileOf(indicator, t, tm, td, fmt);
           return <StatTile key={indicator.id} label={tm(`definitions.${indicator.metric.id}.label`)} value={tile.value} hint={tile.hint} icon={tile.icon} href={indicator.href} />;
         })}
       </div>

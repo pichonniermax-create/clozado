@@ -28,7 +28,7 @@ import { resolveBusinessPack } from "@/lib/metrics/packs";
 import { requireUser, requireSessionUser } from "@/lib/session";
 import { discoverFeed } from "@/lib/watch/feeds";
 import { scheduleWatchRefresh } from "@/lib/watch/schedule";
-import { formatDateTime } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { getTranslations } from "next-intl/server";
 import { toAppLocale } from "@/i18n/locales";
 import { translatorFor } from "@/i18n/translator";
@@ -201,7 +201,7 @@ export async function refreshWatchAction() {
       else
         destination = withError(
           PAGE,
-          t("une_collecte_vient_d_avoir_lieu_1eeb", { formatDateTime: formatDateTime(result.until), watchManualCooldownMinutes: WATCH_MANUAL_COOLDOWN_MINUTES }),
+          t("une_collecte_vient_d_avoir_lieu_1eeb", { formatDateTime: (await getFormats()).dateTime(result.until), watchManualCooldownMinutes: WATCH_MANUAL_COOLDOWN_MINUTES }),
           "info"
         );
     } catch (error) {

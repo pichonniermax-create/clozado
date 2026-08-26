@@ -1,3 +1,4 @@
+import { use } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Download, Mail } from "lucide-react";
@@ -34,7 +35,7 @@ import {
   saveContactTagsAction,
   updateContactAction,
 } from "@/lib/contacts/actions";
-import { formatDate, formatDateTime, formatEuros } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { requireUser } from "@/lib/session";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
@@ -55,6 +56,7 @@ export default async function ContactPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const tr = await getTranslations("contacts.detail");
+  const fmt = await getFormats();
   const user = await requireUser();
   const { id } = await params;
   const query = await searchParams;
@@ -92,7 +94,7 @@ export default async function ContactPage({
       <>
         <PageHeader
           title={contact.name}
-          description={tr("fiche_supprimee_le_identite_effacee_tracabilite_32e3", { formatDate: formatDate(contact.deletedAt) })}
+          description={tr("fiche_supprimee_le_identite_effacee_tracabilite_32e3", { formatDate: fmt.date(contact.deletedAt) })}
           backTo={{ href: "/contacts", label: tr("contacts") }}
           actions={<Badge variant="secondary">{tr("supprimee")}</Badge>}
         />
@@ -339,7 +341,7 @@ export default async function ContactPage({
                 key={n.id}
                 href={`/newsletters/${n.id}`}
                 title={n.subject || n.title}
-                subtitle={tr("envoyee_le", { value: n.sentAt ? formatDate(n.sentAt) : "—", value2: n.topics.length > 0 ? tr("sujets", { join: n.topics.join(", ") }) : "" })}
+                subtitle={tr("envoyee_le", { value: n.sentAt ? fmt.date(n.sentAt) : "—", value2: n.topics.length > 0 ? tr("sujets", { join: n.topics.join(", ") }) : "" })}
               />
             ))}
           </ListCard>
@@ -425,7 +427,7 @@ export default async function ContactPage({
                 </span>
               </span>
               <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                {formatDateTime(entry.createdAt)}
+                {fmt.dateTime(entry.createdAt)}
               </span>
             </ListRow>
           ))}
@@ -475,6 +477,7 @@ function DealsSection({
   contactId?: string;
 }) {
   const t = useTranslations("contacts.detail");
+  const fmt = use(getFormats());
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
@@ -507,11 +510,11 @@ function DealsSection({
               key={d.id}
               href={`/affaires/${d.id}`}
               title={d.title}
-              subtitle={t("creee_le", { formatDate: formatDate(d.createdAt) })}
+              subtitle={t("creee_le", { formatDate: fmt.date(d.createdAt) })}
               trailing={
                 d.estimatedAmount ? (
                   <span className="text-sm font-medium tabular-nums">
-                    {formatEuros(d.estimatedAmount)}
+                    {fmt.money(d.estimatedAmount)}
                   </span>
                 ) : undefined
               }

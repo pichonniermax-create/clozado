@@ -11,6 +11,7 @@ import {
 import { errorMessage, withError } from "@/lib/form-actions";
 import { requireUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
+import { resolveRequestSettings } from "@/i18n/locale";
 
 /**
  * Server actions du journal — org-scopées via `requireUser()`, même
@@ -35,7 +36,7 @@ export async function logActivityAction(context: FicheContext, formData: FormDat
     await createActivity(user, user.id, {
       type,
       content: String(formData.get("content") ?? ""),
-      occurredAt: parseLocalDateTime(String(formData.get("occurredAt") ?? "")),
+      occurredAt: parseLocalDateTime(String(formData.get("occurredAt") ?? ""), (await resolveRequestSettings()).timeZone),
       contactId: context.contactId ?? null,
       dealId: context.dealId ?? null,
     });

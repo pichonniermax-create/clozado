@@ -9,10 +9,13 @@ import { loadNewsletter } from "@/lib/newsletter/actions";
 import { requestOrigin } from "@/lib/request-origin";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
+import { settingsOfOrganization } from "@/i18n/locale-lookup";
+import { DEFAULT_LOCALE } from "@/i18n/locales";
 
 export default async function EditNewsletterPage(props: PageProps<"/newsletters/[id]">) {
   const tr = await getTranslations("newsletters.detail");
   const user = await requireUser();
+  const contentLocale = user.organizationId ? (await settingsOfOrganization(user.organizationId)).locale : DEFAULT_LOCALE;
   const { id } = await props.params;
   const query = await props.searchParams;
   const sendError = query[SEND_ERROR_PARAM];
@@ -45,6 +48,7 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
         backTo={{ href: "/newsletters", label: tr("newsletters") }}
       />
       <NewsletterEditor
+        lang={contentLocale}
         targets={editorTargets.map((t) => ({
           id: t.id,
           label: t.archivedAt ? tr("desactivee", { label: t.label }) : t.label,

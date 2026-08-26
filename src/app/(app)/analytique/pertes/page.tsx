@@ -14,7 +14,7 @@ import { listOrigins } from "@/db/queries/acquisition";
 import { listOrgUsers } from "@/db/queries/contacts";
 import { listDealTypes } from "@/db/queries/deal-types";
 import { listPipelinesWithStages } from "@/db/queries/pipelines";
-import { formatEuros } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import {
   LOSS_NO_OWNER,
   lossesHasAnyData,
@@ -139,6 +139,7 @@ function BreakdownSection({
 export default async function LossesPage({ searchParams }: { searchParams: Promise<MetricSearchParams> }) {
   const t = await getTranslations("analytics.pertes");
   const tm = await getTranslations("metrics");
+  const fmt = await getFormats();
   const user = await requireUser();
   const raw = await searchParams;
 
@@ -160,7 +161,7 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
     );
   }
 
-  const parsed = parseMetricFilters(raw);
+  const parsed = parseMetricFilters(raw, fmt.timeZone);
   const [pipelines, types, users, origins, report] = await Promise.all([
     listPipelinesWithStages(user),
     listDealTypes(user),
@@ -170,7 +171,7 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
   ]);
   const scopedPipelineId = parsed.filters.pipelineId ?? (pipelines.length === 1 ? pipelines[0].id : null);
   const hasData = lossesHasAnyData(report);
-  const period = periodPhrase(parsed, tm);
+  const period = periodPhrase(parsed, tm, fmt);
 
   const totalLabel = <span className="tabular-nums">{t("affaire_perdue_affaires_perdues", { n: report.total.n })}</span>;
 
@@ -202,14 +203,14 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
                 </>
               ) : (
                 <>
-                  {t.rich("de_montant_estime_perdu", { formatEuros: (formatEuros(report.total.amount)) ?? "", span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
+                  {t.rich("de_montant_estime_perdu", { formatEuros: (fmt.money(report.total.amount)) ?? "", span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
                   {report.total.withoutAmount > 0 && (
                     <span className="text-muted-foreground"> {t("sans_montant", { withoutAmount: report.total.withoutAmount })}</span>
                   )}
                 </>
               )}
               {t.rich("gagnee_gagnees_sur_la_meme_periode", { won: report.won, span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
-              <DefinitionLink id="loss_rate">{t("taux_de_perte")}</DefinitionLink> <span className="tabular-nums">{rateText(report.lossRate, true)}</span>
+              <DefinitionLink id="loss_rate">{t("taux_de_perte")}</DefinitionLink> <span className="tabular-nums">{rateText(report.lossRate, fmt, true)}</span>
               {report.lossRate.hidden && (
                 <span className="text-muted-foreground"> {t("masque_il_manque_affaire_affaires_close_3720", { missing: report.lossRate.missing })}</span>
               )}
@@ -222,7 +223,7 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
                   t("montant_inconnu")
                 ) : (
                   <>
-                    <span className="tabular-nums">{formatEuros(report.excludedReconstructed.amount)}</span>
+                    <span className="tabular-nums">{fmt.money(report.excludedReconstructed.amount)}</span>
                     {report.excludedReconstructed.withoutAmount > 0 && t("sans_montant", { withoutAmount: report.excludedReconstructed.withoutAmount })}
                   </>
                 )}{" "}

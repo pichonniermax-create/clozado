@@ -28,7 +28,12 @@
     "sans_l_etiquette": "sans l’étiquette {joinOr}",
     "societes": "Sociétés",
     "suivi_par": "suivi par {joinOr}",
-    "tous_les_contacts": "Tous les contacts"
+    "tous_les_contacts": "Tous les contacts",
+    "joinOr": "{list} ou {last}",
+    "un_conseiller": "un conseiller",
+    "entre_et_ans": "entre {ageMin} et {ageMax} ans",
+    "pays": "pays : {joinOr}",
+    "origine": "origine : {joinOr}"
   },
   "criteriaEditor": {
     "a": "à",

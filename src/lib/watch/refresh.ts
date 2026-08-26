@@ -35,6 +35,8 @@ import { DEFAULT_LOCALE } from "@/i18n/locales";
 import { translatorFor } from "@/i18n/translator";
 import type { TranslatorOf } from "@/i18n/translator";
 import { WatchFetchError, type WatchHttpReason } from "./http";
+import { settingsOfOrganization } from "@/i18n/locale-lookup";
+import { createFormats } from "@/lib/format";
 
 /**
  * LA COLLECTE — un seul chemin de code, trois déclencheurs (à la visite,
@@ -121,7 +123,8 @@ export async function refreshOrganizationIndicators(organizationId: string, opts
   const keys = await listFollowedIndicatorKeys(organizationId);
   const read = await refreshIndicators(keys, opts);
   // Les chiffres vérifiés de l'organisation s'écrivent dans SA langue.
-  await syncIndicatorFigures(organizationId, await translatorFor(await localeOfOrganization(organizationId), "figures"));
+  const settings = await settingsOfOrganization(organizationId);
+  await syncIndicatorFigures(organizationId, await translatorFor(settings.locale, "figures"), createFormats(settings));
   return read;
 }
 

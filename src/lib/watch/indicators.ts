@@ -137,14 +137,14 @@ export function getIndicator(key: string): MarketIndicator | null {
 const NNBSP = " ";
 
 /**
- * La valeur telle qu'elle se CITE (`verified_figures.value`) : nombre en
- * français avec la précision publiée (« 2,25 % », « 2,189 % », « 127,4 »).
+ * La valeur telle qu'elle se CITE (`verified_figures.value`) : nombre dans
+ * la langue de l'organisation avec la précision publiée (« 2,25 % », « 2,189 % », « 127,4 »).
  * C'est la chaîne que le prompt transmet et que la revue reconnaît.
  */
-export function formatIndicatorValue(valueText: string, unit: IndicatorUnit): string {
+export function formatIndicatorValue(valueText: string, unit: IndicatorUnit, intlLocale: string): string {
   const n = Number(valueText.replace(",", "."));
   if (Number.isNaN(n)) return unit === "%" ? `${valueText}${NNBSP}%` : valueText;
   const decimals = Math.min((valueText.split(/[.,]/)[1] ?? "").replace(/0+$/, "").length, 4);
-  const formatted = new Intl.NumberFormat("fr-FR", { minimumFractionDigits: Math.min(decimals, 2), maximumFractionDigits: decimals }).format(n);
+  const formatted = new Intl.NumberFormat(intlLocale, { minimumFractionDigits: Math.min(decimals, 2), maximumFractionDigits: decimals }).format(n);
   return unit === "%" ? `${formatted}${NNBSP}%` : formatted;
 }

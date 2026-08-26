@@ -18,7 +18,6 @@ import {
 } from "@/db/schema";
 import { assertOrgAccess } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
-import { PRODUCT_TIMEZONE } from "@/lib/timezone";
 import { AppError } from "@/lib/errors";
 import type { TranslatorOf } from "@/i18n/translator";
 
@@ -487,32 +486,7 @@ export async function listOrganizationJournal(user: OrgScopeUser, limit: number,
 /** Tolérance pour « maintenant » saisi à la main : au-delà, c'est une date à venir. */
 const FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
 
-/** Décalage (minutes) d'un fuseau à un instant donné — « GMT+02:00 » → 120. */
-function timezoneOffsetMinutes(timeZone: string, at: Date): number {
-  const name =
-    new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "longOffset" })
-      .formatToParts(at)
-      .find((p) => p.type === "timeZoneName")?.value ?? "GMT";
-  const match = /GMT([+-])(\d{2}):?(\d{2})?/.exec(name);
-  if (!match) return 0;
-  const sign = match[1] === "-" ? -1 : 1;
-  return sign * (Number(match[2]) * 60 + Number(match[3] ?? 0));
-}
-
-/**
- * « 2026-08-24T14:30 » (champ datetime-local, sans fuseau) lu comme une
- * heure de Paris — même convention que les échéances des tâches
- * (queries/tasks.ts : la clientèle est française, le serveur est en UTC).
- * Vide ou invalide → null (= maintenant, décidé par l'appelant).
- */
-export function parseLocalDateTime(value: string | null | undefined): Date | null {
-  const trimmed = value?.trim();
-  if (!trimmed) return null;
-  const naive = new Date(`${trimmed.length === 16 ? `${trimmed}:00` : trimmed}Z`);
-  if (Number.isNaN(naive.getTime())) return null;
-  const offset = timezoneOffsetMinutes(PRODUCT_TIMEZONE, naive);
-  return new Date(naive.getTime() - offset * 60 * 1000);
-}
+export { parseLocalDateTime } from "@/lib/timezone";
 
 export type ActivityInput = {
   type: Activity["type"];

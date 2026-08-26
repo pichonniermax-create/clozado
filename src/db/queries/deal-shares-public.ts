@@ -58,7 +58,7 @@ export type PublicShareView = {
   shareId: string;
   status: PublicShareStatus;
   /** Qui écrit : nom de l'organisation ET de la personne qui a envoyé CE partage — jamais un email, jamais un id. */
-  organization: { name: string };
+  organization: { name: string; defaultLocale: string; currency: string; timezone: string };
   issuedByName: string | null;
   /** Nom complet du partenaire destinataire — la page en dérive le prénom pour "Bonjour {prénom}". */
   partnerName: string;
@@ -307,7 +307,7 @@ async function buildView(share: DealShareRow): Promise<PublicShareView> {
   return {
     shareId: share.id,
     status: share.status,
-    organization: { name: org.name },
+    organization: { name: org.name, defaultLocale: org.defaultLocale, currency: org.currency, timezone: org.timezone },
     issuedByName: issuer?.name ?? null,
     partnerName: partner.name,
     deal: {

@@ -9,6 +9,7 @@ import { getVisibleOrganizations } from "@/db/queries/organizations";
 import { countTasksDueNow } from "@/db/queries/tasks";
 import { getWorkspace } from "@/lib/brand/workspace";
 import { requireSessionUser, requireUser } from "@/lib/session";
+import { getUserLocaleChoice } from "@/db/queries/users";
 
 /**
  * Coquille commune à tous les écrans internes. Le groupe de routes `(app)`
@@ -46,9 +47,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const isSuperAdmin = sessionUser.role === "super_admin";
   const hasOrganization = Boolean(user.organizationId);
 
-  const [workspace, allOrganizations] = await Promise.all([
+  const [workspace, allOrganizations, localeChoice] = await Promise.all([
     getWorkspace(),
     isSuperAdmin ? getVisibleOrganizations(sessionUser) : Promise.resolve([]),
+    getUserLocaleChoice(sessionUser.id),
   ]);
   const org = workspace?.organization ?? null;
   const mark: WorkspaceMarkProps = workspace ? { logo: workspace.brand.logo.light, name: workspace.brand.name } : PRODUCT_MARK;
@@ -77,7 +79,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             organizationName={org?.name ?? null}
             hasOrganization={hasOrganization}
             badges={{ followUp, tasksDue }}
-            user={{ name: sessionUser.name ?? null, email: sessionUser.email ?? null }}
+            user={{ name: sessionUser.name ?? null, email: sessionUser.email ?? null, localeChoice }}
           />
           {isSuperAdmin && (
             <SuperAdminBar

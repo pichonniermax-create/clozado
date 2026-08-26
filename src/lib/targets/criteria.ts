@@ -106,9 +106,9 @@ export type CriteriaOptions = {
   countries: string[];
 };
 
-function joinOr(items: string[]): string {
+function joinOr(items: string[], t: TargetsTranslator): string {
   if (items.length <= 1) return items[0] ?? "";
-  return `${items.slice(0, -1).join(", ")} ou ${items[items.length - 1]}`;
+  return t("criteria.joinOr", { list: items.slice(0, -1).join(", "), last: items[items.length - 1] });
 }
 
 function nameOf<T extends { id: string }>(list: T[], id: string, label: (item: T) => string, missing: string): string {
@@ -127,44 +127,44 @@ export function describeCriteria(criteria: SegmentCriteria, options: CriteriaOpt
   const out: string[] = [];
   const tagName = (id: string) => nameOf(options.tags, id, (t) => t.label, t("criteria.etiquette_supprimee"));
   const userName = (id: string) =>
-    nameOf(options.users, id, (u) => u.name || u.email || "un conseiller", t("criteria.conseiller_parti"));
+    nameOf(options.users, id, (u) => u.name || u.email || t("criteria.un_conseiller"), t("criteria.conseiller_parti"));
   const stages = options.pipelines.flatMap((p) => p.stages.map((s) => ({ id: s.id, label: s.label })));
 
   if (c.kind === "person") out.push(t("criteria.personnes"));
   if (c.kind === "company") out.push(t("criteria.societes"));
   if (c.tagsAny?.length) {
     const labels = c.tagsAny.map(tagName);
-    out.push(labels.length === 1 ? t("criteria.porte_l_etiquette", { value: labels[0] }) : t("criteria.porte_l_etiquette_31ed", { joinOr: joinOr(labels) }));
+    out.push(labels.length === 1 ? t("criteria.porte_l_etiquette", { value: labels[0] }) : t("criteria.porte_l_etiquette_31ed", { joinOr: joinOr(labels, t) }));
   }
-  if (c.tagsNone?.length) out.push(t("criteria.sans_l_etiquette", { joinOr: joinOr(c.tagsNone.map(tagName)) }));
-  if (c.ageMin !== undefined && c.ageMax !== undefined) out.push(`entre ${c.ageMin} et ${c.ageMax} ans`);
+  if (c.tagsNone?.length) out.push(t("criteria.sans_l_etiquette", { joinOr: joinOr(c.tagsNone.map(tagName), t) }));
+  if (c.ageMin !== undefined && c.ageMax !== undefined) out.push(t("criteria.entre_et_ans", { ageMin: c.ageMin, ageMax: c.ageMax }));
   else if (c.ageMin !== undefined) out.push(t("criteria.ans_et_plus", { ageMin: c.ageMin }));
   else if (c.ageMax !== undefined) out.push(t("criteria.jusqu_a_ans", { ageMax: c.ageMax }));
   if (c.hasEmail) out.push(t("criteria.avec_une_adresse_email"));
-  if (c.cities?.length) out.push(t("criteria.a", { joinOr: joinOr(c.cities) }));
-  if (c.countries?.length) out.push(`pays : ${joinOr(c.countries)}`);
-  if (c.ownerIds?.length) out.push(t("criteria.suivi_par", { joinOr: joinOr(c.ownerIds.map(userName)) }));
+  if (c.cities?.length) out.push(t("criteria.a", { joinOr: joinOr(c.cities, t) }));
+  if (c.countries?.length) out.push(t("criteria.pays", { joinOr: joinOr(c.countries, t) }));
+  if (c.ownerIds?.length) out.push(t("criteria.suivi_par", { joinOr: joinOr(c.ownerIds.map(userName), t) }));
   if (c.deals) {
     const presence = t(`dealPresence.${c.deals}`);
     out.push(presence.charAt(0).toLowerCase() + presence.slice(1));
   }
   if (c.dealStageIds?.length) {
     const labels = c.dealStageIds.map((id) => nameOf(stages, id, (s) => s.label, t("criteria.etape_supprimee")));
-    out.push(labels.length === 1 ? t("criteria.affaire_dans_l_etape", { value: labels[0] }) : t("criteria.affaire_dans_l_etape_f806", { joinOr: joinOr(labels) }));
+    out.push(labels.length === 1 ? t("criteria.affaire_dans_l_etape", { value: labels[0] }) : t("criteria.affaire_dans_l_etape_f806", { joinOr: joinOr(labels, t) }));
   }
   if (c.dealPipelineIds?.length) {
     out.push(
-      t("criteria.affaire_dans_le_pipeline", { joinOr: joinOr(c.dealPipelineIds.map((id) => nameOf(options.pipelines, id, (p) => p.label, t("criteria.pipeline_supprime")))) })
+      t("criteria.affaire_dans_le_pipeline", { joinOr: joinOr(c.dealPipelineIds.map((id) => nameOf(options.pipelines, id, (p) => p.label, t("criteria.pipeline_supprime"))), t) })
     );
   }
   if (c.createdMoreThanDays !== undefined) out.push(t("criteria.fiche_creee_il_y_a_plus_9aad", { createdMoreThanDays: c.createdMoreThanDays }));
   if (c.createdLessThanDays !== undefined) out.push(t("criteria.fiche_creee_il_y_a_moins_fc42", { createdLessThanDays: c.createdLessThanDays }));
   if (c.inactiveForDays !== undefined) out.push(t("criteria.sans_interaction_depuis_plus_de_jours", { inactiveForDays: c.inactiveForDays }));
   if (c.sources?.length) {
-    out.push(t("criteria.fiche_venue_de", { joinOr: joinOr(c.sources.map((s) => t(`sources.${s}`).toLowerCase())) }));
+    out.push(t("criteria.fiche_venue_de", { joinOr: joinOr(c.sources.map((s) => t(`sources.${s}`).toLowerCase()), t) }));
   }
   if (c.originIds?.length) {
-    out.push(`origine : ${joinOr(c.originIds.map((id) => nameOf(options.origins, id, (o) => o.label, t("criteria.origine_supprimee"))))}`);
+    out.push(t("criteria.origine", { joinOr: joinOr(c.originIds.map((id) => nameOf(options.origins, id, (o) => o.label, t("criteria.origine_supprimee"))), t) }));
   }
   return out.length > 0 ? out : [t("criteria.tous_les_contacts")];
 }

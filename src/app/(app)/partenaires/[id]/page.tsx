@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { getPartner } from "@/db/queries/partners";
 import { listDealSharesForPartner } from "@/db/queries/deal-shares";
 import { updatePartnerAction } from "@/lib/deals/actions";
-import { formatDate } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
 
@@ -23,6 +23,7 @@ export default async function PartnerPage({
   params: Promise<{ id: string }>;
 }) {
   const t = await getTranslations("partners.detail");
+  const fmt = await getFormats();
   const user = await requireUser();
   const { id } = await params;
 
@@ -124,7 +125,7 @@ export default async function PartnerPage({
                 key={share.id}
                 href={`/affaires/${deal.id}`}
                 title={deal.title}
-                subtitle={t("envoyee_le", { formatDate: formatDate(share.sentAt) })}
+                subtitle={t("envoyee_le", { formatDate: fmt.date(share.sentAt) })}
                 trailing={<ShareStatusBadge status={share.status} />}
                 chevron={false}
               />

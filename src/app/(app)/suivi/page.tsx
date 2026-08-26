@@ -1,3 +1,4 @@
+import { use } from "react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AlarmClock, Banknote, CheckCircle2, PauseCircle } from "lucide-react";
@@ -16,7 +17,7 @@ import {
   type PendingAlert,
   type UnpaidCommission,
 } from "@/db/queries/deal-follow-up";
-import { formatCommission, formatDate, formatDays, formatEuros } from "@/lib/format";
+import { getFormats } from "@/i18n/formats";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
@@ -24,6 +25,7 @@ import { getTranslations } from "next-intl/server";
 
 export default async function FollowUpPage() {
   const t = await getTranslations("followup.page");
+  const fmt = await getFormats();
   const user = await requireUser();
 
   // Cet écran n'existe que rapporté à UNE organisation : il lit ses seuils
@@ -125,7 +127,7 @@ export default async function FollowUpPage() {
         count={board.unpaidCommissions.length}
         empty={t("aucune_commission_en_attente_de_reglement")}
         subtitle={t("confirmees_pas_encore_reglees_aucune_echeance_748a")}
-        aside={unpaidTotal > 0 ? (formatEuros(unpaidTotal) ?? undefined) : undefined}
+        aside={unpaidTotal > 0 ? (fmt.money(unpaidTotal) ?? undefined) : undefined}
       >
         {board.unpaidCommissions.map((row) => (
           <UnpaidCommissionRow key={row.commissionId} row={row} />
@@ -258,12 +260,13 @@ function ActionRow({
 
 function PendingAlertRow({ row }: { row: PendingAlert }) {
   const t = useTranslations("followup.page");
+  const fmt = use(getFormats());
   const expiry =
     row.daysUntilExpiry === null
       ? null
       : row.daysUntilExpiry <= 0
         ? t("lien_expire")
-        : t("expire_dans", { formatDays: formatDays(row.daysUntilExpiry) });
+        : t("expire_dans", { formatDays: fmt.days(row.daysUntilExpiry) });
 
   return (
     <ActionRow
@@ -273,7 +276,7 @@ function PendingAlertRow({ row }: { row: PendingAlert }) {
       critical={row.critical}
       detail={
         <>
-          {t.rich("sans_reponse_depuis", { formatDays: formatDays(row.daysSinceSent), n: (expiry && ` · ${expiry}`) ?? "", span: (chunks) => <span className={row.critical ? "font-medium text-destructive" : undefined}>{chunks}</span> })}
+          {t.rich("sans_reponse_depuis", { formatDays: fmt.days(row.daysSinceSent), n: (expiry && ` · ${expiry}`) ?? "", span: (chunks) => <span className={row.critical ? "font-medium text-destructive" : undefined}>{chunks}</span> })}
         </>
       }
       action={<ReissueShareButton shareId={row.shareId} />}
@@ -283,12 +286,13 @@ function PendingAlertRow({ row }: { row: PendingAlert }) {
 
 function AcceptedStaleRow({ row }: { row: AcceptedStale }) {
   const t = useTranslations("followup.page");
+  const fmt = use(getFormats());
   return (
     <ActionRow
       dealTitle={row.dealTitle}
       partnerName={row.partnerName}
       dealId={row.dealId}
-      detail={t("acceptee_le_rien_depuis", { formatDate: formatDate(row.respondedAt ?? row.sentAt), formatDays: formatDays(row.daysSinceActivity) })}
+      detail={t("acceptee_le_rien_depuis", { formatDate: fmt.date(row.respondedAt ?? row.sentAt), formatDays: fmt.days(row.daysSinceActivity) })}
       // Pas de bouton : rien à déclencher automatiquement sur du
       // relationnel. Le titre est déjà le lien vers l'affaire.
     />
@@ -296,12 +300,13 @@ function AcceptedStaleRow({ row }: { row: AcceptedStale }) {
 }
 
 function UnpaidCommissionRow({ row }: { row: UnpaidCommission }) {
+  const fmt = use(getFormats());
   return (
     <ActionRow
       dealTitle={row.dealTitle}
       partnerName={row.partnerName}
       dealId={row.dealId}
-      detail={`${formatCommission(row)} · ${row.confirmedAt ? `confirmée le ${formatDate(row.confirmedAt)}` : "date de confirmation inconnue"}`}
+      detail={`${fmt.commission(row)} · ${row.confirmedAt ? `confirmée le ${fmt.date(row.confirmedAt)}` : "date de confirmation inconnue"}`}
       action={<MarkCommissionSettledButton commissionId={row.commissionId} />}
     />
   );

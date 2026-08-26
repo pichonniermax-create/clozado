@@ -4,7 +4,7 @@ import { useMemo, useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { moveDealStageAction, updateDealDetailsAction } from "@/lib/deals/actions";
-import { formatEuros } from "@/lib/format";
+import { useFormats } from "@/components/i18n/formats-provider";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 
@@ -46,6 +46,7 @@ export function KanbanBoard({
   lossReasons: LossReason[];
 }) {
   const tr = useTranslations("deals.kanbanBoard");
+  const fmt = useFormats();
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [optimisticCards, applyMove] = useOptimistic(
@@ -137,7 +138,7 @@ export function KanbanBoard({
                   </span>
                   <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                     {columnCards.length}
-                    {total > 0 && ` · ${formatEuros(total)}`}
+                    {total > 0 && ` · ${fmt.money(total)}`}
                   </span>
                 </header>
 
@@ -163,13 +164,11 @@ export function KanbanBoard({
                           <p className="truncate text-xs text-muted-foreground">{card.clientName}</p>
                           <p className="mt-1 flex items-center justify-between gap-2 text-xs">
                             <span className="font-medium tabular-nums">
-                              {card.estimatedAmount ? formatEuros(card.estimatedAmount) : "—"}
+                              {card.estimatedAmount ? fmt.money(card.estimatedAmount) : "—"}
                             </span>
                             <span className="tabular-nums text-muted-foreground">
                               {card.expectedCloseDate
-                                ? new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(
-                                    new Date(card.expectedCloseDate)
-                                  )
+                                ? fmt.shortDate(card.expectedCloseDate)
                                 : ""}
                             </span>
                           </p>

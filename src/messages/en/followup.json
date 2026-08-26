@@ -1,0 +1,29 @@
+{
+  "page": {
+    "acceptee_le_rien_depuis": "accepted on {formatDate} · nothing for {formatDays}",
+    "acceptees_puis_plus_rien_depuis_jours_9418": "Accepted, then nothing for {acceptedStaleDays} days or more.",
+    "acceptees_sans_suite": "Accepted but stalled",
+    "aucun_dossier_accepte_ne_stagne": "No accepted case is stalling.",
+    "aucun_partage_en_souffrance": "No share left hanging.",
+    "aucune_commission_en_attente_de_reglement": "No commission awaiting settlement.",
+    "ce_qu_il_faut_relancer_classe_5e23": "What needs a follow-up, sorted by kind — not by date.",
+    "cet_ecran_suit_les_relances_d_e7be": "This screen tracks the follow-ups of a given organization.",
+    "commissions_a_encaisser": "Commissions to collect",
+    "confirmees_pas_encore_reglees_aucune_echeance_748a": "Confirmed, not yet settled — no due date, they remain owed.",
+    "element_elements_a_traiter_classe_classes_cd54": "{todo} {todo, plural, one {item} other {items}} to handle, sorted by kind — not by date.",
+    "en_cours": "In progress",
+    "expire_dans": "expires in {formatDays}",
+    "le_confrere_n_a_pas_repondu_fa04": "The partner hasn’t replied, or the link is about to expire.",
+    "le_suivi_se_remplit_des_que_44be": "Follow-up fills in as soon as you share a deal with a partner: shares without a reply, accepted but stalled, commissions to collect.",
+    "lien_expire": "link expired",
+    "partages_clos": "Closed shares ({count})",
+    "partages_sans_reponse": "Shares without a reply",
+    "rien_a_faire_pour_l_instant": "{count} · nothing to do for now",
+    "rien_a_suivre_pour_l_instant": "Nothing to follow up on yet",
+    "rien_n_attend_d_action_de_57be": "Nothing is waiting for action on your part.",
+    "sans_reponse_depuis": "<span>no reply for {formatDays}</span>{n}",
+    "suivi": "Follow-up",
+    "tu_es_en_vue_globale_le_21fb": "You’re in global view: Follow-up only exists for a specific organization. Choose an organization in the super admin banner at the top of the screen to see its follow-ups.",
+    "voir_les_affaires": "See deals"
+  }
+}

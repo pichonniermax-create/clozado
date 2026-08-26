@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, Check, Loader2 } from "lucide-react";
 import { formatSavedAt, type SaveState } from "./use-autosave";
 import { useTranslations } from "next-intl";
+import { useFormats } from "@/components/i18n/formats-provider";
 
 /**
  * Discret par principe — sauf en cas d'échec, où il doit se voir : croire
@@ -11,6 +12,7 @@ import { useTranslations } from "next-intl";
  */
 export function SaveIndicator({ state }: { state: SaveState }) {
   const tr = useTranslations("newsletters.saveIndicator");
+  const fmt = useFormats();
   const [now, setNow] = useState(() => Date.now());
 
   // L'horloge ne tourne que pendant qu'un « il y a X » est affiché.
@@ -50,7 +52,7 @@ export function SaveIndicator({ state }: { state: SaveState }) {
   return (
     <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
       <Check className="size-3.5 text-success" />
-      {tr("enregistre", { formatSavedAt: formatSavedAt(state.at, now) })}
+      {tr("enregistre", { formatSavedAt: formatSavedAt(state.at, now, fmt.tag) })}
     </span>
   );
 }

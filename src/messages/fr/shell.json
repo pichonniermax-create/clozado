@@ -2,7 +2,9 @@
   "accountMenu": {
     "marque_reglages": "Marque & réglages",
     "mon_compte": "Mon compte",
-    "se_deconnecter": "Se déconnecter"
+    "se_deconnecter": "Se déconnecter",
+    "langue": "Langue",
+    "celle_de_l_organisation": "Celle de l’organisation ({language})"
   },
   "appHeader": {
     "rechercher_un_contact": "Rechercher un contact…",
