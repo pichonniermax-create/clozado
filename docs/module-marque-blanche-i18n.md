@@ -535,10 +535,180 @@ Rien de construit maintenant ; rien de codé qui l'empêche. Le jour venu :
   publique versionnée immuable, 404 sur une image inconnue, retraits,
   lecture seule pour un membre. Captures relues.
 
+## Étape 3 — la propagation : deux organisations, deux interfaces
+
+### Ce qui est construit
+
+- **La coquille pose la marque sur le document entier**
+  (`src/lib/brand/workspace.ts`, `components/brand/brand-style.tsx`) :
+  `getWorkspace()` — l'organisation effective de la requête et sa marque,
+  une seule lecture par requête (`cache` de React, partagée entre la
+  coquille et ses métadonnées) — dérive les jetons des deux thèmes par
+  `deriveBrandTokens` (rien n'est stocké, la fonction est celle de
+  l'aperçu du sélecteur) et `BrandStyle` les rend dans une feuille de
+  style `html:root{…}` (et `html:root.dark, html:root .dark{…}` pour le
+  jour où le thème sombre existe). **Pas sur une `div` de la coquille** :
+  le menu de compte, le menu « Nouveau », les listes déroulantes et le
+  panneau de navigation mobile se rendent en portail à la racine du corps,
+  hors de la coquille — des variables posées sur un élément ne les
+  atteindraient pas, et le menu garderait le bleu Clozado sous une marque
+  bordeaux. La feuille est montée et démontée avec la coquille : un super
+  admin qui change d'organisation change de marque au même instant.
+  Sélecteur `html:root`, plus précis que le `:root` de `globals.css` — il
+  gagne quel que soit l'ordre des feuilles ; un garde-fou n'y laisse
+  entrer que des hexadécimaux à six chiffres.
+- **Le logo dans la navigation** (`components/app-shell/workspace-mark.tsx`)
+  : UNE définition — la barre latérale, le panneau mobile ET l'aperçu
+  « Barre latérale » des réglages (qui rend donc exactement ce que la
+  coquille rend) : le logo téléversé (`h-8`, texte alternatif = le nom de
+  l'organisation), sinon la marque par défaut du produit — « retour à
+  Clozado si absent », cahier des charges. Le carré « C » de `BrandMark`
+  passe sur un jeton `--product` **hors des jetons dérivés** : la marque
+  Clozado reste dans le bleu du produit sous n'importe quelle couleur
+  d'organisation (avant, `bg-primary` l'aurait peint en bordeaux). Le nom
+  de l'organisation reste dans l'en-tête, comme un contexte.
+- **L'onglet** : `generateMetadata` de la coquille pose le titre (le nom
+  de l'organisation, avec un gabarit `%s — <nom>` pour les titres de page
+  à venir) et l'icône téléversée (`/brand/<org>/icon?v=…`). Le favicon
+  Clozado quitte `app/favicon.ico` pour `public/favicon.ico`, déclaré par
+  métadonnées dans la mise en page racine : un fichier `favicon.ico` dans
+  `app/` est **toujours** ajouté en tête des icônes par Next, même quand
+  une coquille en pose une autre (`resolve-metadata.js`, `postProcess
+  Metadata` : `icons.icon.unshift(favicon)`) — deux `<link rel="icon">`
+  concurrents, et c'est le navigateur qui choisit. Déclarée par
+  métadonnées, l'icône d'une organisation la **remplace** (fusion clé par
+  clé). Sans icône téléversée, l'onglet garde celle du produit.
+- **Les états qui utilisent `primary`** : les TEXTES à la couleur de la
+  marque passent à l'encre dérivée, vérifiée ≥ 4,5:1 (`text-primary` ne
+  garantit que 3:1, celui d'un composant) — le lien « Travailler dans
+  cette organisation » du tableau de bord, l'icône de la bannière de
+  sélection, le survol des définitions d'indicateurs et de
+  `DetailsCard`, l'avatar du menu de compte (`bg-primary-soft
+  text-primary-ink`) ; le panier de veille passe de `bg-primary/5` (un
+  voile dont l'aspect dépendait de la clarté de la couleur) au fond léger
+  dérivé `bg-primary-soft`. Les surfaces et bordures (`bg-primary`,
+  `border-primary`) restent : 3:1 garanti sur le fond.
+- **L'expéditeur des emails** (`src/lib/email/address.ts`, `sender.ts`) :
+  deux champs sur `/settings`, dans la carte « Marque » — le nom
+  d'expéditeur (120 caractères, retours à la ligne retirés : une injection
+  d'en-tête passe par là) et l'adresse de réponse (`type="email"` côté
+  navigateur, `isPlausibleEmail` côté serveur — la même fonction que la
+  connexion et l'inscription, qui l'importent désormais) ; et
+  `emailSender(org)`, le résolveur unique : le nom d'expéditeur — sinon le
+  nom de l'organisation — devant l'adresse du produit (`EMAIL_FROM`, la
+  même que le lien de connexion), l'adresse propre en **Reply-To** tant que
+  le domaine d'envoi n'est pas vérifié, en From une fois qu'il l'est (et
+  seulement si elle est sur ce domaine). `formatMailbox` met le nom entre
+  guillemets dès qu'il porte une virgule, un point ou des guillemets
+  (RFC 5322).
+- **Le logo téléversé prime dans les emails et sur la vitrine** :
+  `toRenderBrand(org, images, origine)` — le logo téléversé remplace
+  `logo_url` (qui reste le repli des organisations qui l'utilisaient),
+  en adresse **absolue** quand une origine est donnée (le rendu de
+  l'email, `POST /api/newsletters/render` et les deux écrans newsletter,
+  via `requestOrigin()` — l'origine lue dans les en-têtes de la requête,
+  la même que l'extrait de collecte des réglages), relative sinon (la
+  vitrine, l'aperçu du composeur de partage). `resolvePublicShare` lit
+  les images de l'organisation du partage (bornée par
+  `share.organizationId`, comme tout le reste du module isolé) et expose
+  `iconUrl`.
+- **La vitrine `/partage/[token]`** se rend sous les jetons dérivés de la
+  couleur de l'organisation émettrice (`BrandStyle` posé par la page ; une
+  seule résolution du partage par requête, partagée entre les métadonnées
+  et la page — un partage expiré journalise son accès une fois, pas deux),
+  son nom et son icône dans l'onglet ; `PartnerShareView` perd ses deux
+  `style={{ backgroundColor: accent }}` et sa couleur inline sur le nom :
+  le bouton « Accepter » est le `Button` par défaut, le nom est en
+  `text-primary-ink` — un accent trop clair faisait un bouton illisible,
+  la dérivation garantit le contraste. Un lien invalide reste anonyme :
+  titre du produit, pas de feuille de marque, icône du produit.
+- **Le nom Clozado disparaît de l'espace de travail** : le titre d'onglet
+  (était « Clozado » partout), « une valeur déjà saisie dans Clozado »
+  (assistant d'import), « Export Clozado » (feuille des paramètres du CSV
+  analytique → « Paramètres de l'export »), « Clozado n'a pas pu
+  s'afficher » (dernier filet d'erreur, qui couvre aussi l'espace de
+  travail). Restent, à dessein : la connexion, l'inscription et l'accueil
+  (écrans publics), la vue globale super admin (espace gestionnaire), la
+  marque par défaut sans logo, et des identifiants techniques —
+  `clozado.track(…)` (la fonction globale de l'extrait de collecte posé
+  sur les sites des clients : la renommer casserait les sites déjà
+  équipés), le préfixe `clz_` des clés d'API, le nom du cookie, le
+  User-Agent de la veille.
+- **L'aperçu « Page de connexion »** des réglages (étape 2) devient
+  « Page de partage » : la connexion reste celle du produit — un aperçu
+  qui y montrait le logo du client promettait quelque chose de faux ; la
+  vitrine, elle, le porte vraiment.
+
+### Ce qu'il faut savoir
+
+- **Aucun email ne part encore au nom d'une organisation** : la newsletter
+  est marquée envoyée à la main, le lien de connexion est celui du produit.
+  Les deux champs se règlent et se lisent (`emailSender`) ; le résolveur
+  est le point de passage obligé du premier email qui partira — les emails
+  système de l'étape 5.
+- Un super admin qui travaille dans une organisation voit **son
+  interface** (marque, logo, titre) — c'est le sens de la substitution — et
+  garde son bandeau, qui ne change pas de couleur (jeton sémantique).
+- Chromium calcule les couleurs OKLCH de `globals.css` en `lab(…)`
+  (`getComputedStyle`) : pour comparer le bleu du produit dans une preuve,
+  prendre une référence sur `/login` plutôt qu'un `rgb()` attendu.
+
+### Décisions réversibles
+
+- Sans logo, la marque par défaut est celle du produit (le cahier :
+  « retour à Clozado si absent ») — une composition « initiale + nom de
+  l'organisation » pourrait la remplacer le jour où l'on voudrait zéro
+  Clozado dans un espace sans logo.
+- Les deux champs de l'expéditeur vivent dans la carte « Marque » (un seul
+  bouton « Enregistrer la marque »), pas dans une carte « Emails » à part.
+- Les titres de page (`%s — <organisation>`) ne sont pas encore posés par
+  les écrans : ils viendront avec l'extraction des textes (étape 4).
+
+### Preuves
+
+- **À blanc** (`scripts/_tmp-brand-propagation.ts`, supprimé) : la feuille
+  de marque (`html:root{--primary:#7a1f2e;…}`, hexadécimaux seulement) ;
+  le logo téléversé en adresse absolue dans le HTML de l'email
+  (`http://…/brand/<org>/logo_light?v=…`) et relative à l'écran, le repli
+  `logo_url` sans image ; l'expéditeur dans ses quatre cas (sans réglage,
+  réglé sans domaine vérifié → Reply-To, domaine vérifié → From, adresse
+  d'un autre domaine → Reply-To), les guillemets d'un nom avec virgule,
+  les retours à la ligne retirés.
+- **Au navigateur** (build de production, sessions forgées, deux
+  organisations jetables détruites — « Cabinet Amarante », bordeaux
+  `#7a1f2e` avec logo et icône ; « Studio Bergamote », jaune très clair
+  `#fff59d` sans logo — plus un super admin jetable) : **54 contrôles,
+  zéro `pageerror`, zéro erreur console, zéro 5xx**. A : titre d'onglet,
+  UNE icône (la sienne), `--primary` calculée sur `<html>`, feuille de
+  marque, logo dans la barre, zéro « Clozado », nom dans l'en-tête, icône
+  servie en PNG cache immuable ; le VRAI bouton « Enregistrer la marque »
+  en `rgb(122, 31, 46)` texte blanc (10,18:1) ; l'aperçu « Barre latérale »
+  montre le même logo ; expéditeur enregistré (adresse en minuscules) et lu
+  par `emailSender` ; une adresse invalide refusée par le navigateur
+  (`type=email`) PUIS par le serveur (validation native court-circuitée :
+  message, rien d'écrit). A sur mobile : la ligne active du panneau —
+  rendu en portail — porte le fond léger dérivé et l'encre de marque
+  (8,83:1), le logo y est. `/partage` : titre, icône, `--primary`,
+  « Accepter » sur les jetons (texte blanc sur bordeaux), logo, zéro
+  Clozado ; lien invalide anonyme. B : titre, icône du produit (une
+  seule), `--primary` = `#988e36` (la couleur assombrie, pas `#fff59d`),
+  marque par défaut dans la barre (une occurrence de Clozado, le carré
+  resté bleu produit), barre latérale teintée, bouton `rgb(152, 142, 54)`
+  texte `rgb(20, 24, 33)` = 5,29:1 dans la vraie application,
+  avertissement du sélecteur, avatar sur fond léger + encre. Super admin :
+  vue globale = titre Clozado, pas de feuille, icône produit, `--primary`
+  = celle de `/login`, lien « Travailler dans… » en encre du produit ; dans
+  A = l'interface du client, bandeau conservé. `/login` et `/` : Clozado,
+  bouton dans le bleu du produit, ni A ni B. Captures relues (tableau de
+  bord A et B, panneau mobile A, vitrine A, super admin global et dans A,
+  connexion).
+
 ## Avancement
 
-- **Étape 2 — jetons dérivés, sélecteur, logo** : prouvée à blanc (360
-  paires, aucune sous le seuil) et au navigateur (35 contrôles). STOP.
+- **Étape 3 — propagation** : prouvée au navigateur (deux organisations,
+  deux interfaces : 54 contrôles, zéro erreur) et à blanc. STOP.
+- **Étape 2 — jetons dérivés, sélecteur, logo** : `52e2279`, prouvée à
+  blanc (360 paires, aucune sous le seuil) et au navigateur (35 contrôles).
 - **Étape 1 — exploration et conception** : `1a4c3f9`. Les cinq décisions
   reçues le 2026-08-26 : dérivation validée, `next-intl` validé, schéma
   validé (avec `timezone` ; logos en base « pour maintenant », limite

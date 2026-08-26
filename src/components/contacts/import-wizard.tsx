@@ -397,7 +397,7 @@ export function ImportWizard() {
                 <span>
                   La compléter — seuls ses champs vides reçoivent les valeurs du fichier.
                   <span className="block text-xs text-muted-foreground">
-                    Jamais d&apos;écrasement : une valeur déjà saisie dans Clozado reste telle quelle.
+                    Jamais d&apos;écrasement : une valeur déjà saisie ici reste telle quelle.
                     C&apos;est le bon choix pour réimporter l&apos;export de ton CRM.
                   </span>
                 </span>

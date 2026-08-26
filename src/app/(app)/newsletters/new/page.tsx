@@ -6,6 +6,7 @@ import { NewsletterEditor } from "@/components/newsletter/editor/newsletter-edit
 import { countMembersByTarget, listMailTargets } from "@/db/queries/mail-targets";
 import { getRenderContext } from "@/db/queries/newsletters";
 import { listBasket } from "@/db/queries/watch";
+import { requestOrigin } from "@/lib/request-origin";
 import { requireUser } from "@/lib/session";
 import { buildBasketBrief } from "@/lib/watch/brief";
 
@@ -37,8 +38,9 @@ export default async function NewNewsletterPage({
   // résolue depuis une cible — toutes appartiennent à la même organisation,
   // donc à la même marque.
   const first = initialTargetId ?? targets[0]?.id;
+  const origin = await requestOrigin();
   const [context, counts] = await Promise.all([
-    first ? getRenderContext(user, first) : Promise.resolve(null),
+    first ? getRenderContext(user, first, origin) : Promise.resolve(null),
     countMembersByTarget(targets),
   ]);
 

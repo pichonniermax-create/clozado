@@ -314,7 +314,7 @@ function BasketSection({ basket, targets }: { basket: WatchItemRow[]; targets: {
     );
   }
   return (
-    <section id="panier" className="flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+    <section id="panier" className="flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary-soft p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-sm font-semibold tabular-nums">
           <ShoppingBasket className="size-4" />

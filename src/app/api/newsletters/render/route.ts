@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { getRenderContext } from "@/db/queries/newsletters";
 import { NEWSLETTER_DRAFT_SCHEMA } from "@/lib/newsletter/blocks";
 import { renderNewsletterHtml } from "@/lib/newsletter/render-email";
+import { requestOrigin } from "@/lib/request-origin";
 import type { OrgScopeUser } from "@/lib/session";
 
 const bodySchema = z.object({
@@ -48,7 +49,8 @@ export async function POST(request: Request) {
 
   let context;
   try {
-    context = await getRenderContext(user, body.data.targetId);
+    // Le logo en adresse absolue : ce HTML est celui de l'email, pas seulement de l'aperçu.
+    context = await getRenderContext(user, body.data.targetId, await requestOrigin());
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erreur inconnue.";
     const status = message.startsWith("Accès refusé")

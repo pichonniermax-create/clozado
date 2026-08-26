@@ -412,7 +412,7 @@ export function exportPreamble(view: ExportView, parsed: ParsedMetricFilters, lo
     ["Seuil d'affichage", `${MIN_OBSERVATIONS} observations — en dessous, la cellule est vide et la colonne « Affichage » dit ce qui manque`],
     ["Format", "séparateur « ; », virgule décimale, montants en euros et durées en jours sans unité dans les cellules"]
   );
-  return { title: "Export Clozado", columns: ["Paramètre", "Valeur"], rows };
+  return { title: "Paramètres de l'export", columns: ["Paramètre", "Valeur"], rows };
 }
 
 /** Les tableaux de la vue — le rapport de l'écran, projeté. */

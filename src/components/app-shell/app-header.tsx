@@ -4,6 +4,7 @@ import { AccountMenu } from "@/components/app-shell/account-menu";
 import { MobileNav } from "@/components/app-shell/mobile-nav";
 import type { NavBadge } from "@/components/app-shell/navigation";
 import { QuickCreateMenu } from "@/components/app-shell/quick-create-menu";
+import type { WorkspaceMarkProps } from "@/components/app-shell/workspace-mark";
 import { Input } from "@/components/ui/input";
 
 /**
@@ -15,11 +16,14 @@ import { Input } from "@/components/ui/input";
  * Sur petit écran, il porte aussi le bouton qui ouvre la navigation repliée.
  */
 export function AppHeader({
+  mark,
   organizationName,
   hasOrganization,
   badges,
   user,
 }: {
+  /** La marque du panneau de navigation replié — la même que la barre latérale. */
+  mark: WorkspaceMarkProps;
   /** Nom de l'organisation dans laquelle on travaille — null en vue globale super admin. */
   organizationName: string | null;
   hasOrganization: boolean;
@@ -34,7 +38,7 @@ export function AppHeader({
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-border bg-background/95 px-3 backdrop-blur md:gap-3 md:px-6">
-      <MobileNav hasOrganization={hasOrganization} badges={badges} />
+      <MobileNav mark={mark} hasOrganization={hasOrganization} badges={badges} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">
           {organizationName ?? <span className="text-muted-foreground">Vue globale</span>}

@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
+import { cache } from "react";
+import { BrandStyle } from "@/components/brand/brand-style";
 import { PartnerShareView } from "@/components/deal-shares/partner-share-view";
 import { resolvePublicShare } from "@/db/queries/deal-shares-public";
+import { deriveBrandTokens } from "@/lib/brand/derive";
 
 /**
  * Page publique, sans compte — accès par jeton uniquement. Ne jamais
@@ -11,10 +14,28 @@ import { resolvePublicShare } from "@/db/queries/deal-shares-public";
  */
 export const dynamic = "force-dynamic";
 
-// Un lien de partage n'est pas une page publique à découvrir.
-export const metadata: Metadata = {
-  robots: { index: false, follow: false },
-};
+// Une seule résolution par requête, partagée entre les métadonnées et la
+// page — un partage expiré journalise son accès, pas deux fois.
+const resolveShare = cache(resolvePublicShare);
+
+/**
+ * Un lien de partage n'est pas une page publique à découvrir. La page
+ * porte la marque de l'organisation émettrice jusque dans l'onglet (son
+ * nom, son icône) — et rien de tout ça sur un lien invalide : la page
+ * d'erreur reste anonyme (voir `ErrorState`).
+ */
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const { token } = await params;
+  const result = await resolveShare(token);
+  const robots = { index: false, follow: false };
+  if (!result.ok) return { robots };
+  const { organization, iconUrl } = result.view;
+  return {
+    robots,
+    title: organization.name,
+    ...(iconUrl ? { icons: { icon: [{ url: iconUrl, type: "image/png", sizes: "128x128" }] } } : {}),
+  };
+}
 
 export default async function PartnerSharePage({
   params,
@@ -22,16 +43,23 @@ export default async function PartnerSharePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const result = await resolvePublicShare(token);
+  const result = await resolveShare(token);
 
   if (!result.ok) {
     return <ErrorState reason={result.reason} />;
   }
 
+  // Les jetons dérivés de la couleur de l'organisation émettrice, posés sur
+  // le document : la même fonction que la coquille et que l'aperçu des
+  // réglages — la vitrine montre ce que l'organisation a vu.
+  const hex = result.view.brand.primaryColor ?? "";
   return (
-    <div className="min-h-screen bg-muted/40 px-4">
-      <PartnerShareView token={token} initialView={result.view} />
-    </div>
+    <>
+      <BrandStyle light={deriveBrandTokens(hex, "light").tokens} dark={deriveBrandTokens(hex, "dark").tokens} />
+      <div className="min-h-screen bg-muted/40 px-4">
+        <PartnerShareView token={token} initialView={result.view} />
+      </div>
+    </>
   );
 }
 

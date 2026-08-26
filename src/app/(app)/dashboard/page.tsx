@@ -75,7 +75,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <input type="hidden" name="orgId" value={org.id} />
                 <button
                   type="submit"
-                  className="text-sm font-medium text-primary underline-offset-2 hover:underline"
+                  className="text-sm font-medium text-primary-ink underline-offset-2 hover:underline"
                 >
                   Travailler dans cette organisation
                 </button>

@@ -14,6 +14,8 @@ import {
   users,
 } from "@/db/schema";
 import { toRenderBrand } from "@/db/queries/newsletters";
+import { listOrganizationAssetMeta } from "@/db/queries/organization-assets";
+import { assetUrlsFromMeta } from "@/lib/brand/assets";
 import { hashShareToken } from "@/lib/deal-shares/token";
 import type { RenderBrand } from "@/lib/newsletter/render-email";
 
@@ -69,6 +71,8 @@ export type PublicShareView = {
   proposedTerms: string | null;
   message: string | null;
   brand: RenderBrand;
+  /** L'icône d'onglet de l'organisation (image téléversée, adresse versionnée), ou null : la page porte sa marque jusque dans l'onglet. */
+  iconUrl: string | null;
   /** NULL = pas d'expiration. Toujours annoncée sur la page, jamais découverte au moment où le lien ne marche plus. */
   expiresAt: string | null;
   /** Renseignée dès accepted/declined — la date qui fait foi si les conditions sont contestées. */
@@ -256,7 +260,7 @@ async function buildView(share: DealShareRow): Promise<PublicShareView> {
   const deal = await db.query.deals.findFirst({ where: eq(deals.id, share.dealId) });
   if (!deal) throw new Error("Incohérence interne : affaire introuvable pour un partage valide.");
 
-  const [type, org, partner, issuer, currentStatus, availableStatuses, commission, events] =
+  const [type, org, partner, issuer, currentStatus, availableStatuses, commission, events, assetMeta] =
     await Promise.all([
       db.query.dealTypes.findFirst({ where: eq(dealTypes.id, deal.typeId) }),
       db.query.organizations.findFirst({ where: eq(organizations.id, share.organizationId) }),
@@ -290,11 +294,14 @@ async function buildView(share: DealShareRow): Promise<PublicShareView> {
           )
         )
         .orderBy(asc(dealEvents.createdAt)),
+      // Bornée par share.organizationId, comme tout le reste : les images de CETTE organisation.
+      listOrganizationAssetMeta(share.organizationId),
     ]);
 
   if (!org || !partner || !currentStatus) {
     throw new Error("Incohérence interne : organisation, partenaire ou statut introuvable pour un partage valide.");
   }
+  const brandUrls = assetUrlsFromMeta(org.id, assetMeta);
 
   return {
     shareId: share.id,
@@ -311,7 +318,8 @@ async function buildView(share: DealShareRow): Promise<PublicShareView> {
     },
     proposedTerms: share.proposedTerms,
     message: share.message,
-    brand: toRenderBrand(org),
+    brand: toRenderBrand(org, assetMeta),
+    iconUrl: brandUrls.icon ?? null,
     expiresAt: share.expiresAt ? share.expiresAt.toISOString() : null,
     respondedAt: share.respondedAt ? share.respondedAt.toISOString() : null,
     currentDealStatus: {

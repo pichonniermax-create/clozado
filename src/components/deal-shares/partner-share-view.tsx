@@ -24,7 +24,6 @@ import {
   formatDateTime,
   formatEuros,
 } from "@/lib/format";
-import { DEFAULT_BRAND_PRIMARY } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 /**
@@ -32,6 +31,14 @@ import { cn } from "@/lib/utils";
  * d'extérieur à l'organisation. Toute action passe par la route publique
  * déjà revue (`/api/partage/[token]`) — pas de chemin parallèle, pas de
  * Server Action ici qui contournerait son rate limiting et ses en-têtes.
+ *
+ * La marque de l'organisation émettrice (chantier marque blanche, étape 3)
+ * : la page se rend sous les jetons dérivés de sa couleur — posés sur le
+ * document par la page publique (`BrandStyle`), ou déjà là dans l'aperçu
+ * du composeur, sous la coquille — donc le bouton principal, le nom en
+ * encre de marque, et son logo téléversé. Plus aucune couleur en style
+ * inline : un accent trop clair faisait un bouton illisible, la
+ * dérivation garantit le contraste.
  */
 
 /**
@@ -154,7 +161,6 @@ export function PartnerShareView({
   }
 
   const brand = view.brand;
-  const accent = brand.primaryColor || DEFAULT_BRAND_PRIMARY;
   const banner = STATUS_BANNER[view.status];
   const isPending = view.status === "pending";
 
@@ -185,9 +191,7 @@ export function PartnerShareView({
             className="h-9 max-w-48 self-start object-contain object-left"
           />
         ) : (
-          <span className="text-lg font-semibold" style={{ color: accent }}>
-            {view.organization.name}
-          </span>
+          <span className="text-lg font-semibold text-primary-ink">{view.organization.name}</span>
         )}
         {view.issuedByName && (
           <p className="text-sm text-muted-foreground">
@@ -251,7 +255,6 @@ export function PartnerShareView({
         <div className="flex gap-3">
           <Button
             className="flex-1"
-            style={{ backgroundColor: accent }}
             onClick={() => setShowAcceptConfirm(true)}
             disabled={pending}
           >
@@ -278,7 +281,6 @@ export function PartnerShareView({
           <div className="flex gap-3">
             <Button
               className="flex-1"
-              style={{ backgroundColor: accent }}
               onClick={() => run({ type: "accept" })}
               disabled={pending}
             >

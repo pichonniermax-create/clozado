@@ -13,7 +13,7 @@ export default function GlobalError({ retry }: { error: Error; retry: () => void
     <html lang="fr">
       <body className="flex min-h-screen items-center justify-center bg-background p-6 text-foreground antialiased">
         <main className="flex max-w-md flex-col items-center gap-4 rounded-xl border border-dashed border-border px-6 py-16 text-center">
-          <p className="text-sm font-medium">Clozado n&apos;a pas pu s&apos;afficher.</p>
+          <p className="text-sm font-medium">La page n&apos;a pas pu s&apos;afficher.</p>
           <p className="text-sm text-muted-foreground">
             C&apos;est en général passager et ça ne vient pas de toi. Réessaie — si ça persiste,
             reviens dans quelques minutes.

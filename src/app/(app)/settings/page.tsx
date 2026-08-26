@@ -1,4 +1,3 @@
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ApiKeyCreator } from "@/components/acquisition/api-key-creator";
@@ -46,8 +45,10 @@ import { listOrganizationAssetMeta } from "@/db/queries/organization-assets";
 import { assetUrlsFromMeta } from "@/lib/brand/assets";
 import { normalizeHex } from "@/lib/brand/color";
 import { brandStyle, deriveBrandTokens } from "@/lib/brand/derive";
+import { isPlausibleEmail } from "@/lib/email/address";
 import { withError } from "@/lib/form-actions";
 import { BUSINESS_PACK_LIST, METRICS, resolveBusinessPack } from "@/lib/metrics";
+import { requestOrigin } from "@/lib/request-origin";
 import { requireUser } from "@/lib/session";
 
 async function saveBranding(formData: FormData) {
@@ -66,10 +67,20 @@ async function saveBranding(formData: FormData) {
   if (rawColor && !primaryColor) {
     redirect(withError("/settings", "La couleur n'est pas un code hexadécimal valide."));
   }
+
+  // L'expéditeur des emails : le nom sans retour à la ligne (un en-tête
+  // d'email s'injecte par là), l'adresse en minuscules et plausible.
+  const senderName = String(formData.get("senderName") ?? "").replace(/[\r\n\t]+/g, " ").trim().slice(0, 120) || null;
+  const senderEmail = String(formData.get("senderEmail") ?? "").trim().toLowerCase() || null;
+  if (senderEmail && !isPlausibleEmail(senderEmail)) {
+    redirect(withError("/settings", "L'adresse de réponse ne semble pas valide."));
+  }
   await updateOrganizationBranding(user, {
     name,
     primaryColor,
     fontFamily: String(formData.get("fontFamily") ?? "").trim() || null,
+    senderName,
+    senderEmail,
   });
 
   revalidatePath("/settings");
@@ -127,20 +138,19 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   }
 
   const readOnly = user.role !== "admin";
-  const [pipelines, lossReasons, apiKeyRows, siteKeyRows, collection, requestHeaders, assetMeta] = await Promise.all([
+  const [pipelines, lossReasons, apiKeyRows, siteKeyRows, collection, appOrigin, assetMeta] = await Promise.all([
     listPipelinesWithStages(user),
     listLossReasons(user),
     listApiKeys(user),
     listSiteKeys(user),
     getCollectionStatus(user),
-    headers(),
+    requestOrigin(),
     listOrganizationAssetMeta(org.id),
   ]);
   const savedHex = normalizeHex(org.primaryColor ?? "") ?? DEFAULT_BRAND_PRIMARY;
   // Les aperçus du logo se rendent sous les jetons dérivés de la couleur ENREGISTRÉE.
   const savedBrand = brandStyle(deriveBrandTokens(savedHex, "light").tokens);
   const assetUrls = assetUrlsFromMeta(org.id, assetMeta);
-  const appOrigin = `${requestHeaders.get("x-forwarded-proto") ?? "https"}://${requestHeaders.get("host") ?? "clozado"}`;
   const activeSiteKeys = siteKeyRows.filter((k) => !k.revokedAt);
   const nothingConnected = collection.lastEventAt === null && collection.lastLeadAt === null;
 
@@ -223,6 +233,24 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <Field label="Police des emails" htmlFor="fontFamily" hint="N'affecte que le gabarit des emails — la typographie de l'application ne se personnalise pas." className="max-w-xl">
               <Input id="fontFamily" name="fontFamily" placeholder="Inter" defaultValue={org.fontFamily ?? ""} disabled={readOnly} />
             </Field>
+
+            <div className="flex flex-col gap-4 border-t border-border pt-4">
+              <div className="flex flex-col gap-0.5">
+                <h3 className="text-sm font-semibold">Expéditeur des emails</h3>
+                <p className="text-xs text-muted-foreground text-pretty">
+                  Les emails envoyés en ton nom partent depuis l&apos;adresse du produit, avec ton nom d&apos;expéditeur devant ;
+                  ton adresse reçoit les réponses. Elle deviendra l&apos;expéditeur lui-même une fois ton domaine d&apos;envoi vérifié.
+                </p>
+              </div>
+              <div className="grid max-w-xl grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Nom d'expéditeur" htmlFor="senderName" hint="Sans lui, le nom de l'organisation.">
+                  <Input id="senderName" name="senderName" placeholder={org.name} defaultValue={org.senderName ?? ""} disabled={readOnly} maxLength={120} />
+                </Field>
+                <Field label="Adresse de réponse" htmlFor="senderEmail" hint="Reçoit les réponses de tes contacts.">
+                  <Input id="senderEmail" name="senderEmail" type="email" placeholder="contact@mon-cabinet.fr" defaultValue={org.senderEmail ?? ""} disabled={readOnly} />
+                </Field>
+              </div>
+            </div>
 
             {!readOnly && (
               <Button type="submit" className="w-fit">

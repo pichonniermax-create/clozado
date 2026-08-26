@@ -137,6 +137,8 @@ export function ShareComposer({
     proposedTerms: proposedTerms || null,
     message: message || null,
     brand,
+    // L'icône d'onglet ne se voit pas dans l'aperçu : il est encadré par la page de l'affaire.
+    iconUrl: null,
     expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
     respondedAt: null,
     currentDealStatus,

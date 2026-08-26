@@ -84,7 +84,7 @@ export function DealSelectionBanner({
       aria-label="Sélection venue de l'analytique"
       className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/30 bg-accent/40 px-4 py-3 text-sm"
     >
-      <Funnel className="size-4 shrink-0 text-primary" aria-hidden />
+      <Funnel className="size-4 shrink-0 text-primary-ink" aria-hidden />
       <p className="min-w-0 flex-1 text-pretty">
         <span className="font-medium">{description}</span>
         <span className="text-muted-foreground tabular-nums"> — {total} affaire{total > 1 ? "s" : ""}, exactement ce que l&apos;analyse a compté.</span>

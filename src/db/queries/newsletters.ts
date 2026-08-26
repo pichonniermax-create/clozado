@@ -11,7 +11,9 @@ import {
   watchItems,
 } from "@/db/schema";
 import { assertOrgAccess } from "@/db/scope";
+import { assetUrlsFromMeta } from "@/lib/brand/assets";
 import { parseCriteria, type SegmentCriteria } from "@/lib/targets/criteria";
+import { listOrganizationAssetMeta, type AssetMeta } from "./organization-assets";
 import { describeTarget, loadCriteriaOptions, memberCondition } from "./mail-targets";
 import { listCitableFigures } from "./market";
 import type { RenderBrand, RenderSignatory } from "@/lib/newsletter/render-email";
@@ -105,20 +107,30 @@ export type RenderContext = {
 
 export async function getRenderContext(
   user: OrgScopeUser,
-  targetId: string
+  targetId: string,
+  /** L'origine publique de la requête : un email est lu hors du produit, son logo doit être une adresse absolue. */
+  origin?: string
 ): Promise<RenderContext> {
   const { org, signatory } = await resolveTargetContext(user, targetId);
   return {
-    brand: toRenderBrand(org),
+    brand: await resolveRenderBrand(org, origin),
     signatory: signatory ? { name: signatory.name, jobTitle: signatory.jobTitle } : null,
   };
 }
 
-/** `organizations` -> `RenderBrand` (§ `render-email.ts`) : même mapping partout où une newsletter est rendue. */
-export function toRenderBrand(org: typeof organizations.$inferSelect): RenderBrand {
+/**
+ * `organizations` (+ ses images téléversées) -> `RenderBrand` (§
+ * `render-email.ts`) : même mapping partout où une newsletter ou une
+ * vitrine est rendue. Le logo téléversé (chantier marque blanche) prime
+ * sur `logo_url`, qui reste le repli des organisations qui l'utilisaient ;
+ * absolu quand une origine est donnée — un email est lu hors du produit —,
+ * relatif sinon (les écrans).
+ */
+export function toRenderBrand(org: typeof organizations.$inferSelect, assets: AssetMeta[] = [], origin = ""): RenderBrand {
+  const uploaded = assetUrlsFromMeta(org.id, assets).logo_light;
   return {
     name: org.name,
-    logoUrl: org.logoUrl,
+    logoUrl: uploaded ? `${origin}${uploaded}` : org.logoUrl,
     logoLockupText: org.logoLockupText,
     primaryColor: org.primaryColor,
     secondaryColor: org.secondaryColor,
@@ -130,6 +142,11 @@ export function toRenderBrand(org: typeof organizations.$inferSelect): RenderBra
     bodyFontFallback: org.bodyFontFallback,
     borderRadius: org.borderRadius,
   };
+}
+
+/** `toRenderBrand` avec les images lues en base — pour les appelants qui ne les ont pas déjà sous la main. */
+export async function resolveRenderBrand(org: typeof organizations.$inferSelect, origin?: string): Promise<RenderBrand> {
+  return toRenderBrand(org, await listOrganizationAssetMeta(org.id), origin);
 }
 
 /** L'organisation de l'utilisateur connecté, garde-fou d'isolation inclus (jamais un id fourni par l'appelant). */

@@ -103,6 +103,14 @@ l'organisation vit dans l'en-tête, comme un **contexte** (« dans quel espace
 je travaille »), pas comme une marque. La marque du client ne s'affiche que
 sur la vitrine de partage et dans les emails (`RenderBrand`), inchangés.
 
+> **Règle inversée le 2026-08-26** par le chantier marque blanche (étape 3,
+> `docs/module-marque-blanche-i18n.md`) : l'espace de travail porte
+> désormais la marque de l'organisation — logo dans la navigation, couleur
+> dérivée sur tout le document, nom et icône dans l'onglet. La connexion,
+> l'inscription, l'accueil et la vue globale super admin restent Clozado ;
+> sans logo, la marque Clozado reste le repli. Le paragraphe ci-dessus
+> décrit l'état d'alors.
+
 ### L'en-tête
 
 Nouveau, collant en haut de la colonne de contenu (`app-header.tsx`) :

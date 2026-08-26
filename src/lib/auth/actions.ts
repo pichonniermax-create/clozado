@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { AuthError } from "next-auth";
 import { signIn } from "@/auth";
 import { createOrganizationWithAdmin } from "@/db/queries/signup";
+import { isPlausibleEmail } from "@/lib/email/address";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 /**
@@ -23,11 +24,6 @@ async function ipKey(prefix: string): Promise<string> {
   const ip =
     h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip") ?? "inconnue";
   return `${prefix}:${ip}`;
-}
-
-/** Volontairement permissif : la validation qui fait foi est l'email qui arrive — ou pas. */
-function isPlausibleEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && value.length <= 254;
 }
 
 export async function signInAction(

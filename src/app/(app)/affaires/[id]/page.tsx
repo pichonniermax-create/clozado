@@ -31,6 +31,7 @@ import { listDealTypes } from "@/db/queries/deal-types";
 import { getDeal, getDealStageDurations } from "@/db/queries/deals";
 import { listOpenTasksForDeal } from "@/db/queries/tasks";
 import { toRenderBrand } from "@/db/queries/newsletters";
+import { listOrganizationAssetMeta } from "@/db/queries/organization-assets";
 import { getOrganizationOfRecord } from "@/db/queries/organizations";
 import { listPartners } from "@/db/queries/partners";
 import { formatCommission, formatDate, formatDays, formatEuros, formatPercent } from "@/lib/format";
@@ -57,7 +58,7 @@ export default async function DealPage({
   const deal = await getDeal(user, id).catch(() => null);
   if (!deal) notFound();
 
-  const [org, types, statuses, partners, shares, commissions, journal, lossReasons, durations, orgUsers, dealTasks, contactLeads] = await Promise.all([
+  const [org, types, statuses, partners, shares, commissions, journal, lossReasons, durations, orgUsers, dealTasks, contactLeads, assetMeta] = await Promise.all([
     // L'organisation de L'AFFAIRE, pas celle de l'utilisateur connecté :
     // c'est sa marque qui s'affiche dans l'aperçu du partage, et c'est en
     // son nom que le partage est émis. Identique pour un admin (il ne voit
@@ -76,6 +77,8 @@ export default async function DealPage({
     listOrgUsers(user),
     listOpenTasksForDeal(user, id),
     deal.contactId ? listLeadsForContact(user, deal.contactId) : Promise.resolve([]),
+    // Le logo téléversé de l'organisation de l'affaire : l'aperçu du partage montre ce que le partenaire verra.
+    listOrganizationAssetMeta(deal.organizationId),
   ]);
   const currentLead = contactLeads.find((l) => l.id === deal.leadId) ?? null;
 
@@ -406,7 +409,7 @@ export default async function DealPage({
           description: deal.description,
         }}
         organizationName={org.name}
-        brand={toRenderBrand(org)}
+        brand={toRenderBrand(org, assetMeta)}
         issuedByName={user.name ?? null}
         currentDealStatus={currentDealStatus}
         availableStatuses={partnerStages}

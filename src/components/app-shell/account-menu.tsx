@@ -55,7 +55,7 @@ export function AccountMenu({
         }
       >
         <Avatar>
-          <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+          <AvatarFallback className="bg-primary-soft text-xs font-semibold text-primary-ink">
             {initialsOf(name, email)}
           </AvatarFallback>
         </Avatar>

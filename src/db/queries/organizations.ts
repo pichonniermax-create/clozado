@@ -53,6 +53,10 @@ export type BrandingInput = {
   /** Hexadécimal normalisé (« #2563eb ») ou null — validé par l'écran, jamais une chaîne libre. */
   primaryColor: string | null;
   fontFamily: string | null;
+  /** Le nom d'expéditeur des emails ; null = le nom de l'organisation (`emailSender`, src/lib/email/sender.ts). */
+  senderName: string | null;
+  /** L'adresse de réponse — validée par l'écran (`isPlausibleEmail`), en minuscules, jamais une chaîne libre. */
+  senderEmail: string | null;
 };
 
 /**

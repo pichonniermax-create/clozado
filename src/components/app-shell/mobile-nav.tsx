@@ -2,9 +2,9 @@
 
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
-import { BrandMark } from "@/components/app-shell/brand-mark";
 import { NavigationList } from "@/components/app-shell/navigation-list";
 import type { NavBadge } from "@/components/app-shell/navigation";
+import { WorkspaceMark, type WorkspaceMarkProps } from "@/components/app-shell/workspace-mark";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
@@ -14,12 +14,16 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
  * l'écran. Il se referme à Échap, au clic en dehors, d'un glissement vers
  * le bord — et quand on navigue : le panneau est remonté à chaque
  * changement d'URL (`key`), donc toujours fermé sur l'écran d'arrivée,
- * sans état à synchroniser.
+ * sans état à synchroniser. Le panneau se rend en portail, hors de la
+ * coquille : c'est pour lui (entre autres) que les jetons de marque sont
+ * posés sur le document entier et non sur la coquille.
  */
 export function MobileNav({
+  mark,
   hasOrganization,
   badges,
 }: {
+  mark: WorkspaceMarkProps;
   hasOrganization: boolean;
   badges: Record<NavBadge, number>;
 }) {
@@ -37,7 +41,7 @@ export function MobileNav({
       <SheetContent className="flex w-72 max-w-[85vw] flex-col bg-sidebar p-0">
         <SheetTitle className="sr-only">Navigation</SheetTitle>
         <div className="px-4 py-4">
-          <BrandMark href="/dashboard" />
+          <WorkspaceMark {...mark} href="/dashboard" />
         </div>
         <NavigationList hasOrganization={hasOrganization} badges={badges} />
       </SheetContent>

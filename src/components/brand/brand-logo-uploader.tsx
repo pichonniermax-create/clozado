@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import { ImageUp } from "lucide-react";
-import { BrandMark } from "@/components/app-shell/brand-mark";
+import { WorkspaceMark } from "@/components/app-shell/workspace-mark";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { removeDarkLogoAction, removeLogoAction, saveLogoAction } from "@/lib/brand/actions";
 import type { BrandAssetUrls } from "@/lib/brand/assets";
-import { cn } from "@/lib/utils";
 
 /**
  * Le téléversement du logo (chantier marque blanche, étape 2). Tout le
@@ -17,8 +16,10 @@ import { cn } from "@/lib/utils";
  * nettoyer côté serveur). L'icône est dérivée du logo : le logo posé
  * « contenu » dans un carré transparent de 128 × 128. Aucune dépendance.
  *
- * L'aperçu est EN SITUATION : la barre latérale, la page de connexion, un
- * email — pas une vignette. Sans logo, c'est la marque par défaut.
+ * L'aperçu est EN SITUATION : la barre latérale (rendue par `WorkspaceMark`,
+ * le composant même de la coquille), la page de partage, un email — pas
+ * une vignette. Sans logo, c'est la marque par défaut. La page de connexion
+ * n'y figure pas : elle reste celle du produit (cahier des charges).
  */
 const MAX_W = 1200;
 const MAX_H = 400;
@@ -191,7 +192,7 @@ export function BrandLogoUploader({
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <PreviewFrame label="Barre latérale">
             <div className="flex h-full flex-col gap-2 rounded-lg border border-sidebar-border bg-sidebar p-3">
-              <LogoOrMark src={lightSrc} name={organizationName} />
+              <WorkspaceMark logo={lightSrc} name={organizationName} />
               <div className="mt-1 flex flex-col gap-1">
                 <span className="rounded-md bg-sidebar-accent px-2 py-1 text-xs font-medium text-sidebar-accent-foreground">Tableau de bord</span>
                 <span className="px-2 py-1 text-xs text-muted-foreground">Contacts</span>
@@ -199,13 +200,21 @@ export function BrandLogoUploader({
               </div>
             </div>
           </PreviewFrame>
-          <PreviewFrame label="Page de connexion">
-            <div className="flex h-full flex-col items-center gap-3 rounded-lg bg-muted/40 p-4">
-              <LogoOrMark src={lightSrc} name={organizationName} size="lg" />
-              <div className="w-full rounded-lg border border-border bg-card p-3">
-                <div className="mb-2 h-2.5 w-24 rounded bg-foreground/80" />
-                <div className="mb-3 h-2 w-40 rounded bg-muted-foreground/30" />
-                <div className="h-7 w-full rounded-md bg-primary" />
+          <PreviewFrame label="Page de partage">
+            <div className="flex h-full flex-col rounded-lg bg-muted/40 p-4">
+              <div className="flex w-full flex-col gap-2 rounded-lg border border-border bg-card p-3">
+                {lightSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={lightSrc} alt={organizationName} className="h-7 w-auto max-w-full self-start object-contain" />
+                ) : (
+                  <span className="truncate text-sm font-semibold text-primary-ink">{organizationName}</span>
+                )}
+                <div className="h-2.5 w-24 rounded bg-foreground/80" />
+                <div className="h-2 w-40 max-w-full rounded bg-muted-foreground/30" />
+                <div className="mt-1 flex gap-2">
+                  <div className="h-7 flex-1 rounded-md bg-primary" />
+                  <div className="h-7 flex-1 rounded-md border border-border bg-background" />
+                </div>
               </div>
             </div>
           </PreviewFrame>
@@ -245,7 +254,7 @@ export function BrandLogoUploader({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={iconSrc} alt="" className="size-6 object-contain" />
                 ) : (
-                  <span className="flex size-5 items-center justify-center rounded-sm bg-primary text-[0.5rem] font-bold text-primary-foreground">C</span>
+                  <span className="flex size-5 items-center justify-center rounded-sm bg-product text-[0.5rem] font-bold text-product-foreground">C</span>
                 )}
               </span>
               <span className="truncate text-xs text-muted-foreground">{organizationName} — Tableau de bord</span>
@@ -280,13 +289,5 @@ function PreviewFrame({ label, children }: { label: string; children: React.Reac
       <span className="text-[0.6875rem] font-medium tracking-wide text-muted-foreground uppercase">{label}</span>
       <div className="min-h-32">{children}</div>
     </div>
-  );
-}
-
-function LogoOrMark({ src, name, size = "sm" }: { src: string | null; name: string; size?: "sm" | "lg" }) {
-  if (!src) return <BrandMark size={size} />;
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={name} className={cn("w-auto max-w-full object-contain", size === "lg" ? "h-10" : "h-8")} />
   );
 }

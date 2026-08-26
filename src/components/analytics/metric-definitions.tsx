@@ -21,7 +21,7 @@ export function MetricDefinitions({ metrics }: { metrics: MetricDefinition[] }) 
       <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
         {metrics.map((m) => (
           <details key={m.id} id={definitionAnchor(m)} className="group scroll-mt-24">
-            <summary className="cursor-pointer px-4 py-3 text-sm font-medium transition-colors hover:text-primary">
+            <summary className="cursor-pointer px-4 py-3 text-sm font-medium transition-colors hover:text-primary-ink">
               {m.label}
             </summary>
             <dl className="grid gap-x-4 gap-y-2 border-t border-border px-4 py-3 text-sm sm:grid-cols-[9rem_1fr]">

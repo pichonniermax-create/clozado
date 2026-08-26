@@ -6,6 +6,7 @@ import { SendStatusCard } from "@/components/newsletter/send-status-card";
 import { countMembersByTarget, getMailTarget, listMailTargets } from "@/db/queries/mail-targets";
 import { getRenderContext, listNewsletterSources } from "@/db/queries/newsletters";
 import { loadNewsletter } from "@/lib/newsletter/actions";
+import { requestOrigin } from "@/lib/request-origin";
 import { requireUser } from "@/lib/session";
 
 export default async function EditNewsletterPage(props: PageProps<"/newsletters/[id]">) {
@@ -19,9 +20,10 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
     notFound();
   }
 
+  const origin = await requestOrigin();
   const [targets, context, sources] = await Promise.all([
     listMailTargets(user),
-    getRenderContext(user, data.newsletter.targetId),
+    getRenderContext(user, data.newsletter.targetId, origin),
     listNewsletterSources(user, data.newsletter.id),
   ]);
 

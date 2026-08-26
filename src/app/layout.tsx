@@ -15,6 +15,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Clozado",
   description: "Suite d'outils d'assistance marketing multi-clients.",
+  // Le favicon du produit, déclaré ici plutôt que par un fichier
+  // `app/favicon.ico` : un fichier à cet emplacement est TOUJOURS ajouté en
+  // tête des icônes, même quand une coquille en pose une autre — deux
+  // icônes concurrentes, et c'est le navigateur qui choisit. Déclarée par
+  // métadonnées, l'icône d'une organisation la REMPLACE (fusion clé par
+  // clé, chantier marque blanche). Le fichier vit dans public/, à la même
+  // adresse, pour les navigateurs qui le demandent d'office.
+  icons: { icon: [{ url: "/favicon.ico", sizes: "any" }] },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
