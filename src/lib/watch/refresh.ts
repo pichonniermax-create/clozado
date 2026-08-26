@@ -8,11 +8,12 @@ import {
   upsertObservation,
 } from "@/db/queries/market";
 import {
-  countRuns,
   finishWatchRun,
   insertWatchItems,
   isSourceDue,
+  isTopicSearchDue,
   listPendingSummaries,
+  markTopicSearched,
   listWatchSources,
   listWatchTopics,
   recordSourceFailure,
@@ -38,8 +39,9 @@ import { countryFromHost, hostOf } from "./url";
  * mots, puis est oublié ; `saveSummaryResult` ne reçoit que le résumé.
  *
  * Ordre dans le budget : les indicateurs (quelques secondes), les flux
- * (parallèles, 10 s chacun), puis les recherches web (lentes, 20 à 40 s :
- * deux par collecte, en rotation d'une collecte à l'autre) et les résumés
+ * (parallèles, 10 s chacun), puis les recherches web (6 à 10 s : deux par
+ * collecte, les sujets jamais cherchés ou cherchés depuis le plus
+ * longtemps d'abord — `watch_topics.last_searched_at`) et les résumés
  * (8 à 12 s chacun) tant qu'il reste du temps. Ce qui ne tient pas attend
  * la collecte suivante — jamais une fonction coupée au milieu d'une
  * écriture : chaque étape écrit son résultat dès qu'elle l'a.
@@ -161,22 +163,28 @@ async function inPool<T, R>(items: T[], n: number, work: (item: T) => Promise<R>
 // Recherches web — bornées, en rotation
 // ---------------------------------------------------------------------------
 
-type SearchJob = { topic: WatchTopic; lang: "fr" | "en"; source: WatchSource | null };
+type SearchJob = { topic: WatchTopic; lang: "fr" | "en"; source: WatchSource | null; since: Date | null };
 
-/** Toutes les recherches possibles (sujet × langue, plus les sources sans flux rattachées à un sujet), dans un ordre stable. */
+/**
+ * Les recherches DUES (sujet × langue pas cherché depuis vingt heures, plus
+ * les sources sans flux rattachées à un sujet et dues selon leur santé),
+ * les plus anciennes d'abord — jamais cherché avant tout. Une date lisible
+ * en base plutôt qu'une rotation par compteur (migration 0014).
+ */
 function searchJobs(topics: WatchTopic[], sources: WatchSource[]): SearchJob[] {
   const jobs: SearchJob[] = [];
   for (const topic of topics) {
+    if (!isTopicSearchDue(topic)) continue;
     for (const lang of topic.searchLanguages) {
-      if (lang === "fr" || lang === "en") jobs.push({ topic, lang, source: null });
+      if (lang === "fr" || lang === "en") jobs.push({ topic, lang, source: null, since: topic.lastSearchedAt });
     }
   }
   for (const source of sources) {
-    if (source.feedUrl || !source.topicId || source.kind !== "source") continue;
+    if (source.feedUrl || !source.topicId || source.kind !== "source" || !isSourceDue(source)) continue;
     const topic = topics.find((t) => t.id === source.topicId);
-    if (topic) jobs.push({ topic, lang: (source.lang === "en" ? "en" : "fr") as "fr" | "en", source });
+    if (topic) jobs.push({ topic, lang: (source.lang === "en" ? "en" : "fr") as "fr" | "en", source, since: source.lastFetchedAt });
   }
-  return jobs;
+  return jobs.sort((a, b) => (a.since?.getTime() ?? 0) - (b.since?.getTime() ?? 0));
 }
 
 /** « July 24, 2026 » → date ; un âge relatif (« 3 weeks ago ») n'est pas une date de publication : null. */
@@ -201,9 +209,10 @@ function datedQuery(term: string, lang: "fr" | "en", now = new Date()): string {
   return `${term} ${months[now.getMonth()]} ${now.getFullYear()}`;
 }
 
-async function runSearch(provider: AIProvider, organizationId: string, job: SearchJob, runIndex: number): Promise<{ itemsNew: number; searches: number }> {
+async function runSearch(provider: AIProvider, organizationId: string, job: SearchJob): Promise<{ itemsNew: number; searches: number }> {
   const terms = job.topic.searchTerms.length ? job.topic.searchTerms : [job.topic.label];
-  const query = datedQuery(terms[runIndex % terms.length], job.lang);
+  // Le terme du jour : un sujet à plusieurs termes les parcourt un par jour — lisible, sans état.
+  const query = datedQuery(terms[Math.floor(Date.now() / 86_400_000) % terms.length], job.lang);
   const domain = job.source ? hostOf(job.source.siteUrl) : null;
   const result = await provider.searchArticles({
     query,
@@ -303,11 +312,7 @@ export async function executeWatchRun(run: WatchRun): Promise<WatchRunReport> {
   try {
     report.indicatorsRead = await refreshOrganizationIndicators(organizationId).catch(() => 0);
 
-    const [topics, sources, runIndex] = await Promise.all([
-      listWatchTopics(organizationId),
-      listWatchSources(organizationId),
-      countRuns(organizationId),
-    ]);
+    const [topics, sources] = await Promise.all([listWatchTopics(organizationId), listWatchSources(organizationId)]);
 
     const dueFeeds = sources.filter((s) => s.feedUrl && isSourceDue(s));
     const feedResults = await inPool(dueFeeds, FEED_CONCURRENCY, collectFeed);
@@ -327,16 +332,14 @@ export async function executeWatchRun(run: WatchRun): Promise<WatchRunReport> {
 
     if (provider) {
       const jobs = searchJobs(topics, sources);
-      // Rotation : chaque collecte commence à un sujet différent — en trois
-      // collectes, cinq sujets ont tous été cherchés, sans colonne d'état.
-      for (let i = 0; i < Math.min(MAX_SEARCHES_PER_RUN, jobs.length); i++) {
+      for (const job of jobs.slice(0, MAX_SEARCHES_PER_RUN)) {
         if (remaining() < SEARCH_RESERVE_MS) break;
-        const job = jobs[(runIndex + i) % jobs.length];
         try {
-          const r = await runSearch(provider, organizationId, job, runIndex);
+          const r = await runSearch(provider, organizationId, job);
           report.itemsNew += r.itemsNew;
           report.searches += r.searches;
           if (job.source) await recordSourceSuccess(job.source.id);
+          else await markTopicSearched(job.topic.id);
         } catch (error) {
           if (job.source) await recordSourceFailure(job.source, readableError(error));
           else report.error = `Recherche « ${job.topic.label} » : ${readableError(error)}`;

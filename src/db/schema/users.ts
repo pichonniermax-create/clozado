@@ -23,6 +23,8 @@ export const users = pgTable(
     organizationId: uuid("organization_id").references(() => organizations.id, {
       onDelete: "cascade",
     }),
+    /** La langue de l'interface choisie par la personne (« fr », « en ») ; NULL = la langue par défaut de son organisation (migration 0015). */
+    locale: text("locale"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

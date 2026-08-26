@@ -122,6 +122,18 @@ export async function restoreWatchTopic(user: OrgScopeUser, id: string): Promise
   await db.update(watchTopics).set({ archivedAt: null, updatedAt: new Date() }).where(eq(watchTopics.id, id));
 }
 
+/** Un sujet n'est pas recherché deux fois en vingt heures (le cron du matin le trouve donc dû). */
+export const TOPIC_SEARCH_MAX_AGE_HOURS = 20;
+
+export function isTopicSearchDue(topic: Pick<WatchTopic, "lastSearchedAt">, now = new Date()): boolean {
+  return !topic.lastSearchedAt || now.getTime() - topic.lastSearchedAt.getTime() > TOPIC_SEARCH_MAX_AGE_HOURS * 3600 * 1000;
+}
+
+/** Après une recherche web sur ce sujet : la date, lisible à l'écran (« cherché il y a 3 h ») et dans la base. */
+export async function markTopicSearched(topicId: string): Promise<void> {
+  await db.update(watchTopics).set({ lastSearchedAt: new Date() }).where(eq(watchTopics.id, topicId));
+}
+
 // ---------------------------------------------------------------------------
 // Sources
 // ---------------------------------------------------------------------------
@@ -488,13 +500,14 @@ export type StartRunResult =
   | { status: "cooldown"; until: Date };
 
 /**
- * Démarre une collecte si aucune n'est en cours (verrou : une ligne
- * commencée il y a moins de cinq minutes et non finie). Une ligne
- * commencée depuis plus longtemps et jamais finie est close comme
- * « interrompue » (la fonction a été coupée). Pour le bouton, un délai de
- * dix minutes entre deux départs. L'insertion sous condition tient dans
- * UN ordre SQL : deux départs simultanés ne peuvent pas se croiser à
- * l'intérieur d'un aller-retour.
+ * Démarre une collecte si aucune n'est en cours. Le verrou est GARANTI PAR
+ * LA BASE (migration 0014 : une seule ligne ouverte par organisation) ;
+ * l'insertion sous condition évite l'exception dans le cas courant, et une
+ * violation d'unicité — deux départs strictement simultanés — se lit
+ * « déjà en cours ». Une ligne ouverte depuis plus de cinq minutes et
+ * jamais finie est close « interrompue » (la fonction a été coupée),
+ * sinon le verrou ne se lèverait jamais. Pour le bouton, un délai de dix
+ * minutes entre deux départs.
  */
 export async function startWatchRun(organizationId: string, trigger: "visit" | "manual" | "cron"): Promise<StartRunResult> {
   await db
@@ -519,17 +532,22 @@ export async function startWatchRun(organizationId: string, trigger: "visit" | "
     }
   }
 
-  const inserted = await db.execute(sql`
-    INSERT INTO ${watchRuns} (organization_id, trigger)
-    SELECT ${organizationId}::uuid, ${trigger}
-    WHERE NOT EXISTS (
-      SELECT 1 FROM ${watchRuns}
-      WHERE organization_id = ${organizationId}::uuid AND finished_at IS NULL
-        AND started_at > now() - make_interval(mins => ${WATCH_LOCK_MINUTES})
-    )
-    RETURNING id
-  `);
-  const id = (inserted.rows[0] as { id?: string } | undefined)?.id;
+  let id: string | undefined;
+  try {
+    const inserted = await db.execute(sql`
+      INSERT INTO ${watchRuns} (organization_id, trigger)
+      SELECT ${organizationId}::uuid, ${trigger}
+      WHERE NOT EXISTS (
+        SELECT 1 FROM ${watchRuns}
+        WHERE organization_id = ${organizationId}::uuid AND finished_at IS NULL
+      )
+      RETURNING id
+    `);
+    id = (inserted.rows[0] as { id?: string } | undefined)?.id;
+  } catch (error) {
+    if (!isUniqueViolation(error)) throw error;
+    id = undefined;
+  }
   if (!id) {
     const concurrent = await getRunningRun(organizationId);
     if (concurrent) return { status: "running", run: concurrent };
@@ -540,13 +558,10 @@ export async function startWatchRun(organizationId: string, trigger: "visit" | "
   return { status: "started", run };
 }
 
+/** La collecte ouverte de l'organisation (il ne peut y en avoir qu'une — index partiel unique). */
 export async function getRunningRun(organizationId: string): Promise<WatchRun | null> {
   const row = await db.query.watchRuns.findFirst({
-    where: and(
-      eq(watchRuns.organizationId, organizationId),
-      isNull(watchRuns.finishedAt),
-      sql`${watchRuns.startedAt} > now() - make_interval(mins => ${WATCH_LOCK_MINUTES})`
-    ),
+    where: and(eq(watchRuns.organizationId, organizationId), isNull(watchRuns.finishedAt)),
     orderBy: desc(watchRuns.startedAt),
   });
   return row ?? null;
@@ -567,11 +582,6 @@ export async function getLatestFinishedRun(organizationId: string): Promise<Watc
     orderBy: desc(watchRuns.startedAt),
   });
   return row ?? null;
-}
-
-export async function countRuns(organizationId: string): Promise<number> {
-  const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(watchRuns).where(eq(watchRuns.organizationId, organizationId));
-  return Number(n);
 }
 
 export async function finishWatchRun(

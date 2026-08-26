@@ -1,4 +1,5 @@
 export * from "./organizations";
+export * from "./organization-assets";
 export * from "./users";
 export * from "./auth";
 export * from "./signatories";

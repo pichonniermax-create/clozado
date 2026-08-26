@@ -519,9 +519,10 @@ function TopicsSection({ topics, archived, defaultOpen }: { topics: WatchTopic[]
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0 flex flex-col">
                   <span className="text-sm font-medium">{topic.label}</span>
-                  <span className="truncate text-xs text-muted-foreground">
+                  <span className="truncate text-xs tabular-nums text-muted-foreground">
                     {topic.searchTerms.length ? topic.searchTerms.join(" · ") : "recherché par son libellé"} —{" "}
-                    {topic.searchLanguages.map((l) => (l === "en" ? "anglais" : "français")).join(" et ")}
+                    {topic.searchLanguages.map((l) => (l === "en" ? "anglais" : "français")).join(" et ")} —{" "}
+                    {topic.lastSearchedAt ? `cherché ${formatRelativeTime(topic.lastSearchedAt)}` : "jamais cherché"}
                   </span>
                 </div>
                 <form action={archiveTopicAction.bind(null, topic.id)}>

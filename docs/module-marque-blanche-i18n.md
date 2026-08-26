@@ -299,10 +299,26 @@ qui donne aussi l'URL absolue dont les emails ont besoin. Redimensionnement
 le logo, 128 × 128 pour l'icône dérivée automatiquement du logo — un SVG
 est rastérisé au passage, ce qui évite d'avoir à le nettoyer de ses
 scripts) : **aucune dépendance** — ni `sharp` (binaire natif) ni stockage
-externe. Vercel Blob resterait la voie du jour où les fichiers grossissent
-(une autre table, pas une autre logique).
+externe.
 
-### Projet de migration (`0015_marque_blanche_i18n.sql`, si la 0014 en attente est appliquée avant ; `0014` sinon)
+**Limite d'échelle, à connaître (décision validée « pour maintenant »).**
+Stocker des images dans Postgres tient tant que trois choses restent
+vraies : (1) le volume — 300 ko par organisation, soit 300 Mo pour mille
+organisations : négligeable pour Neon, mais chaque lecture d'image traverse
+la base et le pilote HTTP plutôt qu'un CDN ; (2) la fréquence — un logo et
+un favicon sont demandés à chaque ouverture d'onglet, et seul le cache
+(`Cache-Control: public, max-age=31536000, immutable` avec `?v=updated_at`,
+et le cache CDN de Vercel sur la route) évite que ces lectures ne comptent
+dans le trafic de la base ; (3) la taille unitaire — une image de plus de
+1 Mo ou un fichier qui n'est pas une image (kit de marque, PDF) n'a rien à
+faire dans une ligne. **Seuils de bascule** vers un stockage dédié (Vercel
+Blob, public, servi par CDN) : plus de ~500 organisations avec logo, ou des
+lectures d'images qui dépassent ~5 % des requêtes de la base sur le tableau
+Neon, ou tout fichier de plus de 1 Mo. La bascule garde la table
+(`organization_assets`) et remplace `bytes` par une URL : la route publique
+redirige, les écrans et les emails ne changent pas.
+
+### Migration `0015_marque_blanche_i18n` (la 0014 du chantier ciblage s'applique avant — décision du 2026-08-26)
 
 ```sql
 ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "sender_name" text;
@@ -404,4 +420,8 @@ Rien de construit maintenant ; rien de codé qui l'empêche. Le jour venu :
 
 ## Avancement
 
-- **Étape 1 — exploration et conception** : ce document. STOP.
+- **Étape 1 — exploration et conception** : `1a4c3f9`. Les cinq décisions
+  reçues le 2026-08-26 : dérivation validée, `next-intl` validé, schéma
+  validé (avec `timezone` ; logos en base « pour maintenant », limite
+  d'échelle notée ci-dessus), gabarits dans la langue de l'organisation
+  validés, 0014 du ciblage à appliquer AVANT — numérotation 0015.

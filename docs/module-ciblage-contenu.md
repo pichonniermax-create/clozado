@@ -774,11 +774,12 @@ facettes et la matière du panier est l'étape 6. Les chiffres vérifiés
   La requête porte le mois courant (« taux crédit immobilier août 2026ᐧ») :
   sans lui, le moteur rend des pages de fond de l'an dernier, écartées
   ensuite par la borne des 60 jours (vu à la première collecte réelle : 25
-  articles par flux, 0 par recherche). Rotation : les recherches possibles
-  (sujet × langue, plus les sources sans flux rattachées à un sujet) sont
-  parcourues à partir d'un index qui avance à chaque collecte
-  (`count(watch_runs)`), deux par collecte — cinq sujets sont tous
-  cherchés en trois collectes, sans colonne d'état.
+  articles par flux, 0 par recherche). Ordre des recherches (migration
+  0014) : les sujets dus — jamais cherchés, ou cherchés il y a plus de
+  vingt heures (`watch_topics.last_searched_at`, affiché « cherché il y a
+  3 h ») — les plus anciens d'abord, avec les sources sans flux dues selon
+  leur santé ; deux par collecte ; un sujet à plusieurs termes les parcourt
+  un par jour.
 - **Les résumés** (`AnthropicProvider.summarizeArticle`, Sonnet 5) : la
   page est lue par la veille (`extract.ts` : scripts, styles, menus,
   en-têtes, pieds, formulaires retirés ; `<article>` le plus long, sinon
@@ -848,9 +849,9 @@ facettes et la matière du panier est l'étape 6. Les chiffres vérifiés
   effort « medium » pour les résumés, « low » pour les recherches.
 - Budget 120 s par collecte, deux recherches et douze résumés au plus,
   quatre flux à la fois, 10 s par source, 60 jours de fenêtre, verrou cinq
-  minutes, bouton dix minutes, indicateurs relus au plus une fois par 20 h
-  (le cron du matin les trouve donc périmés), sommeil après trente jours
-  sans succès, recul 1 h / 6 h / 24 h.
+  minutes, bouton dix minutes, indicateurs relus et sujets cherchés au
+  plus une fois par 20 h (le cron du matin les trouve donc dus), sommeil
+  après trente jours sans succès, recul 1 h / 6 h / 24 h.
 - Le panier est celui de l'organisation (partagé par l'équipe), avec qui a
   mis de côté ; « écarter » masque sans supprimer.
 - Un article de recherche sans date explicite reste « date inconnue »
@@ -875,11 +876,11 @@ facettes et la matière du panier est l'étape 6. Les chiffres vérifiés
 - Les indices Notaires-INSEE n'ont pas de série « variation annuelle »
   pour l'ensemble France métropolitaine : l'indice (127,4, base 100 en
   2015) est publié tel quel.
-- Deux visites strictement simultanées peuvent démarrer deux collectes (le
-  `WHERE NOT EXISTS` n'est pas un verrou d'unicité) ; un index partiel
-  unique sur `watch_runs (organization_id) WHERE finished_at IS NULL` le
-  rendrait impossible — schéma, donc à ta décision. De même une colonne
-  `watch_topics.last_searched_at` remplacerait la rotation par compteur.
+- (Levé par la migration 0014, validée au retour de l'étape 4 : l'index
+  partiel unique `watch_runs (organization_id) WHERE finished_at IS NULL`
+  garantit un seul démarrage par la base — une violation d'unicité se lit
+  « déjà en cours » — et `watch_topics.last_searched_at` remplace la
+  rotation par compteur.)
 
 ### Preuves
 

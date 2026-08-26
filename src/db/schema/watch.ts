@@ -30,6 +30,14 @@ export const watchTopics = pgTable(
     /** Langues cherchées (« fr », « en ») : sources françaises ET anglophones, au choix de l'organisation. */
     searchLanguages: text("search_languages").array().notNull().default(["fr"]),
     position: integer("position").notNull().default(0),
+    /**
+     * La date de la dernière recherche web faite pour ce sujet (migration
+     * 0014) : la collecte cherche d'abord les sujets jamais cherchés ou les
+     * plus anciens, et ne recherche pas un sujet cherché il y a moins de
+     * vingt heures. Une date lisible et déboguable, à la place d'une
+     * rotation par compteur de collectes.
+     */
+    lastSearchedAt: timestamp("last_searched_at", { withTimezone: true }),
     /** Un sujet ne se supprime pas (des articles s'y rattachent) : il se désactive. */
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -180,8 +188,11 @@ export const watchBasketItems = pgTable(
 
 /**
  * Le journal des COLLECTES : une ligne par exécution (à la visite, bouton,
- * cron), ce qu'elle a trouvé, ce qui a échoué. Une collecte commencée il y
- * a moins de cinq minutes et non finie verrouille le départ d'une autre.
+ * cron), ce qu'elle a trouvé, ce qui a échoué. Une collecte non finie
+ * verrouille le départ d'une autre — GARANTI PAR LA BASE (migration 0014) :
+ * l'index partiel unique n'admet qu'une ligne ouverte par organisation ;
+ * une ligne ouverte depuis plus de cinq minutes (fonction coupée) est close
+ * « interrompue » au départ suivant, sinon le verrou ne se lèverait jamais.
  */
 export const watchRuns = pgTable(
   "watch_runs",
@@ -202,6 +213,10 @@ export const watchRuns = pgTable(
   },
   (table) => [
     index("watch_runs_org_started_idx").on(table.organizationId, table.startedAt),
+    // Une seule collecte ouverte par organisation : deux départs simultanés ne peuvent pas se croiser.
+    uniqueIndex("watch_runs_org_open_unique")
+      .on(table.organizationId)
+      .where(sql`${table.finishedAt} IS NULL`),
     check("watch_runs_trigger_check", sql`${table.trigger} IN ('visit', 'manual', 'cron')`),
   ]
 );
