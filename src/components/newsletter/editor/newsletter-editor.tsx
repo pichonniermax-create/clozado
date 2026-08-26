@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Plus, Sparkles, Trash2, TriangleAlert, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,9 +34,12 @@ import {
 } from "@/lib/newsletter/render-email";
 import { PREHEADER_MAX, SUBJECT_MAX, type ReviewIssue } from "@/lib/newsletter/review";
 import { saveNewsletter } from "@/lib/newsletter/actions";
+import { targetSummaryAction, type TargetSummary } from "@/lib/targets/actions";
+import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-export type EditorTarget = { id: string; label: string };
+/** Une cible telle que le sélecteur la montre : son nom et le nombre RÉEL de contacts qu'elle réunit aujourd'hui. */
+export type EditorTarget = { id: string; label: string; count: number };
 
 /**
  * Les messages de la revue sont écrits pour un journal technique (« Chiffre
@@ -60,6 +64,8 @@ export type NewsletterEditorProps = {
   targets: EditorTarget[];
   brand: RenderBrand;
   signatory: RenderSignatory;
+  /** La cible présélectionnée pour un nouvel email (« Écrire une newsletter pour cette cible »). */
+  initialTargetId?: string;
   initial?: {
     id: string;
     title: string;
@@ -81,9 +87,9 @@ export type NewsletterEditorProps = {
  * d'affichage à tenir synchronisé, et sans aller-retour réseau : ce qu'on
  * voit se met à jour à la frappe.
  */
-export function NewsletterEditor({ targets, brand, signatory, initial }: NewsletterEditorProps) {
+export function NewsletterEditor({ targets, brand, signatory, initialTargetId, initial }: NewsletterEditorProps) {
   const [newsletterId, setNewsletterId] = useState(initial?.id);
-  const [targetId, setTargetId] = useState(initial?.targetId ?? targets[0]?.id ?? "");
+  const [targetId, setTargetId] = useState(initial?.targetId ?? initialTargetId ?? targets[0]?.id ?? "");
   const [subject, setSubject] = useState(initial?.subject ?? "");
   const [preheader, setPreheader] = useState(initial?.preheader ?? "");
   const [blocks, setBlocks] = useState<AnyBlock[]>(initial?.blocks ?? []);
@@ -305,22 +311,22 @@ export function NewsletterEditor({ targets, brand, signatory, initial }: Newslet
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Barre de l'éditeur : à qui, et l'action d'enregistrement. */}
+      {/* Barre de l'éditeur : à qui — avec le nombre réel de personnes — et l'action d'enregistrement. */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground">Pour</span>
           <Select
             value={targetId}
             onValueChange={(v) => setTargetId(String(v))}
-            items={targets.map((t) => ({ label: t.label, value: t.id }))}
+            items={targets.map((t) => ({ label: targetLabel(t), value: t.id }))}
           >
-            <SelectTrigger className="h-8 w-56">
-              <SelectValue placeholder="Choisir les destinataires" />
+            <SelectTrigger className="h-8 w-72">
+              <SelectValue placeholder="Choisir la cible" />
             </SelectTrigger>
             <SelectContent>
               {targets.map((t) => (
                 <SelectItem key={t.id} value={t.id}>
-                  {t.label}
+                  {targetLabel(t)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -342,6 +348,9 @@ export function NewsletterEditor({ targets, brand, signatory, initial }: Newslet
           <SaveIndicator state={saveState} />
         </div>
       </div>
+
+      {/* À combien de personnes réelles on s'adresse, et ce qu'elles ont déjà reçu — l'anti-répétition. */}
+      <TargetInsight targetId={targetId} />
 
       {error && (
         <p role="alert" className="text-sm text-destructive">
@@ -524,6 +533,76 @@ export function NewsletterEditor({ targets, brand, signatory, initial }: Newslet
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function targetLabel(t: EditorTarget): string {
+  return `${t.label} · ${t.count} contact${t.count > 1 ? "s" : ""}`;
+}
+
+/**
+ * Au choix d'une cible : le nombre réel de contacts qu'elle réunit
+ * aujourd'hui, et ce qui leur a déjà été envoyé récemment (lu dans la
+ * photographie des envois marqués « envoyée », avec les sujets traités) —
+ * rien n'est plus dommageable que de renvoyer le même sujet deux fois de
+ * suite. Chargé à part pour ne pas retarder l'ouverture de l'éditeur.
+ */
+function TargetInsight({ targetId }: { targetId: string }) {
+  // Le résumé porte l'id de la cible qui l'a produit : tant qu'il diffère de
+  // la cible choisie, on est en chargement — rien n'est posé dans l'effet
+  // lui-même, seulement à la réponse.
+  const [loaded, setLoaded] = useState<{ targetId: string; summary: TargetSummary | null } | null>(null);
+
+  useEffect(() => {
+    if (!targetId) return;
+    let cancelled = false;
+    targetSummaryAction(targetId)
+      .then((summary) => {
+        if (!cancelled) setLoaded({ targetId, summary });
+      })
+      .catch(() => {
+        if (!cancelled) setLoaded({ targetId, summary: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [targetId]);
+
+  if (!targetId) return null;
+  if (loaded?.targetId !== targetId) {
+    return <p className="text-xs text-muted-foreground">Calcul des destinataires…</p>;
+  }
+  const summary = loaded.summary;
+  if (summary === null) return null;
+
+  return (
+    <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+      <p>
+        <span className="font-semibold tabular-nums">{summary.count}</span> contact{summary.count > 1 ? "s" : ""} réel
+        {summary.count > 1 ? "s" : ""} aujourd&apos;hui
+        {summary.count === 0 && (
+          <span className="text-muted-foreground"> — cette cible est vide, personne ne recevra cet email en l&apos;état.</span>
+        )}
+      </p>
+      {summary.recentSends.length > 0 ? (
+        <div className="flex flex-col gap-1">
+          <p className="text-xs font-medium">Déjà reçu par ces contacts — à ne pas répéter :</p>
+          <ul className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+            {summary.recentSends.map((s) => (
+              <li key={s.id}>
+                <Link href={`/newsletters/${s.id}`} className="underline underline-offset-2 hover:text-foreground">
+                  {s.subject || s.title}
+                </Link>{" "}
+                — le {formatDate(s.sentAt)}, <span className="tabular-nums">{s.overlapPercent ?? 0} %</span> de la cible
+                {s.topics.length > 0 && ` · sujets : ${s.topics.join(", ")}`}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">Rien d&apos;envoyé à ces contacts sur les douze derniers mois.</p>
+      )}
     </div>
   );
 }

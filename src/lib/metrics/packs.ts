@@ -1,5 +1,12 @@
 import type { MetricId } from "./definitions";
 import type { PeriodPresetKey } from "./search-params";
+import {
+  ASSURANCE_TARGETS,
+  CGP_TARGETS,
+  COURTIER_CREDIT_TARGETS,
+  GENERIQUE_TARGETS,
+  type TargetTemplate,
+} from "@/lib/targets/templates";
 
 /**
  * LES PACKS MÉTIER — des données, pas des conditions dans le code : un pack
@@ -11,6 +18,11 @@ import type { PeriodPresetKey } from "./search-params";
  * table ne garantirait pas (un pack ne peut pas nommer une métrique qui
  * n'existe pas). Un CGP suit ses encours et sa collecte ; un courtier
  * suit ses volumes et ses délais.
+ *
+ * Depuis le chantier « ciblage et contenu », un pack porte aussi les
+ * CIBLES PAR DÉFAUT de son métier (src/lib/targets/templates.ts) :
+ * instanciées en lignes de l'organisation à sa demande, puis modifiables —
+ * jamais lues depuis le code par les écrans.
  */
 
 /** Les indicateurs qu'un tableau de bord sait afficher en tuile — un scalaire par indicateur, calculé par `dashboardIndicators`. */
@@ -43,6 +55,8 @@ export type BusinessPack = {
   description: string;
   /** Les indicateurs du tableau de bord, dans l'ordre d'affichage. */
   indicators: readonly DashboardIndicatorId[];
+  /** Les cibles de newsletter proposées à ce métier, dans l'ordre de création. */
+  targets: readonly TargetTemplate[];
 };
 
 export const BUSINESS_PACKS = {
@@ -62,6 +76,7 @@ export const BUSINESS_PACKS = {
       "partner_shares",
       "partner_commissions",
     ],
+    targets: COURTIER_CREDIT_TARGETS,
   },
   cgp: {
     key: "cgp",
@@ -79,6 +94,7 @@ export const BUSINESS_PACKS = {
       "loss_rate",
       "lead_to_first_contact",
     ],
+    targets: CGP_TARGETS,
   },
   assurance: {
     key: "assurance",
@@ -96,6 +112,7 @@ export const BUSINESS_PACKS = {
       "partner_acceptance_rate",
       "partner_commissions",
     ],
+    targets: ASSURANCE_TARGETS,
   },
   generique: {
     key: "generique",
@@ -112,6 +129,7 @@ export const BUSINESS_PACKS = {
       "partner_shares",
       "partner_commissions",
     ],
+    targets: GENERIQUE_TARGETS,
   },
 } as const satisfies Record<string, BusinessPack>;
 

@@ -1,10 +1,15 @@
 "use server";
 
 import { asc, desc, eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db";
 import { mailTargets, newsletterBlocks, newsletters } from "@/db/schema";
+import { parseLocalDateTime } from "@/db/queries/activities";
+import { markNewsletterSent, unmarkNewsletterSent, updateNewsletterTopics } from "@/db/queries/newsletters";
 import { assertOrgAccess, orgScope } from "@/db/scope";
+import { SEND_ERROR_PARAM } from "@/components/newsletter/labels";
+import { errorMessage, withError } from "@/lib/form-actions";
 import { requireUser } from "@/lib/session";
 import { NEWSLETTER_DRAFT_SCHEMA, parseBlockPayload, type AnyBlock } from "./blocks";
 
@@ -168,4 +173,54 @@ export async function deleteNewsletter(id: string) {
   // `newsletter_blocks.newsletter_id` est ON DELETE CASCADE : pas de
   // suppression manuelle des blocs à faire ici.
   await db.delete(newsletters).where(eq(newsletters.id, id));
+}
+
+// ---------------------------------------------------------------------------
+// « Marquer comme envoyée » (chantier ciblage et contenu, étape 3)
+// ---------------------------------------------------------------------------
+
+/** La date saisie (« 2026-08-26 », champ date) lue à midi, heure de Paris — jamais minuit UTC, qui ferait glisser la veille. */
+function readSentDate(formData: FormData): Date {
+  const raw = String(formData.get("sentAt") ?? "").trim();
+  const parsed = raw ? parseLocalDateTime(`${raw}T12:00`) : null;
+  if (!parsed) throw new Error("La date d'envoi est illisible.");
+  if (parsed.getTime() > Date.now() + 24 * 3600 * 1000) throw new Error("La date d'envoi ne peut pas être dans le futur.");
+  return parsed;
+}
+
+export async function markNewsletterSentAction(id: string, formData: FormData) {
+  const user = await requireUser();
+  let destination = `/newsletters/${id}`;
+  try {
+    await markNewsletterSent(user, id, {
+      sentAt: readSentDate(formData),
+      topics: String(formData.get("topics") ?? "").split(/[,;\n]/),
+      markedBy: user.id,
+    });
+  } catch (error) {
+    destination = withError(destination, errorMessage(error), SEND_ERROR_PARAM);
+  }
+  redirect(destination);
+}
+
+export async function unmarkNewsletterSentAction(id: string) {
+  const user = await requireUser();
+  let destination = `/newsletters/${id}`;
+  try {
+    await unmarkNewsletterSent(user, id);
+  } catch (error) {
+    destination = withError(destination, errorMessage(error), SEND_ERROR_PARAM);
+  }
+  redirect(destination);
+}
+
+export async function updateNewsletterTopicsAction(id: string, formData: FormData) {
+  const user = await requireUser();
+  let destination = `/newsletters/${id}`;
+  try {
+    await updateNewsletterTopics(user, id, String(formData.get("topics") ?? "").split(/[,;\n]/));
+  } catch (error) {
+    destination = withError(destination, errorMessage(error), SEND_ERROR_PARAM);
+  }
+  redirect(destination);
 }

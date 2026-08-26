@@ -514,10 +514,198 @@ l'autre sens.
   `/newsletters/*` en production (Drizzle sélectionne toutes les colonnes
   du schéma). Ordre tenu : accord → application → commit → push.
 
+## Étape 3 — les cibles : segments vivants, identité éditoriale, écrans
+
+### Ce qui est construit
+
+- **`/cibles`** : la liste des cibles actives avec, pour chacune, sa
+  description en phrases (`describeTarget`) et son **nombre réel de
+  contacts** — les cinq ou dix comptes en UN aller-retour (`UNION ALL`,
+  `countMembersByTarget`) ; l'état vide propose « Créer les N cibles du
+  métier « X » » et « Créer une cible à la main » ; les gabarits du pack pas
+  encore instanciés restent proposés en dessous ; les cibles désactivées
+  sont rangées derrière un chevron. Trois états (`loading.tsx`,
+  `error.tsx`, vide). Entrée « Cibles » dans la navigation (Outils).
+- **`/cibles/new`** et **`/cibles/[id]`** : le même formulaire
+  (`TargetForm`, champs contrôlés — la saisie reste à l'écran quand
+  l'action revient avec une erreur) : nom, « à quoi elle sert » (jamais
+  transmis à l'IA), nature (segment vivant / sélection manuelle),
+  l'**éditeur de critères**, puis l'**identité éditoriale** en six facettes
+  (qui, ce qui la préoccupe, niveau de connaissance, ton, ce qui
+  l'intéresse, ce qu'on ne lui dit pas), l'étiquette d'audience et le
+  signataire par défaut. La page d'une cible ajoute : la **liste réelle**
+  des contacts (pages de 50, liens vers les fiches), la gestion d'une
+  sélection manuelle (recherche = celle de l'écran des contacts, cases à
+  cocher, « Déjà dans la cible », « Retirer »), « **Déjà envoyé à ces
+  contacts** » (l'anti-répétition), les gestes Dupliquer / Désactiver /
+  Réactiver, « Écrire une newsletter pour cette cible » (→
+  `/newsletters/new?cible=…`), l'avertissement « N newsletters ont été
+  envoyées à cette cible ; leur historique ne change pas », la mention
+  « identité incomplète : … », un `not-found.tsx` propre.
+- **L'éditeur de critères** (`CriteriaEditor`) : une ligne par critère,
+  une phrase par ligne, tout ce qui n'est pas renseigné vaut « peu
+  importe » — type de fiche, étiquettes (au moins une de / aucune de),
+  âge, adresse email, ville, pays (valeurs des fiches en suggestion),
+  conseiller, ancienneté de la fiche, sans interaction depuis, présence
+  d'affaires, étape, pipeline (si plusieurs), comment la fiche est entrée,
+  origine d'acquisition. En bas, l'**aperçu permanent** : le nombre à cet
+  instant, « dont N sans adresse email », cinq noms — recalculé 300 ms
+  après chaque changement par `previewSegmentAction`, avec la même
+  fonction SQL que la liste et le compte.
+- **Le composer** : le sélecteur dit « Investisseurs · 1 214 contacts »
+  et, sous la barre, `TargetInsight` charge le nombre réel et « **Déjà
+  reçu par ces contacts — à ne pas répéter** » (objet, date, part de la
+  cible, sujets). `/newsletters/new` accepte `?cible=` ; sans cible,
+  l'écran renvoie vers `/cibles` au lieu de l'impasse d'avant. Une cible
+  désactivée reste proposée, marquée, sur l'éditeur d'une newsletter qui
+  la vise.
+- **« Marquer comme envoyée »** (`SendStatusCard`, sous l'éditeur) : une
+  date (aujourd'hui par défaut, lue à midi heure de Paris — jamais minuit
+  UTC), les sujets traités, un bouton. `markNewsletterSent` écrit les
+  destinataires ET la photographie en **un seul ordre SQL** (CTE
+  modifiante + `UPDATE`) : atomique par construction, sans transaction. La
+  photographie porte le libellé, la nature, les critères ET leur
+  description en phrases (une étiquette renommée plus tard ne change pas
+  ce qui a été envoyé). « Annuler le marquage » efface les deux. La liste
+  `/newsletters` montre « Envoyée le … à N contacts — Investisseurs » /
+  « Brouillon » ; une newsletter envoyée ne se supprime plus depuis la
+  liste (annuler le marquage d'abord).
+- **La fiche contact** : « Dans les cibles : … » (un SELECT, un booléen
+  par cible active — `listTargetsOfContact`) et « Newsletters reçues »
+  (la photographie, même pour une pierre tombale).
+
+### Le format des critères — décision réversible
+
+`mail_targets.criteria` = un objet plat validé par zod
+(`src/lib/targets/criteria.ts`) : `kind`, `tagsAny`, `tagsNone`, `cities`,
+`countries`, `ownerIds`, `hasEmail`, `ageMin`/`ageMax`, `deals`
+(`any | open | won | lost | none`), `dealStageIds`, `dealPipelineIds`,
+`createdMoreThanDays`/`createdLessThanDays`, `inactiveForDays`, `sources`,
+`originIds`. Les critères se combinent par ET, une liste se lit « au moins
+un de », `{}` = tous les contacts vivants. Pas d'arbre ET/OU imbriqué : un
+OU entre critères différents se règle par deux cibles ; une clé `anyOf`
+pourra s'ajouter sans casser l'existant. UNE fonction compile en SQL
+(`segmentCondition`, `src/db/queries/mail-targets.ts`), et
+`memberCondition` la choisit ou prend la sélection manuelle : le compte, la
+page de membres, l'appartenance d'un contact et la photographie des
+destinataires lisent la même définition.
+
+### Les cibles par défaut viennent du métier
+
+Chaque pack (`src/lib/metrics/packs.ts`) porte `targets` : cinq gabarits
+(`src/lib/targets/templates.ts`), avec critères et identité en six facettes
+— courtier en crédit : primo-accédants, investisseurs, clients financés,
+projets en cours, sans nouvelles ; CGP : clients, prospects en réflexion,
+chefs d'entreprise, préparation de la retraite (50 ans et plus), jeunes
+actifs ; assurance : assurés emprunteurs, professionnels et indépendants,
+clients assurés, prospects en cours, sans nouvelles ; tout métier : tous
+les contacts, clients, prospects, sociétés, sans nouvelles.
+`createPackTargets` les instancie en lignes de `mail_targets` (idempotent
+par slug — relancer ne crée que ce qui manque, ne touche jamais une cible
+existante) et crée les étiquettes nommées par libellé (« Investisseur »)
+si elles n'existent pas. Aucun écran ne lit les gabarits pour s'afficher.
+« Sans nouvelles depuis six mois » = fiche créée il y a plus de 180 jours
+ET sans interaction depuis 180 jours : la première version (interaction
+seule) attrapait une fiche créée la veille — vu au navigateur, corrigé.
+
+### Autres décisions réversibles
+
+- Un contact sans adresse email compte dans la cible (c'est un contact) ;
+  l'aperçu et rien d'autre dit « dont N sans adresse email » ; le critère
+  « seulement les fiches avec une adresse email » existe.
+- Une sélection manuelle garde ses membres si on la repasse en segment
+  (ils reviennent si on revient) ; dupliquer une sélection copie ses
+  membres.
+- L'anti-répétition regarde les douze derniers mois, dix envois au plus,
+  et ne montre que ceux qui recoupent les membres actuels.
+- La photographie n'est prise qu'au marquage ; une newsletter marquée par
+  erreur se « démarque » (destinataires et photographie effacés, sujets
+  conservés).
+
+### Mesures — 5 000 contacts, avec l'index de l'étape 2
+
+Jeu `_perf-test` (5 000 contacts, étiquettes par hachage : « Investisseur »
+1/3, « Primo-accédant » 1/5, « VIP » 1/50 ; 500 affaires ; 3 000
+interactions — `scripts/perf-dataset.ts`, qui pose désormais ces
+étiquettes), les MÊMES fonctions que les écrans, temps depuis le code,
+aller-retour Neon compris, médiane de 5 après chauffe ; détruit ensuite,
+`VACUUM ANALYZE` fait, zéro reliquat.
+
+| Segment | membres | compte | page de 50 | aperçu |
+|---|---|---|---|---|
+| tous les contacts vivants (référence) | 5 000 | 20 ms | 20 ms | 20 ms |
+| étiquette « Investisseur » (1/3) | 1 668 | 19 ms | 20 ms | 19 ms |
+| « Investisseur » sans « Primo-accédant » | 1 363 | 21 ms | 22 ms | 21 ms |
+| « VIP » (1/50) | 122 | 20 ms | 21 ms | 20 ms |
+| ville Lyon, pays France | 428 | 19 ms | 20 ms | 20 ms |
+| personnes avec une adresse email | 5 000 | 21 ms | 20 ms | 20 ms |
+| au moins une affaire en cours | 300 | 19 ms | 21 ms | 19 ms |
+| affaire dans l'étape « Partagée » | 100 | 20 ms | 22 ms | 20 ms |
+| aucune affaire | 4 500 | 20 ms | 20 ms | 20 ms |
+| fiche créée il y a plus de 30 jours | 0 | 18 ms | 17 ms | 18 ms |
+| sans interaction depuis plus de 90 jours | 2 551 | 21 ms | 21 ms | 21 ms |
+| étiquette + pays + affaire en cours + email | 86 | 21 ms | 24 ms | 23 ms |
+
+Compte des 5 cibles du pack en un aller-retour : 24 ms. Appartenance d'un
+contact aux 5 cibles : 57 ms (trois allers-retours : la fiche, les
+cibles, le SELECT). Anti-répétition d'une cible : 19 ms. Tout est à la
+latence de l'aller-retour Neon (~18 ms) : **le critère d'acceptation
+(5 000 contacts) est tenu, sur l'écran réel**, et la marge mesurée à
+l'étape 1 jusqu'à 50 000 reste valable (même SQL, plus l'index).
+
+### Preuves
+
+- **À blanc** (`scripts/_tmp-cibles-proof.ts`, supprimé) : deux
+  organisations jetables `_cible-a` (courtier) et `_cible-b` (CGP), 26
+  contrôles par les mêmes fonctions que les écrans — cinq cibles par
+  organisation, différentes, sans code spécifique, instanciation
+  idempotente, étiquettes créées ; **segment recalculé 0 → 1 → 2 → 1 en
+  posant puis retirant une étiquette** ; appartenance d'une fiche ;
+  critères d'affaires (gagnée / en cours), d'âge, combinés, casse ignorée
+  sur la ville ; sélection manuelle (contact d'une autre organisation
+  ignoré par le code, puis **refusé par la base** — FK composite, code
+  23503) ; isolation (B ne lit ni ne marque rien de A) ; marquage :
+  destinataires figés, photographie avec sa description, sujets
+  dédoublonnés ; **la cible bouge après l'envoi (3 membres), la
+  photographie reste à 2 ; les critères et le libellé changent, la
+  photographie garde ceux d'alors** ; anti-répétition sur la cible revue ;
+  fiche « 1 newsletter reçue » ; désactivation sans perte d'historique ;
+  duplication avec membres ; annulation du marquage ; nettoyage à zéro.
+- **Au navigateur** (`scripts/_tmp-browser.ts`, supprimé ; build de
+  production, session forgée pour l'admin d'une organisation jetable
+  `_cible-nav`) : 33 étapes vues, zéro erreur console, zéro `pageerror`,
+  zéro réponse 5xx — état vide de `/cibles` → cinq cibles créées d'un
+  clic ; page d'une cible ; **poser l'étiquette sur une fiche → la fiche
+  dit « Dans les cibles : Investisseurs » et la cible passe de 0 à 1** ;
+  création par critères avec l'aperçu « 3 contacts aujourd'hui · dont 1
+  sans adresse email » puis « 3 contacts dans cette cible » ; sélection
+  manuelle (recherche, coche, ajout) ; composer « 1 contact réel » puis
+  marquage « Envoyée le … à 1 contact — Investisseurs » ;
+  `/newsletters/new?cible=` présélectionne « Investisseurs · 1 contact »
+  et montre « Déjà reçu par ces contacts » ; fiche « Newsletters reçues
+  (1) » ; liste avec badge ; annulation ; dupliquer / désactiver /
+  réactiver ; 404 propre. Captures relues.
+- Critères d'acceptation couverts ici : segment recalculé (script +
+  navigateur) ; deux organisations, cibles différentes sans code
+  spécifique ; segments rapides sur 5 000 contacts (mesures). Restent aux
+  étapes suivantes : aucun contenu d'article stocké (4), email citant ses
+  sources (6), aucun chiffre sans date ni source (4 et 6).
+
+### Ce que cette étape ne fait pas encore
+
+Le prompt de génération n'est pas modifié : seule la facette « ton »
+(`editorialVoice`) y entre, comme avant ; la composition depuis les six
+facettes et la matière du panier est l'étape 6. Les chiffres vérifiés
+« à compléter » (source, date) et leurs écrans sont l'étape 4.
+
 ## Avancement
 
 - **Étape 1 — exploration et conception** : `5cdf435`. STOP.
 - **Étape 2 — schéma et migration `0013`** : accord reçu le 2026-08-26 ;
   migration appliquée sur la base (journal `drizzle.__drizzle_migrations` :
   14 migrations ; 11 tables et 8 colonnes nouvelles vérifiées par lecture du
-  catalogue), puis committée et poussée. STOP.
+  catalogue), puis committée et poussée : `7137a28`. STOP.
+- **Étape 3 — cibles** : segments vivants, identité éditoriale, écrans,
+  composer, « marquée envoyée », fiche contact — prouvée à blanc (26
+  contrôles) et au navigateur (33 étapes), mesurée sur 5 000 contacts.
+  STOP.

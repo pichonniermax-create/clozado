@@ -22,7 +22,11 @@ import {
   listOrgUsers,
   logContactAccess,
 } from "@/db/queries/contacts";
-import { listMailTargets } from "@/db/queries/mail-targets";
+import {
+  listMailTargets,
+  listNewslettersReceivedByContact,
+  listTargetsOfContact,
+} from "@/db/queries/mail-targets";
 import {
   createNewsletterForContactAction,
   deleteContactAction,
@@ -62,7 +66,7 @@ export default async function ContactPage({
   // à l'heure (exigence données personnelles, docs/module-relationnel.md §C).
   await logContactAccess(contact, user.id, "view");
 
-  const [accessLog, orgUsers, duplicates, journal, mailTargets] = await Promise.all([
+  const [accessLog, orgUsers, duplicates, journal, mailTargets, contactTargets, received] = await Promise.all([
     listContactAccessLog(user, id),
     listOrgUsers(user),
     contact.deletedAt
@@ -70,6 +74,10 @@ export default async function ContactPage({
       : findDuplicateCandidates(user, { name: contact.name, email: contact.email }, id),
     contact.deletedAt ? Promise.resolve(null) : listContactJournal(user, id),
     contact.deletedAt ? Promise.resolve([]) : listMailTargets(user),
+    // De quelles cibles cette fiche fait partie — recalculé maintenant, jamais une liste figée.
+    contact.deletedAt ? Promise.resolve([]) : listTargetsOfContact(user, id),
+    // Ce qu'elle a reçu : la photographie des envois marqués, même si la fiche est une tombale.
+    listNewslettersReceivedByContact(user, id),
   ]);
 
   // -------------------------------------------------------------------
@@ -123,6 +131,26 @@ export default async function ContactPage({
           ))}
         </div>
       )}
+
+      {/* Les cibles dont cette fiche fait partie AUJOURD'HUI : un segment se
+          recalcule, une étiquette posée ou retirée change la réponse. */}
+      <p className="flex flex-wrap items-center gap-1.5 text-sm">
+        <span className="text-muted-foreground">Dans les cibles :</span>
+        {contactTargets.length === 0 ? (
+          <span className="text-muted-foreground">
+            aucune pour l&apos;instant —{" "}
+            <Link href="/cibles" className="underline underline-offset-2 hover:text-foreground">
+              voir les cibles
+            </Link>
+          </span>
+        ) : (
+          contactTargets.map((t) => (
+            <Badge key={t.id} variant="secondary" render={<Link href={`/cibles/${t.id}`} />}>
+              {t.label}
+            </Badge>
+          ))
+        )}
+      </p>
 
       <Card>
         <CardHeader>
@@ -302,12 +330,27 @@ export default async function ContactPage({
       )}
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">Newsletters</h2>
-        <EmptyState>
-          L&apos;outil compose les newsletters, ton outil d&apos;emailing les envoie : l&apos;historique
-          des envois n&apos;existe pas ici. Cette section se remplira quand une synchronisation le
-          ramènera.
-        </EmptyState>
+        <h2 className="text-sm font-semibold">
+          Newsletters reçues{received.length > 0 && ` (${received.length})`}
+        </h2>
+        {received.length === 0 ? (
+          <EmptyState>
+            Aucune newsletter marquée envoyée à cette personne. L&apos;historique se construit quand une newsletter
+            est marquée « envoyée » à une cible dont elle fait partie — l&apos;envoi lui-même se fait depuis ton
+            outil d&apos;emailing.
+          </EmptyState>
+        ) : (
+          <ListCard>
+            {received.map((n) => (
+              <ListRowLink
+                key={n.id}
+                href={`/newsletters/${n.id}`}
+                title={n.subject || n.title}
+                subtitle={`Envoyée le ${n.sentAt ? formatDate(n.sentAt) : "—"}${n.topics.length > 0 ? ` · sujets : ${n.topics.join(", ")}` : ""}`}
+              />
+            ))}
+          </ListCard>
+        )}
         {query.erreurNewsletter && (
           <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">
             {query.erreurNewsletter}
@@ -322,7 +365,7 @@ export default async function ContactPage({
               <select
                 name="targetId"
                 defaultValue={mailTargets[0].id}
-                aria-label="Groupe de destinataires"
+                aria-label="Cible"
                 className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
               >
                 {mailTargets.map((t) => (
@@ -345,8 +388,11 @@ export default async function ContactPage({
           </form>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Pour rédiger une newsletter depuis cette fiche, il faut d&apos;abord un groupe de
-            destinataires configuré pour ton organisation.
+            Pour rédiger une newsletter depuis cette fiche, il faut d&apos;abord{" "}
+            <Link href="/cibles" className="underline underline-offset-2">
+              une cible
+            </Link>{" "}
+            dans ton organisation.
           </p>
         )}
       </section>

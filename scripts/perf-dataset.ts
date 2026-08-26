@@ -3,7 +3,7 @@
  * organisation de test DÉDIÉE, jamais dans une organisation existante.
  *
  * Usage :
- *   npx tsx --env-file=.env.local scripts/perf-dataset.ts create   # 5 000 contacts, 500 affaires, 2 000 tâches, 3 000 interactions, 1 000 passages d'étape
+ *   npx tsx --env-file=.env.local scripts/perf-dataset.ts create   # 5 000 contacts (étiquetés par hachage), 500 affaires, 2 000 tâches, 3 000 interactions, 1 000 passages d'étape
  *   npx tsx --env-file=.env.local scripts/perf-dataset.ts status   # ce qui existe
  *   npx tsx --env-file=.env.local scripts/perf-dataset.ts destroy  # supprime EXACTEMENT ce qui a été créé
  *
@@ -33,9 +33,10 @@ function pick<T>(arr: T[], i: number): T {
 async function main() {
   const cmd = process.argv[2];
   const { db } = await import("../src/db");
-  const { activities, contacts, deals, dealStageChanges, dealTypes, organizations, tasks, users } = await import("../src/db/schema");
+  const { activities, contacts, contactTagAssignments, contactTags, deals, dealStageChanges, dealTypes, organizations, tasks, users } =
+    await import("../src/db/schema");
   const { seedDefaultDealStatuses } = await import("../src/db/queries/deal-statuses");
-  const { eq, count } = await import("drizzle-orm");
+  const { eq, count, sql } = await import("drizzle-orm");
 
   const existing = await db.query.organizations.findFirst({ where: eq(organizations.slug, SLUG) });
 
@@ -83,7 +84,13 @@ async function main() {
     process.exit(1);
   }
 
-  const [org] = await db.insert(organizations).values({ name: "Organisation de test (perf)", slug: SLUG }).returning();
+  // Pack « courtier en crédit » : les cibles proposées par le métier
+  // (chantier ciblage) se créent d'un clic sur /cibles et trouvent leurs
+  // étiquettes ci-dessous.
+  const [org] = await db
+    .insert(organizations)
+    .values({ name: "Organisation de test (perf)", slug: SLUG, businessPack: "courtier_credit" })
+    .returning();
   const [user] = await db
     .insert(users)
     .values({ email: `perf-test@${SLUG}.invalid`, name: "Testeur Perf", role: "admin", organizationId: org.id })
@@ -119,6 +126,29 @@ async function main() {
     contactIds.push(...inserted.map((r) => r.id));
   }
   console.timeEnd(`insertion de ${N_CONTACTS} contacts`);
+
+  // Étiquettes posées par hachage de l'id, côté base (jamais ligne par
+  // ligne) : « Investisseur » sur un contact sur trois, « Primo-accédant »
+  // sur un sur cinq, « VIP » sur un sur cinquante — de quoi mesurer les
+  // segments du chantier ciblage sur une distribution réaliste.
+  console.time("étiquetage par hachage");
+  const tagRows = await db
+    .insert(contactTags)
+    .values([
+      { organizationId: org.id, label: "Investisseur", position: 0 },
+      { organizationId: org.id, label: "Primo-accédant", position: 1 },
+      { organizationId: org.id, label: "VIP", position: 2 },
+    ])
+    .returning();
+  for (const [tag, modulo] of [[tagRows[0], 3], [tagRows[1], 5], [tagRows[2], 50]] as const) {
+    await db.execute(
+      sql`INSERT INTO ${contactTagAssignments} (organization_id, contact_id, tag_id)
+          SELECT ${org.id}::uuid, ${contacts.id}, ${tag.id}::uuid FROM ${contacts}
+          WHERE ${contacts.organizationId} = ${org.id} AND abs(hashtext(${contacts.id}::text)) % ${modulo} = 0
+          ON CONFLICT DO NOTHING`
+    );
+  }
+  console.timeEnd("étiquetage par hachage");
 
   console.time(`insertion de ${N_DEALS} affaires`);
   const dealIds: string[] = [];

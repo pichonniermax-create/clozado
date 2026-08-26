@@ -11,6 +11,7 @@ import {
   Timer,
   TrendingDown,
   Users,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -67,7 +68,10 @@ export const NAVIGATION: NavSection[] = [
   },
   {
     label: "Outils",
-    entries: [{ href: "/newsletters", label: "Newsletters", icon: Mail }],
+    entries: [
+      { href: "/cibles", label: "Cibles", icon: UsersRound, requiresOrganization: true },
+      { href: "/newsletters", label: "Newsletters", icon: Mail },
+    ],
   },
 ];
 
