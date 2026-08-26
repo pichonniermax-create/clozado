@@ -418,8 +418,127 @@ Rien de construit maintenant ; rien de codé qui l'empêche. Le jour venu :
 5. **La 0014 en attente** (chantier ciblage) : à appliquer avant la
    migration de ce chantier, ou à abandonner — la numérotation en dépend.
 
+## Étape 2 — les jetons dérivés, le sélecteur de couleur, le logo
+
+### Ce qui est construit
+
+- **La dérivation** (`src/lib/brand/color.ts`, `src/lib/brand/derive.ts`) :
+  la méthode du §1, telle quelle, en deux modules purs sans dépendance —
+  sRGB ↔ OKLab ↔ OKLCH, luminance et contraste WCAG 2.x, retour dans le
+  gamut par réduction de chroma ; puis `deriveBrandTokens(hex, thème)` →
+  vingt-deux variables CSS, la liste des **paires vérifiées** (neuf, avec
+  leur rapport et leur seuil) et les **diagnostics** en clair. Trois
+  défauts trouvés par le jeu de cas limites AVANT tout écran, et corrigés :
+  l'encre de marque n'était vérifiée que sur le fond et les cartes, pas sur
+  une ligne survolée (plus sombre) — elle l'est ; le survol allait vers le
+  sombre même sous un texte foncé (contraste en baisse) — il s'éloigne
+  désormais du texte du bouton, et se retourne en bout d'échelle ; un blanc
+  cassé perdait sa teinte (seuil de gris trop haut) — il la garde, c'est
+  elle qui fait la marque une fois assombrie. Le texte d'une ligne survolée
+  reste une teinte sombre de la marque (comme aujourd'hui), pas l'encre.
+- **Les jetons dans le système** (`globals.css`, `@theme inline`) :
+  `--primary-hover`, `--primary-active`, `--primary-ink`, `--primary-soft`
+  avec les valeurs que la fonction dérive du bleu Clozado (clair et
+  sombre). Le bouton principal passe de `hover:bg-primary/80` (opacité) à
+  `hover:bg-primary-hover active:bg-primary-active` ; les variantes `link`
+  du bouton et du badge, et l'icône de la ligne active de la navigation,
+  passent à `text-primary-ink`. Les autres usages de `text-primary` dans
+  les écrans (tableau de bord, bannière de sélection, avatar, définitions)
+  sont pour l'étape 3, avec la propagation.
+- **Le sélecteur** (`components/brand/brand-color-picker.tsx`, client) : la
+  pastille ouvre le sélecteur du navigateur (`showPicker()` sur un
+  `<input type="color">`), la pipette apparaît quand `window.EyeDropper`
+  existe, huit palettes nommées (bleu nuit, bleu, vert forêt, bordeaux,
+  ardoise, ocre, prune, anthracite), la saisie hexadécimale repliée dans un
+  `<details>`, l'avertissement au-dessus de l'aperçu, et **l'aperçu sur de
+  vrais éléments** : le `Button`, le `Badge`, un lien en `text-primary-ink`,
+  une ligne sélectionnée sur `bg-primary-soft`, et une réplique de la barre
+  latérale avec les classes exactes de `NavLink` (ligne active
+  `bg-sidebar-accent text-sidebar-accent-foreground`, icône
+  `text-primary-ink`, compteur `bg-primary`) — le tout sous
+  `style={brandStyle(tokens)}`, la même fonction que la coquille
+  appliquera à l'étape 3 : l'aperçu ne peut pas mentir. Le tableau des
+  contrastes vérifiés est replié dessous. La couleur part dans le
+  formulaire par un champ caché, revalidée côté serveur (`normalizeHex`).
+- **Le logo** (`components/brand/brand-logo-uploader.tsx`, client ;
+  `lib/brand/actions.ts` ; `db/queries/organization-assets.ts` ; route
+  `GET /brand/[organisation]/[kind]`) : PNG, JPEG, WebP, GIF ou SVG →
+  dessiné sur un canevas dans le navigateur, réduit à 1 200 × 400 au plus
+  (et encore réduit de 30 % tant qu'il dépasse 400 ko), rendu en PNG — un
+  SVG est rastérisé au passage, plus rien à nettoyer côté serveur ;
+  l'icône (128 × 128, le logo « contenu » sur fond transparent) est dérivée
+  de la version claire ; la version sombre est facultative. Le serveur
+  revérifie la signature PNG et lit l'en-tête IHDR (dimensions) sans
+  dépendance, refuse au-delà de 400 ko ou 1 600 px, écrit dans
+  `organization_assets` (bytea) ; la route publique sert l'image avec
+  `Cache-Control: public, max-age=31536000, immutable` quand l'adresse
+  porte sa version (`?v=<updated_at>`), 300 s sinon. Aperçus **en
+  situation** : la barre latérale (avec la marque par défaut sans logo), la
+  page de connexion, un email (le bouton à la couleur enregistrée), le fond
+  sombre (version sombre, sinon la claire et la mention), l'icône d'onglet.
+  « Retirer le logo » et « Retirer la version sombre » ; un membre voit
+  tout en lecture seule.
+- **L'écran** `/settings` : la carte « Marque » (nom, sélecteur, police des
+  emails — avec la mention qu'elle n'affecte que les emails), la carte
+  « Logo », les messages d'information et d'erreur. Le champ « Logo (lien
+  vers une image) » et le champ hexadécimal ont disparu ; `logo_url` reste
+  en base comme repli des organisations qui l'utilisaient.
+
+### Ce qu'il faut savoir
+
+- Le pilote `@neondatabase/serverless` lit un `bytea` avec l'ancien
+  constructeur `Buffer()` (son `parseBytea` embarqué) : Node émet un
+  avertissement de dépréciation (DEP0005) à la première image lue — un
+  avertissement du pilote, pas une erreur, sans effet ; à surveiller à la
+  prochaine mise à jour du pilote.
+
+### Décisions réversibles
+
+- L'aperçu du sélecteur ne montre que le thème clair (le produit n'a pas
+  de bascule sombre) ; la fonction dérive les deux, et le bloc `.dark` de
+  la feuille de style porte les valeurs dérivées.
+- Les couleurs des étapes de pipeline (`/settings`, un champ texte par
+  étape) ne sont pas la couleur de marque : hors périmètre de ce sélecteur.
+- L'icône d'onglet est toujours dérivée du logo ; un téléversement d'icône
+  dédié pourra s'ajouter si un client a un logo trop large pour un carré.
+
+### Preuves
+
+- **À blanc** (`scripts/_tmp-brand-proof.ts`, supprimé) : vingt couleurs
+  (blanc, blanc cassé `#f5f1e8`, jaune très clair `#fff59d`, jaune pur,
+  rose pâle, vert néon, magenta, orange, gris, noir, bleu marine, bleu
+  Clozado et les huit palettes) × deux thèmes = quarante dérivations,
+  **trois cent soixante paires vérifiées, aucune sous le seuil** ; le
+  théorème « max(contraste avec le blanc, contraste avec le noir) ≥ √21 »
+  contrôlé sur les 4 096 couleurs de la grille 4 bits : minimum observé
+  4,584 (√21 = 4,583). Le jaune très clair `#fff59d` donne un bouton
+  `#988e36` à texte foncé `#141821` (5,29:1), un lien `#756a00` (≥ 4,5 sur
+  le fond, une carte et une ligne survolée), un fond léger `#f5f2d3` ; le
+  blanc cassé `#f5f1e8` donne un bouton taupe `#959189` à texte foncé
+  (5,71:1), un lien `#6c6860` — la teinte chaude conservée.
+- **Au navigateur** (`scripts/_tmp-brand-browser.ts`, supprimé ; build de
+  production, session forgée, organisation jetable `_brand-nav`) : **35
+  contrôles, zéro erreur console, zéro `pageerror`, zéro 5xx** (deuxième
+  passe : la première avait trouvé une erreur d'hydratation React #418 —
+  la pipette n'était rendue que dans le navigateur, `window.EyeDropper`
+  n'existant pas au rendu serveur ; corrigée par `useSyncExternalStore`
+  avec un instantané serveur « sans pipette ») — le sélecteur (huit palettes, pas de
+  champ hexadécimal en clair, aperçu avec un vrai bouton, un vrai lien, une
+  vraie ligne active), la palette « Bordeaux » qui teinte la ligne active,
+  **le jaune très clair et le blanc cassé** : l'avertissement, les
+  variables réellement posées sur l'aperçu (`--primary #988e36`,
+  `--primary-foreground #141821` ; `#959189`, encre `#6c6860`) et les
+  couleurs calculées par le navigateur sur le vrai bouton (`rgb(152, 142,
+  54)`) et le vrai lien (`rgb(108, 104, 96)`), enregistrement et
+  persistance normalisée (`#1f5f45`), logo SVG rastérisé + PNG sombre +
+  icône dérivée (trois PNG en base, 1 200 × 400 au plus, 128 × 128), route
+  publique versionnée immuable, 404 sur une image inconnue, retraits,
+  lecture seule pour un membre. Captures relues.
+
 ## Avancement
 
+- **Étape 2 — jetons dérivés, sélecteur, logo** : prouvée à blanc (360
+  paires, aucune sous le seuil) et au navigateur (35 contrôles). STOP.
 - **Étape 1 — exploration et conception** : `1a4c3f9`. Les cinq décisions
   reçues le 2026-08-26 : dérivation validée, `next-intl` validé, schéma
   validé (avec `timezone` ; logos en base « pour maintenant », limite

@@ -40,6 +40,13 @@ import {
   updateStageAction,
 } from "@/lib/deals/actions";
 import { DEFAULT_BRAND_PRIMARY } from "@/lib/brand";
+import { BrandColorPicker } from "@/components/brand/brand-color-picker";
+import { BrandLogoUploader } from "@/components/brand/brand-logo-uploader";
+import { listOrganizationAssetMeta } from "@/db/queries/organization-assets";
+import { assetUrlsFromMeta } from "@/lib/brand/assets";
+import { normalizeHex } from "@/lib/brand/color";
+import { brandStyle, deriveBrandTokens } from "@/lib/brand/derive";
+import { withError } from "@/lib/form-actions";
 import { BUSINESS_PACK_LIST, METRICS, resolveBusinessPack } from "@/lib/metrics";
 import { requireUser } from "@/lib/session";
 
@@ -52,14 +59,21 @@ async function saveBranding(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
 
+  // La couleur vient du sélecteur, déjà normalisée ; on la revalide quand
+  // même — une chaîne libre n'entre jamais en base.
+  const rawColor = String(formData.get("primaryColor") ?? "").trim();
+  const primaryColor = rawColor ? normalizeHex(rawColor) : null;
+  if (rawColor && !primaryColor) {
+    redirect(withError("/settings", "La couleur n'est pas un code hexadécimal valide."));
+  }
   await updateOrganizationBranding(user, {
     name,
-    logoUrl: String(formData.get("logoUrl") ?? "").trim() || null,
-    primaryColor: String(formData.get("primaryColor") ?? "").trim() || null,
+    primaryColor,
     fontFamily: String(formData.get("fontFamily") ?? "").trim() || null,
   });
 
-  redirect("/settings");
+  revalidatePath("/settings");
+  redirect(withError("/settings", "Marque enregistrée.", "info"));
 }
 
 async function savePack(formData: FormData) {
@@ -98,9 +112,9 @@ const REJECTION_LABELS: Record<string, string> = {
   invalid_payload: "Charge invalide",
 };
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ erreur?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ erreur?: string; info?: string }> }) {
   const user = await requireUser();
-  const { erreur } = await searchParams;
+  const { erreur, info } = await searchParams;
 
   // Le super_admin n'a pas d'organisation propre : cet écran ne le concerne pas.
   if (!user.organizationId) {
@@ -113,14 +127,19 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   }
 
   const readOnly = user.role !== "admin";
-  const [pipelines, lossReasons, apiKeyRows, siteKeyRows, collection, requestHeaders] = await Promise.all([
+  const [pipelines, lossReasons, apiKeyRows, siteKeyRows, collection, requestHeaders, assetMeta] = await Promise.all([
     listPipelinesWithStages(user),
     listLossReasons(user),
     listApiKeys(user),
     listSiteKeys(user),
     getCollectionStatus(user),
     headers(),
+    listOrganizationAssetMeta(org.id),
   ]);
+  const savedHex = normalizeHex(org.primaryColor ?? "") ?? DEFAULT_BRAND_PRIMARY;
+  // Les aperçus du logo se rendent sous les jetons dérivés de la couleur ENREGISTRÉE.
+  const savedBrand = brandStyle(deriveBrandTokens(savedHex, "light").tokens);
+  const assetUrls = assetUrlsFromMeta(org.id, assetMeta);
   const appOrigin = `${requestHeaders.get("x-forwarded-proto") ?? "https"}://${requestHeaders.get("host") ?? "clozado"}`;
   const activeSiteKeys = siteKeyRows.filter((k) => !k.revokedAt);
   const nothingConnected = collection.lastEventAt === null && collection.lastLeadAt === null;
@@ -176,74 +195,56 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         description={
           readOnly
             ? "Lecture seule — seul l'admin de l'organisation peut modifier ces réglages."
-            : "Ce que voient tes partenaires sur les pages de partage et dans tes emails."
+            : "Ton nom, ta couleur et ton logo : ce que voit ton équipe dans l'application, tes partenaires sur les pages de partage, tes contacts dans tes emails."
         }
       />
 
-      <Card className="max-w-xl">
+      {erreur && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{erreur}</p>}
+      {info && <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">{info}</p>}
+
+      <Card id="marque" className="scroll-mt-24">
         <CardHeader>
           <CardTitle>{org.name}</CardTitle>
-          <CardDescription>Identifiant : {org.slug}</CardDescription>
+          <CardDescription>
+            Identifiant : {org.slug}. Une seule couleur : le système en dérive les boutons, les liens, les fonds légers
+            et la ligne active de la navigation, en garantissant que tout reste lisible.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={saveBranding} className="flex flex-col gap-4">
-            <Field label="Nom affiché" htmlFor="name">
-              <Input
-                id="name"
-                name="name"
-                defaultValue={org.name}
-                disabled={readOnly}
-                required
-              />
+          <form action={saveBranding} className="flex flex-col gap-5">
+            <Field label="Nom affiché" htmlFor="name" className="max-w-xl">
+              <Input id="name" name="name" defaultValue={org.name} disabled={readOnly} required />
             </Field>
 
-            <Field label="Logo (lien vers une image)" htmlFor="logoUrl">
-              <Input
-                id="logoUrl"
-                name="logoUrl"
-                type="url"
-                placeholder="https://..."
-                defaultValue={org.logoUrl ?? ""}
-                disabled={readOnly}
-              />
+            <Field label="Couleur de la marque" htmlFor="brand-color">
+              <BrandColorPicker initialHex={org.primaryColor} name="primaryColor" disabled={readOnly} />
             </Field>
 
-            <Field label="Couleur principale" htmlFor="primaryColor">
-              <div className="flex items-center gap-2">
-                <Input
-                  id="primaryColor"
-                  name="primaryColor"
-                  placeholder={DEFAULT_BRAND_PRIMARY}
-                  defaultValue={org.primaryColor ?? ""}
-                  disabled={readOnly}
-                  className="max-w-40"
-                />
-                {org.primaryColor && (
-                  <span
-                    aria-hidden
-                    className="h-8 w-8 shrink-0 rounded-md border"
-                    style={{ backgroundColor: org.primaryColor }}
-                  />
-                )}
-              </div>
-            </Field>
-
-            <Field label="Police" htmlFor="fontFamily">
-              <Input
-                id="fontFamily"
-                name="fontFamily"
-                placeholder="Inter"
-                defaultValue={org.fontFamily ?? ""}
-                disabled={readOnly}
-              />
+            <Field label="Police des emails" htmlFor="fontFamily" hint="N'affecte que le gabarit des emails — la typographie de l'application ne se personnalise pas." className="max-w-xl">
+              <Input id="fontFamily" name="fontFamily" placeholder="Inter" defaultValue={org.fontFamily ?? ""} disabled={readOnly} />
             </Field>
 
             {!readOnly && (
               <Button type="submit" className="w-fit">
-                Enregistrer
+                Enregistrer la marque
               </Button>
             )}
           </form>
+        </CardContent>
+      </Card>
+
+      <Card id="logo" className="scroll-mt-24">
+        <CardHeader>
+          <CardTitle>Logo</CardTitle>
+          <CardDescription>
+            Une version pour fond clair, une version pour fond sombre si tu l&apos;as, et l&apos;icône d&apos;onglet dérivée
+            automatiquement. Sans logo, la marque par défaut s&apos;affiche.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div style={savedBrand}>
+            <BrandLogoUploader organizationName={org.name} urls={assetUrls} disabled={readOnly} brandHex={savedHex} />
+          </div>
         </CardContent>
       </Card>
 

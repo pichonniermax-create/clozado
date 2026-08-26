@@ -41,7 +41,7 @@ export function NavLink({
       <span
         className={cn(
           "shrink-0 transition-colors [&_svg]:size-4",
-          active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+          active ? "text-primary-ink" : "text-muted-foreground group-hover:text-foreground"
         )}
       >
         {icon}

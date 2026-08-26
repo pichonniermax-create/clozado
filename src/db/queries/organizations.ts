@@ -50,7 +50,7 @@ export async function getOrganizationOfRecord(user: OrgScopeUser, organizationId
 
 export type BrandingInput = {
   name: string;
-  logoUrl: string | null;
+  /** Hexadécimal normalisé (« #2563eb ») ou null — validé par l'écran, jamais une chaîne libre. */
   primaryColor: string | null;
   fontFamily: string | null;
 };

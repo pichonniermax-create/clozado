@@ -51,6 +51,18 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  /* Les jetons DÉRIVÉS de la couleur de marque (src/lib/brand/derive.ts,
+     chantier marque blanche) : le survol et l'état enfoncé du bouton
+     principal (un cran de clarté, plus d'opacité — elle se comporte mal
+     sur fonds variables), l'ENCRE de marque (un texte à la couleur de la
+     marque, vérifié lisible sur le fond, une carte et une ligne survolée)
+     et le FOND LÉGER (ligne active, états sélectionnés). Les valeurs ici
+     sont celles que la fonction dérive du bleu Clozado ; une organisation
+     les remplace toutes d'un coup, par la même fonction. */
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-primary-ink: var(--primary-ink);
+  --color-primary-soft: var(--primary-soft);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -84,6 +96,10 @@
   --popover-foreground: oklch(0.21 0.018 264);
   --primary: oklch(0.52 0.168 263);
   --primary-foreground: oklch(0.99 0.002 264);
+  --primary-hover: #1652da;
+  --primary-active: #0745cc;
+  --primary-ink: #2563eb;
+  --primary-soft: #e9f1ff;
   --secondary: oklch(0.965 0.005 264);
   --secondary-foreground: oklch(0.3 0.02 264);
   --muted: oklch(0.968 0.004 264);
@@ -127,6 +143,10 @@
   --popover-foreground: oklch(0.96 0.004 264);
   --primary: oklch(0.68 0.152 263);
   --primary-foreground: oklch(0.17 0.02 264);
+  --primary-hover: #1652da;
+  --primary-active: #0745cc;
+  --primary-ink: #6296ff;
+  --primary-soft: #23304a;
   --secondary: oklch(0.27 0.018 264);
   --secondary-foreground: oklch(0.94 0.006 264);
   --muted: oklch(0.27 0.018 264);
