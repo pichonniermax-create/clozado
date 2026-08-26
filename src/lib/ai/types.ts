@@ -41,8 +41,8 @@ export type TargetProfile = {
   label: string;
   persona: string | null;
   audienceLabel: string | null;
-  /** Identité éditoriale complète de la cible — prime sur le ton générique de l'organisation. */
-  editorialVoice: string;
+  /** Le ton et la voix à adopter pour cette cible — prime sur le ton générique de l'organisation ; NULL tant que l'identité n'est pas remplie. */
+  editorialVoice: string | null;
 };
 
 export type SignatoryProfile = {

@@ -186,7 +186,7 @@ function buildUserMessage(input: DesignNewsletterInput): string {
 
   return [
     `Cible : ${target.label}${personaLine}.${audienceLine}`,
-    `Identité éditoriale de la cible (elle prime sur le ton générique) : ${target.editorialVoice}`,
+    target.editorialVoice ? `Identité éditoriale de la cible (elle prime sur le ton générique) : ${target.editorialVoice}` : "",
     `Langue : ${lang === "fr" ? "français" : "anglais"}.`,
     signatureNote,
     lengthLine,

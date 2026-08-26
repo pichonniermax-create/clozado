@@ -27,3 +27,5 @@ export * from "./site-keys";
 export * from "./acquisition-events";
 export * from "./acquisition-rejections";
 export * from "./leads";
+export * from "./watch";
+export * from "./market";

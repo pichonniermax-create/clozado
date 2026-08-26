@@ -1,4 +1,4 @@
-import { foreignKey, integer, pgTable, primaryKey, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { foreignKey, index, integer, pgTable, primaryKey, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { contacts } from "./contacts";
 import { organizations } from "./organizations";
 
@@ -53,6 +53,9 @@ export const contactTagAssignments = pgTable(
       columns: [table.tagId, table.organizationId],
       foreignColumns: [contactTags.id, contactTags.organizationId],
     }).onDelete("cascade"),
+    // « Les contacts qui portent cette étiquette » (critère de cible) : la
+    // clé primaire (contact, étiquette) ne sert que l'autre sens.
+    index("contact_tag_assignments_org_tag_contact_idx").on(table.organizationId, table.tagId, table.contactId),
   ]
 );
 

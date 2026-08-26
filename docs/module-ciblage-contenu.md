@@ -377,6 +377,147 @@ Les trois réponses ci-dessus, et ce qui les conditionne :
 
 ---
 
+## Étape 2 — le schéma et la migration `0013_ciblage_contenu`
+
+Rien n'est renommé ni supprimé : des colonnes et des tables s'AJOUTENT.
+Toute table métier porte `organization_id` et des FK composites vers ses
+parents (cible, contact, newsletter, article, sujet, source) — une ligne
+fille ne peut jamais référencer la ligne d'une autre organisation, même
+règle qu'ailleurs dans le produit. Le SQL généré par drizzle-kit a été
+relu et corrigé à la main (voir « Ordre » ci-dessous) ; il est commenté en
+tête de fichier.
+
+### Cibles — `mail_targets` enrichie, `mail_target_members`
+
+- `kind` (`segment` | `static`, CHECK) et `criteria` (jsonb, validé par
+  le code, `{}` = tous les contacts vivants) : la nature « segment
+  vivant ». Les cibles existantes (les personas de démo) deviennent des
+  segments sans critère — « tous les contacts » — jusqu'à ce qu'on les
+  édite ; l'écran le dira.
+- L'identité éditoriale en six facettes : `persona` (qui — colonne
+  existante), `concerns` (préoccupations), `knowledge_level`,
+  `editorial_voice` (ton et voix — **colonne conservée telle quelle**,
+  devenue facultative), `interests`, `avoid` (ce qu'on ne lui dit pas).
+  Pourquoi ne pas renommer `editorial_voice` en `tone` : un renommage
+  passe par une question interactive de drizzle-kit (créée ou renommée ?)
+  qu'un script ne peut pas répondre, et une erreur y détruit la colonne
+  avec ses données ; le nom reste, le sens est documenté au schéma.
+  Pourquoi les facettes sont facultatives : une cible peut naître de ses
+  critères et recevoir son identité ensuite ; l'écran montre ce qui manque
+  (« identité incomplète »), et le prompt compose avec ce qui est rempli.
+- `description` (à quoi sert la cible, pour l'équipe, jamais dans le
+  prompt), `archived_at` (désactivation — une cible ne se supprime pas,
+  l'historique la référence), `unique (id, organization_id)` (cible des
+  FK composites).
+- `mail_target_members` (organisation, cible, contact, ajouté le) : les
+  membres d'une cible statique. Index (organisation, contact) pour « de
+  quelles cibles ce contact fait partie ».
+
+### Envois — `newsletters` enrichie, `newsletter_recipients`, `newsletter_sources`
+
+- `sent_at` (marquée envoyée à cette date, déclarée et modifiable ; NULL =
+  brouillon), `sent_marked_by`, `audience_snapshot` (jsonb : libellé et
+  nature de la cible, critères, nombre — la photographie), `topics`
+  (text[] : les sujets traités, déclarés par la génération et modifiables
+  — ce que l'anti-répétition montre), `unique (id, organization_id)`,
+  index (organisation, `sent_at`).
+- `newsletter_recipients` (organisation, newsletter, contact ; clé
+  (newsletter, contact)) : la cible évaluée à l'instant du marquage,
+  contact par contact. Index (organisation, contact) : la fiche contact.
+  Suppression en cascade avec la newsletter ; un contact n'est jamais
+  supprimé physiquement (pierre tombale), ses lignes restent.
+- `newsletter_sources` (organisation, newsletter, article) : les articles
+  du panier utilisés — « déjà utilisé », et la citation des sources.
+
+### Chiffres — `verified_figures` enrichie
+
+`source_name`, `source_url`, `as_of` (la période telle que publiée),
+`as_of_date` (triable), `indicator_key` (quand le chiffre vient d'un
+indicateur de marché : rafraîchi par la collecte, jamais à la main ;
+unique par organisation). Les lignes d'avant le chantier ont ces champs à
+NULL : elles s'affichent « à compléter » et **ne sont plus citées par l'IA
+tant qu'elles le sont** — la règle « aucun chiffre sans sa date et sa
+source » s'applique aussi aux chiffres internes (source = l'organisation,
+date = quand c'était vrai). Décision réversible, dans le code.
+
+### Veille — `watch_topics`, `watch_sources`, `watch_items`, `watch_basket_items`, `watch_runs`
+
+- `watch_topics` : les sujets déclarés (`label`, `search_terms`,
+  `search_languages` — « fr », « en » : sources françaises ET anglophones
+  au choix), `archived_at` (un sujet ne se supprime pas : des articles s'y
+  rattachent).
+- `watch_sources` : sites/flux thématiques et concurrents (`kind` =
+  `source` | `competitor`, CHECK), `site_url`, `feed_url` (déclaré ou
+  découvert ; NULL = recherche web restreinte au domaine), `country`
+  (ISO-2, affiché avec chaque article), `lang`, `topic_id`, et la SANTÉ :
+  `last_fetched_at`, `last_ok_at`, `last_error` (lisible),
+  `consecutive_failures`, `asleep_at` (30 jours d'échecs), `archived_at`.
+  Unique (organisation, nature, site).
+- `watch_items` : **titre, lien canonique (+ empreinte unique par
+  organisation), éditeur, date de publication (NULL = inconnue, jamais une
+  valeur plausible), pays, langue, résumé ORIGINAL, état du résumé
+  (`pending` | `done` | `refused` — une suite de 12 mots de l'original
+  détectée, jamais stocké — | `failed`), modèle du résumé, thèmes, angle,
+  chemin de découverte (`feed` | `search`), écarté par l'utilisateur
+  (`dismissed_at`).** Il n'existe AUCUNE colonne pour le corps ni
+  l'extrait : la règle de droit d'auteur est tenue par le schéma. Index
+  (organisation, date), (organisation, sujet), (organisation, source).
+- `watch_basket_items` : le panier, UN par organisation (partagé par
+  l'équipe — décision réversible : « l'utilisateur met de côté », mais ce
+  qu'il met de côté sert la newsletter de l'organisation), avec qui l'a
+  ajouté.
+- `watch_runs` : le journal des collectes (déclencheur `visit` | `manual`
+  | `cron`, début, fin, sources ok/en échec, articles nouveaux/résumés,
+  erreur) — et le verrou : une collecte commencée il y a moins de cinq
+  minutes et non finie bloque un second départ.
+
+### Indicateurs de marché — `market_observations`, `market_indicator_status`, `organization_indicators`
+
+- `market_observations` (clé, période telle que publiée, premier jour de
+  la période, valeur telle que publiée, valeur numérique, unité, source,
+  lien, date de collecte ; clé (indicateur, période)) : **la seule table
+  du produit sans organisation** — donnée publique partagée, exception
+  validée à l'étape 1. Le catalogue (clé, libellé, source, unité,
+  périodicité, spécification d'appel, métiers) vit dans le code, en
+  données, comme les packs.
+- `market_indicator_status` : la santé de chaque indicateur (une API
+  officielle muette laisse la dernière observation affichée AVEC sa date).
+- `organization_indicators` : les indicateurs qu'une organisation suit
+  (préremplis depuis son pack, modifiables) — scopé.
+
+### Étiquettes — l'index décidé à l'étape 1
+
+`contact_tag_assignments (organization_id, tag_id, contact_id)` : « les
+contacts qui portent cette étiquette » ; la clé primaire ne servait que
+l'autre sens.
+
+### Ordre, rejouabilité, validation
+
+- **Ordre corrigé à la main** : drizzle-kit plaçait les FK composites vers
+  `mail_targets(id, organization_id)` et `newsletters(id, organization_id)`
+  AVANT les contraintes UNIQUE qu'elles référencent (ajoutées tout en
+  bas) — Postgres refuse, et le migrateur HTTP n'ayant pas de transaction,
+  l'état serait resté partiel. Les deux UNIQUE sont remontées avant la
+  première FK.
+- `IF NOT EXISTS` sur les `CREATE TABLE`, `CREATE INDEX` et `ADD COLUMN`
+  : rejouable après un échec au milieu ; les `ADD CONSTRAINT` ne le sont
+  pas (Postgres ne le permet pas) — commenté en tête du fichier.
+- **Validée à blanc avant d'être montrée** : les 67 ordres exécutés dans
+  une transaction Neon terminée par une division par zéro — tout est
+  annulé, mais une erreur DDL se serait vue avant. Résultat : 67 ordres
+  sans erreur, zéro table `watch_*`/`market_*` laissée en base. Le build
+  de production (TypeScript compris) passe avec le nouveau schéma ; le
+  code adapté : `editorialVoice` devient `string | null` dans le contrat
+  de l'IA, la ligne du prompt s'omet quand elle est vide.
+- **Pas de push avant l'application** : un push sur `main` déploie, et un
+  schéma qui connaît des colonnes absentes de la base casserait
+  `/newsletters/*` en production (Drizzle sélectionne toutes les colonnes
+  du schéma). Ordre tenu : accord → application → commit → push.
+
 ## Avancement
 
-- **Étape 1 — exploration et conception** : ce document. STOP.
+- **Étape 1 — exploration et conception** : `5cdf435`. STOP.
+- **Étape 2 — schéma et migration `0013`** : accord reçu le 2026-08-26 ;
+  migration appliquée sur la base (journal `drizzle.__drizzle_migrations` :
+  14 migrations ; 11 tables et 8 colonnes nouvelles vérifiées par lecture du
+  catalogue), puis committée et poussée. STOP.
