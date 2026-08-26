@@ -3,6 +3,8 @@ import { db } from "@/db";
 import { commissions, dealEvents } from "@/db/schema";
 import { assertOrgAccess } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
+import { AppError } from "@/lib/errors";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /** Commissions d'une affaire, toutes shares confondues — pour l'affichage sur la fiche affaire. */
 export async function listCommissionsForDeal(user: OrgScopeUser, dealId: string) {
@@ -19,10 +21,11 @@ export async function listCommissionsForDeal(user: OrgScopeUser, dealId: string)
 export async function confirmCommission(
   user: OrgScopeUser,
   actorUserId: string,
-  commissionId: string
+  commissionId: string,
+  t: TranslatorOf<"shares.queries">
 ) {
   const commission = await db.query.commissions.findFirst({ where: eq(commissions.id, commissionId) });
-  if (!commission) throw new Error("Commission introuvable.");
+  if (!commission) throw new AppError("commission_introuvable", undefined, 404);
   assertOrgAccess(user, commission.organizationId);
 
   if (commission.state !== "prevue") return commission;
@@ -41,7 +44,7 @@ export async function confirmCommission(
     dealId: commission.dealId,
     shareId: commission.shareId,
     type: "commission_updated",
-    message: "Commission confirmée.",
+    message: t("commission_confirmee"),
     actorUserId,
   });
 
@@ -56,10 +59,11 @@ export async function confirmCommission(
 export async function markCommissionSettled(
   user: OrgScopeUser,
   actorUserId: string,
-  commissionId: string
+  commissionId: string,
+  t: TranslatorOf<"shares.queries">
 ) {
   const commission = await db.query.commissions.findFirst({ where: eq(commissions.id, commissionId) });
-  if (!commission) throw new Error("Commission introuvable.");
+  if (!commission) throw new AppError("commission_introuvable", undefined, 404);
   assertOrgAccess(user, commission.organizationId);
 
   if (commission.state === "reglee") return commission;
@@ -83,7 +87,7 @@ export async function markCommissionSettled(
     dealId: commission.dealId,
     shareId: commission.shareId,
     type: "commission_updated",
-    message: "Commission marquée réglée.",
+    message: t("commission_marquee_reglee"),
     actorUserId,
   });
 

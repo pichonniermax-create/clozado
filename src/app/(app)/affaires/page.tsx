@@ -35,6 +35,7 @@ import { formatDate, formatEuros, formatPercent } from "@/lib/format";
 import { metricQueryString, parseDealSelection, type DealSelectionParams, type ParsedDealSelection } from "@/lib/metrics";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Les paramètres natifs de la liste, plus ceux d'une SÉLECTION venue du
@@ -64,6 +65,7 @@ async function addDealType(formData: FormData) {
 }
 
 export default async function DealsPage({ searchParams }: { searchParams: Promise<Params> }) {
+  const tr = await getTranslations("deals.list");
   const user = await requireUser();
   const params = await searchParams;
   // Une sélection analytique n'a de sens qu'en liste : le kanban ne filtre pas.
@@ -73,10 +75,9 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
   if (sel.analytic && !user.organizationId) {
     return (
       <>
-        <PageHeader title="Affaires" description="Les dossiers que tu suis, du premier contact à la signature." />
-        <EmptyState title="Tu es en vue globale">
-          Cette sélection vient du funnel d&apos;une organisation : choisis-la dans le bandeau super admin en haut de
-          l&apos;écran pour voir ses affaires.
+        <PageHeader title={tr("affaires")} description={tr("les_dossiers_que_tu_suis_du_a753")} />
+        <EmptyState title={tr("tu_es_en_vue_globale")}>
+          {tr("cette_selection_vient_du_funnel_d_5c40")}
         </EmptyState>
       </>
     );
@@ -93,23 +94,21 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
   if (pipelines.length === 0) {
     return (
       <>
-        <PageHeader title="Affaires" description="Les dossiers que tu suis, du premier contact à la signature." />
+        <PageHeader title={tr("affaires")} description={tr("les_dossiers_que_tu_suis_du_a753")} />
         {user.organizationId ? (
           <EmptyState
-            title="Aucun pipeline dans cette organisation"
+            title={tr("aucun_pipeline_dans_cette_organisation")}
             action={
               <Link href="/settings" className={buttonVariants({ variant: "outline" })}>
-                Configurer un pipeline
+                {tr("configurer_un_pipeline")}
               </Link>
             }
           >
-            Un pipeline est une famille d&apos;affaires avec ses propres étapes (crédit, placement,
-            transaction…). Il se crée depuis Marque &amp; réglages.
+            {tr("un_pipeline_est_une_famille_d_ad50")}
           </EmptyState>
         ) : (
-          <EmptyState title="Tu es en vue globale">
-            Choisis une organisation dans le bandeau super admin en haut de l&apos;écran pour voir
-            son pipeline.
+          <EmptyState title={tr("tu_es_en_vue_globale")}>
+            {tr("choisis_une_organisation_dans_le_bandeau_d4cd")}
           </EmptyState>
         )}
       </>
@@ -167,8 +166,8 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader
-        title="Affaires"
-        description="Les dossiers que tu suis — le kanban pour piloter, la liste pour travailler. Chaque affaire se partage à un confrère sans ressaisie."
+        title={tr("affaires")}
+        description={tr("les_dossiers_que_tu_suis_le_a590")}
         actions={
           <div className="flex rounded-lg border border-border p-0.5">
             <Link
@@ -180,7 +179,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
               aria-current={vue === "kanban" ? "page" : undefined}
             >
               <Columns3 className="size-4" />
-              Kanban
+              {tr("kanban")}
             </Link>
             <Link
               href={baseQuery({ vue: "liste", page: undefined })}
@@ -191,14 +190,14 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
               aria-current={vue === "liste" ? "page" : undefined}
             >
               <Rows3 className="size-4" />
-              Liste
+              {tr("liste")}
             </Link>
           </div>
         }
       />
 
       {pipelines.length > 1 && (
-        <nav className="flex flex-wrap gap-1 border-b border-border" aria-label="Pipelines">
+        <nav className="flex flex-wrap gap-1 border-b border-border" aria-label={tr("pipelines")}>
           {pipelines.map((p) => (
             <Link
               key={p.id}
@@ -222,26 +221,24 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
         // la configuration passe devant la liste, parce qu'elle la bloque.
         <Card>
           <CardHeader>
-            <CardTitle>Configure au moins un type d&apos;affaire</CardTitle>
+            <CardTitle>{tr("configure_au_moins_un_type_d_d650")}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="mb-4 text-sm text-muted-foreground">
-              Ton organisation n&apos;a pas encore de type d&apos;affaire (ex : « Crédit
-              immobilier », « Assurance-vie »). Il en faut au moins un pour créer une affaire —
-              tu pourras en ajouter d&apos;autres ensuite.
+              {tr("ton_organisation_n_a_pas_encore_d491")}
             </p>
             <form action={addDealType} className="flex items-end gap-2">
-              <Field label="Nom du type" htmlFor="typeLabel" className="flex-1">
+              <Field label={tr("nom_du_type")} htmlFor="typeLabel" className="flex-1">
                 <Input id="typeLabel" name="typeLabel" required />
               </Field>
-              <Button type="submit">Ajouter</Button>
+              <Button type="submit">{tr("ajouter")}</Button>
             </form>
           </CardContent>
         </Card>
       ) : (
         <DetailsCard
           summary={
-            prefillContact ? `Nouvelle affaire pour ${prefillContact.name}` : "Nouvelle affaire"
+            prefillContact ? tr("nouvelle_affaire_pour", { name: prefillContact.name }) : tr("nouvelle_affaire")
           }
           // Déplié quand on vient pour créer : depuis une fiche contact, ou
           // depuis un état vide (« Créer une affaire »).
@@ -257,24 +254,23 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
             )}
             {prefillContact && (
               <p className="text-sm text-muted-foreground">
-                Cette affaire sera reliée à la fiche{" "}
-                <span className="font-medium text-foreground">{prefillContact.name}</span>.
+                {tr.rich("cette_affaire_sera_reliee_a_la_eee1", { name: prefillContact.name, span: (chunks) => <span className="font-medium text-foreground">{chunks}</span> })}
               </p>
             )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Libellé" htmlFor="title">
-                <Input id="title" name="title" placeholder="Financement appartement Lyon" required />
+              <Field label={tr("libelle")} htmlFor="title">
+                <Input id="title" name="title" placeholder={tr("financement_appartement_lyon")} required />
               </Field>
-              <Field label="Client concerné" htmlFor="clientName">
+              <Field label={tr("client_concerne")} htmlFor="clientName">
                 <Input
                   id="clientName"
                   name="clientName"
-                  placeholder="M. et Mme Perrin"
+                  placeholder={tr("m_et_mme_perrin")}
                   defaultValue={prefillContact?.name ?? ""}
                   required={!prefillContact}
                 />
               </Field>
-              <Field label="Type" htmlFor="typeId">
+              <Field label={tr("type")} htmlFor="typeId">
                 <Select
                   name="typeId"
                   // Voir la note dans partner-share-view.tsx : sans `items`,
@@ -282,7 +278,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
                   items={types.map((t) => ({ label: t.label, value: t.id }))}
                 >
                   <SelectTrigger id="typeId" className="w-full">
-                    <SelectValue placeholder="Choisir un type" />
+                    <SelectValue placeholder={tr("choisir_un_type")} />
                   </SelectTrigger>
                   <SelectContent>
                     {types.map((t) => (
@@ -293,15 +289,15 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Montant estimé (€)" htmlFor="estimatedAmount">
+              <Field label={tr("montant_estime")} htmlFor="estimatedAmount">
                 <Input id="estimatedAmount" name="estimatedAmount" type="number" min="0" />
               </Field>
             </div>
-            <Field label="Description" htmlFor="description">
+            <Field label={tr("description")} htmlFor="description">
               <Textarea id="description" name="description" className="min-h-16" />
             </Field>
             <Button type="submit" className="w-fit">
-              Créer l&apos;affaire
+              {tr("creer_l_affaire")}
             </Button>
           </form>
         </DetailsCard>
@@ -338,23 +334,23 @@ async function KanbanView({
   stages: Awaited<ReturnType<typeof listPipelinesWithStages>>[number]["stages"];
   lossReasons: Awaited<ReturnType<typeof listLossReasons>>;
 }) {
+  const t = await getTranslations("deals.list");
   const cards = await listDealsBoard(user, pipelineId);
   return (
     <>
       {cards.length === 0 && (
         <EmptyState
-          title="Aucune affaire dans ce pipeline pour l'instant"
+          title={t("aucune_affaire_dans_ce_pipeline_pour_7a84")}
           action={
             <Link
               href={`/affaires?vue=kanban&pipeline=${pipelineId}&nouveau=1`}
               className={buttonVariants({ variant: "outline" })}
             >
-              Créer une affaire
+              {t("creer_une_affaire")}
             </Link>
           }
         >
-          Chaque colonne est une étape ; une affaire se glisse de l&apos;une à l&apos;autre et se
-          partage à un confrère depuis sa fiche. La première naîtra dans la colonne de gauche.
+          {t("chaque_colonne_est_une_etape_une_e808")}
         </EmptyState>
       )}
     <KanbanBoard
@@ -404,6 +400,7 @@ async function ListeView({
   sel: ParsedDealSelection;
   baseQuery: (over: Record<string, string | undefined>) => string;
 }) {
+  const t = await getTranslations("deals.list");
   const sort = (["title", "amount", "close", "stage", "updated"] as const).includes(
     params.tri as DealsTableSort
   )
@@ -443,11 +440,11 @@ async function ListeView({
     <section className="flex flex-col gap-3">
       {sel.analytic && (
         <DealSelectionBanner
-          description={describeDealSelection(sel, { stages, types, origins, users: orgUsers, reasons: lossReasons })}
+          description={describeDealSelection(sel, { stages, types, origins, users: orgUsers, reasons: lossReasons }, await getTranslations("deals.selectionBanner"), await getTranslations("metrics"))}
           total={total}
           clearHref={`/affaires?vue=liste&pipeline=${pipelineId}`}
           backHref={`${sel.selection.cohort === "perte" ? "/analytique/pertes" : "/analytique/funnel"}${metricQueryString(sel.parsed.params)}`}
-          backLabel={sel.selection.cohort === "perte" ? "Revenir aux pertes" : "Revenir au funnel"}
+          backLabel={sel.selection.cohort === "perte" ? t("revenir_aux_pertes") : t("revenir_au_funnel")}
         />
       )}
       <form method="get" className="flex flex-wrap items-center gap-2">
@@ -458,9 +455,9 @@ async function ListeView({
           name="etape"
           defaultValue={params.etape ?? ""}
           className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
-          aria-label="Filtrer par étape"
+          aria-label={t("filtrer_par_etape")}
         >
-          <option value="">Toutes les étapes</option>
+          <option value="">{t("toutes_les_etapes")}</option>
           {stages.map((s) => (
             <option key={s.id} value={s.id}>
               {s.label}
@@ -472,9 +469,9 @@ async function ListeView({
             name="conseiller"
             defaultValue={sel.parsed.filters.ownerId ?? ""}
             className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
-            aria-label="Filtrer par conseiller"
+            aria-label={t("filtrer_par_conseiller")}
           >
-            <option value="">Tous les conseillers</option>
+            <option value="">{t("tous_les_conseillers")}</option>
             {orgUsers.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.name || u.email}
@@ -483,54 +480,52 @@ async function ListeView({
           </select>
         )}
         <button type="submit" className={buttonVariants({ variant: "outline", size: "sm" })}>
-          Filtrer
+          {t("filtrer")}
         </button>
         <span className="ml-auto text-sm tabular-nums text-muted-foreground">
-          {total} affaire{total > 1 ? "s" : ""}
+          {t("affaire_affaires", { total })}
         </span>
       </form>
 
       {rows.length === 0 ? (
         sel.analytic ? (
           <EmptyState
-            title="Aucune affaire dans cette sélection"
+            title={t("aucune_affaire_dans_cette_selection")}
             action={
               <Link href={`/affaires?vue=liste&pipeline=${pipelineId}`} className={buttonVariants({ variant: "outline" })}>
-                Retirer la sélection
+                {t("retirer_la_selection")}
               </Link>
             }
           >
-            Le funnel compte zéro affaire ici — ou bien un filtre natif de la liste (étape, conseiller) s&apos;y ajoute et
-            ne laisse rien passer.
+            {t("le_funnel_compte_zero_affaire_ici_d44f")}
           </EmptyState>
         ) : params.etape || sel.parsed.filters.ownerId ? (
           <EmptyState
-            title="Aucune affaire ne correspond à ces filtres"
+            title={t("aucune_affaire_ne_correspond_a_ces_7212")}
             action={
               <Link
                 href={`/affaires?vue=liste&pipeline=${pipelineId}`}
                 className={buttonVariants({ variant: "outline" })}
               >
-                Retirer les filtres
+                {t("retirer_les_filtres")}
               </Link>
             }
           >
-            Étape et conseiller se combinent : élargis l&apos;un des deux.
+            {t("etape_et_conseiller_se_combinent_elargis_8bd8")}
           </EmptyState>
         ) : (
           <EmptyState
-            title="Aucune affaire dans ce pipeline pour l'instant"
+            title={t("aucune_affaire_dans_ce_pipeline_pour_7a84")}
             action={
               <Link
                 href={`/affaires?vue=liste&pipeline=${pipelineId}&nouveau=1`}
                 className={buttonVariants({ variant: "outline" })}
               >
-                Créer une affaire
+                {t("creer_une_affaire")}
               </Link>
             }
           >
-            La liste est faite pour travailler : triable, filtrable, paginée. Elle se remplira avec
-            la première affaire.
+            {t("la_liste_est_faite_pour_travailler_e6fc")}
           </EmptyState>
         )
       ) : (
@@ -538,13 +533,13 @@ async function ListeView({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                <th className="px-4 py-2 font-medium">{sortLink("title", "Affaire")}</th>
-                <th className="px-4 py-2 font-medium">Client</th>
-                <th className="px-4 py-2 font-medium">{sortLink("stage", "Étape")}</th>
-                <th className="px-4 py-2 text-right font-medium">{sortLink("amount", "Montant")}</th>
-                <th className="px-4 py-2 text-right font-medium">Prob.</th>
-                <th className="px-4 py-2 font-medium">{sortLink("close", "Clôture prévue")}</th>
-                <th className="px-4 py-2 font-medium">Responsable</th>
+                <th className="px-4 py-2 font-medium">{sortLink("title", t("affaire"))}</th>
+                <th className="px-4 py-2 font-medium">{t("client")}</th>
+                <th className="px-4 py-2 font-medium">{sortLink("stage", t("etape"))}</th>
+                <th className="px-4 py-2 text-right font-medium">{sortLink("amount", t("montant"))}</th>
+                <th className="px-4 py-2 text-right font-medium">{t("prob")}</th>
+                <th className="px-4 py-2 font-medium">{sortLink("close", t("cloture_prevue"))}</th>
+                <th className="px-4 py-2 font-medium">{t("responsable")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -587,17 +582,17 @@ async function ListeView({
         <nav className="flex items-center justify-between text-sm">
           {page > 1 ? (
             <Link href={baseQuery({ page: String(page - 1) })} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-              ← Précédentes
+              {t("precedentes")}
             </Link>
           ) : (
             <span />
           )}
           <span className="tabular-nums text-muted-foreground">
-            Page {page} sur {pageCount} · {DEALS_PAGE_SIZE} par page
+            {t("page_sur_par_page", { page, pageCount, dealsPageSize: DEALS_PAGE_SIZE })}
           </span>
           {page < pageCount ? (
             <Link href={baseQuery({ page: String(page + 1) })} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-              Suivantes →
+              {t("suivantes")}
             </Link>
           ) : (
             <span />

@@ -170,16 +170,20 @@ async function main() {
       if (rows.length === 0) throw new Error("vide, comme attendu");
     });
 
-    await expectThrow("listContactJournal(B, contact de A) refuse", () => activitiesQ.listContactJournal(b!.admin, a!.contactId));
-    await expectThrow("listDealJournal(B, affaire de A) refuse", () => activitiesQ.listDealJournal(b!.admin, a!.dealId));
-    const journalA = await activitiesQ.listContactJournal(a.admin, a.contactId);
+    const { translatorFor } = await import("../src/i18n/translator");
+    const { DEFAULT_LOCALE } = await import("../src/i18n/locales");
+    const tq = await translatorFor(DEFAULT_LOCALE, "activities.queries");
+    const tc = await translatorFor(DEFAULT_LOCALE, "contacts.queries");
+    await expectThrow("listContactJournal(B, contact de A) refuse", () => activitiesQ.listContactJournal(b!.admin, a!.contactId, tq));
+    await expectThrow("listDealJournal(B, affaire de A) refuse", () => activitiesQ.listDealJournal(b!.admin, a!.dealId, tq));
+    const journalA = await activitiesQ.listContactJournal(a.admin, a.contactId, tq);
     const kindsA = new Set(journalA.entries.map((e) => e.kind));
     expect(
       "journal du contact A complet (création, étape, partage, tâche achevée, appel)",
       ["deal_created", "stage", "share_sent", "task_done", "call"].every((k) => kindsA.has(k as never)),
       [...kindsA].join(",")
     );
-    const orgJournalB = await activitiesQ.listOrganizationJournal(b.admin, 50);
+    const orgJournalB = await activitiesQ.listOrganizationJournal(b.admin, 50, tq);
     expect(
       "activité récente de B : aucune entrée liée à A",
       orgJournalB.entries.every((e) => e.dealId !== a!.dealId && e.contactId !== a!.contactId) && orgJournalB.entries.length > 0
@@ -203,8 +207,8 @@ async function main() {
       return dealsQ.createDeal(b!.admin, b!.userId, { title: "x", clientName: "x", typeId: typeB.id, contactId: a!.contactId });
     });
     await expectThrow("updateContact(B, contact de A) refuse", () => contactsQ.updateContact(b!.admin, a!.contactId, { name: "Pirate" }));
-    await expectThrow("deleteContact(B, contact de A) refuse", () => contactsQ.deleteContact(b!.admin, a!.contactId, b!.userId));
-    await expectThrow("mergeContacts(B : son contact ← contact de A) refuse", () => contactsQ.mergeContacts(b!.admin, b!.contactId, a!.contactId, b!.userId));
+    await expectThrow("deleteContact(B, contact de A) refuse", () => contactsQ.deleteContact(b!.admin, a!.contactId, b!.userId, tc));
+    await expectThrow("mergeContacts(B : son contact ← contact de A) refuse", () => contactsQ.mergeContacts(b!.admin, b!.contactId, a!.contactId, b!.userId, tc));
 
     console.log("\n--- La base elle-même : une ligne qui mélange deux organisations est rejetée (FK composites)");
     const fkViolation = async (label: string, statement: Promise<unknown>) => {

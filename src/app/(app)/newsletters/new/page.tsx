@@ -9,6 +9,7 @@ import { listBasket } from "@/db/queries/watch";
 import { requestOrigin } from "@/lib/request-origin";
 import { requireUser } from "@/lib/session";
 import { buildBasketBrief } from "@/lib/watch/brief";
+import { getTranslations } from "next-intl/server";
 
 export default async function NewNewsletterPage({
   searchParams,
@@ -16,6 +17,7 @@ export default async function NewNewsletterPage({
   /** `cible` : la cible présélectionnée (« Écrire une newsletter pour cette cible ») ; `panier` : partir des articles mis de côté. */
   searchParams: Promise<{ cible?: string; panier?: string }>;
 }) {
+  const tr = await getTranslations("newsletters.new");
   const user = await requireUser();
   const { cible, panier } = await searchParams;
   const targets = await listMailTargets(user);
@@ -47,17 +49,16 @@ export default async function NewNewsletterPage({
   if (!context) {
     return (
       <>
-        <PageHeader title="Nouvelle newsletter" backTo={{ href: "/newsletters", label: "Newsletters" }} />
+        <PageHeader title={tr("nouvelle_newsletter")} backTo={{ href: "/newsletters", label: tr("newsletters") }} />
         <EmptyState
-          title="Aucune cible pour l'instant"
+          title={tr("aucune_cible_pour_l_instant")}
           action={
             <Link href="/cibles" className={buttonVariants()}>
-              Créer une cible
+              {tr("creer_une_cible")}
             </Link>
           }
         >
-          Un email s&apos;écrit pour quelqu&apos;un : il faut au moins une cible — un segment de tes contacts et
-          l&apos;identité de la personne à qui on parle. Ton métier en propose pour commencer.
+          {tr("un_email_s_ecrit_pour_quelqu_76e5")}
         </EmptyState>
       </>
     );
@@ -65,7 +66,7 @@ export default async function NewNewsletterPage({
 
   return (
     <>
-      <PageHeader title="Nouvelle newsletter" backTo={{ href: "/newsletters", label: "Newsletters" }} />
+      <PageHeader title={tr("nouvelle_newsletter")} backTo={{ href: "/newsletters", label: tr("newsletters") }} />
       <NewsletterEditor
         targets={targets.map((t) => ({ id: t.id, label: t.label, count: counts.get(t.id) ?? 0 }))}
         initialTargetId={initialTargetId}

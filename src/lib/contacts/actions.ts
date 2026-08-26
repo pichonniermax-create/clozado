@@ -19,6 +19,8 @@ import {
 import { errorMessage, withError } from "@/lib/form-actions";
 import { saveNewsletter } from "@/lib/newsletter/actions";
 import { requireUser } from "@/lib/session";
+import { getTranslations } from "next-intl/server";
+import { AppError } from "@/lib/errors";
 
 /**
  * Server actions du module contacts — org-scopées via `requireUser()`,
@@ -63,14 +65,15 @@ export async function createContactAction(
   _prev: CreateContactState,
   formData: FormData
 ): Promise<CreateContactState> {
+  const t = await getTranslations("contacts.actions");
   const user = await requireUser();
   if (!user.organizationId) {
     // La cause exacte est connue : la dire, plutôt qu'un générique qui
     // enverrait chercher un problème de saisie qui n'existe pas.
-    return { error: "Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer un contact.", duplicates: null };
+    return { error: t("aucune_organisation_selectionnee_choisis_une_organisation_f1fd"), duplicates: null };
   }
   const input = readContactForm(formData);
-  if (!input.name) return { error: "Le nom est obligatoire.", duplicates: null };
+  if (!input.name) return { error: t("le_nom_est_obligatoire"), duplicates: null };
 
   // Détection de doublons AVANT la création : même email ou même nom.
   // « Créer quand même » renvoie le formulaire avec force=1.
@@ -96,7 +99,7 @@ export async function createContactAction(
   } catch {
     return {
       error:
-        "La création a échoué de notre côté — ta saisie n'est pas en cause. Réessaie ; si ça continue, préviens-nous.",
+        t("la_creation_a_echoue_de_notre_b2e7"),
       duplicates: null,
     };
   }
@@ -125,13 +128,13 @@ export async function saveContactTagsAction(contactId: string, formData: FormDat
 
 export async function deleteContactAction(contactId: string) {
   const user = await requireUser();
-  await deleteContact(user, contactId, user.id);
+  await deleteContact(user, contactId, user.id, await getTranslations("contacts.queries"));
   redirect("/contacts");
 }
 
 export async function mergeContactsAction(survivorId: string, absorbedId: string) {
   const user = await requireUser();
-  await mergeContacts(user, survivorId, absorbedId, user.id);
+  await mergeContacts(user, survivorId, absorbedId, user.id, await getTranslations("contacts.queries"));
   redirect(`/contacts/${survivorId}`);
 }
 
@@ -150,12 +153,12 @@ export async function createNewsletterForContactAction(contactId: string, formDa
   const targetId = String(formData.get("targetId") ?? "").trim();
   let destination: string;
   try {
-    if (!targetId) throw new Error("Choisis le groupe de destinataires de la newsletter.");
-    const { title, brief } = await buildContactNewsletterBrief(user, contactId);
+    if (!targetId) throw new AppError("choisis_le_groupe_de_destinataires_de_la_74e8");
+    const { title, brief } = await buildContactNewsletterBrief(user, contactId, await getTranslations("contacts.queries"));
     const id = await saveNewsletter({ targetId, title, brief, subject: "", preheader: "", blocks: [] });
     destination = `/newsletters/${id}`;
   } catch (error) {
-    destination = withError(`/contacts/${contactId}`, errorMessage(error), NEWSLETTER_ERROR_PARAM);
+    destination = withError(`/contacts/${contactId}`, await errorMessage(error), NEWSLETTER_ERROR_PARAM);
   }
   redirect(destination);
 }
@@ -171,5 +174,5 @@ export async function importContactsAction(
   mode: ImportMode
 ): Promise<ImportReport> {
   const user = await requireUser();
-  return importContacts(user, user.id, rows, mode);
+  return importContacts(user, user.id, rows, mode, await getTranslations("contacts.queries"));
 }

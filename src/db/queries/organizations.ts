@@ -4,6 +4,7 @@ import { organizations } from "@/db/schema";
 import { assertOrgAccess, orgScope } from "@/db/scope";
 import { parseBusinessPack, type BusinessPackKey } from "@/lib/metrics/packs";
 import type { OrgScopeUser } from "@/lib/session";
+import { AppError } from "@/lib/errors";
 
 /**
  * Première utilisation du garde-fou générique orgScope (src/db/scope.ts) :
@@ -44,7 +45,7 @@ export async function getOrganizationOfRecord(user: OrgScopeUser, organizationId
   const org = await db.query.organizations.findFirst({
     where: eq(organizations.id, organizationId),
   });
-  if (!org) throw new Error("Organisation introuvable.");
+  if (!org) throw new AppError("organisation_introuvable", undefined, 404);
   return org;
 }
 
@@ -71,9 +72,7 @@ export async function updateOrganizationBranding(
   data: BrandingInput
 ) {
   if (user.role !== "admin" || !user.organizationId) {
-    throw new Error(
-      "Accès refusé : seul l'admin de l'organisation peut modifier ces réglages."
-    );
+    throw new AppError("acces_refuse_seul_l_admin_de_l_7ac9", undefined, 403);
   }
 
   await db
@@ -89,10 +88,10 @@ export async function updateOrganizationBranding(
  */
 export async function updateOrganizationPack(user: OrgScopeUser, pack: string): Promise<BusinessPackKey> {
   if (user.role !== "admin" || !user.organizationId) {
-    throw new Error("Accès refusé : seul l'admin de l'organisation peut choisir le pack métier.");
+    throw new AppError("acces_refuse_seul_l_admin_de_l_54d2", undefined, 403);
   }
   const key = parseBusinessPack(pack);
-  if (!key) throw new Error("Pack métier inconnu.");
+  if (!key) throw new AppError("pack_metier_inconnu");
   await db.update(organizations).set({ businessPack: key, updatedAt: new Date() }).where(eq(organizations.id, user.organizationId));
   return key;
 }

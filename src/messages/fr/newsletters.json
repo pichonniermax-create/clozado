@@ -1,0 +1,196 @@
+{
+  "apiAiDesign": {
+    "authentification_requise": "Authentification requise.",
+    "erreur_de_generation_ia": "Erreur de génération IA.",
+    "requete_invalide": "Requête invalide."
+  },
+  "apiRender": {
+    "authentification_requise": "Authentification requise.",
+    "requete_invalide": "Requête invalide."
+  },
+  "blockEditor": {
+    "ajouter_une_fiche": "Ajouter une fiche",
+    "ce_qu_il_mesure": "Ce qu’il mesure",
+    "deux_chiffres_cles_qui_se_suivent_b859": "Deux chiffres clés qui se suivent s’affichent côte à côte dans l’email.",
+    "deux_ou_trois_lignes_suffisent": "Deux ou trois lignes suffisent.",
+    "ecris_ici": "Écris ici…",
+    "entre_2_et_4_fiches": "Entre 2 et 4 fiches.",
+    "ex_3_1": "Ex : 3,1 %",
+    "ex_avant_de_signer": "Ex : Avant de signer",
+    "ex_hors_assurance": "Ex : hors assurance",
+    "ex_les_taux_repassent_sous_les_ed77": "Ex : Les taux repassent sous les 3 %",
+    "ex_marche": "Ex : Marché",
+    "ex_prendre_rendez_vous": "Ex : Prendre rendez-vous",
+    "ex_taux_moyen_sur_20_ans": "Ex : Taux moyen sur 20 ans",
+    "ex_un_projet_en_cours": "Ex : Un projet en cours ?",
+    "facultatif_si_tu_en_mets_une_8985": "Facultatif. Si tu en mets une, mets-en une sur tous les chiffres de la rangée — sinon elle est ignorée.",
+    "facultatif_un_ou_deux_mots_au_48c2": "Facultatif — un ou deux mots au-dessus du titre, en petites capitales.",
+    "fiche": "Fiche {n}",
+    "https": "https://…",
+    "l_adresse_vers_laquelle_le_bouton_360b": "L’adresse vers laquelle le bouton envoie.",
+    "laisse_une_ligne_vide_pour_commencer_dc83": "Laisse une ligne vide pour commencer un nouveau paragraphe.",
+    "le_chiffre": "Le chiffre",
+    "levels": {
+      "1": {
+        "label": "Titre principal",
+        "hint": "En haut de l’email, une seule fois"
+      },
+      "2": {
+        "label": "Sous-titre",
+        "hint": "Ouvre une section"
+      },
+      "3": {
+        "label": "Petit titre",
+        "hint": "À l’intérieur d’une section"
+      }
+    },
+    "lien": "Lien",
+    "niveau": "Niveau",
+    "precision": "Précision",
+    "retirer": "Retirer",
+    "surtitre": "Surtitre",
+    "tel_qu_il_doit_s_afficher_191c": "Tel qu’il doit s’afficher, unité comprise.",
+    "texte": "Texte",
+    "texte_de_l_encart": "Texte de l’encart",
+    "texte_du_bouton": "Texte du bouton",
+    "titre": "Titre",
+    "titre_de_l_encart": "Titre de l’encart",
+    "un_trait_horizontal_qui_separe_deux_6e97": "Un trait horizontal qui sépare deux parties de l’email. Rien à régler.",
+    "une_phrase_qui_donne_envie_de_ae4d": "Une phrase qui donne envie de cliquer."
+  },
+  "blocks": {
+    "bouton": {
+      "label": "Bouton",
+      "hint": "Un simple bouton"
+    },
+    "chiffre_cle": {
+      "label": "Chiffre clé",
+      "hint": "Un chiffre marquant, affiché en gros"
+    },
+    "cta": {
+      "label": "Encart d’action",
+      "hint": "Un pavé qui pousse à cliquer"
+    },
+    "fiches": {
+      "label": "Fiches",
+      "hint": "2 à 4 encadrés courts, côte à côte"
+    },
+    "separateur": {
+      "label": "Trait de séparation",
+      "hint": "Sépare deux parties"
+    },
+    "texte": {
+      "label": "Texte",
+      "hint": "Un ou plusieurs paragraphes"
+    },
+    "titre": {
+      "label": "Titre",
+      "hint": "Ouvre une section"
+    }
+  },
+  "detail": {
+    "desactivee": "{label} (désactivée)",
+    "newsletters": "Newsletters"
+  },
+  "insertionPoint": {
+    "inserer_un_bloc_ici": "Insérer un bloc ici"
+  },
+  "list": {
+    "a_contact_contacts": "à {count} {count, plural, one {contact} other {contacts}} — {label}",
+    "aucune_newsletter_pour_l_instant": "Aucune newsletter pour l’instant",
+    "brouillon": "Brouillon",
+    "choisis_une_cible_decris_ce_que_baa4": "Choisis une cible, décris ce que l’email doit dire, et le composer rédige avec l’identité de la personne à qui tu écris.",
+    "ecrire_la_premiere_voir_les_cibles": "<link>Écrire la première</link><link2>Voir les cibles</link2>",
+    "envoyee": "Envoyée",
+    "envoyee_le": "· envoyée le {formatDate}{value}",
+    "les_emails_que_tu_prepares_pour_b188": "Les emails que tu prépares pour tes cibles. Un brouillon devient un envoi quand tu le marques « envoyée » : l’audience est alors figée.",
+    "modifiee_le": "· modifiée le {formatDateTime}",
+    "newsletters": "Newsletters",
+    "nouvelle_newsletter": "Nouvelle newsletter",
+    "objet_a_ecrire": "Objet à écrire",
+    "supprimer": "Supprimer"
+  },
+  "new": {
+    "aucune_cible_pour_l_instant": "Aucune cible pour l’instant",
+    "creer_une_cible": "Créer une cible",
+    "newsletters": "Newsletters",
+    "nouvelle_newsletter": "Nouvelle newsletter",
+    "un_email_s_ecrit_pour_quelqu_76e5": "Un email s’écrit pour quelqu’un : il faut au moins une cible — un segment de tes contacts et l’identité de la personne à qui on parle. Ton métier en propose pour commencer."
+  },
+  "newsletterEditor": {
+    "a_verifier_avant_d_envoyer": "À vérifier avant d’envoyer",
+    "annuler": "Annuler",
+    "annuler_la_derniere_action_z": "Annuler la dernière action (⌘Z)",
+    "apercu": "Aperçu",
+    "brouillon_sans_titre": "Brouillon sans titre",
+    "calcul_des_destinataires": "Calcul des destinataires…",
+    "ce_que_le_lecteur_voit_en_2bcb": "Ce que le lecteur voit en premier",
+    "cette_cible_est_vide_personne_ne_5121": "— cette cible est vide, personne ne recevra cet email en l’état.",
+    "chiffre": "Chiffre {n}",
+    "choisir_la_cible": "Choisir la cible",
+    "connexion_impossible_reessaie": "Connexion impossible. Réessaie.",
+    "contact_contacts_reel_reels_aujourd_hui": "<span>{count}</span> {count, plural, one {contact} other {contacts}} {count, plural, one {réel} other {réels}} aujourd’hui",
+    "deja_recu_par_ces_contacts_a_fe0a": "Déjà reçu par ces contacts — à ne pas répéter :",
+    "ecrire_moi_meme": "écrire moi-même",
+    "ex_la_baisse_des_taux_et_6b32": "Ex : la baisse des taux et ce qu’elle change pour un projet d’achat cet été.",
+    "il_y_a_plusieurs_invitations_a_a0a4": "Il y a plusieurs invitations à cliquer. Un seul bouton ou encart par email.",
+    "l_apercu_est_un_peu_long_d84d": "L’aperçu est un peu long : il risque d’être coupé.",
+    "l_objet_est_un_peu_long_0f43": "L’objet est un peu long : il risque d’être coupé dans certaines boîtes mail.",
+    "la_ligne_grise_sous_l_objet_ec2d": "La ligne grise sous l’objet, dans la boîte de réception",
+    "la_redaction_a_echoue": "La rédaction a échoué.",
+    "le_de_la_cible": "<link>{n}</link> — le {formatDate}, <span>{n2} %</span> de la cible{n3}",
+    "matiere_article_articles_mis_de_cote_0c6a": "Matière : {count} {count, plural, one {article} other {articles}} mis de côté — chaque source utilisée sera citée avec son lien",
+    "modifier": "Modifier : {blockEditorTitle}",
+    "objet": "Objet",
+    "ou": "ou",
+    "pour": "Pour",
+    "que_doit_dire_cet_email": "Que doit dire cet email ?",
+    "redaction_en_cours": "Rédaction en cours…",
+    "rediger_l_email": "Rédiger l’email",
+    "rien_d_envoye_a_ces_contacts_95af": "Rien d’envoyé à ces contacts sur les douze derniers mois.",
+    "sujets": "· sujets : {join}",
+    "supprimer_ce_bloc": "Supprimer ce bloc",
+    "termine": "Terminé",
+    "un_chiffre_n_est_ni_dans_5699": "Un chiffre n’est ni dans tes chiffres vérifiés, ni entre crochets — vérifie-le ou mets-le entre crochets.",
+    "un_peu_long_risque_d_etre_49a6": "Un peu long : risque d’être coupé dans certaines boîtes mail."
+  },
+  "review": {
+    "blocs_d_appel_a_l_action_c471": "{ctaCount} blocs d’appel à l’action (cta/bouton) — un seul est autorisé par newsletter.",
+    "chiffre_non_autorise_dans_un_bloc_3f72": "Chiffre non autorisé \"{figure}\" dans un bloc {type} — ni un chiffre vérifié de l’organisation, ni un [placeholder].",
+    "objet_de_caracteres_maximum": "Objet de {count} caractères — maximum {subjectMax}.",
+    "preheader_de_caracteres_maximum": "Préheader de {count} caractères — maximum {preheaderMax}."
+  },
+  "saveIndicator": {
+    "enregistre": "Enregistré {formatSavedAt}",
+    "enregistrement": "Enregistrement…",
+    "modifications_en_cours": "Modifications en cours…",
+    "non_enregistre": "Non enregistré — {message}"
+  },
+  "sendStatusCard": {
+    "a_contact_contacts_tels_qu_ils_9bcd": "À <span>{count}</span> {count, plural, one {contact} other {contacts}} — <link>{label}</link>{n}, tels qu’ils étaient ce jour-là. Cet historique ne bouge plus, même si la cible change.",
+    "annuler_le_marquage": "Annuler le marquage",
+    "brouillon_pas_encore_envoyee": "Brouillon — pas encore envoyée",
+    "date_d_envoi": "Date d’envoi",
+    "enregistrer_les_sujets": "Enregistrer les sujets",
+    "envoyee_le": "Envoyée le {formatDate}",
+    "l_audience_a_ete_figee_a_aadf": "L’audience a été figée à cette date.",
+    "l_envoi_se_fait_depuis_ton_f872": "L’envoi se fait depuis ton outil d’emailing. Une fois parti, marque-le ici : la liste des destinataires est figée telle qu’elle est aujourd’hui, c’est ce que l’historique des fiches et l’anti-répétition liront.",
+    "marquee_par_erreur_annuler_efface_la_fcbf": "Marquée par erreur ? Annuler efface la liste des destinataires et la photographie de la cible.",
+    "marquer_comme_envoyee": "Marquer comme envoyée",
+    "separes_par_des_virgules": "Séparés par des virgules.",
+    "separes_par_des_virgules_c_est_ee64": "Séparés par des virgules — c’est ce que le composer rappellera la prochaine fois qu’on écrit à ces contacts.",
+    "sujets_traites": "Sujets traités",
+    "taux_assurance_emprunteur": "taux, assurance emprunteur"
+  },
+  "unitFrame": {
+    "deplacer_ce_bloc": "Déplacer ce bloc",
+    "dupliquer": "Dupliquer",
+    "dupliquer_ce_bloc": "Dupliquer ce bloc",
+    "glisser_pour_deplacer": "Glisser pour déplacer",
+    "supprimer": "Supprimer",
+    "supprimer_ce_bloc": "Supprimer ce bloc"
+  },
+  "useAutosave": {
+    "enregistrement_impossible": "Enregistrement impossible."
+  }
+}

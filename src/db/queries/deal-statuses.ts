@@ -4,6 +4,10 @@ import { db } from "@/db";
 import { dealStatuses, pipelines } from "@/db/schema";
 import { orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
+import { AppError } from "@/lib/errors";
+import type { TranslatorOf } from "@/i18n/translator";
+import { translatorFor } from "@/i18n/translator";
+import { DEFAULT_LOCALE } from "@/i18n/locales";
 
 /** Statuts d'affaire de l'organisation de l'appelant, dans leur ordre d'affichage. */
 export async function listDealStatuses(user: OrgScopeUser) {
@@ -19,12 +23,13 @@ export async function listDealStatuses(user: OrgScopeUser) {
  * PAS d'équivalent pour `deal_types` : un CGP et un courtier crédit n'ont
  * rien en commun sur ce vocabulaire, deviner un défaut serait arbitraire.
  */
+/** Les étapes par défaut ; leurs libellés sont `deals.queries.defaultStatuses.<slug>` dans les messages, instanciés dans la langue de l'organisation. */
 const DEFAULT_STATUSES = [
-  { slug: "nouveau", label: "Nouveau", color: "#64748b", probability: 10, outcome: null },
-  { slug: "partagee", label: "Partagée", color: "#2563eb", probability: 25, outcome: null },
-  { slug: "en_negociation", label: "En négociation", color: "#d97706", probability: 60, outcome: null },
-  { slug: "acceptee", label: "Acceptée", color: "#16a34a", probability: 100, outcome: "won" as const },
-  { slug: "perdue", label: "Perdue", color: "#dc2626", probability: 0, outcome: "lost" as const },
+  { slug: "nouveau", color: "#64748b", probability: 10, outcome: null },
+  { slug: "partagee", color: "#2563eb", probability: 25, outcome: null },
+  { slug: "en_negociation", color: "#d97706", probability: 60, outcome: null },
+  { slug: "acceptee", color: "#16a34a", probability: 100, outcome: "won" as const },
+  { slug: "perdue", color: "#dc2626", probability: 0, outcome: "lost" as const },
 ] as const;
 
 /**
@@ -36,19 +41,19 @@ const DEFAULT_STATUSES = [
  * pipeline est généré côté application : le batch neon-http ne permet pas
  * de lire un retour d'insertion pour nourrir la suivante.
  */
-export function buildDefaultPipelineInserts(organizationId: string) {
+export function buildDefaultPipelineInserts(organizationId: string, t: TranslatorOf<"deals.queries">) {
   const pipelineId = randomUUID();
   return [
-    db.insert(pipelines).values({ id: pipelineId, organizationId, label: "Affaires", position: 0 }),
+    db.insert(pipelines).values({ id: pipelineId, organizationId, label: t("defaultPipeline"), position: 0 }),
     db
       .insert(dealStatuses)
-      .values(DEFAULT_STATUSES.map((s, position) => ({ organizationId, pipelineId, position, ...s }))),
+      .values(DEFAULT_STATUSES.map((s, position) => ({ organizationId, pipelineId, position, label: t(`defaultStatuses.${s.slug}`), ...s }))),
   ] as const;
 }
 
-/** À appeler une fois, à la création d'une organisation (hors batch — scripts de seed). */
+/** À appeler une fois, à la création d'une organisation (hors batch — scripts de seed) : dans la langue de référence du produit. */
 export async function seedDefaultDealStatuses(organizationId: string) {
-  const [pipelineInsert, statusesInsert] = buildDefaultPipelineInserts(organizationId);
+  const [pipelineInsert, statusesInsert] = buildDefaultPipelineInserts(organizationId, await translatorFor(DEFAULT_LOCALE, "deals.queries"));
   await pipelineInsert;
   await statusesInsert;
 }
@@ -65,7 +70,7 @@ export async function getDefaultDealStatus(organizationId: string) {
     where: and(eq(dealStatuses.organizationId, organizationId), eq(dealStatuses.slug, "nouveau")),
   });
   if (!status) {
-    throw new Error('Statut par défaut ("nouveau") introuvable pour cette organisation.');
+    throw new AppError("statut_par_defaut_nouveau_introuvable_pour_cette_9413", undefined, 404);
   }
   return status;
 }

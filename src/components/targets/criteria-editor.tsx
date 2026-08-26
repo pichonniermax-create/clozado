@@ -4,8 +4,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { previewSegmentAction } from "@/lib/targets/actions";
 import {
-  CONTACT_SOURCE_LABELS,
-  DEAL_PRESENCE_LABELS,
+  CONTACT_SOURCES,
+  DEAL_PRESENCES,
   normalizeCriteria,
   type ContactSource,
   type CriteriaOptions,
@@ -14,6 +14,7 @@ import {
 } from "@/lib/targets/criteria";
 import type { SegmentPreview } from "@/db/queries/mail-targets";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 /**
  * L'ÉDITEUR DE CRITÈRES — lisible par un non-technicien : une ligne par
@@ -35,6 +36,8 @@ export function CriteriaEditor({
   onChange: (next: SegmentCriteria) => void;
   options: CriteriaOptions;
 }) {
+  const tr = useTranslations("targets.criteriaEditor");
+  const tt = useTranslations("targets");
   const c = value;
   const set = <K extends keyof SegmentCriteria>(key: K, v: SegmentCriteria[K] | undefined) => {
     const next = { ...c, [key]: v } as SegmentCriteria;
@@ -55,60 +58,60 @@ export function CriteriaEditor({
 
   return (
     <div className="flex flex-col gap-5">
-      <Group title="Qui">
-        <Row label="Type de fiche">
+      <Group title={tr("qui")}>
+        <Row label={tr("type_de_fiche")}>
           <select
             className={SELECT_CLASS}
             value={c.kind ?? ""}
             onChange={(e) => set("kind", (e.target.value || undefined) as SegmentCriteria["kind"])}
-            aria-label="Type de fiche"
+            aria-label={tr("type_de_fiche")}
           >
-            <option value="">Personnes et sociétés</option>
-            <option value="person">Personnes seulement</option>
-            <option value="company">Sociétés seulement</option>
+            <option value="">{tr("personnes_et_societes")}</option>
+            <option value="person">{tr("personnes_seulement")}</option>
+            <option value="company">{tr("societes_seulement")}</option>
           </select>
         </Row>
-        <Row label="Porte au moins une de ces étiquettes" hint={options.tags.length === 0 ? "Aucune étiquette dans ton organisation pour l'instant — elles se créent depuis une fiche contact." : undefined}>
+        <Row label={tr("porte_au_moins_une_de_ces_b799")} hint={options.tags.length === 0 ? tr("aucune_etiquette_dans_ton_organisation_pour_3f45") : undefined}>
           <CheckList items={options.tags.map((t) => ({ id: t.id, label: t.label }))} selected={c.tagsAny ?? []} onToggle={(id) => toggle("tagsAny", id)} />
         </Row>
         {options.tags.length > 0 && (
-          <Row label="N'en porte aucune de celles-ci">
+          <Row label={tr("n_en_porte_aucune_de_celles_4f95")}>
             <CheckList items={options.tags.map((t) => ({ id: t.id, label: t.label }))} selected={c.tagsNone ?? []} onToggle={(id) => toggle("tagsNone", id)} />
           </Row>
         )}
-        <Row label="Âge" hint="Personnes physiques dont la date de naissance est renseignée.">
+        <Row label={tr("age")} hint={tr("personnes_physiques_dont_la_date_de_bcf7")}>
           <div className="flex items-center gap-2 text-sm">
-            <span>de</span>
-            <Input type="number" min={0} max={120} className="w-20 text-right tabular-nums" value={c.ageMin ?? ""} onChange={(e) => set("ageMin", e.target.value === "" ? undefined : Number(e.target.value))} aria-label="Âge minimum" />
-            <span>à</span>
-            <Input type="number" min={0} max={120} className="w-20 text-right tabular-nums" value={c.ageMax ?? ""} onChange={(e) => set("ageMax", e.target.value === "" ? undefined : Number(e.target.value))} aria-label="Âge maximum" />
-            <span>ans</span>
+            <span>{tr("de")}</span>
+            <Input type="number" min={0} max={120} className="w-20 text-right tabular-nums" value={c.ageMin ?? ""} onChange={(e) => set("ageMin", e.target.value === "" ? undefined : Number(e.target.value))} aria-label={tr("age_minimum")} />
+            <span>{tr("a")}</span>
+            <Input type="number" min={0} max={120} className="w-20 text-right tabular-nums" value={c.ageMax ?? ""} onChange={(e) => set("ageMax", e.target.value === "" ? undefined : Number(e.target.value))} aria-label={tr("age_maximum")} />
+            <span>{tr("ans")}</span>
           </div>
         </Row>
-        <Row label="Adresse email">
+        <Row label={tr("adresse_email")}>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={c.hasEmail === true} onChange={(e) => set("hasEmail", e.target.checked ? true : undefined)} />
-            Seulement les fiches qui ont une adresse email
+            {tr("seulement_les_fiches_qui_ont_une_0ea2")}
           </label>
         </Row>
       </Group>
 
-      <Group title="Où">
-        <Row label="Ville" hint="Plusieurs villes : sépare-les par des virgules.">
-          <ListInput value={c.cities ?? []} onChange={(v) => set("cities", v)} suggestions={options.cities} placeholder="Lyon, Villeurbanne" listId="cities" />
+      <Group title={tr("ou")}>
+        <Row label={tr("ville")} hint={tr("plusieurs_villes_separe_les_par_des_9a68")}>
+          <ListInput value={c.cities ?? []} onChange={(v) => set("cities", v)} suggestions={options.cities} placeholder={tr("lyon_villeurbanne")} listId="cities" />
         </Row>
-        <Row label="Pays" hint="Tel qu'il est écrit sur les fiches.">
-          <ListInput value={c.countries ?? []} onChange={(v) => set("countries", v)} suggestions={options.countries} placeholder="France" listId="countries" />
+        <Row label={tr("pays")} hint={tr("tel_qu_il_est_ecrit_sur_75be")}>
+          <ListInput value={c.countries ?? []} onChange={(v) => set("countries", v)} suggestions={options.countries} placeholder={tr("france")} listId="countries" />
         </Row>
       </Group>
 
-      <Group title="Suivi">
+      <Group title={tr("suivi")}>
         {options.users.length > 0 && (
-          <Row label="Conseiller attribué">
+          <Row label={tr("conseiller_attribue")}>
             <CheckList items={options.users.map((u) => ({ id: u.id, label: u.name || u.email || "—" }))} selected={c.ownerIds ?? []} onToggle={(id) => toggle("ownerIds", id)} />
           </Row>
         )}
-        <Row label="Ancienneté de la fiche">
+        <Row label={tr("anciennete_de_la_fiche")}>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <select
               className={SELECT_CLASS}
@@ -122,42 +125,42 @@ export function CriteriaEditor({
                 if (v === "less") next.createdLessThanDays = seniorityDays;
                 onChange(normalizeCriteria(next));
               }}
-              aria-label="Ancienneté de la fiche"
+              aria-label={tr("anciennete_de_la_fiche")}
             >
-              <option value="">Peu importe</option>
-              <option value="more">Créée il y a plus de</option>
-              <option value="less">Créée il y a moins de</option>
+              <option value="">{tr("peu_importe")}</option>
+              <option value="more">{tr("creee_il_y_a_plus_de")}</option>
+              <option value="less">{tr("creee_il_y_a_moins_de")}</option>
             </select>
             {seniority && (
               <>
-                <Input type="number" min={1} max={3650} className="w-24 text-right tabular-nums" value={seniorityDays} onChange={(e) => set(seniority === "more" ? "createdMoreThanDays" : "createdLessThanDays", Math.max(1, Number(e.target.value) || 1))} aria-label="Nombre de jours" />
-                <span>jours</span>
+                <Input type="number" min={1} max={3650} className="w-24 text-right tabular-nums" value={seniorityDays} onChange={(e) => set(seniority === "more" ? "createdMoreThanDays" : "createdLessThanDays", Math.max(1, Number(e.target.value) || 1))} aria-label={tr("nombre_de_jours")} />
+                <span>{tr("jours")}</span>
               </>
             )}
           </div>
         </Row>
-        <Row label="Sans interaction depuis" hint="Aucun appel, email, rendez-vous ni note consigné pendant cette durée.">
+        <Row label={tr("sans_interaction_depuis")} hint={tr("aucun_appel_email_rendez_vous_ni_f65e")}>
           <div className="flex items-center gap-2 text-sm">
-            <span>plus de</span>
-            <Input type="number" min={1} max={3650} className="w-24 text-right tabular-nums" value={c.inactiveForDays ?? ""} onChange={(e) => set("inactiveForDays", e.target.value === "" ? undefined : Math.max(1, Number(e.target.value) || 1))} aria-label="Jours sans interaction" placeholder="—" />
-            <span>jours</span>
+            <span>{tr("plus_de")}</span>
+            <Input type="number" min={1} max={3650} className="w-24 text-right tabular-nums" value={c.inactiveForDays ?? ""} onChange={(e) => set("inactiveForDays", e.target.value === "" ? undefined : Math.max(1, Number(e.target.value) || 1))} aria-label={tr("jours_sans_interaction")} placeholder="—" />
+            <span>{tr("jours")}</span>
           </div>
         </Row>
       </Group>
 
-      <Group title="Affaires">
-        <Row label="Présence d'affaires">
-          <select className={SELECT_CLASS} value={c.deals ?? ""} onChange={(e) => set("deals", (e.target.value || undefined) as DealPresence | undefined)} aria-label="Présence d'affaires">
-            <option value="">Peu importe</option>
-            {(Object.keys(DEAL_PRESENCE_LABELS) as DealPresence[]).map((k) => (
+      <Group title={tr("affaires")}>
+        <Row label={tr("presence_d_affaires")}>
+          <select className={SELECT_CLASS} value={c.deals ?? ""} onChange={(e) => set("deals", (e.target.value || undefined) as DealPresence | undefined)} aria-label={tr("presence_d_affaires")}>
+            <option value="">{tr("peu_importe")}</option>
+            {DEAL_PRESENCES.map((k) => (
               <option key={k} value={k}>
-                {DEAL_PRESENCE_LABELS[k]}
+                {tt(`dealPresence.${k}`)}
               </option>
             ))}
           </select>
         </Row>
         {stages.length > 0 && (
-          <Row label="Au moins une affaire dans l'étape">
+          <Row label={tr("au_moins_une_affaire_dans_l_9e54")}>
             <CheckList
               items={stages.map((s) => ({ id: s.id, label: options.pipelines.length > 1 ? `${s.label} (${s.pipelineLabel})` : s.label }))}
               selected={c.dealStageIds ?? []}
@@ -166,22 +169,22 @@ export function CriteriaEditor({
           </Row>
         )}
         {options.pipelines.length > 1 && (
-          <Row label="Au moins une affaire dans le pipeline">
+          <Row label={tr("au_moins_une_affaire_dans_le_2e40")}>
             <CheckList items={options.pipelines.map((p) => ({ id: p.id, label: p.label }))} selected={c.dealPipelineIds ?? []} onToggle={(id) => toggle("dealPipelineIds", id)} />
           </Row>
         )}
       </Group>
 
-      <Group title="Origine">
-        <Row label="Comment la fiche est entrée">
+      <Group title={tr("origine")}>
+        <Row label={tr("comment_la_fiche_est_entree")}>
           <CheckList
-            items={(Object.keys(CONTACT_SOURCE_LABELS) as ContactSource[]).map((s) => ({ id: s, label: CONTACT_SOURCE_LABELS[s] }))}
+            items={CONTACT_SOURCES.map((s) => ({ id: s, label: tt(`sources.${s}`) }))}
             selected={c.sources ?? []}
             onToggle={(id) => toggleSource(id as ContactSource)}
           />
         </Row>
         {options.origins.length > 0 && (
-          <Row label="Origine d'acquisition" hint="Un lead reçu depuis l'une de ces origines.">
+          <Row label={tr("origine_d_acquisition")} hint={tr("un_lead_recu_depuis_l_une_8e69")}>
             <CheckList items={options.origins} selected={c.originIds ?? []} onToggle={(id) => toggle("originIds", id)} />
           </Row>
         )}
@@ -285,6 +288,7 @@ function ListInput({
 
 /** L'aperçu permanent : le nombre réel, recalculé à chaque changement. */
 function SegmentPreviewLine({ criteria }: { criteria: SegmentCriteria }) {
+  const t = useTranslations("targets.criteriaEditor");
   const key = JSON.stringify(criteria);
   // Le résultat porte la clé des critères qui l'ont produit : tant qu'elle
   // diffère de la clé courante, l'écran est « en calcul » — aucun état
@@ -318,14 +322,13 @@ function SegmentPreviewLine({ criteria }: { criteria: SegmentCriteria }) {
       ) : p ? (
         <>
           <span>
-            <span className="font-semibold tabular-nums">{p.count}</span> contact{p.count > 1 ? "s" : ""} aujourd&apos;hui
+            {t.rich("contact_contacts_aujourd_hui", { count: p.count, span: (chunks) => <span className="font-semibold tabular-nums">{chunks}</span> })}
             {p.withoutEmail > 0 && (
               <span className="text-muted-foreground">
-                {" "}
-                · dont <span className="tabular-nums">{p.withoutEmail}</span> sans adresse email
+                {t.rich("dont_sans_adresse_email", { withoutEmail: p.withoutEmail, span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
               </span>
             )}
-            {loading && <span className="text-muted-foreground"> · calcul…</span>}
+            {loading && <span className="text-muted-foreground"> {t("calcul")}</span>}
           </span>
           {p.sample.length > 0 && (
             <span className="text-xs text-muted-foreground">
@@ -335,7 +338,7 @@ function SegmentPreviewLine({ criteria }: { criteria: SegmentCriteria }) {
           )}
         </>
       ) : (
-        <span className="text-muted-foreground">Calcul du nombre de contacts…</span>
+        <span className="text-muted-foreground">{t("calcul_du_nombre_de_contacts")}</span>
       )}
     </div>
   );

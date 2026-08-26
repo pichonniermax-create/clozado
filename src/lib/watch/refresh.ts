@@ -30,6 +30,11 @@ import { getIndicator, MARKET_INDICATORS } from "./indicators";
 import { readIndicator } from "./market-readers";
 import { findCopiedPassage } from "./originality";
 import { countryFromHost, hostOf } from "./url";
+import { localeOfOrganization } from "@/i18n/locale";
+import { DEFAULT_LOCALE } from "@/i18n/locales";
+import { translatorFor } from "@/i18n/translator";
+import type { TranslatorOf } from "@/i18n/translator";
+import { WatchFetchError, type WatchHttpReason } from "./http";
 
 /**
  * LA COLLECTE — un seul chemin de code, trois déclencheurs (à la visite,
@@ -66,9 +71,13 @@ export type WatchRunReport = {
   error: string | null;
 };
 
-function readableError(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message.slice(0, 300);
-  return "erreur inconnue";
+/** La cause lisible d'un échec, dans une langue donnée : le code d'une `WatchFetchError` traduit ; tout autre accident → « erreur inconnue » (jamais un message technique brut). */
+function readableError(error: unknown, t: TranslatorOf<"watch">): string {
+  if (error instanceof WatchFetchError) {
+    if (error.code === "http") return t("fetchErrors.http", { status: error.values.status, reason: t(`httpReasons.${error.values.reason as WatchHttpReason}`) });
+    return t(`fetchErrors.${error.code}`, error.values);
+  }
+  return t("fetchErrors.unknown");
 }
 
 // ---------------------------------------------------------------------------
@@ -86,6 +95,9 @@ export async function refreshIndicators(keys: readonly string[], opts: { maxAgeH
   if (unique.length === 0) return 0;
   const statuses = await getIndicatorStatuses(unique);
   const maxAge = (opts.maxAgeHours ?? INDICATOR_MAX_AGE_HOURS) * 3600 * 1000;
+  // La table des observations est partagée entre organisations : le nom de la source, comme la cause d'un échec, y sont dans la langue de référence du produit.
+  const catalogue = await translatorFor(DEFAULT_LOCALE, "figures");
+  const catalogueWatch = await translatorFor(DEFAULT_LOCALE, "watch");
   let read = 0;
   for (const key of unique) {
     const indicator = getIndicator(key);
@@ -94,11 +106,11 @@ export async function refreshIndicators(keys: readonly string[], opts: { maxAgeH
     if (!opts.force && status?.lastFetchedAt && Date.now() - status.lastFetchedAt.getTime() < maxAge) continue;
     try {
       const observation = await readIndicator(indicator);
-      await upsertObservation(indicator, observation);
+      await upsertObservation(indicator, observation, catalogue(`indicators.${indicator.key}.sourceName`));
       await markIndicatorResult(key, null);
       read++;
     } catch (error) {
-      await markIndicatorResult(key, readableError(error));
+      await markIndicatorResult(key, readableError(error, catalogueWatch));
     }
   }
   return read;
@@ -108,7 +120,8 @@ export async function refreshIndicators(keys: readonly string[], opts: { maxAgeH
 export async function refreshOrganizationIndicators(organizationId: string, opts: { force?: boolean } = {}): Promise<number> {
   const keys = await listFollowedIndicatorKeys(organizationId);
   const read = await refreshIndicators(keys, opts);
-  await syncIndicatorFigures(organizationId);
+  // Les chiffres vérifiés de l'organisation s'écrivent dans SA langue.
+  await syncIndicatorFigures(organizationId, await translatorFor(await localeOfOrganization(organizationId), "figures"));
   return read;
 }
 
@@ -121,7 +134,7 @@ export async function refreshAllIndicators(): Promise<number> {
 // Flux
 // ---------------------------------------------------------------------------
 
-async function collectFeed(source: WatchSource): Promise<{ ok: boolean; itemsNew: number }> {
+async function collectFeed(source: WatchSource, tw: TranslatorOf<"watch">): Promise<{ ok: boolean; itemsNew: number }> {
   if (!source.feedUrl) return { ok: true, itemsNew: 0 };
   try {
     const feed = await fetchFeed(source.feedUrl, SOURCE_TIMEOUT_MS);
@@ -140,7 +153,7 @@ async function collectFeed(source: WatchSource): Promise<{ ok: boolean; itemsNew
     await recordSourceSuccess(source.id);
     return { ok: true, itemsNew };
   } catch (error) {
-    await recordSourceFailure(source, readableError(error));
+    await recordSourceFailure(source, readableError(error, tw));
     return { ok: false, itemsNew: 0 };
   }
 }
@@ -200,7 +213,9 @@ function dateFromIso(iso: string | null): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+// eslint-disable-next-line local/no-visible-text -- table de reconnaissance des dates telles que les sources les publient, pas un texte d'interface
 const MONTHS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+// eslint-disable-next-line local/no-visible-text -- table de reconnaissance des dates telles que les sources les publient, pas un texte d'interface
 const MONTHS_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 /** « taux crédit immobilier août 2026 » : le mois courant oriente le moteur vers l'actualité — sans lui, il rend des pages de fond datées de l'an dernier, écartées ensuite par la borne des soixante jours. */
@@ -252,7 +267,7 @@ function topicIdForThemes(themes: string[], topics: WatchTopic[]): string | null
   return null;
 }
 
-async function summarizeOne(provider: AIProvider, item: Awaited<ReturnType<typeof listPendingSummaries>>[number], topics: WatchTopic[]): Promise<boolean> {
+async function summarizeOne(provider: AIProvider, item: Awaited<ReturnType<typeof listPendingSummaries>>[number], topics: WatchTopic[], tw: TranslatorOf<"watch">): Promise<boolean> {
   const topicLabels = topics.map((t) => t.label);
   let text: string | undefined;
   let pageDate: Date | null = null;
@@ -293,7 +308,7 @@ async function summarizeOne(provider: AIProvider, item: Awaited<ReturnType<typeo
     });
     return true;
   } catch (error) {
-    await saveSummaryResult(item.id, { summaryState: "failed", summary: null, summaryModel: null, themes: [], angle: readableError(error) });
+    await saveSummaryResult(item.id, { summaryState: "failed", summary: null, summaryModel: null, themes: [], angle: readableError(error, tw) });
     return false;
   }
 }
@@ -308,6 +323,8 @@ export async function executeWatchRun(run: WatchRun): Promise<WatchRunReport> {
   const remaining = () => deadline - Date.now();
   const report: WatchRunReport = { sourcesOk: 0, sourcesFailed: 0, itemsNew: 0, itemsSummarized: 0, searches: 0, indicatorsRead: 0, error: null };
   const organizationId = run.organizationId;
+  // Ce qui s'écrit pendant la collecte (cause d'un échec, angle d'un résumé manqué) l'est dans la langue de l'organisation.
+  const tw = await translatorFor(await localeOfOrganization(organizationId), "watch");
 
   try {
     report.indicatorsRead = await refreshOrganizationIndicators(organizationId).catch(() => 0);
@@ -315,7 +332,7 @@ export async function executeWatchRun(run: WatchRun): Promise<WatchRunReport> {
     const [topics, sources] = await Promise.all([listWatchTopics(organizationId), listWatchSources(organizationId)]);
 
     const dueFeeds = sources.filter((s) => s.feedUrl && isSourceDue(s));
-    const feedResults = await inPool(dueFeeds, FEED_CONCURRENCY, collectFeed);
+    const feedResults = await inPool(dueFeeds, FEED_CONCURRENCY, (source) => collectFeed(source, tw));
     for (const r of feedResults) {
       if (r.ok) report.sourcesOk++;
       else report.sourcesFailed++;
@@ -341,19 +358,19 @@ export async function executeWatchRun(run: WatchRun): Promise<WatchRunReport> {
           if (job.source) await recordSourceSuccess(job.source.id);
           else await markTopicSearched(job.topic.id);
         } catch (error) {
-          if (job.source) await recordSourceFailure(job.source, readableError(error));
-          else report.error = `Recherche « ${job.topic.label} » : ${readableError(error)}`;
+          if (job.source) await recordSourceFailure(job.source, readableError(error, tw));
+          else report.error = `Recherche « ${job.topic.label} » : ${readableError(error, tw)}`;
         }
       }
 
       const pending = await listPendingSummaries(organizationId, MAX_SUMMARIES_PER_RUN);
       for (const item of pending) {
         if (remaining() < SUMMARY_RESERVE_MS) break;
-        if (await summarizeOne(provider, item, topics)) report.itemsSummarized++;
+        if (await summarizeOne(provider, item, topics, tw)) report.itemsSummarized++;
       }
     }
   } catch (error) {
-    report.error = readableError(error);
+    report.error = readableError(error, tw);
   } finally {
     await finishWatchRun(run.id, report).catch(() => undefined);
   }

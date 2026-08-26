@@ -143,7 +143,7 @@ export function parseFeed(xml: string, base: string): ParsedFeed {
   try {
     doc = parser.parse(xml) as Record<string, unknown>;
   } catch {
-    throw new WatchFetchError("flux illisible");
+    throw new WatchFetchError("feed_unreadable");
   }
   const entries: FeedEntry[] = [];
 
@@ -176,7 +176,7 @@ export function parseFeed(xml: string, base: string): ParsedFeed {
     return { title: cleanTitle(textOf(channelNode?.title)) || null, entries };
   }
 
-  throw new WatchFetchError("flux illisible");
+  throw new WatchFetchError("feed_unreadable");
 }
 
 const FEED_ACCEPT = "application/rss+xml, application/atom+xml, application/rdf+xml, application/xml;q=0.9, text/xml;q=0.9, */*;q=0.5";
@@ -186,7 +186,7 @@ export async function fetchFeed(feedUrl: string, timeoutMs: number): Promise<Par
   const response = await fetchWithTimeout(feedUrl, timeoutMs, FEED_ACCEPT);
   const xml = await readBodyText(response, 2_000_000);
   if (!/<(rss|feed|rdf:RDF)[\s>]/i.test(xml.slice(0, 4000))) {
-    throw new WatchFetchError("flux illisible (la page n'est pas un flux)");
+    throw new WatchFetchError("feed_not_feed");
   }
   return parseFeed(xml, feedUrl);
 }

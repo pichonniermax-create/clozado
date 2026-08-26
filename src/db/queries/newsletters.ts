@@ -24,6 +24,8 @@ import type {
   VerifiedFigureProfile,
 } from "@/lib/ai/types";
 import type { OrgScopeUser } from "@/lib/session";
+import { AppError } from "@/lib/errors";
+import type { TargetsTranslator } from "@/lib/targets/criteria";
 
 /**
  * Charge une cible par id, vérifie qu'elle appartient bien à l'organisation
@@ -38,7 +40,7 @@ async function resolveTargetContext(user: OrgScopeUser, targetId: string) {
     where: eq(mailTargets.id, targetId),
   });
   if (!target) {
-    throw new Error("Cible introuvable.");
+    throw new AppError("cible_introuvable", undefined, 404);
   }
   assertOrgAccess(user, target.organizationId);
 
@@ -46,7 +48,7 @@ async function resolveTargetContext(user: OrgScopeUser, targetId: string) {
     where: eq(organizations.id, target.organizationId),
   });
   if (!org) {
-    throw new Error("Organisation introuvable.");
+    throw new AppError("organisation_introuvable", undefined, 404);
   }
 
   const signatory = target.defaultSignatoryId
@@ -152,13 +154,13 @@ export async function resolveRenderBrand(org: typeof organizations.$inferSelect,
 /** L'organisation de l'utilisateur connecté, garde-fou d'isolation inclus (jamais un id fourni par l'appelant). */
 export async function getOwnOrganizationOrThrow(user: OrgScopeUser) {
   if (!user.organizationId) {
-    throw new Error("Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran : ce geste s'applique à une organisation précise.");
+    throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_d6ca");
   }
   const org = await db.query.organizations.findFirst({
     where: eq(organizations.id, user.organizationId),
   });
   if (!org) {
-    throw new Error("Organisation introuvable.");
+    throw new AppError("organisation_introuvable", undefined, 404);
   }
   return org;
 }
@@ -222,7 +224,7 @@ function textArray(values: string[]): SQL {
 
 export async function getNewsletterOrThrow(user: OrgScopeUser, id: string) {
   const newsletter = await db.query.newsletters.findFirst({ where: eq(newsletters.id, id) });
-  if (!newsletter) throw new Error("Newsletter introuvable.");
+  if (!newsletter) throw new AppError("newsletter_introuvable", undefined, 404);
   assertOrgAccess(user, newsletter.organizationId);
   return newsletter;
 }
@@ -239,13 +241,15 @@ export async function getNewsletterOrThrow(user: OrgScopeUser, id: string) {
 export async function markNewsletterSent(
   user: OrgScopeUser,
   id: string,
-  input: { sentAt: Date; topics: string[]; markedBy: string }
+  input: { sentAt: Date; topics: string[]; markedBy: string },
+  /** La description de la cible, figée dans la photographie de l'audience — dans la langue du moment. */
+  t: TargetsTranslator
 ) {
   const newsletter = await getNewsletterOrThrow(user, id);
-  if (newsletter.sentAt) throw new Error("Cette newsletter est déjà marquée envoyée.");
+  if (newsletter.sentAt) throw new AppError("cette_newsletter_est_deja_marquee_envoyee");
   const target = await db.query.mailTargets.findFirst({ where: eq(mailTargets.id, newsletter.targetId) });
   if (!target || target.organizationId !== newsletter.organizationId) {
-    throw new Error("La cible de cette newsletter est introuvable.");
+    throw new AppError("la_cible_de_cette_newsletter_est_introuvable", undefined, 404);
   }
   const options = await loadCriteriaOptions(newsletter.organizationId);
   const snapshot: Omit<AudienceSnapshot, "count"> = {
@@ -253,7 +257,7 @@ export async function markNewsletterSent(
     label: target.label,
     kind: target.kind === "static" ? "static" : "segment",
     criteria: parseCriteria(target.criteria),
-    summary: describeTarget(target, options),
+    summary: describeTarget(target, options, t),
   };
   const topics = normalizeTopics(input.topics);
   await db.execute(sql`
@@ -275,7 +279,7 @@ export async function markNewsletterSent(
 /** Annule un marquage (mauvais clic, mauvaise date) : la photographie est effacée avec lui. Les sujets restent ceux de la newsletter. */
 export async function unmarkNewsletterSent(user: OrgScopeUser, id: string) {
   const newsletter = await getNewsletterOrThrow(user, id);
-  if (!newsletter.sentAt) throw new Error("Cette newsletter n'est pas marquée envoyée.");
+  if (!newsletter.sentAt) throw new AppError("cette_newsletter_n_est_pas_marquee_envoyee");
   await db.batch([
     db.delete(newsletterRecipients).where(eq(newsletterRecipients.newsletterId, id)),
     db

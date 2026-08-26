@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { removeDarkLogoAction, removeLogoAction, saveLogoAction } from "@/lib/brand/actions";
 import type { BrandAssetUrls } from "@/lib/brand/assets";
+import { useTranslations } from "next-intl";
+import { AppError } from "@/lib/errors";
 
 /**
  * Le téléversement du logo (chantier marque blanche, étape 2). Tout le
@@ -38,7 +40,7 @@ function loadImage(file: File): Promise<HTMLImageElement> {
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error("L'image n'a pas pu être lue."));
+      reject(new AppError("l_image_n_a_pas_pu_etre_f192"));
     };
     img.src = url;
   });
@@ -54,7 +56,7 @@ function toPng(draw: (scale: number) => HTMLCanvasElement): Prepared {
     if (bytes <= MAX_BYTES || attempt === 3) return { dataUrl, width: canvas.width, height: canvas.height };
     scale *= 0.7;
   }
-  throw new Error("L'image reste trop lourde.");
+  throw new AppError("l_image_reste_trop_lourde");
 }
 
 async function prepareLogo(file: File): Promise<Prepared> {
@@ -67,7 +69,7 @@ async function prepareLogo(file: File): Promise<Prepared> {
     canvas.width = Math.max(1, Math.round(naturalW * fit * scale));
     canvas.height = Math.max(1, Math.round(naturalH * fit * scale));
     const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Le navigateur ne sait pas dessiner l'image.");
+    if (!ctx) throw new AppError("le_navigateur_ne_sait_pas_dessiner_l_d979");
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     return canvas;
   });
@@ -78,14 +80,14 @@ async function prepareIcon(logo: Prepared): Promise<Prepared> {
   const img = new Image();
   await new Promise<void>((resolve, reject) => {
     img.onload = () => resolve();
-    img.onerror = () => reject(new Error("L'icône n'a pas pu être dérivée."));
+    img.onerror = () => reject(new AppError("l_icone_n_a_pas_pu_etre_a8bc"));
     img.src = logo.dataUrl;
   });
   const canvas = document.createElement("canvas");
   canvas.width = ICON_SIZE;
   canvas.height = ICON_SIZE;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Le navigateur ne sait pas dessiner l'image.");
+  if (!ctx) throw new AppError("le_navigateur_ne_sait_pas_dessiner_l_d979");
   const fit = Math.min((ICON_SIZE - 8) / logo.width, (ICON_SIZE - 8) / logo.height);
   const w = logo.width * fit;
   const h = logo.height * fit;
@@ -106,6 +108,7 @@ export function BrandLogoUploader({
   /** La couleur de marque enregistrée, pour le bouton de l'aperçu email. */
   brandHex: string;
 }) {
+  const t = useTranslations("brand.brandLogoUploader");
   const [light, setLight] = useState<Prepared | null>(null);
   const [dark, setDark] = useState<Prepared | null>(null);
   const [icon, setIcon] = useState<Prepared | null>(null);
@@ -131,7 +134,7 @@ export function BrandLogoUploader({
         setDark(prepared);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "L'image n'a pas pu être préparée.");
+      setError(e instanceof Error ? e.message : t("l_image_n_a_pas_pu_3f3f"));
     } finally {
       setBusy(false);
     }
@@ -144,7 +147,7 @@ export function BrandLogoUploader({
         <input type="hidden" name="logoDark" value={dark?.dataUrl ?? ""} />
         <input type="hidden" name="icon" value={icon?.dataUrl ?? ""} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Logo (pour fond clair)" htmlFor="logo-light" hint="PNG, JPEG, WebP ou SVG. Redimensionné ici même, jamais déformé. L'icône d'onglet en est dérivée.">
+          <Field label={t("logo_pour_fond_clair")} htmlFor="logo-light" hint={t("png_jpeg_webp_ou_svg_redimensionne_440f")}>
             <input
               id="logo-light"
               type="file"
@@ -154,7 +157,7 @@ export function BrandLogoUploader({
               className="block w-full text-sm file:mr-3 file:rounded-lg file:border file:border-border file:bg-background file:px-2.5 file:py-1 file:text-sm file:font-medium hover:file:bg-muted"
             />
           </Field>
-          <Field label="Logo pour fond sombre (facultatif)" htmlFor="logo-dark" hint="Utilisé sur les fonds sombres (emails, thème sombre). Sans lui, la version claire sert partout.">
+          <Field label={t("logo_pour_fond_sombre_facultatif")} htmlFor="logo-dark" hint={t("utilise_sur_les_fonds_sombres_emails_9157")}>
             <input
               id="logo-dark"
               type="file"
@@ -172,35 +175,33 @@ export function BrandLogoUploader({
         )}
         {(light || dark) && (
           <p className="text-xs text-muted-foreground tabular-nums">
-            {light ? `Logo prêt : ${light.width} × ${light.height} px. ` : ""}
-            {dark ? `Version sombre prête : ${dark.width} × ${dark.height} px. ` : ""}
-            {icon ? `Icône dérivée : ${icon.width} × ${icon.height} px.` : ""}
+            {light ? t("logo_pret_px", { width: light.width, height: light.height }) : ""}
+            {dark ? t("version_sombre_prete_px", { width: dark.width, height: dark.height }) : ""}
+            {icon ? t("icone_derivee_px", { width: icon.width, height: icon.height }) : ""}
           </p>
         )}
         {!disabled && (
           <div className="flex flex-wrap items-center gap-2">
             <Button type="submit" disabled={busy || (!light && !dark)}>
               <ImageUp />
-              Enregistrer le logo
+              {t("enregistrer_le_logo")}
             </Button>
           </div>
         )}
       </form>
 
       <div className="flex flex-col gap-3">
-        <span className="text-xs font-medium text-muted-foreground">Aperçu en situation</span>
+        <span className="text-xs font-medium text-muted-foreground">{t("apercu_en_situation")}</span>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <PreviewFrame label="Barre latérale">
+          <PreviewFrame label={t("barre_laterale")}>
             <div className="flex h-full flex-col gap-2 rounded-lg border border-sidebar-border bg-sidebar p-3">
               <WorkspaceMark logo={lightSrc} name={organizationName} />
               <div className="mt-1 flex flex-col gap-1">
-                <span className="rounded-md bg-sidebar-accent px-2 py-1 text-xs font-medium text-sidebar-accent-foreground">Tableau de bord</span>
-                <span className="px-2 py-1 text-xs text-muted-foreground">Contacts</span>
-                <span className="px-2 py-1 text-xs text-muted-foreground">Affaires</span>
+                {t.rich("tableau_de_bord_contacts_affaires", { span: (chunks) => <span className="rounded-md bg-sidebar-accent px-2 py-1 text-xs font-medium text-sidebar-accent-foreground">{chunks}</span>, span2: (chunks) => <span className="px-2 py-1 text-xs text-muted-foreground">{chunks}</span>, span3: (chunks) => <span className="px-2 py-1 text-xs text-muted-foreground">{chunks}</span> })}
               </div>
             </div>
           </PreviewFrame>
-          <PreviewFrame label="Page de partage">
+          <PreviewFrame label={t("page_de_partage")}>
             <div className="flex h-full flex-col rounded-lg bg-muted/40 p-4">
               <div className="flex w-full flex-col gap-2 rounded-lg border border-border bg-card p-3">
                 {lightSrc ? (
@@ -218,7 +219,7 @@ export function BrandLogoUploader({
               </div>
             </div>
           </PreviewFrame>
-          <PreviewFrame label="Email">
+          <PreviewFrame label={t("email")}>
             <div className="flex h-full flex-col gap-3 rounded-lg border border-border bg-white p-4" style={{ color: "#1f2937" }}>
               {lightSrc ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -226,17 +227,17 @@ export function BrandLogoUploader({
               ) : (
                 <span className="text-base font-bold">{organizationName}</span>
               )}
-              <span className="text-sm">Bonjour Camille,</span>
+              <span className="text-sm">{t("bonjour_camille")}</span>
               <span className="h-2 w-5/6 rounded bg-neutral-200" />
               <span className="h-2 w-3/4 rounded bg-neutral-200" />
               <span className="mt-1 w-fit rounded-md px-3 py-1.5 text-xs font-semibold text-white" style={{ backgroundColor: brandHex }}>
-                Prendre rendez-vous
+                {t("prendre_rendez_vous")}
               </span>
             </div>
           </PreviewFrame>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <PreviewFrame label="Sur fond sombre">
+          <PreviewFrame label={t("sur_fond_sombre")}>
             <div className="flex h-full items-center justify-center rounded-lg p-4" style={{ backgroundColor: "#12151c" }}>
               {onDarkSrc ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -245,19 +246,19 @@ export function BrandLogoUploader({
                 <span className="text-sm font-semibold text-white">{organizationName}</span>
               )}
             </div>
-            {!darkSrc && lightSrc && <span className="text-[0.6875rem] text-muted-foreground">Version sombre non fournie : la version claire est utilisée.</span>}
+            {!darkSrc && lightSrc && <span className="text-[0.6875rem] text-muted-foreground">{t("version_sombre_non_fournie_la_version_767a")}</span>}
           </PreviewFrame>
-          <PreviewFrame label="Icône d'onglet">
+          <PreviewFrame label={t("icone_d_onglet")}>
             <div className="flex h-full items-center gap-3 rounded-lg border border-border bg-muted/40 p-4">
               <span className="flex size-8 items-center justify-center rounded-md border border-border bg-white">
                 {iconSrc ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={iconSrc} alt="" className="size-6 object-contain" />
                 ) : (
-                  <span className="flex size-5 items-center justify-center rounded-sm bg-product text-[0.5rem] font-bold text-product-foreground">C</span>
+                  <span className="flex size-5 items-center justify-center rounded-sm bg-product text-[0.5rem] font-bold text-product-foreground">{t("c")}</span>
                 )}
               </span>
-              <span className="truncate text-xs text-muted-foreground">{organizationName} — Tableau de bord</span>
+              <span className="truncate text-xs text-muted-foreground">{t("tableau_de_bord", { organizationName })}</span>
             </div>
           </PreviewFrame>
         </div>
@@ -267,13 +268,13 @@ export function BrandLogoUploader({
         <div className="flex flex-wrap items-center gap-2">
           <form action={removeLogoAction}>
             <Button type="submit" variant="ghost" size="sm">
-              Retirer le logo
+              {t("retirer_le_logo")}
             </Button>
           </form>
           {urls.logo_dark && (
             <form action={removeDarkLogoAction}>
               <Button type="submit" variant="ghost" size="sm">
-                Retirer la version sombre
+                {t("retirer_la_version_sombre")}
               </Button>
             </form>
           )}

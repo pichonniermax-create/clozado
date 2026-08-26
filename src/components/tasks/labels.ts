@@ -1,33 +1,27 @@
-/** Vocabulaire français du module tâches — une seule définition, partagée par l'écran des tâches et les fiches. */
+import type { TranslatorOf } from "@/i18n/translator";
 
-export const TASK_PRIORITY_LABELS: Record<string, string> = {
-  low: "Basse",
-  normal: "Normale",
-  high: "Haute",
-};
+/** Vocabulaire du module tâches — les libellés vivent dans les messages (`tasks.priorities`, `tasks.autoRules`, `tasks.recurrence`), partagés par l'écran des tâches et les fiches. */
 
-export const TASK_AUTO_RULE_LABELS: Record<string, string> = {
-  share_pending: "Partage sans réponse",
-  deal_accepted_stale: "Affaire sans suite",
-  commission_unpaid: "Commission non réglée",
-};
+export const TASK_PRIORITIES = ["low", "normal", "high"] as const;
+export const TASK_AUTO_RULES = ["share_pending", "deal_accepted_stale", "commission_unpaid"] as const;
+const RECUR_UNITS = ["day", "week", "month", "year"] as const;
 
-const RECUR_EACH: Record<string, string> = {
-  day: "Chaque jour",
-  week: "Chaque semaine",
-  month: "Chaque mois",
-  year: "Chaque année",
-};
+export type TasksTranslator = TranslatorOf<"tasks">;
 
-const RECUR_EVERY: Record<string, string> = {
-  day: "Tous les %d jours",
-  week: "Toutes les %d semaines",
-  month: "Tous les %d mois",
-  year: "Tous les %d ans",
-};
+const isPriority = (value: string): value is (typeof TASK_PRIORITIES)[number] => (TASK_PRIORITIES as readonly string[]).includes(value);
+const isAutoRule = (value: string): value is (typeof TASK_AUTO_RULES)[number] => (TASK_AUTO_RULES as readonly string[]).includes(value);
+const isRecurUnit = (value: string): value is (typeof RECUR_UNITS)[number] => (RECUR_UNITS as readonly string[]).includes(value);
 
-/** « Chaque semaine », « Tous les 3 mois »… — accords français compris. */
-export function formatRecurrence(unit: string, every: number): string {
-  if (every <= 1) return RECUR_EACH[unit] ?? unit;
-  return (RECUR_EVERY[unit] ?? `Tous les %d ${unit}`).replace("%d", String(every));
+export function priorityLabel(priority: string, t: TasksTranslator): string {
+  return isPriority(priority) ? t(`priorities.${priority}`) : priority;
+}
+
+/** Une règle inconnue (une colonne plus récente que les messages) s'affiche telle quelle plutôt que de casser l'écran. */
+export function autoRuleLabel(rule: string, t: TasksTranslator): string {
+  return isAutoRule(rule) ? t(`autoRules.${rule}`) : rule;
+}
+
+/** « Chaque semaine », « Tous les 3 mois »… — accords compris, par la langue. */
+export function formatRecurrence(unit: string, every: number, t: TasksTranslator): string {
+  return isRecurUnit(unit) ? t(`recurrence.${unit}`, { every }) : t("recurrence.other", { every, unit });
 }

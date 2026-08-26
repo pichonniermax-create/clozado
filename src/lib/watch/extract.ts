@@ -92,7 +92,7 @@ export async function fetchArticle(url: string, timeoutMs: number): Promise<Arti
   const response = await fetchWithTimeout(url, timeoutMs, "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5");
   const contentType = response.headers.get("content-type") ?? "";
   if (contentType && !/text\/html|application\/xhtml/i.test(contentType)) {
-    throw new WatchFetchError(`contenu non lisible (${contentType.split(";")[0].trim()})`);
+    throw new WatchFetchError("content_unreadable", { type: contentType.split(";")[0].trim() });
   }
   const html = await readBodyText(response, 1_500_000);
   return extractArticle(html);

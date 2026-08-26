@@ -18,25 +18,26 @@ import { resolveBusinessPack } from "@/lib/metrics/packs";
 import { requireUser } from "@/lib/session";
 import { createPackTargetsAction } from "@/lib/targets/actions";
 import { missingIdentityFacets } from "@/lib/targets/criteria";
-
-const DESCRIPTION =
-  "À qui tu écris : des segments vivants de ta base de contacts, recalculés à chaque consultation, chacun avec son identité éditoriale.";
+import { getTranslations } from "next-intl/server";
 
 export default async function TargetsPage({
   searchParams,
 }: {
   searchParams: Promise<{ erreur?: string; info?: string }>;
 }) {
+  const tr = await getTranslations("targets.list");
+  const tt = await getTranslations("targets");
+  const tm = await getTranslations("metrics");
+  const ttpl = await getTranslations("templates");
   const user = await requireUser();
   const params = await searchParams;
 
   if (!user.organizationId) {
     return (
       <>
-        <PageHeader title="Cibles" description={DESCRIPTION} />
+        <PageHeader title={tr("cibles")} description={tr("description")} />
         <EmptyState>
-          Tu es en vue globale : choisis une organisation dans le bandeau super admin en haut de l&apos;écran pour voir
-          ses cibles.
+          {tr("tu_es_en_vue_globale_choisis_599b")}
         </EmptyState>
       </>
     );
@@ -51,17 +52,17 @@ export default async function TargetsPage({
   const [counts, options] = await Promise.all([countMembersByTarget(active), loadCriteriaOptions(user.organizationId)]);
   const { pack, chosen } = resolveBusinessPack(org?.businessPack);
   const proposals = missingPackTargets(pack, targets);
-  const packLabel = `Créer les ${proposals.length} cibles du métier « ${pack.label} »`;
+  const packLabel = tr("creer_les_cibles_du_metier", { count: proposals.length, label: tm(`packs.${pack.key}.label`) });
 
   return (
     <>
       <PageHeader
-        title="Cibles"
-        description={DESCRIPTION}
+        title={tr("cibles")}
+        description={tr("description")}
         actions={
           <Link href="/cibles/new" className={buttonVariants()}>
             <Plus />
-            Nouvelle cible
+            {tr("nouvelle_cible")}
           </Link>
         }
       />
@@ -73,7 +74,7 @@ export default async function TargetsPage({
 
       {active.length === 0 ? (
         <EmptyState
-          title="Aucune cible pour l'instant"
+          title={tr("aucune_cible_pour_l_instant")}
           action={
             <>
               {proposals.length > 0 && (
@@ -82,28 +83,22 @@ export default async function TargetsPage({
                 </form>
               )}
               <Link href="/cibles/new" className={buttonVariants({ variant: "outline" })}>
-                Créer une cible à la main
+                {tr("creer_une_cible_a_la_main")}
               </Link>
             </>
           }
         >
-          Une cible, c&apos;est un segment de tes contacts (étiquettes, ville, affaires en cours…) et l&apos;identité de
-          la personne à qui on écrit. Ton métier en propose {proposals.length} pour commencer — chacune se modifie ensuite.
+          {tr("une_cible_c_est_un_segment_d9ec", { count: proposals.length })}
           {!chosen && (
             <>
-              {" "}
-              Aucun pack métier n&apos;est choisi : ce sont les cibles « Tout métier ».{" "}
-              <Link href="/settings#pack-metier" className="underline underline-offset-2">
-                Choisir mon métier
-              </Link>
-              .
+              {tr.rich("aucun_pack_metier_n_est_choisi_f16a", { link: (chunks) => <Link href="/settings#pack-metier" className="underline underline-offset-2">{chunks}</Link> })}
             </>
           )}
         </EmptyState>
       ) : (
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold tabular-nums">
-            {active.length} cible{active.length > 1 ? "s" : ""} active{active.length > 1 ? "s" : ""}
+            {tr("cible_cibles_active_actives", { count: active.length })}
           </h2>
           <ListCard>
             {active.map((t) => {
@@ -116,14 +111,14 @@ export default async function TargetsPage({
                   title={
                     <span className="flex flex-wrap items-center gap-2">
                       {t.label}
-                      {t.kind === "static" && <Badge variant="secondary">Sélection manuelle</Badge>}
-                      {missing.length > 0 && <Badge variant="outline">Identité à compléter</Badge>}
+                      {t.kind === "static" && <Badge variant="secondary">{tr("selection_manuelle")}</Badge>}
+                      {missing.length > 0 && <Badge variant="outline">{tr("identite_a_completer")}</Badge>}
                     </span>
                   }
-                  subtitle={describeTarget(t, options).join(" · ")}
+                  subtitle={describeTarget(t, options, tt).join(" · ")}
                   trailing={
                     <span className="text-sm font-medium tabular-nums">
-                      {n} contact{n > 1 ? "s" : ""}
+                      {tr("contact_contacts", { n })}
                     </span>
                   }
                 />
@@ -134,23 +129,19 @@ export default async function TargetsPage({
       )}
 
       {active.length > 0 && proposals.length > 0 && (
-        <DetailsCard variant="archive" summary={`Cibles proposées par ton métier — ${pack.label} (${proposals.length})`}>
+        <DetailsCard variant="archive" summary={tr("cibles_proposees_par_ton_metier", { label: tm(`packs.${pack.key}.label`), count: proposals.length })}>
           <div className="flex flex-col gap-3">
             <ul className="flex flex-col gap-1.5 text-sm">
               {proposals.map((p) => (
                 <li key={p.slug}>
-                  <span className="font-medium">{p.label}</span>
-                  <span className="text-muted-foreground"> — {p.description}</span>
+                  <span className="font-medium">{ttpl(`targets.${p.slug}.label`)}</span>
+                  <span className="text-muted-foreground"> — {ttpl(`targets.${p.slug}.description`)}</span>
                 </li>
               ))}
             </ul>
             {!chosen && (
               <p className="text-xs text-muted-foreground">
-                Aucun pack métier n&apos;est choisi : ce sont les cibles « Tout métier ».{" "}
-                <Link href="/settings#pack-metier" className="underline underline-offset-2">
-                  Choisir mon métier
-                </Link>{" "}
-                donne des cibles plus justes.
+                {tr.rich("aucun_pack_metier_n_est_choisi_f147", { link: (chunks) => <Link href="/settings#pack-metier" className="underline underline-offset-2">{chunks}</Link> })}
               </p>
             )}
             <form action={createPackTargetsAction}>
@@ -163,14 +154,14 @@ export default async function TargetsPage({
       )}
 
       {archived.length > 0 && (
-        <DetailsCard variant="archive" summary={`Cibles désactivées (${archived.length})`} flush>
+        <DetailsCard variant="archive" summary={tr("cibles_desactivees", { count: archived.length })} flush>
           <ul className="divide-y divide-border">
             {archived.map((t) => (
               <ListRowLink
                 key={t.id}
                 href={`/cibles/${t.id}`}
                 title={t.label}
-                subtitle={describeTarget(t, options).join(" · ")}
+                subtitle={describeTarget(t, options, tt).join(" · ")}
               />
             ))}
           </ul>

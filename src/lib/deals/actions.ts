@@ -30,6 +30,7 @@ import {
   type CreatePartnerInput,
 } from "@/db/queries/partners";
 import { requireUser } from "@/lib/session";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Server actions du module PRM — org-scopées via `requireUser()`, comme
@@ -81,13 +82,13 @@ export async function reissueDealShareAction(shareId: string) {
 /** Fiche affaire : prevue → confirmee, une fois l'affaire aboutie et le montant arrêté. */
 export async function confirmCommissionAction(commissionId: string) {
   const user = await requireUser();
-  return confirmCommission(user, user.id, commissionId);
+  return confirmCommission(user, user.id, commissionId, await getTranslations("shares.queries"));
 }
 
 /** Écran de suivi, pile "commissions confirmées non réglées" — la seule action possible dessus. */
 export async function markCommissionSettledAction(commissionId: string) {
   const user = await requireUser();
-  return markCommissionSettled(user, user.id, commissionId);
+  return markCommissionSettled(user, user.id, commissionId, await getTranslations("shares.queries"));
 }
 
 // ---------------------------------------------------------------------------
@@ -107,7 +108,7 @@ export async function updateDealDetailsAction(dealId: string, input: DealDetails
 
 export async function createPipelineAction(label: string) {
   const user = await requireUser();
-  return createPipeline(user, label);
+  return createPipeline(user, label, await getTranslations("deals.queries"));
 }
 
 export async function updatePipelineLabelAction(pipelineId: string, label: string) {

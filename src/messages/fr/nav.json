@@ -1,0 +1,31 @@
+{
+  "entries": {
+    "affaires": "Affaires",
+    "analytique_delais": "Délais",
+    "analytique_funnel": "Funnel",
+    "analytique_origines": "Origines",
+    "analytique_partenaires": "Partenariats",
+    "analytique_pertes": "Pertes",
+    "chiffres": "Chiffres",
+    "cibles": "Cibles",
+    "contacts": "Contacts",
+    "dashboard": "Tableau de bord",
+    "newsletters": "Newsletters",
+    "partenaires": "Partenaires",
+    "suivi": "Suivi",
+    "taches": "Tâches",
+    "veille": "Veille"
+  },
+  "quickCreate": {
+    "affaires": "Affaire",
+    "contacts": "Contact",
+    "partenaires": "Partenaire",
+    "taches": "Tâche"
+  },
+  "sections": {
+    "analytique": "Analytique",
+    "aujourd_hui": "Aujourd’hui",
+    "dossiers": "Dossiers",
+    "outils": "Outils"
+  }
+}

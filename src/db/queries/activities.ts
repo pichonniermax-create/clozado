@@ -19,6 +19,8 @@ import {
 import { assertOrgAccess } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
 import { PRODUCT_TIMEZONE } from "@/lib/timezone";
+import { AppError } from "@/lib/errors";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /**
  * L'activité unifiée — le journal d'une fiche contact, d'une affaire, ou de
@@ -111,8 +113,14 @@ type ActorRow = {
  * réservé à l'absence d'acteur (ex : expiration constatée hors de toute
  * action humaine), pour ne pas faire passer un geste humain pour un automate.
  */
-function actorLabelOf(r: ActorRow): string | null {
-  if (r.actorUserId) return r.actorUserName || r.actorUserEmail || "Utilisateur";
+/** Un champ complété par un lead, stocké par clé — ou, pour les lignes d'avant le chantier i18n, déjà en mots : affiché tel quel. */
+const FIELD_KEYS = ["firstName", "lastName", "phone", "companyName", "jobTitle", "city", "postalCode", "country", "notes"] as const;
+function fieldLabel(field: string, t: TranslatorOf<"activities.queries">): string {
+  return (FIELD_KEYS as readonly string[]).includes(field) ? t(`fields.${field as (typeof FIELD_KEYS)[number]}`) : field;
+}
+
+function actorLabelOf(r: ActorRow, t: TranslatorOf<"activities.queries">): string | null {
+  if (r.actorUserId) return r.actorUserName || r.actorUserEmail || t("utilisateur");
   if (r.actorPartnerId) return `${r.actorPartnerName ?? "Partenaire"} (partenaire)`;
   return null;
 }
@@ -135,7 +143,7 @@ function subjectOf(scope: JournalScope, contactCol: AnyPgColumn | null, dealCol:
   return parts.length === 1 ? parts[0] : or(...parts);
 }
 
-async function collectJournal(scope: JournalScope, limit: number): Promise<Journal> {
+async function collectJournal(scope: JournalScope, limit: number, t: TranslatorOf<"activities.queries">): Promise<Journal> {
   const orgId = scope.organizationId;
   const fromStatus = alias(dealStatuses, "from_status");
   const toStatus = alias(dealStatuses, "to_status");
@@ -321,7 +329,7 @@ async function collectJournal(scope: JournalScope, limit: number): Promise<Journ
       kind: r.type,
       at: r.occurredAt,
       body: r.content,
-      actorLabel: actorLabelOf({ ...r, actorPartnerId: null, actorPartnerName: null }),
+      actorLabel: actorLabelOf({ ...r, actorPartnerId: null, actorPartnerName: null }, t),
       partnerName: null,
       autoRule: null,
       stage: null,
@@ -339,7 +347,7 @@ async function collectJournal(scope: JournalScope, limit: number): Promise<Journ
       kind: "stage",
       at: r.changedAt,
       body: null,
-      actorLabel: actorLabelOf(r),
+      actorLabel: actorLabelOf(r, t),
       partnerName: null,
       autoRule: null,
       stage: {
@@ -363,7 +371,7 @@ async function collectJournal(scope: JournalScope, limit: number): Promise<Journ
       kind: r.type as JournalKind,
       at: r.createdAt,
       body: r.message,
-      actorLabel: actorLabelOf(r),
+      actorLabel: actorLabelOf(r, t),
       partnerName: r.sharePartnerName,
       autoRule: null,
       stage: null,
@@ -400,7 +408,7 @@ async function collectJournal(scope: JournalScope, limit: number): Promise<Journ
       kind: "deal_created",
       at: r.createdAt,
       body: null,
-      actorLabel: r.createdBy ? r.creatorName || r.creatorEmail || "Utilisateur" : null,
+      actorLabel: r.createdBy ? r.creatorName || r.creatorEmail || t("utilisateur") : null,
       partnerName: null,
       autoRule: null,
       stage: null,
@@ -420,9 +428,9 @@ async function collectJournal(scope: JournalScope, limit: number): Promise<Journ
       at: r.receivedAt,
       body: r.matched
         ? r.enriched.length > 0
-          ? `Fiche existante complétée : ${r.enriched.join(", ")}.`
-          : "Fiche existante, déjà à jour : rien à compléter."
-        : "Nouvelle fiche créée.",
+          ? t("fiche_existante_completee", { join: r.enriched.map((f) => fieldLabel(f, t)).join(", ") })
+          : t("fiche_existante_deja_a_jour_rien_e67c")
+        : t("nouvelle_fiche_creee"),
       actorLabel: r.simulator ?? "site",
       partnerName: null,
       autoRule: null,
@@ -432,7 +440,7 @@ async function collectJournal(scope: JournalScope, limit: number): Promise<Journ
       contactId: r.contactId,
       contactName: r.contactName,
       activityId: null,
-      originLabel: r.originLabel ?? r.originRaw ?? r.simulator ?? "origine non renseignée",
+      originLabel: r.originLabel ?? r.originRaw ?? r.simulator ?? t("origine_non_renseignee"),
     });
   }
 
@@ -441,9 +449,9 @@ async function collectJournal(scope: JournalScope, limit: number): Promise<Journ
 }
 
 /** Le journal d'une fiche contact : ses interactions, ses tâches faites, et tout ce qui arrive à ses affaires. */
-export async function listContactJournal(user: OrgScopeUser, contactId: string, limit = JOURNAL_LIMIT): Promise<Journal> {
+export async function listContactJournal(user: OrgScopeUser, contactId: string, t: TranslatorOf<"activities.queries">, limit = JOURNAL_LIMIT): Promise<Journal> {
   const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, contactId) });
-  if (!contact) throw new Error("Contact introuvable.");
+  if (!contact) throw new AppError("contact_introuvable", undefined, 404);
   assertOrgAccess(user, contact.organizationId);
 
   const contactDeals = await db
@@ -453,22 +461,23 @@ export async function listContactJournal(user: OrgScopeUser, contactId: string, 
 
   return collectJournal(
     { organizationId: contact.organizationId, contactId, dealIds: contactDeals.map((d) => d.id) },
-    limit
+    limit,
+    t
   );
 }
 
 /** Le journal d'une affaire : ses interactions, ses passages d'étape, son histoire PRM, ses tâches faites. */
-export async function listDealJournal(user: OrgScopeUser, dealId: string, limit = JOURNAL_LIMIT): Promise<Journal> {
+export async function listDealJournal(user: OrgScopeUser, dealId: string, t: TranslatorOf<"activities.queries">, limit = JOURNAL_LIMIT): Promise<Journal> {
   const deal = await db.query.deals.findFirst({ where: eq(deals.id, dealId) });
-  if (!deal) throw new Error("Affaire introuvable.");
+  if (!deal) throw new AppError("affaire_introuvable", undefined, 404);
   assertOrgAccess(user, deal.organizationId);
-  return collectJournal({ organizationId: deal.organizationId, dealIds: [dealId] }, limit);
+  return collectJournal({ organizationId: deal.organizationId, dealIds: [dealId] }, limit, t);
 }
 
 /** L'activité récente de toute l'organisation — le tableau de bord. Vide sans organisation (vue globale super admin). */
-export async function listOrganizationJournal(user: OrgScopeUser, limit: number): Promise<Journal> {
+export async function listOrganizationJournal(user: OrgScopeUser, limit: number, t: TranslatorOf<"activities.queries">): Promise<Journal> {
   if (!user.organizationId) return { entries: [], truncated: false };
-  return collectJournal({ organizationId: user.organizationId }, limit);
+  return collectJournal({ organizationId: user.organizationId }, limit, t);
 }
 
 // ---------------------------------------------------------------------------
@@ -522,7 +531,7 @@ export type ActivityInput = {
  */
 export async function createActivity(user: OrgScopeUser, createdBy: string, input: ActivityInput) {
   if (!input.contactId && !input.dealId) {
-    throw new Error("Une interaction se rattache à un contact ou à une affaire.");
+    throw new AppError("une_interaction_se_rattache_a_un_contact_b8a7");
   }
 
   let organizationId: string | null = null;
@@ -530,7 +539,7 @@ export async function createActivity(user: OrgScopeUser, createdBy: string, inpu
 
   if (input.dealId) {
     const deal = await db.query.deals.findFirst({ where: eq(deals.id, input.dealId) });
-    if (!deal) throw new Error("Affaire introuvable.");
+    if (!deal) throw new AppError("affaire_introuvable", undefined, 404);
     assertOrgAccess(user, deal.organizationId);
     organizationId = deal.organizationId;
     if (!contactId && deal.contactId) contactId = deal.contactId;
@@ -538,13 +547,13 @@ export async function createActivity(user: OrgScopeUser, createdBy: string, inpu
 
   if (contactId) {
     const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, contactId) });
-    if (!contact) throw new Error("Contact introuvable.");
+    if (!contact) throw new AppError("contact_introuvable", undefined, 404);
     assertOrgAccess(user, contact.organizationId);
     if (organizationId && contact.organizationId !== organizationId) {
-      throw new Error("Ce contact et cette affaire n'appartiennent pas à la même organisation.");
+      throw new AppError("ce_contact_et_cette_affaire_n_appartiennent_2f3d");
     }
     if (contact.deletedAt) {
-      if (input.contactId) throw new Error("Cette fiche a été supprimée : on n'y consigne plus rien.");
+      if (input.contactId) throw new AppError("cette_fiche_a_ete_supprimee_on_n_c812");
       // Affaire dont le client a été supprimé : l'interaction vit sur l'affaire seule.
       contactId = null;
     }
@@ -553,11 +562,11 @@ export async function createActivity(user: OrgScopeUser, createdBy: string, inpu
 
   const content = input.content?.trim() || null;
   if (input.type === "note" && !content) {
-    throw new Error("Une note sans texte n'a rien à dire — écris-la, ou choisis « Appel », « Email » ou « Rendez-vous ».");
+    throw new AppError("une_note_sans_texte_n_a_rien_9ef4");
   }
   const occurredAt = input.occurredAt ?? new Date();
   if (occurredAt.getTime() > Date.now() + FUTURE_TOLERANCE_MS) {
-    throw new Error("Le journal consigne ce qui a eu lieu, pas ce qui vient — pour un rendez-vous à venir, crée une tâche.");
+    throw new AppError("le_journal_consigne_ce_qui_a_eu_fdc0");
   }
 
   const [activity] = await db
@@ -577,7 +586,7 @@ export async function createActivity(user: OrgScopeUser, createdBy: string, inpu
 
 export async function deleteActivity(user: OrgScopeUser, activityId: string) {
   const activity = await db.query.activities.findFirst({ where: eq(activities.id, activityId) });
-  if (!activity) throw new Error("Interaction introuvable.");
+  if (!activity) throw new AppError("interaction_introuvable", undefined, 404);
   assertOrgAccess(user, activity.organizationId);
   await db.delete(activities).where(eq(activities.id, activity.id));
 }

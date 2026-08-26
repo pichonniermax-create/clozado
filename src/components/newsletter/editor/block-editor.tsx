@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BLOCK_LABELS, type AnyBlock } from "@/lib/newsletter/blocks";
+import type { AnyBlock } from "@/lib/newsletter/blocks";
+import { useTranslations } from "next-intl";
 
 /**
  * Les formulaires d'édition, affichés À LA PLACE du bloc dans le document.
@@ -38,9 +39,9 @@ function Field({
 
 /** Niveaux de titre nommés par leur rôle — jamais « 1 / 2 / 3 ». */
 const TITLE_LEVELS = [
-  { value: 1 as const, label: "Titre principal", hint: "En haut de l'email, une seule fois" },
-  { value: 2 as const, label: "Sous-titre", hint: "Ouvre une section" },
-  { value: 3 as const, label: "Petit titre", hint: "À l'intérieur d'une section" },
+  { value: 1 as const },
+  { value: 2 as const },
+  { value: 3 as const },
 ];
 
 export function BlockEditor({
@@ -50,29 +51,30 @@ export function BlockEditor({
   block: AnyBlock;
   onChange: (next: AnyBlock) => void;
 }) {
+  const t = useTranslations("newsletters.blockEditor");
   switch (block.type) {
     case "titre":
       return (
         <div className="flex flex-col gap-4">
           <Field
-            label="Surtitre"
-            hint="Facultatif — un ou deux mots au-dessus du titre, en petites capitales."
+            label={t("surtitre")}
+            hint={t("facultatif_un_ou_deux_mots_au_48c2")}
           >
             <Input
               value={block.eyebrow}
               onChange={(e) => onChange({ ...block, eyebrow: e.target.value })}
-              placeholder="Ex : Marché"
+              placeholder={t("ex_marche")}
             />
           </Field>
-          <Field label="Titre">
+          <Field label={t("titre")}>
             <Input
               value={block.text}
               onChange={(e) => onChange({ ...block, text: e.target.value })}
-              placeholder="Ex : Les taux repassent sous les 3 %"
+              placeholder={t("ex_les_taux_repassent_sous_les_ed77")}
               autoFocus
             />
           </Field>
-          <Field label="Niveau">
+          <Field label={t("niveau")}>
             <div className="flex flex-col gap-1.5">
               {TITLE_LEVELS.map((lvl) => (
                 <label
@@ -87,8 +89,8 @@ export function BlockEditor({
                     onChange={() => onChange({ ...block, level: lvl.value })}
                   />
                   <span>
-                    {lvl.label}
-                    <span className="block text-xs text-muted-foreground">{lvl.hint}</span>
+                    {t(`levels.${lvl.value}.label`)}
+                    <span className="block text-xs text-muted-foreground">{t(`levels.${lvl.value}.hint`)}</span>
                   </span>
                 </label>
               ))}
@@ -99,12 +101,12 @@ export function BlockEditor({
 
     case "texte":
       return (
-        <Field label="Texte" hint="Laisse une ligne vide pour commencer un nouveau paragraphe.">
+        <Field label={t("texte")} hint={t("laisse_une_ligne_vide_pour_commencer_dc83")}>
           <Textarea
             value={block.text}
             onChange={(e) => onChange({ ...block, text: e.target.value })}
             className="min-h-32"
-            placeholder="Écris ici…"
+            placeholder={t("ecris_ici")}
             autoFocus
           />
         </Field>
@@ -113,33 +115,33 @@ export function BlockEditor({
     case "chiffre_cle":
       return (
         <div className="flex flex-col gap-4">
-          <Field label="Le chiffre" hint="Tel qu'il doit s'afficher, unité comprise.">
+          <Field label={t("le_chiffre")} hint={t("tel_qu_il_doit_s_afficher_191c")}>
             <Input
               value={block.value}
               onChange={(e) => onChange({ ...block, value: e.target.value })}
-              placeholder="Ex : 3,1 %"
+              placeholder={t("ex_3_1")}
               autoFocus
             />
           </Field>
-          <Field label="Ce qu'il mesure">
+          <Field label={t("ce_qu_il_mesure")}>
             <Input
               value={block.label}
               onChange={(e) => onChange({ ...block, label: e.target.value })}
-              placeholder="Ex : Taux moyen sur 20 ans"
+              placeholder={t("ex_taux_moyen_sur_20_ans")}
             />
           </Field>
           <Field
-            label="Précision"
-            hint="Facultatif. Si tu en mets une, mets-en une sur tous les chiffres de la rangée — sinon elle est ignorée."
+            label={t("precision")}
+            hint={t("facultatif_si_tu_en_mets_une_8985")}
           >
             <Input
               value={block.caption}
               onChange={(e) => onChange({ ...block, caption: e.target.value })}
-              placeholder="Ex : hors assurance"
+              placeholder={t("ex_hors_assurance")}
             />
           </Field>
           <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-            Deux chiffres clés qui se suivent s&apos;affichent côte à côte dans l&apos;email.
+            {t("deux_chiffres_cles_qui_se_suivent_b859")}
           </p>
         </div>
       );
@@ -151,7 +153,7 @@ export function BlockEditor({
             <div key={i} className="flex flex-col gap-3 rounded-lg border border-border p-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-muted-foreground">
-                  Fiche {i + 1}
+                  {t("fiche", { n: i + 1 })}
                 </span>
                 {block.cards.length > 2 && (
                   <Button
@@ -162,11 +164,11 @@ export function BlockEditor({
                       onChange({ ...block, cards: block.cards.filter((_, n) => n !== i) })
                     }
                   >
-                    Retirer
+                    {t("retirer")}
                   </Button>
                 )}
               </div>
-              <Field label="Titre">
+              <Field label={t("titre")}>
                 <Input
                   value={card.title}
                   onChange={(e) =>
@@ -177,10 +179,10 @@ export function BlockEditor({
                       ),
                     })
                   }
-                  placeholder="Ex : Avant de signer"
+                  placeholder={t("ex_avant_de_signer")}
                 />
               </Field>
-              <Field label="Texte">
+              <Field label={t("texte")}>
                 <Textarea
                   value={card.text}
                   onChange={(e) =>
@@ -192,7 +194,7 @@ export function BlockEditor({
                     })
                   }
                   className="min-h-20"
-                  placeholder="Deux ou trois lignes suffisent."
+                  placeholder={t("deux_ou_trois_lignes_suffisent")}
                 />
               </Field>
             </div>
@@ -207,44 +209,44 @@ export function BlockEditor({
                 onChange({ ...block, cards: [...block.cards, { title: "", text: "" }] })
               }
             >
-              Ajouter une fiche
+              {t("ajouter_une_fiche")}
             </Button>
           )}
-          <p className="text-xs text-muted-foreground">Entre 2 et 4 fiches.</p>
+          <p className="text-xs text-muted-foreground">{t("entre_2_et_4_fiches")}</p>
         </div>
       );
 
     case "cta":
       return (
         <div className="flex flex-col gap-4">
-          <Field label="Titre de l'encart">
+          <Field label={t("titre_de_l_encart")}>
             <Input
               value={block.title}
               onChange={(e) => onChange({ ...block, title: e.target.value })}
-              placeholder="Ex : Un projet en cours ?"
+              placeholder={t("ex_un_projet_en_cours")}
               autoFocus
             />
           </Field>
-          <Field label="Texte de l'encart">
+          <Field label={t("texte_de_l_encart")}>
             <Textarea
               value={block.text}
               onChange={(e) => onChange({ ...block, text: e.target.value })}
               className="min-h-20"
-              placeholder="Une phrase qui donne envie de cliquer."
+              placeholder={t("une_phrase_qui_donne_envie_de_ae4d")}
             />
           </Field>
-          <Field label="Texte du bouton">
+          <Field label={t("texte_du_bouton")}>
             <Input
               value={block.buttonLabel}
               onChange={(e) => onChange({ ...block, buttonLabel: e.target.value })}
-              placeholder="Ex : Prendre rendez-vous"
+              placeholder={t("ex_prendre_rendez_vous")}
             />
           </Field>
-          <Field label="Lien" hint="L'adresse vers laquelle le bouton envoie.">
+          <Field label={t("lien")} hint={t("l_adresse_vers_laquelle_le_bouton_360b")}>
             <Input
               value={block.url}
               onChange={(e) => onChange({ ...block, url: e.target.value })}
-              placeholder="https://…"
+              placeholder={t("https")}
             />
           </Field>
         </div>
@@ -253,19 +255,19 @@ export function BlockEditor({
     case "bouton":
       return (
         <div className="flex flex-col gap-4">
-          <Field label="Texte du bouton">
+          <Field label={t("texte_du_bouton")}>
             <Input
               value={block.label}
               onChange={(e) => onChange({ ...block, label: e.target.value })}
-              placeholder="Ex : Prendre rendez-vous"
+              placeholder={t("ex_prendre_rendez_vous")}
               autoFocus
             />
           </Field>
-          <Field label="Lien" hint="L'adresse vers laquelle le bouton envoie.">
+          <Field label={t("lien")} hint={t("l_adresse_vers_laquelle_le_bouton_360b")}>
             <Input
               value={block.url}
               onChange={(e) => onChange({ ...block, url: e.target.value })}
-              placeholder="https://…"
+              placeholder={t("https")}
             />
           </Field>
         </div>
@@ -274,12 +276,13 @@ export function BlockEditor({
     case "separateur":
       return (
         <p className="text-sm text-muted-foreground">
-          Un trait horizontal qui sépare deux parties de l&apos;email. Rien à régler.
+          {t("un_trait_horizontal_qui_separe_deux_6e97")}
         </p>
       );
   }
 }
 
-export function blockEditorTitle(block: AnyBlock): string {
-  return BLOCK_LABELS[block.type];
+/** Le titre de l'éditeur d'un bloc : le libellé de son type, dans la langue de la personne. */
+export function blockEditorTitle(block: AnyBlock, t: (key: `blocks.${AnyBlock["type"]}.label`) => string): string {
+  return t(`blocks.${block.type}.label`);
 }

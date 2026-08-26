@@ -48,44 +48,36 @@ import {
   writeFromBasketAction,
 } from "@/lib/watch/actions";
 import { scheduleWatchRefresh } from "@/lib/watch/schedule";
+import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /** La collecte lancée à la visite s'exécute après la réponse : la fonction reste en vie le temps de son budget (120 s) et d'une marge. */
 export const maxDuration = 180;
 
-const DESCRIPTION =
-  "La matière de tes newsletters : ce que publient les sources que tu suis, classé par sujet et résumé avec nos mots — jamais un extrait d'article.";
 
 const SELECT_CLASS = "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm";
 
-const COUNTRIES = [
-  ["", "Pays inconnu"],
-  ["FR", "France"],
-  ["BE", "Belgique"],
-  ["CH", "Suisse"],
-  ["LU", "Luxembourg"],
-  ["EU", "Union européenne"],
-  ["GB", "Royaume-Uni"],
-  ["US", "États-Unis"],
-  ["DE", "Allemagne"],
-  ["ES", "Espagne"],
-  ["IT", "Italie"],
-] as const;
+/** Les pays proposés pour une source ; leurs noms sont `watch.page.countries.<code>` (« unknown » pour un pays inconnu). */
+const COUNTRY_CODES = ["", "FR", "BE", "CH", "LU", "EU", "GB", "US", "DE", "ES", "IT"] as const;
 
 export default async function WatchPage({
   searchParams,
 }: {
   searchParams: Promise<{ erreur?: string; info?: string }>;
 }) {
+  const tr = await getTranslations("watch.page");
+  const tm = await getTranslations("metrics");
+  const tt = await getTranslations("templates");
   const user = await requireUser();
   const params = await searchParams;
 
   if (!user.organizationId) {
     return (
       <>
-        <PageHeader title="Veille" description={DESCRIPTION} />
+        <PageHeader title={tr("veille")} description={tr("description")} />
         <EmptyState>
-          Tu es en vue globale : choisis une organisation dans le bandeau super admin en haut de l&apos;écran pour voir
-          sa veille.
+          {tr("tu_es_en_vue_globale_choisis_92cd")}
         </EmptyState>
       </>
     );
@@ -110,7 +102,7 @@ export default async function WatchPage({
   const archivedTopics = topics.filter((t) => t.archivedAt);
   const activeSources = sources.filter((s) => !s.archivedAt);
   const archivedSources = sources.filter((s) => s.archivedAt);
-  const missing = missingPackWatch(pack, topics, sources, followedKeys);
+  const missing = missingPackWatch(pack, topics, sources, followedKeys, tt);
   const missingCount = missing.topics.length + missing.sources.length + missing.indicators.length;
   const hasSetup = activeTopics.length > 0 || activeSources.length > 0;
 
@@ -134,18 +126,18 @@ export default async function WatchPage({
     if (topic) byTopic.set(topic.id, [...(byTopic.get(topic.id) ?? []), item]);
     else others.push(item);
   }
-  const packLabel = `Suivre la veille du métier « ${pack.label} » (${missing.topics.length} sujet${missing.topics.length > 1 ? "s" : ""}, ${missing.sources.length} source${missing.sources.length > 1 ? "s" : ""}, ${missing.indicators.length} indicateur${missing.indicators.length > 1 ? "s" : ""})`;
+  const packLabel = tr("suivre_la_veille_du_metier_sujet_7ee5", { label: tm(`packs.${pack.key}.label`), count: missing.topics.length, count2: missing.sources.length, count3: missing.indicators.length });
 
   return (
     <>
       <PageHeader
-        title="Veille"
-        description={DESCRIPTION}
+        title={tr("veille")}
+        description={tr("description")}
         actions={
           <form action={refreshWatchAction}>
             <Button type="submit" variant="outline" disabled={!hasSetup || Boolean(running)}>
               <RefreshCw />
-              {running ? "Collecte en cours…" : "Actualiser maintenant"}
+              {running ? tr("collecte_en_cours") : tr("actualiser_maintenant")}
             </Button>
           </form>
         }
@@ -162,7 +154,7 @@ export default async function WatchPage({
 
       {!hasSetup ? (
         <EmptyState
-          title="Aucune veille pour l'instant"
+          title={tr("aucune_veille_pour_l_instant")}
           action={
             <>
               {missingCount > 0 && (
@@ -171,22 +163,15 @@ export default async function WatchPage({
                 </form>
               )}
               <a href="#sujets" className={buttonVariants({ variant: "outline" })}>
-                Ajouter un sujet à la main
+                {tr("ajouter_un_sujet_a_la_main")}
               </a>
             </>
           }
         >
-          Déclare les sujets qui comptent pour tes lecteurs et les sites ou flux que tu suis : à chaque collecte, les
-          nouveaux articles arrivent datés, classés par sujet et résumés avec nos mots. Ton métier en propose pour
-          commencer — chaque élément se modifie ensuite.
+          {tr("declare_les_sujets_qui_comptent_pour_a153")}
           {!chosen && (
             <>
-              {" "}
-              Aucun pack métier n&apos;est choisi : ce sont les sujets « Tout métier ».{" "}
-              <Link href="/settings#pack-metier" className="underline underline-offset-2">
-                Choisir mon métier
-              </Link>
-              .
+              {tr.rich("aucun_pack_metier_n_est_choisi_436c", { link: (chunks) => <Link href="/settings#pack-metier" className="underline underline-offset-2">{chunks}</Link> })}
             </>
           )}
         </EmptyState>
@@ -196,13 +181,13 @@ export default async function WatchPage({
 
           <section className="flex flex-col gap-4">
             <h2 className="text-sm font-semibold tabular-nums">
-              {items.length} article{items.length > 1 ? "s" : ""} collecté{items.length > 1 ? "s" : ""}
+              {tr("article_articles_collecte_collectes", { count: items.length })}
             </h2>
             {items.length === 0 ? (
               <EmptyState>
                 {running
-                  ? "La collecte est en cours : les premiers articles apparaissent dans quelques secondes."
-                  : "Aucun article pour l'instant. Lance une collecte, ou vérifie que tes sources ont un flux et que tes sujets ont des termes de recherche."}
+                  ? tr("la_collecte_est_en_cours_les_7fdb")
+                  : tr("aucun_article_pour_l_instant_lance_ccd0")}
               </EmptyState>
             ) : (
               <>
@@ -211,11 +196,9 @@ export default async function WatchPage({
                   if (rows.length === 0) return null;
                   return <TopicArticles key={topic.id} title={topic.label} rows={rows} />;
                 })}
-                {others.length > 0 && <TopicArticles title="Autres articles" rows={others} />}
+                {others.length > 0 && <TopicArticles title={tr("autres_articles")} rows={others} />}
                 <p className="text-xs text-muted-foreground">
-                  Rien du texte des articles n&apos;est conservé : un titre, un lien, une date, un éditeur, un pays, et un
-                  résumé écrit avec nos mots. Un résumé qui reprenait douze mots d&apos;un article a été refusé et n&apos;a pas
-                  été gardé.
+                  {tr("rien_du_texte_des_articles_n_63f8")}
                 </p>
               </>
             )}
@@ -224,25 +207,21 @@ export default async function WatchPage({
       )}
 
       {missingCount > 0 && hasSetup && (
-        <DetailsCard variant="archive" summary={`Proposé par ton métier — ${pack.label} (${missingCount})`}>
+        <DetailsCard variant="archive" summary={tr("propose_par_ton_metier", { label: tm(`packs.${pack.key}.label`), missingCount })}>
           <div className="flex flex-col gap-3 text-sm">
             {missing.topics.length > 0 && (
               <p>
-                <span className="font-medium">Sujets :</span> {missing.topics.map((t) => t.label).join(", ")}
+                {tr.rich("sujets", { join: missing.topics.map((tpl) => tt(`topics.${tpl.slug}.label`)).join(", "), span: (chunks) => <span className="font-medium">{chunks}</span> })}
               </p>
             )}
             {missing.sources.length > 0 && (
               <p>
-                <span className="font-medium">Sources :</span> {missing.sources.map((s) => s.label).join(", ")}
+                {tr.rich("sources", { join: missing.sources.map((s) => tt(`sources.${s.slug}`)).join(", "), span: (chunks) => <span className="font-medium">{chunks}</span> })}
               </p>
             )}
             {missing.indicators.length > 0 && (
               <p>
-                <span className="font-medium">Indicateurs de marché :</span> {missing.indicators.length} — visibles sur l&apos;écran{" "}
-                <Link href="/chiffres" className="underline underline-offset-2">
-                  Chiffres
-                </Link>
-                .
+                {tr.rich("indicateurs_de_marche_visibles_sur_l_a621", { count: missing.indicators.length, span: (chunks) => <span className="font-medium">{chunks}</span>, link: (chunks) => <Link href="/chiffres" className="underline underline-offset-2">{chunks}</Link> })}
               </p>
             )}
             <form action={createPackWatchAction}>
@@ -258,17 +237,17 @@ export default async function WatchPage({
       <SourcesSection sources={activeSources} archived={archivedSources} topics={activeTopics} />
 
       {runs.length > 0 && (
-        <DetailsCard variant="archive" summary={`Dernières collectes (${runs.length})`} flush>
+        <DetailsCard variant="archive" summary={tr("dernieres_collectes", { count: runs.length })} flush>
           <ul className="divide-y divide-border text-sm">
             {runs.map((run) => (
               <li key={run.id} className="flex flex-col gap-0.5 px-4 py-2.5">
                 <span className="tabular-nums">
-                  {formatDateTime(run.startedAt)} — {run.trigger === "manual" ? "à la main" : run.trigger === "cron" ? "programmée" : "à la visite"}
-                  {run.finishedAt ? "" : " — en cours"}
+                  {formatDateTime(run.startedAt)} — {run.trigger === "manual" ? tr("a_la_main") : run.trigger === "cron" ? tr("programmee") : tr("a_la_visite")}
+                  {run.finishedAt ? "" : <>{" "}{tr("en_cours")}</>}
                 </span>
                 <span className="text-xs tabular-nums text-muted-foreground">
                   {run.finishedAt
-                    ? `${run.itemsNew} nouveau${run.itemsNew > 1 ? "x" : ""}, ${run.itemsSummarized} résumé${run.itemsSummarized > 1 ? "s" : ""}, ${run.sourcesOk} source${run.sourcesOk > 1 ? "s" : ""} lue${run.sourcesOk > 1 ? "s" : ""}${run.sourcesFailed ? `, ${run.sourcesFailed} en échec` : ""}`
+                    ? tr("nouveau_nouveaux_resume_resumes_source_sources_44fe", { itemsNew: run.itemsNew, itemsSummarized: run.itemsSummarized, sourcesOk: run.sourcesOk, value: run.sourcesFailed ? tr("en_echec", { sourcesFailed: run.sourcesFailed }) : "" })
                     : "démarrée " + formatRelativeTime(run.startedAt)}
                   {run.error ? ` — ${run.error}` : ""}
                 </span>
@@ -282,34 +261,32 @@ export default async function WatchPage({
 }
 
 function RunStatus({ running, latestFinished }: { running: WatchRun | null; latestFinished: WatchRun | null }) {
+  const t = useTranslations("watch.page");
   if (running) {
     return (
       <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-        Collecte en cours — démarrée {formatRelativeTime(running.startedAt)}. Les nouveautés apparaissent au fil de l&apos;eau ;
-        la page se met à jour d&apos;elle-même.
+        {t("collecte_en_cours_demarree_les_nouveautes_2443", { formatRelativeTime: formatRelativeTime(running.startedAt) })}
       </p>
     );
   }
   if (!latestFinished?.finishedAt) {
-    return <p className="text-sm text-muted-foreground">Aucune collecte terminée pour l&apos;instant.</p>;
+    return <p className="text-sm text-muted-foreground">{t("aucune_collecte_terminee_pour_l_instant")}</p>;
   }
   const r = latestFinished;
   return (
     <p className="text-sm tabular-nums text-muted-foreground">
-      Dernière collecte {formatRelativeTime(r.finishedAt!)} : {r.itemsNew} nouveau{r.itemsNew > 1 ? "x" : ""} article
-      {r.itemsNew > 1 ? "s" : ""}, {r.itemsSummarized} résumé{r.itemsSummarized > 1 ? "s" : ""}, {r.sourcesOk} source
-      {r.sourcesOk > 1 ? "s" : ""} lue{r.sourcesOk > 1 ? "s" : ""}
-      {r.sourcesFailed ? `, ${r.sourcesFailed} en échec` : ""}.{r.error ? ` ${r.error}` : ""}
+      {t("derniere_collecte_nouveau_nouveaux_article_articles_2c84", { formatRelativeTime: formatRelativeTime(r.finishedAt!), itemsNew: r.itemsNew, itemsSummarized: r.itemsSummarized, sourcesOk: r.sourcesOk, value: r.sourcesFailed ? t("en_echec", { sourcesFailed: r.sourcesFailed }) : "", value2: r.error ? ` ${r.error}` : "" })}
     </p>
   );
 }
 
 function BasketSection({ basket, targets }: { basket: WatchItemRow[]; targets: { id: string; label: string; count: number }[] }) {
+  const tr = useTranslations("watch.page");
   if (basket.length === 0) {
     return (
       <p id="panier" className="text-sm text-muted-foreground">
         <ShoppingBasket className="mr-1 inline size-4" />
-        Le panier est vide : mets de côté les articles qui t&apos;intéressent, puis écris une newsletter à partir d&apos;eux.
+        {tr("le_panier_est_vide_mets_de_fc38")}
       </p>
     );
   }
@@ -318,11 +295,11 @@ function BasketSection({ basket, targets }: { basket: WatchItemRow[]; targets: {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-sm font-semibold tabular-nums">
           <ShoppingBasket className="size-4" />
-          Panier — {basket.length} article{basket.length > 1 ? "s" : ""} mis de côté
+          {tr("panier_article_articles_mis_de_cote", { count: basket.length })}
         </h2>
         <form action={clearBasketAction}>
           <Button type="submit" variant="ghost" size="sm">
-            Vider le panier
+            {tr("vider_le_panier")}
           </Button>
         </form>
       </div>
@@ -335,12 +312,12 @@ function BasketSection({ basket, targets }: { basket: WatchItemRow[]; targets: {
               </a>
               <span className="truncate text-xs tabular-nums text-muted-foreground">
                 {[item.publisher, item.publishedAt ? formatDate(item.publishedAt) : null].filter(Boolean).join(" · ")}
-                {item.usedIn > 0 ? ` · déjà utilisé dans ${item.usedIn} newsletter${item.usedIn > 1 ? "s" : ""}` : ""}
+                {item.usedIn > 0 ? tr("deja_utilise_dans_newsletter_newsletters", { usedIn: item.usedIn }) : ""}
               </span>
             </span>
             <form action={removeFromBasketAction.bind(null, item.id)}>
               <Button type="submit" variant="ghost" size="sm">
-                Retirer
+                {tr("retirer")}
               </Button>
             </form>
           </li>
@@ -348,26 +325,22 @@ function BasketSection({ basket, targets }: { basket: WatchItemRow[]; targets: {
       </ul>
       {targets.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Il faut une cible pour écrire :{" "}
-          <Link href="/cibles" className="underline underline-offset-2">
-            créer une cible
-          </Link>
-          .
+          {tr.rich("il_faut_une_cible_pour_ecrire_ac2e", { link: (chunks) => <Link href="/cibles" className="underline underline-offset-2">{chunks}</Link> })}
         </p>
       ) : (
         <form action={writeFromBasketAction} className="flex flex-wrap items-end gap-3">
-          <Field label="Pour quelle cible" htmlFor="basket-target">
+          <Field label={tr("pour_quelle_cible")} htmlFor="basket-target">
             <select id="basket-target" name="targetId" className={SELECT_CLASS} defaultValue={targets[0]?.id} required>
               {targets.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.label} · {t.count} contact{t.count > 1 ? "s" : ""}
+                  {tr("contact_contacts", { label: t.label, count: t.count })}
                 </option>
               ))}
             </select>
           </Field>
           <Button type="submit">
             <Sparkles />
-            Écrire une newsletter à partir de ça
+            {tr("ecrire_une_newsletter_a_partir_de_f06e")}
           </Button>
         </form>
       )}
@@ -390,20 +363,21 @@ function TopicArticles({ title, rows }: { title: string; rows: WatchItemRow[] })
   );
 }
 
-function summaryStateLabel(item: WatchItemRow): string {
+function summaryStateLabel(item: WatchItemRow, t: TranslatorOf<"watch.page">): string {
   switch (item.summaryState) {
     case "pending":
-      return "Résumé en attente — à la prochaine collecte.";
+      return t("resume_en_attente_a_la_prochaine_4452");
     case "refused":
-      return "Résumé refusé : la formulation reprenait l'article — rien n'a été conservé.";
+      return t("resume_refuse_la_formulation_reprenait_l_a09f");
     case "failed":
-      return item.angle ? `Résumé impossible : ${item.angle}.` : "Résumé impossible : page non lisible.";
+      return item.angle ? t("resume_impossible", { angle: item.angle }) : t("resume_impossible_page_non_lisible");
     default:
       return "";
   }
 }
 
 function ArticleRow({ item }: { item: WatchItemRow }) {
+  const t = useTranslations("watch.page");
   const meta = [
     item.publisher,
     formatCountry(item.country),
@@ -422,23 +396,23 @@ function ArticleRow({ item }: { item: WatchItemRow }) {
           <span className="text-xs tabular-nums text-muted-foreground">{meta}</span>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-1">
-          {item.usedIn > 0 && <Badge variant="secondary">{item.usedSent ? "Déjà envoyé" : "Déjà utilisé"}</Badge>}
+          {item.usedIn > 0 && <Badge variant="secondary">{item.usedSent ? t("deja_envoye") : t("deja_utilise")}</Badge>}
           {item.inBasket ? (
             <form action={removeFromBasketAction.bind(null, item.id)}>
               <Button type="submit" variant="outline" size="sm">
-                Retirer du panier
+                {t("retirer_du_panier")}
               </Button>
             </form>
           ) : (
             <form action={addToBasketAction.bind(null, item.id)}>
               <Button type="submit" variant="outline" size="sm">
-                Mettre de côté
+                {t("mettre_de_cote")}
               </Button>
             </form>
           )}
           <form action={dismissItemAction.bind(null, item.id)}>
             <Button type="submit" variant="ghost" size="sm">
-              Écarter
+              {t("ecarter")}
             </Button>
           </form>
         </div>
@@ -450,11 +424,11 @@ function ArticleRow({ item }: { item: WatchItemRow }) {
         // par le navigateur avant le formulaire — l'arbre ne correspond plus à
         // celui de React (erreur d'hydratation #418, vue au navigateur).
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span>{summaryStateLabel(item)}</span>
+          <span>{summaryStateLabel(item, t)}</span>
           {(item.summaryState === "refused" || item.summaryState === "failed") && (
             <form action={resummarizeAction.bind(null, item.id)}>
               <Button type="submit" variant="ghost" size="sm">
-                Résumer à nouveau
+                {t("resumer_a_nouveau")}
               </Button>
             </form>
           )}
@@ -470,32 +444,33 @@ function ArticleRow({ item }: { item: WatchItemRow }) {
 }
 
 function TopicForm({ topic, action, submitLabel }: { topic?: WatchTopic; action: (formData: FormData) => Promise<void>; submitLabel: string }) {
+  const t = useTranslations("watch.page");
   const id = topic?.id ?? "new";
   return (
     <form action={action} className="flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Sujet" htmlFor={`topic-label-${id}`}>
-          <Input id={`topic-label-${id}`} name="label" defaultValue={topic?.label ?? ""} required placeholder="Crédit immobilier" />
+        <Field label={t("sujet")} htmlFor={`topic-label-${id}`}>
+          <Input id={`topic-label-${id}`} name="label" defaultValue={topic?.label ?? ""} required placeholder={t("credit_immobilier")} />
         </Field>
-        <Field label="Langues des recherches" htmlFor={`topic-lang-fr-${id}`}>
+        <Field label={t("langues_des_recherches")} htmlFor={`topic-lang-fr-${id}`}>
           <span className="flex flex-wrap items-center gap-4 pt-1.5 text-sm">
             <label className="flex items-center gap-2">
               <input id={`topic-lang-fr-${id}`} type="checkbox" name="languages" value="fr" defaultChecked={topic ? topic.searchLanguages.includes("fr") : true} />
-              français
+              {t("francais")}
             </label>
             <label className="flex items-center gap-2">
               <input type="checkbox" name="languages" value="en" defaultChecked={topic?.searchLanguages.includes("en") ?? false} />
-              anglais
+              {t("anglais")}
             </label>
           </span>
         </Field>
       </div>
       <Field
-        label="Termes de recherche"
+        label={t("termes_de_recherche")}
         htmlFor={`topic-terms-${id}`}
-        hint="Un par ligne. La collecte en cherche un à chaque tour, à tour de rôle. Vide : le sujet lui-même."
+        hint={t("un_par_ligne_la_collecte_en_fd02")}
       >
-        <Textarea id={`topic-terms-${id}`} name="searchTerms" defaultValue={topic?.searchTerms.join("\n") ?? ""} className="min-h-16" placeholder={"taux crédit immobilier\nprêt immobilier banques"} />
+        <Textarea id={`topic-terms-${id}`} name="searchTerms" defaultValue={topic?.searchTerms.join("\n") ?? ""} className="min-h-16" placeholder={t("taux_credit_immobilier_pret_immobilier_banques")} />
       </Field>
       <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" variant={topic ? "outline" : "default"}>
@@ -507,10 +482,11 @@ function TopicForm({ topic, action, submitLabel }: { topic?: WatchTopic; action:
 }
 
 function TopicsSection({ topics, archived, defaultOpen }: { topics: WatchTopic[]; archived: WatchTopic[]; defaultOpen: boolean }) {
+  const t = useTranslations("watch.page");
   return (
     <section id="sujets" className="flex flex-col gap-3 scroll-mt-24">
       <h2 className="text-sm font-semibold tabular-nums">
-        {topics.length} sujet{topics.length > 1 ? "s" : ""} suivi{topics.length > 1 ? "s" : ""}
+        {t("sujet_sujets_suivi_suivis", { count: topics.length })}
       </h2>
       {topics.length > 0 && (
         <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
@@ -520,39 +496,39 @@ function TopicsSection({ topics, archived, defaultOpen }: { topics: WatchTopic[]
                 <div className="min-w-0 flex flex-col">
                   <span className="text-sm font-medium">{topic.label}</span>
                   <span className="truncate text-xs tabular-nums text-muted-foreground">
-                    {topic.searchTerms.length ? topic.searchTerms.join(" · ") : "recherché par son libellé"} —{" "}
+                    {topic.searchTerms.length ? topic.searchTerms.join(" · ") : t("recherche_par_son_libelle")} —{" "}
                     {topic.searchLanguages.map((l) => (l === "en" ? "anglais" : "français")).join(" et ")} —{" "}
-                    {topic.lastSearchedAt ? `cherché ${formatRelativeTime(topic.lastSearchedAt)}` : "jamais cherché"}
+                    {topic.lastSearchedAt ? t("cherche", { formatRelativeTime: formatRelativeTime(topic.lastSearchedAt) }) : t("jamais_cherche")}
                   </span>
                 </div>
                 <form action={archiveTopicAction.bind(null, topic.id)}>
                   <Button type="submit" variant="ghost" size="sm">
-                    Désactiver
+                    {t("desactiver")}
                   </Button>
                 </form>
               </div>
               <details className="group text-sm">
-                <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">Modifier</summary>
+                <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">{t("modifier")}</summary>
                 <div className="pt-3">
-                  <TopicForm topic={topic} action={updateTopicAction.bind(null, topic.id)} submitLabel="Enregistrer le sujet" />
+                  <TopicForm topic={topic} action={updateTopicAction.bind(null, topic.id)} submitLabel={t("enregistrer_le_sujet")} />
                 </div>
               </details>
             </li>
           ))}
         </ul>
       )}
-      <DetailsCard summary="Ajouter un sujet" defaultOpen={defaultOpen}>
-        <TopicForm action={createTopicAction} submitLabel="Ajouter le sujet" />
+      <DetailsCard summary={t("ajouter_un_sujet")} defaultOpen={defaultOpen}>
+        <TopicForm action={createTopicAction} submitLabel={t("ajouter_le_sujet")} />
       </DetailsCard>
       {archived.length > 0 && (
-        <DetailsCard variant="archive" summary={`Sujets désactivés (${archived.length})`} flush>
+        <DetailsCard variant="archive" summary={t("sujets_desactives", { count: archived.length })} flush>
           <ul className="divide-y divide-border">
             {archived.map((topic) => (
               <li key={topic.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
                 <span>{topic.label}</span>
                 <form action={restoreTopicAction.bind(null, topic.id)}>
                   <Button type="submit" variant="ghost" size="sm">
-                    Réactiver
+                    {t("reactiver")}
                   </Button>
                 </form>
               </li>
@@ -564,33 +540,34 @@ function TopicsSection({ topics, archived, defaultOpen }: { topics: WatchTopic[]
   );
 }
 
-function sourceHealth(source: WatchSource): { text: string; tone: "ok" | "warning" | "asleep" | "never" } {
+function sourceHealth(source: WatchSource, t: TranslatorOf<"watch.page">): { text: string; tone: "ok" | "warning" | "asleep" | "never" } {
   if (source.asleepAt) {
-    return { text: `En sommeil depuis le ${formatDate(source.asleepAt)} : trente jours d'échecs (${source.lastError ?? "cause inconnue"}).`, tone: "asleep" };
+    return { text: t("en_sommeil_depuis_le_trente_jours_f5f9", { formatDate: formatDate(source.asleepAt), n: source.lastError ?? t("cause_inconnue") }), tone: "asleep" };
   }
   if (source.lastError) {
     const since = source.lastOkAt ?? source.createdAt;
     const due = sourceDueAt(source);
     return {
-      text: `Injoignable depuis le ${formatDate(since)} (${source.lastError})${due ? ` — nouvel essai ${formatRelativeTime(due).replace("il y a", "dans")}` : ""}.`,
+      text: t("injoignable_depuis_le", { formatDate: formatDate(since), lastError: source.lastError, value: due ? t("nouvel_essai", { replace: formatRelativeTime(due).replace(t("il_y_a"), "dans") }) : "" }),
       tone: "warning",
     };
   }
-  if (source.lastOkAt) return { text: `Lue ${formatRelativeTime(source.lastOkAt)}.`, tone: "ok" };
-  return { text: "Pas encore lue.", tone: "never" };
+  if (source.lastOkAt) return { text: t("lue", { formatRelativeTime: formatRelativeTime(source.lastOkAt) }), tone: "ok" };
+  return { text: t("pas_encore_lue"), tone: "never" };
 }
 
 function SourcesSection({ sources, archived, topics }: { sources: WatchSource[]; archived: WatchSource[]; topics: WatchTopic[] }) {
+  const tr = useTranslations("watch.page");
   const topicLabel = (id: string | null) => (id ? (topics.find((t) => t.id === id)?.label ?? null) : null);
   return (
     <section id="sources" className="flex flex-col gap-3 scroll-mt-24">
       <h2 className="text-sm font-semibold tabular-nums">
-        {sources.length} source{sources.length > 1 ? "s" : ""} suivie{sources.length > 1 ? "s" : ""}
+        {tr("source_sources_suivie_suivies", { count: sources.length })}
       </h2>
       {sources.length > 0 && (
         <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
           {sources.map((source) => {
-            const health = sourceHealth(source);
+            const health = sourceHealth(source, tr);
             const topic = topicLabel(source.topicId);
             return (
               <li key={source.id} className="flex flex-col gap-1 px-4 py-3">
@@ -600,8 +577,8 @@ function SourcesSection({ sources, archived, topics }: { sources: WatchSource[];
                       <a href={source.siteUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
                         {source.label}
                       </a>
-                      {source.kind === "competitor" && <Badge variant="secondary">Concurrent</Badge>}
-                      {!source.feedUrl && <Badge variant="outline">Sans flux — cherchée par domaine</Badge>}
+                      {source.kind === "competitor" && <Badge variant="secondary">{tr("concurrent")}</Badge>}
+                      {!source.feedUrl && <Badge variant="outline">{tr("sans_flux_cherchee_par_domaine")}</Badge>}
                     </span>
                     <span className="truncate text-xs tabular-nums text-muted-foreground">
                       {[
@@ -618,41 +595,41 @@ function SourcesSection({ sources, archived, topics }: { sources: WatchSource[];
                     {(health.tone === "warning" || health.tone === "asleep") && (
                       <form action={retrySourceAction.bind(null, source.id)}>
                         <Button type="submit" variant="outline" size="sm">
-                          {health.tone === "asleep" ? "Réveiller" : "Réessayer"}
+                          {health.tone === "asleep" ? tr("reveiller") : tr("reessayer")}
                         </Button>
                       </form>
                     )}
                     <form action={archiveSourceAction.bind(null, source.id)}>
                       <Button type="submit" variant="ghost" size="sm">
-                        Désactiver
+                        {tr("desactiver")}
                       </Button>
                     </form>
                   </div>
                 </div>
                 <p className={`text-xs ${health.tone === "warning" || health.tone === "asleep" ? "text-warning" : "text-muted-foreground"}`}>
                   {health.text}
-                  {!source.feedUrl && !source.topicId && " Sans sujet rattaché, elle n'est pas cherchée : rattache-la à un sujet."}
+                  {!source.feedUrl && !source.topicId && tr("sans_sujet_rattache_elle_n_est_3492")}
                 </p>
               </li>
             );
           })}
         </ul>
       )}
-      <DetailsCard summary="Ajouter une source ou un flux">
+      <DetailsCard summary={tr("ajouter_une_source_ou_un_flux")}>
         <form action={createSourceAction} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Adresse du site" htmlFor="source-site" hint="Le flux RSS ou Atom est cherché sur la page d'accueil. Sans flux, la source est cherchée par son domaine.">
-              <Input id="source-site" name="siteUrl" required placeholder="https://www.exemple.fr" />
+            <Field label={tr("adresse_du_site")} htmlFor="source-site" hint={tr("le_flux_rss_ou_atom_est_b45b")}>
+              <Input id="source-site" name="siteUrl" required placeholder={tr("https_www_exemple_fr")} />
             </Field>
-            <Field label="Nom" htmlFor="source-label" hint="Vide : le nom de domaine.">
-              <Input id="source-label" name="label" placeholder="Les Échos — immobilier" />
+            <Field label={tr("nom")} htmlFor="source-label" hint={tr("vide_le_nom_de_domaine")}>
+              <Input id="source-label" name="label" placeholder={tr("les_echos_immobilier")} />
             </Field>
-            <Field label="Adresse du flux (si tu la connais)" htmlFor="source-feed">
-              <Input id="source-feed" name="feedUrl" placeholder="https://www.exemple.fr/feed/" />
+            <Field label={tr("adresse_du_flux_si_tu_la_6bff")} htmlFor="source-feed">
+              <Input id="source-feed" name="feedUrl" placeholder={tr("https_www_exemple_fr_feed")} />
             </Field>
-            <Field label="Sujet rattaché" htmlFor="source-topic" hint="Les articles de cette source sont classés dans ce sujet ; obligatoire pour une source sans flux.">
+            <Field label={tr("sujet_rattache")} htmlFor="source-topic" hint={tr("les_articles_de_cette_source_sont_a769")}>
               <select id="source-topic" name="topicId" className={SELECT_CLASS} defaultValue="">
-                <option value="">Aucun — classés par thème au résumé</option>
+                <option value="">{tr("aucun_classes_par_theme_au_resume")}</option>
                 {topics.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.label}
@@ -660,41 +637,41 @@ function SourcesSection({ sources, archived, topics }: { sources: WatchSource[];
                 ))}
               </select>
             </Field>
-            <Field label="Pays" htmlFor="source-country">
+            <Field label={tr("pays")} htmlFor="source-country">
               <select id="source-country" name="country" className={SELECT_CLASS} defaultValue="FR">
-                {COUNTRIES.map(([code, label]) => (
+                {COUNTRY_CODES.map((code) => (
                   <option key={code} value={code}>
-                    {label}
+                    {tr(`countries.${code || "unknown"}`)}
                   </option>
                 ))}
               </select>
             </Field>
-            <Field label="Langue" htmlFor="source-lang">
+            <Field label={tr("langue")} htmlFor="source-lang">
               <select id="source-lang" name="lang" className={SELECT_CLASS} defaultValue="fr">
-                <option value="fr">français</option>
-                <option value="en">anglais</option>
-                <option value="">autre</option>
+                <option value="fr">{tr("francais")}</option>
+                <option value="en">{tr("anglais")}</option>
+                <option value="">{tr("autre")}</option>
               </select>
             </Field>
           </div>
           <input type="hidden" name="kind" value="source" />
           <p className="text-xs text-muted-foreground">
-            Les concurrents nommés et l&apos;écart de contenu arrivent à l&apos;étape suivante du chantier.
+            {tr("les_concurrents_nommes_et_l_ecart_847f")}
           </p>
           <Button type="submit" className="w-fit">
-            Ajouter la source
+            {tr("ajouter_la_source")}
           </Button>
         </form>
       </DetailsCard>
       {archived.length > 0 && (
-        <DetailsCard variant="archive" summary={`Sources désactivées (${archived.length})`} flush>
+        <DetailsCard variant="archive" summary={tr("sources_desactivees", { count: archived.length })} flush>
           <ul className="divide-y divide-border">
             {archived.map((source) => (
               <li key={source.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
                 <span className="truncate">{source.label}</span>
                 <form action={restoreSourceAction.bind(null, source.id)}>
                   <Button type="submit" variant="ghost" size="sm">
-                    Réactiver
+                    {tr("reactiver")}
                   </Button>
                 </form>
               </li>

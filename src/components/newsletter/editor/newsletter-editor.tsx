@@ -37,6 +37,8 @@ import { saveNewsletter } from "@/lib/newsletter/actions";
 import { targetSummaryAction, type TargetSummary } from "@/lib/targets/actions";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /** Une cible telle que le sélecteur la montre : son nom et le nombre RÉEL de contacts qu'elle réunit aujourd'hui. */
 export type EditorTarget = { id: string; label: string; count: number };
@@ -47,16 +49,16 @@ export type EditorTarget = { id: string; label: string; count: number };
  * Ils sont reformulés ici pour l'écran, sans toucher à `review.ts` : c'est
  * le même travail de langage que sur le reste de l'éditeur.
  */
-function reviewMessage(issue: ReviewIssue): string {
+function reviewMessage(issue: ReviewIssue, t: TranslatorOf<"newsletters.newsletterEditor">): string {
   switch (issue.code) {
     case "unauthorized_figure":
-      return "Un chiffre n'est ni dans tes chiffres vérifiés, ni entre crochets — vérifie-le ou mets-le entre crochets.";
+      return t("un_chiffre_n_est_ni_dans_5699");
     case "multiple_ctas":
-      return "Il y a plusieurs invitations à cliquer. Un seul bouton ou encart par email.";
+      return t("il_y_a_plusieurs_invitations_a_a0a4");
     case "subject_too_long":
-      return "L'objet est un peu long : il risque d'être coupé dans certaines boîtes mail.";
+      return t("l_objet_est_un_peu_long_0f43");
     case "preheader_too_long":
-      return "L'aperçu est un peu long : il risque d'être coupé.";
+      return t("l_apercu_est_un_peu_long_d84d");
   }
 }
 
@@ -103,6 +105,8 @@ export type NewsletterEditorProps = {
  * voit se met à jour à la frappe.
  */
 export function NewsletterEditor({ targets, brand, signatory, initialTargetId, initialBrief, sources = [], initial }: NewsletterEditorProps) {
+  const tr = useTranslations("newsletters.newsletterEditor");
+  const tb = useTranslations("newsletters");
   const [newsletterId, setNewsletterId] = useState(initial?.id);
   const [targetId, setTargetId] = useState(initial?.targetId ?? initialTargetId ?? targets[0]?.id ?? "");
   const [subject, setSubject] = useState(initial?.subject ?? "");
@@ -229,7 +233,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
 
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => null);
-        setError(data?.error ?? "La rédaction a échoué.");
+        setError(data?.error ?? tr("la_redaction_a_echoue"));
         return;
       }
 
@@ -279,7 +283,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
         }
       }
     } catch {
-      setError("Connexion impossible. Réessaie.");
+      setError(tr("connexion_impossible_reessaie"));
     } finally {
       setGenerating(false);
     }
@@ -297,7 +301,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
       targetId,
       // Défaut intelligent : le nom du brouillon suit l'objet tant qu'on ne
       // l'a pas nommé à la main. Jamais « Sans titre » quand un objet existe.
-      title: subject.trim() || initial?.title || "Brouillon sans titre",
+      title: subject.trim() || initial?.title || tr("brouillon_sans_titre"),
       subject,
       preheader,
       brief: brief.trim() || undefined,
@@ -311,7 +315,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
       // ferait perdre ce qui n'est pas encore parti.
       window.history.replaceState(null, "", `/newsletters/${id}`);
     }
-  }, [newsletterId, targetId, subject, preheader, brief, blocks, initial?.title, sources]);
+  }, [newsletterId, targetId, subject, preheader, brief, blocks, initial?.title, sources, tr]);
 
   // Rien n'est écrit tant que le document est vide : ouvrir puis quitter
   // l'écran ne doit pas semer un brouillon fantôme dans la liste.
@@ -331,14 +335,14 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
       {/* Barre de l'éditeur : à qui — avec le nombre réel de personnes — et l'action d'enregistrement. */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Pour</span>
+          <span className="text-muted-foreground">{tr("pour")}</span>
           <Select
             value={targetId}
             onValueChange={(v) => setTargetId(String(v))}
             items={targets.map((t) => ({ label: targetLabel(t), value: t.id }))}
           >
             <SelectTrigger className="h-8 w-72">
-              <SelectValue placeholder="Choisir la cible" />
+              <SelectValue placeholder={tr("choisir_la_cible")} />
             </SelectTrigger>
             <SelectContent>
               {targets.map((t) => (
@@ -357,10 +361,10 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
             size="sm"
             onClick={undo}
             disabled={!canUndo}
-            title="Annuler la dernière action (⌘Z)"
+            title={tr("annuler_la_derniere_action_z")}
           >
             <Undo2 />
-            Annuler
+            {tr("annuler")}
           </Button>
           <SaveIndicator state={saveState} />
         </div>
@@ -376,7 +380,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
         <details className="group rounded-xl border border-border bg-card" open>
           <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium">
             <ChevronRight className="size-4 transition-transform group-open:rotate-90" />
-            Matière : {sources.length} article{sources.length > 1 ? "s" : ""} mis de côté — chaque source utilisée sera citée avec son lien
+            {tr("matiere_article_articles_mis_de_cote_0c6a", { count: sources.length })}
           </summary>
           <ul className="flex flex-col gap-3 border-t border-border p-4">
             {sources.map((s) => (
@@ -408,7 +412,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
         <div className="flex flex-col gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3">
           <p className="flex items-center gap-1.5 text-sm font-medium">
             <TriangleAlert className="size-4 shrink-0 text-warning" />
-            À vérifier avant d&apos;envoyer
+            {tr("a_verifier_avant_d_envoyer")}
           </p>
           <ul className="flex flex-col gap-1">
             {reviewIssues.map((issue, i) => (
@@ -419,10 +423,10 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
                     className="text-left underline underline-offset-2 hover:text-foreground"
                     onClick={() => setSelectedBlock(issue.blockIndex!)}
                   >
-                    {reviewMessage(issue)}
+                    {reviewMessage(issue, tr)}
                   </button>
                 ) : (
-                  reviewMessage(issue)
+                  reviewMessage(issue, tr)
                 )}
               </li>
             ))}
@@ -440,18 +444,18 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
               dans une messagerie — pas dans un panneau à part. */}
           <div className="mb-4 flex flex-col gap-2 rounded-lg bg-white/70 p-3 shadow-xs backdrop-blur-sm">
             <LineField
-              label="Objet"
+              label={tr("objet")}
               value={subject}
               onChange={setSubject}
               max={SUBJECT_MAX}
-              placeholder="Ce que le lecteur voit en premier"
+              placeholder={tr("ce_que_le_lecteur_voit_en_2bcb")}
             />
             <LineField
-              label="Aperçu"
+              label={tr("apercu")}
               value={preheader}
               onChange={setPreheader}
               max={PREHEADER_MAX}
-              placeholder="La ligne grise sous l'objet, dans la boîte de réception"
+              placeholder={tr("la_ligne_grise_sous_l_objet_ec2d")}
             />
           </div>
 
@@ -503,14 +507,14 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
                       <div className="border-y-2 border-primary bg-accent/30 p-4">
                         <div className="mb-3 flex items-center justify-between">
                           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            {blockEditorTitle(blocks[unit.indices[0]])}
+                            {blockEditorTitle(blocks[unit.indices[0]], tb)}
                           </span>
                           <div className="flex items-center gap-1">
                             <Button
                               type="button"
                               variant="ghost"
                               size="icon-sm"
-                              aria-label="Supprimer ce bloc"
+                              aria-label={tr("supprimer_ce_bloc")}
                               onClick={() => removeUnit(unit.indices)}
                             >
                               <Trash2 />
@@ -521,7 +525,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
                               size="sm"
                               onClick={() => setSelectedBlock(null)}
                             >
-                              Terminé
+                              {tr("termine")}
                             </Button>
                           </div>
                         </div>
@@ -530,7 +534,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
                             <div key={bi} className="flex flex-col gap-3">
                               {unit.indices.length > 1 && (
                                 <span className="text-xs font-medium text-muted-foreground">
-                                  Chiffre {n + 1}
+                                  {tr("chiffre", { n: n + 1 })}
                                 </span>
                               )}
                               <BlockEditor
@@ -549,7 +553,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
                             "block w-full cursor-text text-left transition-shadow",
                             "hover:shadow-[inset_0_0_0_2px_var(--color-primary)]"
                           )}
-                          aria-label={`Modifier : ${blockEditorTitle(blocks[unit.indices[0]])}`}
+                          aria-label={tr("modifier", { blockEditorTitle: blockEditorTitle(blocks[unit.indices[0]], tb) })}
                         >
                           <ShadowHtml html={unit.html} />
                         </button>
@@ -568,7 +572,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
             {generating && !empty && (
               <div className="flex items-center gap-2 px-6 py-3 text-xs text-muted-foreground">
                 <span className="inline-block h-4 w-0.5 animate-pulse bg-primary" />
-                Rédaction en cours…
+                {tr("redaction_en_cours")}
               </div>
             )}
 
@@ -592,6 +596,7 @@ function targetLabel(t: EditorTarget): string {
  * suite. Chargé à part pour ne pas retarder l'ouverture de l'éditeur.
  */
 function TargetInsight({ targetId }: { targetId: string }) {
+  const t = useTranslations("newsletters.newsletterEditor");
   // Le résumé porte l'id de la cible qui l'a produit : tant qu'il diffère de
   // la cible choisie, on est en chargement — rien n'est posé dans l'effet
   // lui-même, seulement à la réponse.
@@ -614,7 +619,7 @@ function TargetInsight({ targetId }: { targetId: string }) {
 
   if (!targetId) return null;
   if (loaded?.targetId !== targetId) {
-    return <p className="text-xs text-muted-foreground">Calcul des destinataires…</p>;
+    return <p className="text-xs text-muted-foreground">{t("calcul_des_destinataires")}</p>;
   }
   const summary = loaded.summary;
   if (summary === null) return null;
@@ -622,29 +627,24 @@ function TargetInsight({ targetId }: { targetId: string }) {
   return (
     <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
       <p>
-        <span className="font-semibold tabular-nums">{summary.count}</span> contact{summary.count > 1 ? "s" : ""} réel
-        {summary.count > 1 ? "s" : ""} aujourd&apos;hui
+        {t.rich("contact_contacts_reel_reels_aujourd_hui", { count: summary.count, span: (chunks) => <span className="font-semibold tabular-nums">{chunks}</span> })}
         {summary.count === 0 && (
-          <span className="text-muted-foreground"> — cette cible est vide, personne ne recevra cet email en l&apos;état.</span>
+          <span className="text-muted-foreground"> {t("cette_cible_est_vide_personne_ne_5121")}</span>
         )}
       </p>
       {summary.recentSends.length > 0 ? (
         <div className="flex flex-col gap-1">
-          <p className="text-xs font-medium">Déjà reçu par ces contacts — à ne pas répéter :</p>
+          <p className="text-xs font-medium">{t("deja_recu_par_ces_contacts_a_fe0a")}</p>
           <ul className="flex flex-col gap-0.5 text-xs text-muted-foreground">
             {summary.recentSends.map((s) => (
               <li key={s.id}>
-                <Link href={`/newsletters/${s.id}`} className="underline underline-offset-2 hover:text-foreground">
-                  {s.subject || s.title}
-                </Link>{" "}
-                — le {formatDate(s.sentAt)}, <span className="tabular-nums">{s.overlapPercent ?? 0} %</span> de la cible
-                {s.topics.length > 0 && ` · sujets : ${s.topics.join(", ")}`}
+                {t.rich("le_de_la_cible", { n: s.subject || s.title, formatDate: formatDate(s.sentAt), n2: s.overlapPercent ?? 0, n3: (s.topics.length > 0 && t("sujets", { join: s.topics.join(", ") })) || "", link: (chunks) => <Link href={`/newsletters/${s.id}`} className="underline underline-offset-2 hover:text-foreground">{chunks}</Link>, span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
               </li>
             ))}
           </ul>
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground">Rien d&apos;envoyé à ces contacts sur les douze derniers mois.</p>
+        <p className="text-xs text-muted-foreground">{t("rien_d_envoye_a_ces_contacts_95af")}</p>
       )}
     </div>
   );
@@ -664,6 +664,7 @@ function LineField({
   max: number;
   placeholder: string;
 }) {
+  const t = useTranslations("newsletters.newsletterEditor");
   const over = value.length > max;
   return (
     <div className="flex items-center gap-3">
@@ -680,7 +681,7 @@ function LineField({
           "shrink-0 text-xs tabular-nums",
           over ? "font-medium text-warning" : "text-muted-foreground"
         )}
-        title={over ? "Un peu long : risque d'être coupé dans certaines boîtes mail." : undefined}
+        title={over ? t("un_peu_long_risque_d_etre_49a6") : undefined}
       >
         {value.length}/{max}
       </span>
@@ -705,36 +706,37 @@ function EmptyState({
   generating: boolean;
   onAdd: (type: BlockType) => void;
 }) {
+  const t = useTranslations("newsletters.newsletterEditor");
   return (
     <div className="flex flex-col items-center gap-4 px-6 py-10">
       <div className="w-full rounded-xl border border-border bg-card p-4 shadow-xs">
         <div className="mb-2 flex items-center gap-2">
           <Sparkles className="size-4 text-primary" />
-          <span className="text-sm font-semibold">Que doit dire cet email ?</span>
+          <span className="text-sm font-semibold">{t("que_doit_dire_cet_email")}</span>
         </div>
         <Textarea
           value={brief}
           onChange={(e) => onBrief(e.target.value)}
           className="min-h-24"
-          placeholder="Ex : la baisse des taux et ce qu'elle change pour un projet d'achat cet été."
+          placeholder={t("ex_la_baisse_des_taux_et_6b32")}
         />
         <Button
           className="mt-3 w-full"
           onClick={onGenerate}
           disabled={generating || !brief.trim()}
         >
-          {generating ? "Rédaction en cours…" : "Rédiger l'email"}
+          {generating ? t("redaction_en_cours") : t("rediger_l_email")}
         </Button>
       </div>
 
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span>ou</span>
+        <span>{t("ou")}</span>
         <InsertionPoint
           onInsert={onAdd}
           trigger={
             <span className="inline-flex items-center gap-1 underline underline-offset-2">
               <Plus className="size-3" />
-              écrire moi-même
+              {t("ecrire_moi_meme")}
             </span>
           }
         />

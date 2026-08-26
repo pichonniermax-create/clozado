@@ -46,8 +46,20 @@ export const BRAND_TOKEN_NAMES = [
 export type BrandTokenName = (typeof BRAND_TOKEN_NAMES)[number];
 export type BrandTokens = Record<BrandTokenName, string>;
 
+/** Les paires vérifiées, identifiées par un code : leur libellé est `brand.pairs.<id>` dans les messages. */
+export type ContrastPairId =
+  | "button_text"
+  | "button_hover_text"
+  | "button_active_text"
+  | "button_on_background"
+  | "link_on_background"
+  | "link_on_card"
+  | "active_row_label"
+  | "hovered_row_text"
+  | "secondary_text";
+
 export type ContrastPair = {
-  label: string;
+  id: ContrastPairId;
   foreground: string;
   background: string;
   ratio: number;
@@ -55,9 +67,19 @@ export type ContrastPair = {
   ok: boolean;
 };
 
-export type BrandDiagnosticCode = "too_light" | "dark_text" | "too_dark" | "gray" | "vivid" | "links_darkened";
+/** Les diagnostics, par code : leur phrase est `brand.diagnostics.<code>` dans les messages — le sélecteur les affiche dans la langue de la personne. */
+export type BrandDiagnosticCode =
+  | "too_light"
+  | "too_dark_for_theme"
+  | "dark_text"
+  | "light_text"
+  | "too_dark_flipped"
+  | "too_light_flipped"
+  | "gray"
+  | "vivid"
+  | "links_darkened";
 
-export type BrandDiagnostic = { code: BrandDiagnosticCode; message: string };
+export type BrandDiagnostic = { code: BrandDiagnosticCode };
 
 export type DerivedBrand = {
   input: string;
@@ -230,53 +252,28 @@ export function deriveBrandTokens(input: string, theme: BrandTheme = "light"): D
     "--sidebar-ring": hex(primary),
   };
 
-  const pair = (label: string, fg: string, bg: string, required: number) => {
+  const pair = (id: ContrastPairId, fg: string, bg: string, required: number) => {
     const ratio = contrast(parseHex(fg)!, parseHex(bg)!);
-    pairs.push({ label, foreground: fg, background: bg, ratio: Math.round(ratio * 100) / 100, required, ok: ratio >= required });
+    pairs.push({ id, foreground: fg, background: bg, ratio: Math.round(ratio * 100) / 100, required, ok: ratio >= required });
   };
   const bgHex = toHex(background);
   const cardHex = toHex(card);
-  pair("texte du bouton sur la couleur", tokens["--primary-foreground"], tokens["--primary"], TEXT_MIN);
-  pair("texte du bouton au survol", tokens["--primary-foreground"], tokens["--primary-hover"], TEXT_MIN);
-  pair("texte du bouton enfoncé", tokens["--primary-foreground"], tokens["--primary-active"], TEXT_MIN);
-  pair("bouton sur le fond de page", tokens["--primary"], bgHex, COMPONENT_MIN);
-  pair("lien sur le fond de page", tokens["--primary-ink"], bgHex, TEXT_MIN);
-  pair("lien sur une carte", tokens["--primary-ink"], cardHex, TEXT_MIN);
-  pair("libellé de la ligne active sur son fond", tokens["--sidebar-accent-foreground"], tokens["--sidebar-accent"], TEXT_MIN);
-  pair("texte sur une ligne survolée", tokens["--accent-foreground"], tokens["--accent"], TEXT_MIN);
-  pair("texte secondaire sur fond secondaire", tokens["--secondary-foreground"], tokens["--secondary"], TEXT_MIN);
+  pair("button_text", tokens["--primary-foreground"], tokens["--primary"], TEXT_MIN);
+  pair("button_hover_text", tokens["--primary-foreground"], tokens["--primary-hover"], TEXT_MIN);
+  pair("button_active_text", tokens["--primary-foreground"], tokens["--primary-active"], TEXT_MIN);
+  pair("button_on_background", tokens["--primary"], bgHex, COMPONENT_MIN);
+  pair("link_on_background", tokens["--primary-ink"], bgHex, TEXT_MIN);
+  pair("link_on_card", tokens["--primary-ink"], cardHex, TEXT_MIN);
+  pair("active_row_label", tokens["--sidebar-accent-foreground"], tokens["--sidebar-accent"], TEXT_MIN);
+  pair("hovered_row_text", tokens["--accent-foreground"], tokens["--accent"], TEXT_MIN);
+  pair("secondary_text", tokens["--secondary-foreground"], tokens["--secondary"], TEXT_MIN);
 
-  if (primaryDarkened) {
-    diagnostics.push({
-      code: "too_light",
-      message: isLight
-        ? "Cette couleur est trop claire pour porter un bouton : le système l'assombrit pour les boutons et les liens, et garde sa teinte pour les fonds légers."
-        : "Cette couleur est trop sombre pour ce thème : le système l'éclaircit pour les boutons et les liens.",
-    });
-  }
-  if (foreground.name !== (isLight ? "white" : "ink")) {
-    diagnostics.push({
-      code: "dark_text",
-      message: isLight ? "Le texte des boutons sera foncé sur cette couleur, pour rester lisible." : "Le texte des boutons sera clair sur cette couleur, pour rester lisible.",
-    });
-  }
-  if (flipped) {
-    diagnostics.push({
-      code: "too_dark",
-      message: foregroundIsLight
-        ? "Une couleur aussi sombre ne peut plus s'assombrir : les survols et l'état enfoncé seront éclaircis."
-        : "Une couleur aussi claire ne peut plus s'éclaircir : les survols et l'état enfoncé seront assombris.",
-    });
-  }
-  if (isGray) {
-    diagnostics.push({ code: "gray", message: "Sans teinte, l'interface sera neutre — c'est permis." });
-  }
-  if (chosen.c > 0.25) {
-    diagnostics.push({ code: "vivid", message: "Cette couleur est très vive : les liens et les fonds légers seront adoucis pour rester lisibles." });
-  }
-  if (inkDarkened && !primaryDarkened) {
-    diagnostics.push({ code: "links_darkened", message: "Les liens et les textes à la couleur de la marque seront assombris pour rester lisibles ; les boutons gardent la couleur choisie." });
-  }
+  if (primaryDarkened) diagnostics.push({ code: isLight ? "too_light" : "too_dark_for_theme" });
+  if (foreground.name !== (isLight ? "white" : "ink")) diagnostics.push({ code: isLight ? "dark_text" : "light_text" });
+  if (flipped) diagnostics.push({ code: foregroundIsLight ? "too_dark_flipped" : "too_light_flipped" });
+  if (isGray) diagnostics.push({ code: "gray" });
+  if (chosen.c > 0.25) diagnostics.push({ code: "vivid" });
+  if (inkDarkened && !primaryDarkened) diagnostics.push({ code: "links_darkened" });
 
   return { input: normalized ?? "#2563eb", theme, tokens, pairs, diagnostics };
 }
@@ -286,14 +283,14 @@ export function brandStyle(tokens: BrandTokens): Record<string, string> {
   return { ...tokens };
 }
 
-/** Huit couleurs sobres pour les métiers de la finance et du patrimoine — un point de départ, jamais une contrainte. */
-export const BRAND_PALETTES: readonly { name: string; hex: string }[] = [
-  { name: "Bleu nuit", hex: "#1e3a5f" },
-  { name: "Bleu", hex: "#2563eb" },
-  { name: "Vert forêt", hex: "#1f5f45" },
-  { name: "Bordeaux", hex: "#7a1f2e" },
-  { name: "Ardoise", hex: "#3f4f6b" },
-  { name: "Ocre", hex: "#8a6a1f" },
-  { name: "Prune", hex: "#4b2e5e" },
-  { name: "Anthracite", hex: "#2f3136" },
-];
+/** Huit couleurs sobres pour les métiers de la finance et du patrimoine — un point de départ, jamais une contrainte. Leurs noms sont `brand.palettes.<key>`. */
+export const BRAND_PALETTES = [
+  { key: "midnight", hex: "#1e3a5f" },
+  { key: "blue", hex: "#2563eb" },
+  { key: "forest", hex: "#1f5f45" },
+  { key: "burgundy", hex: "#7a1f2e" },
+  { key: "slate", hex: "#3f4f6b" },
+  { key: "ochre", hex: "#8a6a1f" },
+  { key: "plum", hex: "#4b2e5e" },
+  { key: "charcoal", hex: "#2f3136" },
+] as const;

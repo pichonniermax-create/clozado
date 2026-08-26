@@ -16,6 +16,8 @@ import {
 } from "@/lib/metrics";
 import type { OrgScopeUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
+import { getTranslations } from "next-intl/server";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /**
  * Les indicateurs du tableau de bord — ceux du pack métier de
@@ -34,34 +36,31 @@ const FAMILY_ICON: Record<string, ReactNode> = {
   partners: <Handshake />,
 };
 
-function plural(n: number, singular: string, pluralForm = `${singular}s`) {
-  return `${n} ${n > 1 ? pluralForm : singular}`;
-}
 
 /** Valeur, note et icône d'une tuile — la règle d'affichage par unité, en un seul endroit. */
-function tileOf({ metric, value, periodApplies }: DashboardIndicator): { value: string | number; hint: string; icon: ReactNode } {
-  const today = periodApplies ? undefined : "à aujourd'hui";
+function tileOf({ metric, value, periodApplies }: DashboardIndicator, t: TranslatorOf<"dashboard.packIndicators">, tm: TranslatorOf<"metrics">, td: TranslatorOf<"analytics.durationTable">): { value: string | number; hint: string; icon: ReactNode } {
+  const today = periodApplies ? undefined : t("a_aujourd_hui");
   const icon = metric.unit === "euros" ? <Banknote /> : metric.unit === "ratio" ? <Percent /> : (FAMILY_ICON[metric.family] ?? <Briefcase />);
   switch (value.kind) {
     case "count":
-      return { value: value.n, hint: [value.detail, today].filter(Boolean).join(" · ") || metric.label, icon };
+      return { value: value.n, hint: [value.detail, today].filter(Boolean).join(" · ") || tm(`definitions.${metric.id}.label`), icon };
     case "euros": {
-      const { money, countWord } = value;
+      const { money } = value;
       const unknown = money.n > 0 && money.withoutAmount === money.n;
-      const parts = [plural(money.n, countWord[0], countWord[1]), money.withoutAmount > 0 ? `${money.withoutAmount} sans montant` : null, value.detail, today];
+      const parts = [value.countPhrase, money.withoutAmount > 0 ? t("sans_montant", { withoutAmount: money.withoutAmount }) : null, value.detail, today];
       return { value: unknown ? "—" : (formatEuros(money.amount) ?? "—"), hint: parts.filter(Boolean).join(" · "), icon };
     }
     case "days": {
       const { stat } = value;
       if (stat.hidden || stat.medianDays === null || stat.meanDays === null) {
-        return { value: "—", hint: statNotes(stat) ?? "", icon };
+        return { value: "—", hint: statNotes(stat, td) ?? "", icon };
       }
-      return { value: formatDuration(stat.medianDays), hint: `médiane · moyenne ${formatDuration(stat.meanDays)} · ${plural(stat.n, "observation")}`, icon };
+      return { value: formatDuration(stat.medianDays), hint: t("mediane_moyenne_observation_observations", { formatDuration: formatDuration(stat.meanDays), n: stat.n }), icon };
     }
     case "ratio": {
       const { rate } = value;
       if (rate.hidden || rate.percent === null) {
-        return { value: "—", hint: `masqué : il manque ${plural(rate.missing, "observation")} pour afficher un taux`, icon };
+        return { value: "—", hint: t("masque_il_manque_observation_observations_pour_dc5a", { missing: rate.missing }), icon };
       }
       return { value: formatRate(rate.percent), hint: [value.detail, today].filter(Boolean).join(" · "), icon };
     }
@@ -71,16 +70,19 @@ function tileOf({ metric, value, periodApplies }: DashboardIndicator): { value: 
 }
 
 export async function PackIndicators({ user, businessPack, parsed }: { user: OrgScopeUser; businessPack: string | null; parsed: ParsedMetricFilters }) {
+  const t = await getTranslations("dashboard.packIndicators");
+  const tm = await getTranslations("metrics");
+  const td = await getTranslations("analytics.durationTable");
   const { pack, chosen } = resolveBusinessPack(businessPack);
-  const indicators = await dashboardIndicators(user, pack.indicators, parsed.filters, parsed.params);
-  const period = periodPhrase(parsed);
+  const indicators = await dashboardIndicators(user, pack.indicators, parsed.filters, parsed.params, tm);
+  const period = periodPhrase(parsed, tm);
 
   return (
-    <section className="flex flex-col gap-3" aria-label="Indicateurs du pack métier">
+    <section className="flex flex-col gap-3" aria-label={t("indicateurs_du_pack_metier")}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">Indicateurs — {pack.label}</h2>
+        <h2 className="text-sm font-semibold">{t("indicateurs", { label: tm(`packs.${pack.key}.label`) })}</h2>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap rounded-lg border border-border p-0.5" aria-label="Période des indicateurs">
+          <div className="flex flex-wrap rounded-lg border border-border p-0.5" aria-label={t("periode_des_indicateurs")}>
             {PERIOD_PRESETS.map((p) => (
               <Link
                 key={p.key}
@@ -91,42 +93,38 @@ export async function PackIndicators({ user, businessPack, parsed }: { user: Org
                   parsed.period === p.key ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                {p.label}
+                {tm(`periods.${p.key}`)}
               </Link>
             ))}
           </div>
           <a
             href={`/api/analytique/export${metricQueryString<Record<string, string | undefined>>(parsed.params, { vue: "tableau-de-bord" })}`}
             className={buttonVariants({ variant: "ghost", size: "sm" })}
-            title="Télécharger ces indicateurs, avec leur période, en CSV (Excel)"
+            title={t("telecharger_ces_indicateurs_avec_leur_periode_48ad")}
           >
             <Download />
-            CSV
+            {t("csv")}
           </a>
           <Link href={`/analytique/funnel${metricQueryString(parsed.params)}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
-            Tout l&apos;analytique
+            {t("tout_l_analytique")}
             <ArrowRight className="size-3.5" />
           </Link>
         </div>
       </div>
       <p className="-mt-1 text-xs text-muted-foreground text-pretty">
         {chosen ? (
-          <>Les indicateurs de ton pack métier, {period} ; les encours sont à aujourd&apos;hui. Une tuile « — » dit ce qui lui manque. Le pack se change dans </>
+          <>{t("les_indicateurs_de_ton_pack_metier_e09e", { period })} </>
         ) : (
           <>
-            Aucun pack métier choisi : voici le pack « {pack.label} », {period}. Un CGP suit ses encours et sa collecte, un courtier ses volumes et ses
-            délais — choisis le tien dans{" "}
+            {t("aucun_pack_metier_choisi_voici_le_6aac", { label: tm(`packs.${pack.key}.label`), period })}
           </>
         )}
-        <Link href="/settings#pack-metier" className="underline underline-offset-2 hover:text-foreground">
-          Marque &amp; réglages
-        </Link>
-        .
+        {t.rich("marque_reglages", { link: (chunks) => <Link href="/settings#pack-metier" className="underline underline-offset-2 hover:text-foreground">{chunks}</Link> })}
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {indicators.map((indicator) => {
-          const tile = tileOf(indicator);
-          return <StatTile key={indicator.id} label={indicator.metric.label} value={tile.value} hint={tile.hint} icon={tile.icon} href={indicator.href} />;
+          const tile = tileOf(indicator, t, tm, td);
+          return <StatTile key={indicator.id} label={tm(`definitions.${indicator.metric.id}.label`)} value={tile.value} hint={tile.hint} icon={tile.icon} href={indicator.href} />;
         })}
       </div>
     </section>

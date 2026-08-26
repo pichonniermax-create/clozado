@@ -34,9 +34,9 @@ export function formatPercent(rate: string | number | null): string | null {
   return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n)}${NNBSP}%`;
 }
 
-/** « 12 j » — l'abréviation utilisée partout dans le suivi, insécable. */
+/** « 12 j » — l'abréviation utilisée partout dans le suivi, insécable (l'unité vient d'`Intl`, pas d'une lettre en dur). */
 export function formatDays(days: number): string {
-  return `${days}${NNBSP}j`;
+  return new Intl.NumberFormat("fr-FR", { style: "unit", unit: "day", unitDisplay: "short", maximumFractionDigits: 0 }).format(days).replace(/\s/g, NNBSP);
 }
 
 export function formatCommission(commission: {
@@ -86,11 +86,12 @@ export function formatDateTime(date: Date | string): string {
  */
 export function formatDuration(days: number): string {
   if (!Number.isFinite(days) || days < 0) return "—";
+  const unit = (value: number, unitName: "minute" | "hour" | "day", digits: number) =>
+    new Intl.NumberFormat("fr-FR", { style: "unit", unit: unitName, unitDisplay: "short", maximumFractionDigits: digits }).format(value).replace(/\s/g, NNBSP);
   const hours = days * 24;
-  if (hours < 1) return `${Math.max(1, Math.round(hours * 60))}${NNBSP}min`;
-  if (days < 1) return `${Math.round(hours)}${NNBSP}h`;
-  const formatted = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: days < 10 ? 1 : 0 }).format(days);
-  return `${formatted}${NNBSP}j`;
+  if (hours < 1) return unit(Math.max(1, Math.round(hours * 60)), "minute", 0);
+  if (days < 1) return unit(Math.round(hours), "hour", 0);
+  return unit(days, "day", days < 10 ? 1 : 0);
 }
 
 /**
@@ -106,21 +107,25 @@ export function formatRate(percent: number): string {
 }
 
 /**
- * « il y a 3 min », « il y a 5 h », « il y a 2 j » — l'âge d'une collecte ou
- * d'une lecture, pour dire si la matière est fraîche. Au-delà de sept jours,
- * la date elle-même vaut mieux qu'un compte.
+ * « il y a 3 min », « il y a 5 h », « il y a 2 j », « maintenant » — l'âge
+ * d'une collecte ou d'une lecture, pour dire si la matière est fraîche,
+ * écrit par `Intl.RelativeTimeFormat` (aucun mot en dur : la langue de
+ * l'organisation suivra à l'étape 5). Au-delà de sept jours, la date
+ * elle-même vaut mieux qu'un compte.
  */
 export function formatRelativeTime(date: Date | string, now = new Date()): string {
   const then = typeof date === "string" ? new Date(date) : date;
   const seconds = Math.max(0, Math.round((now.getTime() - then.getTime()) / 1000));
-  if (seconds < 60) return "à l'instant";
+  const relative = new Intl.RelativeTimeFormat("fr-FR", { style: "short", numeric: "auto" });
+  const tidy = (s: string) => s.replace(/\s(min|h|j)$/, `${NNBSP}$1`);
+  if (seconds < 60) return relative.format(0, "second");
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `il y a ${minutes}${NNBSP}min`;
+  if (minutes < 60) return tidy(relative.format(-minutes, "minute"));
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `il y a ${hours}${NNBSP}h`;
+  if (hours < 24) return tidy(relative.format(-hours, "hour"));
   const days = Math.round(hours / 24);
-  if (days <= 7) return `il y a ${days}${NNBSP}j`;
-  return `le ${formatDate(then)}`;
+  if (days <= 7) return tidy(new Intl.RelativeTimeFormat("fr-FR", { style: "short", numeric: "always" }).format(-days, "day"));
+  return formatDate(then);
 }
 
 /** « France », « Royaume-Uni », « Union européenne » depuis un code ISO à deux lettres ; le code lui-même si l'on ne sait pas. */

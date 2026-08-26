@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTranslations } from "next-intl";
 
 /** « Camille Rousseau » → « CR », « camille@… » → « C ». */
 function initialsOf(name: string | null, email: string | null): string {
@@ -42,14 +43,15 @@ export function AccountMenu({
   hasOrganization: boolean;
   signOutAction: () => Promise<void>;
 }) {
+  const t = useTranslations("shell.accountMenu");
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
           <button
             type="button"
-            aria-label="Mon compte"
-            title={email ?? "Mon compte"}
+            aria-label={t("mon_compte")}
+            title={email ?? t("mon_compte")}
             className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           />
         }
@@ -63,7 +65,7 @@ export function AccountMenu({
       <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="flex flex-col gap-0.5">
-            <span className="truncate text-sm font-medium text-foreground">{name ?? "Mon compte"}</span>
+            <span className="truncate text-sm font-medium text-foreground">{name ?? t("mon_compte")}</span>
             {email && <span className="truncate text-xs font-normal">{email}</span>}
           </DropdownMenuLabel>
         </DropdownMenuGroup>
@@ -71,14 +73,14 @@ export function AccountMenu({
         {hasOrganization && (
           <DropdownMenuItem render={<Link href="/settings" />}>
             <Settings />
-            Marque &amp; réglages
+            {t("marque_reglages")}
           </DropdownMenuItem>
         )}
         <form action={signOutAction}>
           {/* Un vrai <button> de formulaire : Base UI doit le savoir (nativeButton) pour lui laisser son comportement natif. */}
           <DropdownMenuItem nativeButton render={<button type="submit" className="w-full" />}>
             <LogOut />
-            Se déconnecter
+            {t("se_deconnecter")}
           </DropdownMenuItem>
         </form>
       </DropdownMenuContent>

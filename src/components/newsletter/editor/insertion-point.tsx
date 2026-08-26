@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Plus } from "lucide-react";
-import { BLOCK_HINTS, BLOCK_LABELS, BLOCK_TYPES, type BlockType } from "@/lib/newsletter/blocks";
+import { BLOCK_TYPES, type BlockType } from "@/lib/newsletter/blocks";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 /**
  * Ajouter un bloc À L'ENDROIT VOULU, entre deux blocs existants — et non
@@ -20,6 +21,8 @@ export function InsertionPoint({
   /** Déclencheur personnalisé — sinon la ligne « + » discrète entre deux blocs. */
   trigger?: ReactNode;
 }) {
+  const t = useTranslations("newsletters.insertionPoint");
+  const tb = useTranslations("newsletters");
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -51,7 +54,7 @@ export function InsertionPoint({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          aria-label="Insérer un bloc ici"
+          aria-label={t("inserer_un_bloc_ici")}
           className="flex h-5 w-full items-center gap-2 px-6 opacity-0 transition-opacity group-hover/insert:opacity-100 focus-visible:opacity-100"
         >
           <span className="h-px flex-1 bg-primary/40" />
@@ -75,8 +78,8 @@ export function InsertionPoint({
                     setOpen(false);
                   }}
                 >
-                  <span className="text-sm font-medium">{BLOCK_LABELS[type]}</span>
-                  <span className="text-xs text-muted-foreground">{BLOCK_HINTS[type]}</span>
+                  <span className="text-sm font-medium">{tb(`blocks.${type}.label`)}</span>
+                  <span className="text-xs text-muted-foreground">{tb(`blocks.${type}.hint`)}</span>
                 </button>
               </li>
             ))}

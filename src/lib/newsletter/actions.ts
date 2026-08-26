@@ -12,6 +12,8 @@ import { SEND_ERROR_PARAM } from "@/components/newsletter/labels";
 import { errorMessage, withError } from "@/lib/form-actions";
 import { requireUser } from "@/lib/session";
 import { NEWSLETTER_DRAFT_SCHEMA, parseBlockPayload, type AnyBlock } from "./blocks";
+import { AppError } from "@/lib/errors";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Server actions Drizzle pour `newsletters`/`newsletter_blocks`. Toute
@@ -58,7 +60,7 @@ export async function saveNewsletter(input: SaveNewsletterInput) {
     where: eq(mailTargets.id, parsed.targetId),
   });
   if (!target) {
-    throw new Error("Cible introuvable.");
+    throw new AppError("cible_introuvable", undefined, 404);
   }
   assertOrgAccess(user, target.organizationId);
 
@@ -68,7 +70,7 @@ export async function saveNewsletter(input: SaveNewsletterInput) {
       where: eq(newsletters.id, newsletterId),
     });
     if (!existing) {
-      throw new Error("Newsletter introuvable.");
+      throw new AppError("newsletter_introuvable", undefined, 404);
     }
     assertOrgAccess(user, existing.organizationId);
 
@@ -137,7 +139,7 @@ export async function loadNewsletter(id: string) {
     where: eq(newsletters.id, id),
   });
   if (!newsletter) {
-    throw new Error("Newsletter introuvable.");
+    throw new AppError("newsletter_introuvable", undefined, 404);
   }
   assertOrgAccess(user, newsletter.organizationId);
 
@@ -171,12 +173,12 @@ export async function deleteNewsletter(id: string) {
     where: eq(newsletters.id, id),
   });
   if (!newsletter) {
-    throw new Error("Newsletter introuvable.");
+    throw new AppError("newsletter_introuvable", undefined, 404);
   }
   assertOrgAccess(user, newsletter.organizationId);
 
   if (newsletter.createdBy !== user.id) {
-    throw new Error("Accès refusé : seul le créateur peut supprimer cette newsletter.");
+    throw new AppError("acces_refuse_seul_le_createur_peut_supprimer_f0b0", undefined, 403);
   }
 
   // `newsletter_blocks.newsletter_id` est ON DELETE CASCADE : pas de
@@ -192,8 +194,8 @@ export async function deleteNewsletter(id: string) {
 function readSentDate(formData: FormData): Date {
   const raw = String(formData.get("sentAt") ?? "").trim();
   const parsed = raw ? parseLocalDateTime(`${raw}T12:00`) : null;
-  if (!parsed) throw new Error("La date d'envoi est illisible.");
-  if (parsed.getTime() > Date.now() + 24 * 3600 * 1000) throw new Error("La date d'envoi ne peut pas être dans le futur.");
+  if (!parsed) throw new AppError("la_date_d_envoi_est_illisible");
+  if (parsed.getTime() > Date.now() + 24 * 3600 * 1000) throw new AppError("la_date_d_envoi_ne_peut_pas_bd16");
   return parsed;
 }
 
@@ -205,9 +207,9 @@ export async function markNewsletterSentAction(id: string, formData: FormData) {
       sentAt: readSentDate(formData),
       topics: String(formData.get("topics") ?? "").split(/[,;\n]/),
       markedBy: user.id,
-    });
+    }, await getTranslations("targets"));
   } catch (error) {
-    destination = withError(destination, errorMessage(error), SEND_ERROR_PARAM);
+    destination = withError(destination, await errorMessage(error), SEND_ERROR_PARAM);
   }
   redirect(destination);
 }
@@ -218,7 +220,7 @@ export async function unmarkNewsletterSentAction(id: string) {
   try {
     await unmarkNewsletterSent(user, id);
   } catch (error) {
-    destination = withError(destination, errorMessage(error), SEND_ERROR_PARAM);
+    destination = withError(destination, await errorMessage(error), SEND_ERROR_PARAM);
   }
   redirect(destination);
 }
@@ -229,7 +231,7 @@ export async function updateNewsletterTopicsAction(id: string, formData: FormDat
   try {
     await updateNewsletterTopics(user, id, String(formData.get("topics") ?? "").split(/[,;\n]/));
   } catch (error) {
-    destination = withError(destination, errorMessage(error), SEND_ERROR_PARAM);
+    destination = withError(destination, await errorMessage(error), SEND_ERROR_PARAM);
   }
   redirect(destination);
 }

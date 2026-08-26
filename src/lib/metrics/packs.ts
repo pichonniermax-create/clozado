@@ -8,6 +8,7 @@ import {
   type TargetTemplate,
 } from "@/lib/targets/templates";
 import { ASSURANCE_WATCH, CGP_WATCH, COURTIER_CREDIT_WATCH, GENERIQUE_WATCH, type WatchDefaults } from "@/lib/watch/templates";
+import type { Messages } from "@/i18n/messages";
 
 /**
  * LES PACKS MÉTIER — des données, pas des conditions dans le code : un pack
@@ -49,12 +50,8 @@ export const DASHBOARD_INDICATOR_IDS = [
 export type DashboardIndicatorId = (typeof DASHBOARD_INDICATOR_IDS)[number];
 
 export type BusinessPack = {
-  key: string;
-  label: string;
-  /** À qui il s'adresse, en une ligne. */
-  audience: string;
-  /** Ce qu'il met en avant, et pourquoi. */
-  description: string;
+  /** La clé du pack : ses textes (libellé, à qui il s'adresse, ce qu'il met en avant) sont `metrics.packs.<key>.*` dans les messages. */
+  key: keyof Messages["metrics"]["packs"];
   /** Les indicateurs du tableau de bord, dans l'ordre d'affichage. */
   indicators: readonly DashboardIndicatorId[];
   /** Les cibles de newsletter proposées à ce métier, dans l'ordre de création. */
@@ -66,10 +63,6 @@ export type BusinessPack = {
 export const BUSINESS_PACKS = {
   courtier_credit: {
     key: "courtier_credit",
-    label: "Courtier en crédit",
-    audience: "Courtage en prêt immobilier, rachat de crédit, crédit professionnel.",
-    description:
-      "Les volumes et les délais : ce qui entre, ce qui se signe et pour combien, combien de temps prend une signature, la réactivité sur les leads, ce qui se perd, les apporteurs et les commissions acquises.",
     indicators: [
       "deals_created",
       "deals_won",
@@ -85,10 +78,6 @@ export const BUSINESS_PACKS = {
   },
   cgp: {
     key: "cgp",
-    label: "Conseil en gestion de patrimoine",
-    audience: "CGP, conseil en investissement, courtage en placements.",
-    description:
-      "Les encours et la collecte : ce qui est signé et pour combien, ce qui est en cours dans le pipeline, les commissions acquises, la transformation des dossiers partagés, les délais et les pertes.",
     indicators: [
       "won_amount",
       "deals_won",
@@ -104,10 +93,6 @@ export const BUSINESS_PACKS = {
   },
   assurance: {
     key: "assurance",
-    label: "Courtier en assurance",
-    audience: "Assurance emprunteur, prévoyance, santé, IARD.",
-    description:
-      "La transformation et la réactivité : les leads reçus et le délai de premier contact, les dossiers créés et signés, ce qui se perd et pourquoi, l'acceptation des partages, les commissions acquises.",
     indicators: [
       "funnel_leads",
       "lead_to_first_contact",
@@ -123,9 +108,6 @@ export const BUSINESS_PACKS = {
   },
   generique: {
     key: "generique",
-    label: "Tout métier",
-    audience: "Une PME, un cabinet qui ne se reconnaît dans aucun pack.",
-    description: "Un équilibre : ce qui entre et se signe, l'encours du pipeline, le délai de signature, les pertes, les partages et les commissions acquises.",
     indicators: [
       "deals_created",
       "deals_won",

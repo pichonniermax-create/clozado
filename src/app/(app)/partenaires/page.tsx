@@ -13,6 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { listPartners } from "@/db/queries/partners";
 import { createPartnerAction } from "@/lib/deals/actions";
 import { requireUser } from "@/lib/session";
+import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 
 async function addPartner(formData: FormData) {
   "use server";
@@ -38,6 +40,7 @@ export default async function PartnersPage({
 }: {
   searchParams: Promise<{ nouveau?: string }>;
 }) {
+  const t = await getTranslations("partners.list");
   const user = await requireUser();
   const params = await searchParams;
   const partners = await listPartners(user);
@@ -47,52 +50,51 @@ export default async function PartnersPage({
   return (
     <>
       <PageHeader
-        title="Partenaires"
-        description="Les confrères vers qui tu partages des affaires — ce ne sont pas des comptes du produit, ils n'ont rien à installer."
+        title={t("partenaires")}
+        description={t("les_confreres_vers_qui_tu_partages_8084")}
       />
 
-      <DetailsCard summary="Ajouter un partenaire" defaultOpen={params.nouveau === "1"}>
+      <DetailsCard summary={t("ajouter_un_partenaire")} defaultOpen={params.nouveau === "1"}>
         <form action={addPartner} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Nom" htmlFor="name">
-              <Input id="name" name="name" placeholder="Camille Rousseau" required />
+            <Field label={t("nom")} htmlFor="name">
+              <Input id="name" name="name" placeholder={t("camille_rousseau")} required />
             </Field>
-            <Field label="Société" htmlFor="company">
-              <Input id="company" name="company" placeholder="Rousseau Patrimoine" />
+            <Field label={t("societe")} htmlFor="company">
+              <Input id="company" name="company" placeholder={t("rousseau_patrimoine")} />
             </Field>
-            <Field label="Métier" htmlFor="profession">
-              <Input id="profession" name="profession" placeholder="CGP, courtier crédit…" />
+            <Field label={t("metier")} htmlFor="profession">
+              <Input id="profession" name="profession" placeholder={t("cgp_courtier_credit")} />
             </Field>
-            <Field label="Email" htmlFor="email">
+            <Field label={t("email")} htmlFor="email">
               <Input id="email" name="email" type="email" />
             </Field>
-            <Field label="Téléphone" htmlFor="phone">
+            <Field label={t("telephone")} htmlFor="phone">
               <Input id="phone" name="phone" />
             </Field>
           </div>
-          <Field label="Notes" htmlFor="notes">
+          <Field label={t("notes")} htmlFor="notes">
             <Textarea id="notes" name="notes" className="min-h-16" />
           </Field>
           <Button type="submit" className="w-fit">
-            Ajouter le partenaire
+            {t("ajouter_le_partenaire")}
           </Button>
         </form>
       </DetailsCard>
 
       <PartnerList
-        title={`${active.length} partenaire${active.length > 1 ? "s" : ""} actif${active.length > 1 ? "s" : ""}`}
+        title={t("partenaire_partenaires_actif_actifs", { count: active.length })}
         partners={active}
         emptyState={
           <EmptyState
-            title="Aucun partenaire pour l'instant"
+            title={t("aucun_partenaire_pour_l_instant")}
             action={
               <Link href="/partenaires?nouveau=1" className={buttonVariants({ variant: "outline" })}>
-                Ajouter un partenaire
+                {t("ajouter_un_partenaire")}
               </Link>
             }
           >
-            Les confrères vers qui tu partages des affaires : ils reçoivent un lien à ton nom et
-            répondent en un clic, sans compte à créer de leur côté.
+            {t("les_confreres_vers_qui_tu_partages_12b6")}
           </EmptyState>
         }
       />
@@ -102,7 +104,7 @@ export default async function PartnersPage({
           donc visibles, mais rangés à part. */}
       {inactive.length > 0 && (
         <PartnerList
-          title={`${inactive.length} inactif${inactive.length > 1 ? "s" : ""}`}
+          title={t("inactif_inactifs", { count: inactive.length })}
           partners={inactive}
           emptyState={null}
         />
@@ -121,6 +123,7 @@ function PartnerList({
   /** Ce qu'on montre quand la liste est vide — un état structuré qui dit quoi faire. */
   emptyState: ReactNode;
 }) {
+  const t = useTranslations("partners.list");
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-sm font-semibold">{title}</h2>
@@ -134,7 +137,7 @@ function PartnerList({
               href={`/partenaires/${p.id}`}
               title={p.name}
               subtitle={[p.profession, p.company].filter(Boolean).join(" · ") || "—"}
-              trailing={!p.active ? <Badge variant="secondary">Inactif</Badge> : undefined}
+              trailing={!p.active ? <Badge variant="secondary">{t("inactif")}</Badge> : undefined}
             />
           ))}
         </ListCard>

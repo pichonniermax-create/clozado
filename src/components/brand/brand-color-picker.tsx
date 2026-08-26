@@ -9,6 +9,7 @@ import { DEFAULT_BRAND_PRIMARY } from "@/lib/brand";
 import { BRAND_PALETTES, brandStyle, deriveBrandTokens } from "@/lib/brand/derive";
 import { normalizeHex } from "@/lib/brand/color";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 declare global {
   interface Window {
@@ -31,6 +32,8 @@ declare global {
  * refus.
  */
 export function BrandColorPicker({ initialHex, name, disabled }: { initialHex: string | null; name: string; disabled?: boolean }) {
+  const t = useTranslations("brand.brandColorPicker");
+  const tb = useTranslations("brand");
   const [hex, setHex] = useState(normalizeHex(initialHex ?? "") ?? DEFAULT_BRAND_PRIMARY);
   const [draft, setDraft] = useState(hex);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -78,7 +81,7 @@ export function BrandColorPicker({ initialHex, name, disabled }: { initialHex: s
           type="button"
           onClick={openNative}
           disabled={disabled}
-          aria-label={`Couleur de la marque : ${hex}. Ouvrir le sélecteur de couleur`}
+          aria-label={t("couleur_de_la_marque_ouvrir_le_5e9d", { hex })}
           className="relative size-12 shrink-0 rounded-xl border border-border shadow-xs transition-transform outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-95 disabled:opacity-50"
           style={{ backgroundColor: hex }}
         />
@@ -93,19 +96,18 @@ export function BrandColorPicker({ initialHex, name, disabled }: { initialHex: s
           className="pointer-events-none absolute size-0 opacity-0"
         />
         <div className="flex flex-col gap-1">
-          <span className="text-sm font-medium tabular-nums">{hex}</span>
-          <span className="text-xs text-muted-foreground">Clique la pastille pour ouvrir le sélecteur.</span>
+          {t.rich("clique_la_pastille_pour_ouvrir_le_4240", { hex, span: (chunks) => <span className="text-sm font-medium tabular-nums">{chunks}</span>, span2: (chunks) => <span className="text-xs text-muted-foreground">{chunks}</span> })}
         </div>
         {canPick && (
           <Button type="button" variant="outline" size="sm" onClick={pick} disabled={disabled}>
             <Pipette />
-            Pipette
+            {t("pipette")}
           </Button>
         )}
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-muted-foreground">Palettes proposées</span>
+        <span className="text-xs font-medium text-muted-foreground">{t("palettes_proposees")}</span>
         <div className="flex flex-wrap gap-2">
           {BRAND_PALETTES.map((p) => (
             <button
@@ -113,8 +115,8 @@ export function BrandColorPicker({ initialHex, name, disabled }: { initialHex: s
               type="button"
               onClick={() => choose(p.hex)}
               disabled={disabled}
-              title={p.name}
-              aria-label={`${p.name} (${p.hex})`}
+              title={tb(`palettes.${p.key}`)}
+              aria-label={`${tb(`palettes.${p.key}`)} (${p.hex})`}
               aria-pressed={hex === p.hex}
               className={cn(
                 "flex items-center gap-2 rounded-lg border px-2 py-1.5 text-xs transition-colors hover:bg-muted disabled:opacity-50",
@@ -122,14 +124,14 @@ export function BrandColorPicker({ initialHex, name, disabled }: { initialHex: s
               )}
             >
               <span aria-hidden className="size-4 rounded-full border border-black/10" style={{ backgroundColor: p.hex }} />
-              {p.name}
+              {tb(`palettes.${p.key}`)}
             </button>
           ))}
         </div>
       </div>
 
       <details className="group text-sm">
-        <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">Saisir un code hexadécimal</summary>
+        <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">{t("saisir_un_code_hexadecimal")}</summary>
         <div className="flex items-center gap-2 pt-2">
           <Input
             id={`${id}-hex`}
@@ -140,18 +142,18 @@ export function BrandColorPicker({ initialHex, name, disabled }: { initialHex: s
               if (normalized) setHex(normalized);
             }}
             disabled={disabled}
-            placeholder="#2563eb"
+            placeholder={t("n_2563eb")}
             className="max-w-36 font-mono"
-            aria-label="Code hexadécimal de la couleur"
+            aria-label={t("code_hexadecimal_de_la_couleur")}
           />
-          {!normalizeHex(draft) && <span className="text-xs text-muted-foreground">Six caractères, de 0 à 9 et de A à F.</span>}
+          {!normalizeHex(draft) && <span className="text-xs text-muted-foreground">{t("six_caracteres_de_0_a_9_5caa")}</span>}
         </div>
       </details>
 
       {derived.diagnostics.length > 0 && (
         <ul className="flex flex-col gap-1 rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">
           {derived.diagnostics.map((d) => (
-            <li key={d.code}>{d.message}</li>
+            <li key={d.code}>{tb(`diagnostics.${d.code}`)}</li>
           ))}
         </ul>
       )}
@@ -159,12 +161,12 @@ export function BrandColorPicker({ initialHex, name, disabled }: { initialHex: s
       <BrandPreview style={brandStyle(derived.tokens)} />
 
       <details className="text-xs text-muted-foreground">
-        <summary className="cursor-pointer hover:text-foreground">Contrastes vérifiés ({derived.pairs.length})</summary>
+        <summary className="cursor-pointer hover:text-foreground">{t("contrastes_verifies", { count: derived.pairs.length })}</summary>
         <table className="mt-2 w-full text-left tabular-nums">
           <tbody>
             {derived.pairs.map((p) => (
-              <tr key={p.label} className="border-t border-border">
-                <td className="py-1 pr-2">{p.label}</td>
+              <tr key={p.id} className="border-t border-border">
+                <td className="py-1 pr-2">{tb(`pairs.${p.id}`)}</td>
                 <td className="py-1 pr-2 text-right">{p.ratio.toFixed(2)}:1</td>
                 <td className="py-1 text-right">{p.ok ? `≥ ${p.required} ✓` : `< ${p.required}`}</td>
               </tr>
@@ -182,32 +184,28 @@ export function BrandColorPicker({ initialHex, name, disabled }: { initialHex: s
  * ce que l'application montrera.
  */
 export function BrandPreview({ style, className }: { style: Record<string, string>; className?: string }) {
+  const t = useTranslations("brand.brandColorPicker");
   return (
     <div style={style} className={cn("grid grid-cols-1 gap-3 rounded-xl border border-border bg-background p-4 md:grid-cols-[14rem_1fr]", className)}>
       <div className="flex flex-col gap-0.5 rounded-lg border border-sidebar-border bg-sidebar p-2">
-        <NavRow icon={<LayoutDashboard />} label="Tableau de bord" />
-        <NavRow icon={<Users />} label="Contacts" active badge={3} />
-        <NavRow icon={<Target />} label="Suivi" />
+        <NavRow icon={<LayoutDashboard />} label={t("tableau_de_bord")} />
+        <NavRow icon={<Users />} label={t("contacts")} active badge={3} />
+        <NavRow icon={<Target />} label={t("suivi")} />
       </div>
       <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button">Enregistrer</Button>
+          <Button type="button">{t("enregistrer")}</Button>
           <Button type="button" variant="outline">
-            Annuler
+            {t("annuler")}
           </Button>
-          <Badge>Nouveau</Badge>
-          <Badge variant="secondary">En cours</Badge>
+          <Badge>{t("nouveau")}</Badge>
+          <Badge variant="secondary">{t("en_cours")}</Badge>
         </div>
         <p className="text-sm">
-          Un texte courant avec{" "}
-          <a href="#apercu" onClick={(e) => e.preventDefault()} className="font-medium text-primary-ink underline underline-offset-4">
-            un lien à la couleur de la marque
-          </a>
-          , puis la suite de la phrase.
+          {t.rich("un_texte_courant_avec_un_lien_ba9e", { a: (chunks) => <a href="#apercu" onClick={(e) => e.preventDefault()} className="font-medium text-primary-ink underline underline-offset-4">{chunks}</a> })}
         </p>
         <div className="flex items-center gap-2 rounded-lg bg-primary-soft px-3 py-2 text-sm text-primary-ink">
-          <span className="font-medium">Ligne sélectionnée</span>
-          <span className="text-xs">— un fond léger, un texte à la couleur de la marque.</span>
+          {t.rich("ligne_selectionnee_un_fond_leger_un_1f9a", { span: (chunks) => <span className="font-medium">{chunks}</span>, span2: (chunks) => <span className="text-xs">{chunks}</span> })}
         </div>
       </div>
     </div>

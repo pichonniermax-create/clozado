@@ -1,5 +1,6 @@
 import { sql, type SQL } from "drizzle-orm";
 import type { OrgScopeUser } from "@/lib/session";
+import { AppError } from "@/lib/errors";
 
 /**
  * Les filtres communs à toute vue analytique. La PÉRIODE s'applique à
@@ -36,9 +37,7 @@ export const ORIGIN_UNMATCHED = "a-rapprocher";
  */
 export function organizationOf(user: OrgScopeUser): string {
   if (!user.organizationId) {
-    throw new Error(
-      "L'analytique se calcule pour une organisation précise. Choisis une organisation dans le bandeau super admin en haut de l'écran."
-    );
+    throw new AppError("l_analytique_se_calcule_pour_une_organisation_32f8");
   }
   return user.organizationId;
 }

@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 /**
  * Le panneau d'erreur — ce que voit l'utilisateur à la place de l'écran
@@ -28,6 +29,7 @@ export function ErrorState({
   backHref?: string;
   backLabel?: string;
 }) {
+  const t = useTranslations("ui.errorState");
   return (
     <div
       role="alert"
@@ -43,14 +45,14 @@ export function ErrorState({
         <p className="text-sm font-medium">{title}</p>
         <p className="max-w-md text-sm text-muted-foreground text-pretty">
           {children ??
-            "C'est en général passager et ça ne vient pas de toi. Réessaie — si ça persiste, reviens dans quelques minutes."}
+            t("c_est_en_general_passager_et_7a6c")}
         </p>
       </div>
       {(retry || backHref) && (
         <div className="flex flex-wrap items-center justify-center gap-2">
           {retry && (
             <Button onClick={retry} variant="outline">
-              Réessayer
+              {t("reessayer")}
             </Button>
           )}
           {backHref && (

@@ -5,6 +5,7 @@ import { commissions, dealEvents, dealShares, deals, partners } from "@/db/schem
 import { assertOrgAccess } from "@/db/scope";
 import { generateShareToken } from "@/lib/deal-shares/token";
 import type { OrgScopeUser } from "@/lib/session";
+import { AppError } from "@/lib/errors";
 
 /**
  * Côté interne, protégé — org-scopé comme tout le reste du produit. Rien
@@ -50,18 +51,18 @@ export async function createDealShare(
   input: CreateShareInput
 ) {
   const deal = await db.query.deals.findFirst({ where: eq(deals.id, input.dealId) });
-  if (!deal) throw new Error("Affaire introuvable.");
+  if (!deal) throw new AppError("affaire_introuvable", undefined, 404);
   assertOrgAccess(user, deal.organizationId);
 
   const partner = await db.query.partners.findFirst({ where: eq(partners.id, input.partnerId) });
-  if (!partner) throw new Error("Partenaire introuvable.");
+  if (!partner) throw new AppError("partenaire_introuvable", undefined, 404);
   assertOrgAccess(user, partner.organizationId);
 
   // Vérifié ici EN PLUS de la FK composite en base (deal_shares_partner_org_fk) :
   // un message d'erreur clair côté application plutôt qu'une violation de
   // contrainte SQL brute si jamais ces deux lectures divergeaient.
   if (partner.organizationId !== deal.organizationId) {
-    throw new Error("Le partenaire et l'affaire n'appartiennent pas à la même organisation.");
+    throw new AppError("le_partenaire_et_l_affaire_n_appartiennent_47db");
   }
 
   const { token, tokenHash } = generateShareToken();
@@ -109,7 +110,7 @@ export async function createDealShare(
   }
 
   const share = await db.query.dealShares.findFirst({ where: eq(dealShares.id, shareId) });
-  if (!share) throw new Error("Incohérence interne : partage disparu juste après sa création.");
+  if (!share) throw new AppError("incoherence_interne_partage_disparu_juste_apres_sa_a47b", undefined, 404);
 
   return { share, token };
 }
@@ -117,7 +118,7 @@ export async function createDealShare(
 /** Partages d'une affaire, avec le nom du partenaire — jamais le jeton en clair (déjà perdu après création, seul token_hash existe). */
 export async function listDealShares(user: OrgScopeUser, dealId: string) {
   const deal = await db.query.deals.findFirst({ where: eq(deals.id, dealId) });
-  if (!deal) throw new Error("Affaire introuvable.");
+  if (!deal) throw new AppError("affaire_introuvable", undefined, 404);
   assertOrgAccess(user, deal.organizationId);
 
   return db
@@ -130,7 +131,7 @@ export async function listDealShares(user: OrgScopeUser, dealId: string) {
 
 export async function revokeDealShare(user: OrgScopeUser, shareId: string, actorUserId?: string | null) {
   const existing = await db.query.dealShares.findFirst({ where: eq(dealShares.id, shareId) });
-  if (!existing) throw new Error("Partage introuvable.");
+  if (!existing) throw new AppError("partage_introuvable", undefined, 404);
   assertOrgAccess(user, existing.organizationId);
 
   if (existing.status === "revoked") return existing;
@@ -155,7 +156,7 @@ export async function revokeDealShare(user: OrgScopeUser, shareId: string, actor
 /** Historique des affaires partagées avec CE partenaire — pour sa fiche. */
 export async function listDealSharesForPartner(user: OrgScopeUser, partnerId: string) {
   const partner = await db.query.partners.findFirst({ where: eq(partners.id, partnerId) });
-  if (!partner) throw new Error("Partenaire introuvable.");
+  if (!partner) throw new AppError("partenaire_introuvable", undefined, 404);
   assertOrgAccess(user, partner.organizationId);
 
   return db
@@ -173,7 +174,7 @@ export async function listDealSharesForPartner(user: OrgScopeUser, partnerId: st
  */
 export async function reissueDealShare(user: OrgScopeUser, createdBy: string, shareId: string) {
   const existing = await db.query.dealShares.findFirst({ where: eq(dealShares.id, shareId) });
-  if (!existing) throw new Error("Partage introuvable.");
+  if (!existing) throw new AppError("partage_introuvable", undefined, 404);
   assertOrgAccess(user, existing.organizationId);
 
   const existingCommission = await db.query.commissions.findFirst({

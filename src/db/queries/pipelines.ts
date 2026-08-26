@@ -3,6 +3,8 @@ import { db } from "@/db";
 import { dealStatuses, pipelines, type DealStatus, type Pipeline } from "@/db/schema";
 import { assertOrgAccess, orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
+import { AppError } from "@/lib/errors";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /** Les pipelines de l'organisation, avec leurs étapes ordonnées. */
 export async function listPipelinesWithStages(user: OrgScopeUser) {
@@ -35,14 +37,12 @@ function slugify(label: string): string {
   );
 }
 
-export async function createPipeline(user: OrgScopeUser, label: string) {
+export async function createPipeline(user: OrgScopeUser, label: string, t: TranslatorOf<"deals.queries">) {
   if (!user.organizationId) {
-    throw new Error(
-      "Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer un pipeline."
-    );
+    throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_d356");
   }
   const trimmed = label.trim();
-  if (!trimmed) throw new Error("Le libellé du pipeline est obligatoire.");
+  if (!trimmed) throw new AppError("le_libelle_du_pipeline_est_obligatoire");
   const [pipeline] = await db
     .insert(pipelines)
     .values({ organizationId: user.organizationId, label: trimmed, position: 99 })
@@ -53,7 +53,7 @@ export async function createPipeline(user: OrgScopeUser, label: string) {
     organizationId: user.organizationId,
     pipelineId: pipeline.id,
     slug: "nouveau",
-    label: "Nouveau",
+    label: t("nouveau"),
     position: 0,
     probability: 10,
   });
@@ -62,7 +62,7 @@ export async function createPipeline(user: OrgScopeUser, label: string) {
 
 export async function updatePipelineLabel(user: OrgScopeUser, pipelineId: string, label: string) {
   const pipeline = await db.query.pipelines.findFirst({ where: eq(pipelines.id, pipelineId) });
-  if (!pipeline) throw new Error("Pipeline introuvable.");
+  if (!pipeline) throw new AppError("pipeline_introuvable", undefined, 404);
   assertOrgAccess(user, pipeline.organizationId);
   const trimmed = label.trim();
   if (!trimmed) return;
@@ -78,10 +78,10 @@ export type StageInput = {
 
 export async function createStage(user: OrgScopeUser, pipelineId: string, input: StageInput) {
   const pipeline = await db.query.pipelines.findFirst({ where: eq(pipelines.id, pipelineId) });
-  if (!pipeline) throw new Error("Pipeline introuvable.");
+  if (!pipeline) throw new AppError("pipeline_introuvable", undefined, 404);
   assertOrgAccess(user, pipeline.organizationId);
   const label = input.label.trim();
-  if (!label) throw new Error("Le libellé de l'étape est obligatoire.");
+  if (!label) throw new AppError("le_libelle_de_l_etape_est_obligatoire");
 
   const siblings = await db.select().from(dealStatuses).where(eq(dealStatuses.pipelineId, pipelineId));
   const position = Math.max(-1, ...siblings.map((s) => s.position)) + 1;
@@ -110,7 +110,7 @@ export async function createStage(user: OrgScopeUser, pipelineId: string, input:
 /** Libellé, couleur, probabilité, marqueur — jamais le pipeline ni le slug (clés de rattachement). */
 export async function updateStage(user: OrgScopeUser, stageId: string, input: StageInput) {
   const stage = await db.query.dealStatuses.findFirst({ where: eq(dealStatuses.id, stageId) });
-  if (!stage) throw new Error("Étape introuvable.");
+  if (!stage) throw new AppError("etape_introuvable", undefined, 404);
   assertOrgAccess(user, stage.organizationId);
   const label = input.label.trim();
   if (!label) return;
@@ -129,7 +129,7 @@ export async function updateStage(user: OrgScopeUser, stageId: string, input: St
 /** Décale une étape d'un cran vers le haut ou le bas de SON pipeline. */
 export async function moveStage(user: OrgScopeUser, stageId: string, direction: "up" | "down") {
   const stage = await db.query.dealStatuses.findFirst({ where: eq(dealStatuses.id, stageId) });
-  if (!stage) throw new Error("Étape introuvable.");
+  if (!stage) throw new AppError("etape_introuvable", undefined, 404);
   assertOrgAccess(user, stage.organizationId);
 
   const siblings = await db

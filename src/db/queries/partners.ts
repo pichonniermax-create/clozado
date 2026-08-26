@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { partners } from "@/db/schema";
 import { assertOrgAccess, orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
+import { AppError } from "@/lib/errors";
 
 /** Partenaires de l'organisation de l'appelant. */
 export async function listPartners(user: OrgScopeUser) {
@@ -29,7 +30,7 @@ export type CreatePartnerInput = {
 
 export async function createPartner(user: OrgScopeUser, input: CreatePartnerInput) {
   if (!user.organizationId) {
-    throw new Error("Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer un partenaire.");
+    throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_ed3b");
   }
   const [partner] = await db
     .insert(partners)
@@ -44,7 +45,7 @@ export async function updatePartner(
   input: Partial<CreatePartnerInput> & { active?: boolean }
 ) {
   const existing = await db.query.partners.findFirst({ where: eq(partners.id, id) });
-  if (!existing) throw new Error("Partenaire introuvable.");
+  if (!existing) throw new AppError("partenaire_introuvable", undefined, 404);
   assertOrgAccess(user, existing.organizationId);
 
   const [updated] = await db

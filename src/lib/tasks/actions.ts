@@ -52,7 +52,7 @@ export async function createTaskFromBoardAction(context: ActionContext, formData
       ...readRecurrence(formData),
     });
   } catch (error) {
-    destination = withError(context.backTo, errorMessage(error));
+    destination = withError(context.backTo, await errorMessage(error));
   }
   redirect(destination);
 }
@@ -73,7 +73,7 @@ export async function createTaskFromFicheAction(
       dealId: context.dealId ?? null,
     });
   } catch (error) {
-    destination = withError(context.backTo, errorMessage(error));
+    destination = withError(context.backTo, await errorMessage(error));
   }
   redirect(destination);
 }
@@ -94,7 +94,7 @@ export async function updateTaskAction(
       ...readRecurrence(formData),
     });
   } catch (error) {
-    destination = withError(context.backTo, errorMessage(error));
+    destination = withError(context.backTo, await errorMessage(error));
   }
   redirect(destination);
 }
@@ -105,7 +105,7 @@ export async function completeTaskAction(context: ActionContext & { taskId: stri
   try {
     await completeTask(user, context.taskId, user.id);
   } catch (error) {
-    destination = withError(context.backTo, errorMessage(error));
+    destination = withError(context.backTo, await errorMessage(error));
   }
   redirect(destination);
 }
@@ -116,7 +116,7 @@ export async function reopenTaskAction(context: ActionContext & { taskId: string
   try {
     await reopenTask(user, context.taskId);
   } catch (error) {
-    destination = withError(context.backTo, errorMessage(error));
+    destination = withError(context.backTo, await errorMessage(error));
   }
   redirect(destination);
 }
@@ -127,7 +127,7 @@ export async function deleteTaskAction(context: ActionContext & { taskId: string
   try {
     await deleteTask(user, context.taskId);
   } catch (error) {
-    destination = withError(context.backTo, errorMessage(error));
+    destination = withError(context.backTo, await errorMessage(error));
   }
   redirect(destination);
 }

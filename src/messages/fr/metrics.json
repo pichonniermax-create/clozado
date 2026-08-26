@@ -1,0 +1,477 @@
+{
+  "aging": {
+    "0-30": "Confirmée depuis 30 jours ou moins",
+    "31-60": "Depuis 31 à 60 jours",
+    "61-90": "Depuis 61 à 90 jours",
+    "90+": "Depuis plus de 90 jours"
+  },
+  "commissionStates": {
+    "caduque": "Prévues devenues caduques (partage refusé, révoqué, expiré ou remplacé)",
+    "confirmee": "Confirmées, non réglées",
+    "prevue": "Prévues (partage en attente ou accepté)",
+    "reglee": "Réglées"
+  },
+  "dashboard": {
+    "accepte_acceptes": "{n, plural, one {# accepté} other {# acceptés}}",
+    "affaire_en_cours_affaires_en_cours": "{n, plural, one {# affaire en cours} other {# affaires en cours}}",
+    "affaire_signee_affaires_signees": "{n, plural, one {# affaire signée} other {# affaires signées}}",
+    "au_montant_inconnu": "au montant inconnu",
+    "aucun_lead_recu_brancher_l_entree_27c0": "aucun lead reçu : brancher l’entrée des leads (Marque & réglages → Collecte)",
+    "commission_acquise_commissions_acquises": "{n, plural, one {# commission acquise} other {# commissions acquises}}",
+    "contact_etabli_contacts_etablis": "{n, plural, one {# contact établi} other {# contacts établis}}",
+    "de_montant_estime_perdu": "{formatEurosPlain} de montant estimé perdu",
+    "gagnee_gagnees": "{n, plural, one {# gagnée} other {# gagnées}}",
+    "partage_accepte_partages_acceptes": "{n, plural, one {# partage accepté} other {# partages acceptés}}",
+    "partage_envoye_partages_envoyes": "{n, plural, one {# partage envoyé} other {# partages envoyés}}",
+    "perdue_perdues": "{n, plural, one {# perdue} other {# perdues}}",
+    "prevues": "prévues {value} ({n})",
+    "refuse_refuses": "{n, plural, one {# refusé} other {# refusés}}",
+    "sans_montant_sans_montant": "{n, plural, one {# sans montant} other {# sans montant}}",
+    "signee_signees": "{n, plural, one {# signée} other {# signées}}"
+  },
+  "definitions": {
+    "commission_settlement_delay": {
+      "label": "Délai commission confirmée → réglée",
+      "definition": "Durée entre la confirmation d’une commission et la déclaration de son règlement, médiane et moyenne sur les commissions réglées dont les deux dates sont connues.",
+      "excludes": "Les commissions non réglées ; celles dont la date de confirmation est inconnue (confirmées avant que la date soit journalisée) — comptées à part, jamais remplacées par une date plausible.",
+      "whenInsufficient": "Masqué en dessous de 5 observations ; l’écran indique combien il en manque.",
+      "howToFeed": "Une observation = une commission confirmée puis déclarée réglée dans l’outil (écran de suivi) — chaque geste pose sa date.",
+      "filters": "Période : sur la date de règlement. Conseiller, type, pipeline et origine : ceux de l’affaire telle qu’elle est aujourd’hui (les réaffectations ne sont pas historisées)."
+    },
+    "commissions_aging": {
+      "label": "Vieillissement des commissions confirmées non réglées",
+      "definition": "Les commissions confirmées et pas encore réglées, par ancienneté de la confirmation : 0 à 30 jours, 31 à 60, 61 à 90, plus de 90 — nombre et montant ; et celles qui dépassent le seuil de relance de l’organisation (Marque & réglages), la même règle que la pile « commissions à encaisser » du suivi.",
+      "excludes": "Celles dont la date de confirmation est inconnue (confirmées avant que la date soit journalisée) — comptées à part, jamais datées par une valeur plausible.",
+      "whenInsufficient": "Les montants s’affichent toujours.",
+      "howToFeed": "Confirmer la commission quand l’affaire aboutit ; déclarer le règlement quand il arrive.",
+      "filters": "La PÉRIODE EST SANS EFFET (un état à aujourd’hui). Conseiller, type, pipeline, origine : ceux de l’affaire."
+    },
+    "commissions_outstanding": {
+      "label": "Encours de commissions par état",
+      "definition": "Toutes les commissions de l’organisation, à AUJOURD’HUI, par état : prévues (partage en attente ou accepté), confirmées non réglées, réglées — nombre et montant calculé — plus les prévues devenues caduques (partage refusé, révoqué, expiré ou remplacé par un renvoi), comptées à part.",
+      "excludes": "Les commissions sans montant calculé, dans les sommes (comptées à part).",
+      "whenInsufficient": "Les montants s’affichent toujours.",
+      "howToFeed": "Fixer une commission à l’envoi d’un partage.",
+      "filters": "La PÉRIODE EST SANS EFFET : un encours est un état à aujourd’hui. Conseiller, type, pipeline, origine : ceux de l’affaire."
+    },
+    "creation_to_won": {
+      "label": "Délai création → signature",
+      "definition": "Durée entre la création de l’affaire et sa PREMIÈRE entrée dans une étape marquée « gagné », médiane et moyenne sur les affaires signées.",
+      "excludes": "Les affaires jamais gagnées ; une entrée en étape gagnée reconstituée après coup ; une organisation sans étape marquée « gagné » n’a pas de signature mesurable.",
+      "whenInsufficient": "Masqué en dessous de 5 observations ; l’écran indique combien il en manque.",
+      "howToFeed": "Une observation = une affaire entrée dans l’étape marquée « gagné ».",
+      "filters": "Période : sur la date de signature. Conseiller, type, pipeline et origine : ceux de l’affaire telle qu’elle est aujourd’hui (les réaffectations ne sont pas historisées)."
+    },
+    "deals_created": {
+      "label": "Affaires créées",
+      "definition": "Les affaires créées dans la période (date de création) — la même cohorte que le funnel d’un pipeline, tous pipelines confondus.",
+      "excludes": "Rien : une affaire créée compte, quoi qu’elle soit devenue.",
+      "whenInsufficient": "Le nombre s’affiche toujours — c’est un fait.",
+      "howToFeed": "Créer une affaire (fiche contact, pipeline, menu « Nouveau »).",
+      "filters": "Période : sur la date de création. Conseiller, type, pipeline et origine : ceux de l’affaire telle qu’elle est aujourd’hui (les réaffectations ne sont pas historisées)."
+    },
+    "deals_won": {
+      "label": "Affaires signées",
+      "definition": "Les affaires AUJOURD’HUI dans une étape marquée « gagné » dont la dernière entrée dans cette étape tombe dans la période — la date de la signature, la même règle que le taux de perte et que le délai création → signature.",
+      "excludes": "Une affaire gagnée puis rouverte (elle n’est plus gagnée) ; une signature antérieure au journal (ligne reconstituée, date inconnue) — écartée, jamais datée par une valeur plausible.",
+      "whenInsufficient": "Le nombre s’affiche toujours — c’est un fait.",
+      "howToFeed": "Déplacer l’affaire dans l’étape marquée « gagné ».",
+      "filters": "Période : sur la date de la signature. Conseiller, type, pipeline et origine : ceux de l’affaire telle qu’elle est aujourd’hui (les réaffectations ne sont pas historisées)."
+    },
+    "funnel_by_origin": {
+      "label": "Conversion par origine",
+      "definition": "La chaîne complète, groupée par origine : visiteurs, simulations, leads reçus, contacts établis, affaires issues de ces leads et affaires gagnées — les MÊMES définitions que la chaîne, appliquées à l’origine de l’événement ou du lead. Deux taux : lead → affaire et affaire → gagnée. C’est la réponse à « quelle origine génère des affaires qui se signent ».",
+      "excludes": "Les affaires sans lead figurent sur la ligne « sans origine » (affaires et gagnées seulement — rien en amont ne leur correspond). Les textes reçus non rattachés à une origine configurée sont regroupés sur « à rapprocher » (Analytique → Origines).",
+      "whenInsufficient": "Les nombres s’affichent toujours ; chaque taux est masqué sous 5 observations à son dénominateur.",
+      "howToFeed": "Configurer les origines et rapprocher les textes reçus (Analytique → Origines) ; transmettre l’origine dans l’extrait et dans /api/leads.",
+      "filters": "Ceux de la chaîne, pas à pas ; avec un filtre origine, une seule ligne reste."
+    },
+    "funnel_contacted": {
+      "label": "Contacts établis",
+      "definition": "Parmi les leads reçus dans la période, ceux dont la fiche porte au moins une interaction effective consignée à partir de l’arrivée du lead — appel, email ou rendez-vous, pas une note — à n’importe quelle date depuis. Même règle que le délai lead → premier contact effectif.",
+      "excludes": "Les notes ; les interactions antérieures au lead (la relation existait déjà) ; les fiches supprimées (leurs interactions le sont aussi). Une affaire créée sans interaction consignée ne compte PAS ici : ce pas mesure ce qui est consigné. S’il y a plus d’affaires que de contacts établis, les interactions ne sont pas toutes consignées — l’écran le dit.",
+      "whenInsufficient": "Le nombre s’affiche toujours — c’est un fait, pas une statistique. Le taux de passage calculé à partir de ce pas est masqué tant que le pas précédent compte moins de 5 observations.",
+      "howToFeed": "Consigner un appel, un email ou un rendez-vous sur la fiche du contact venu par le lead.",
+      "filters": "Les mêmes que « Leads reçus » : période sur l’arrivée du lead, origine du lead, conseiller de la fiche."
+    },
+    "funnel_conversion_rate": {
+      "label": "Taux de passage et déperdition",
+      "definition": "Entre deux pas consécutifs : le nombre du pas divisé par celui du pas précédent, en pour-cent ; la déperdition est le complément à 100 %. Un pas sans objet (filtre qui ne s’y applique pas, source non branchée) est sauté : le taux se calcule depuis le dernier pas mesurable.",
+      "excludes": "Rien n’est écarté, mais un taux peut dépasser 100 % quand un pas compte plus que le précédent — plus de leads que de simulations terminées mesurées (des leads arrivent sans passer par l’extrait), plus d’affaires que de contacts établis (des interactions ne sont pas consignées). Ce n’est pas une erreur de calcul, c’est une mesure incomplète en amont : l’écran l’affiche tel quel et le dit, la déperdition est alors sans objet.",
+      "whenInsufficient": "Masqué tant que le pas précédent compte moins de 5 observations ; l’écran indique combien il en manque. Les nombres, eux, restent affichés.",
+      "howToFeed": "Alimenter les deux pas : le taux apparaît dès que le pas précédent atteint le seuil.",
+      "filters": "Ceux des deux pas concernés."
+    },
+    "funnel_deals_from_leads": {
+      "label": "Affaires issues de ces leads",
+      "definition": "Les affaires dont l’origine est l’un des leads reçus dans la période — l’origine d’une affaire (deals.lead_id) est posée à sa création depuis le dernier lead antérieur du contact, ou rattachée à la main sur la fiche (journalisé). Une affaire compte une fois ; un lead peut en générer plusieurs.",
+      "excludes": "Les affaires sans lead (créées à la main, origine inconnue) : le funnel par pipeline les compte, pas la chaîne. Un lead arrivé APRÈS la création d’une affaire n’y est jamais rattaché tout seul.",
+      "whenInsufficient": "Le nombre s’affiche toujours — c’est un fait, pas une statistique. Le taux de passage calculé à partir de ce pas est masqué tant que le pas précédent compte moins de 5 observations.",
+      "howToFeed": "Créer l’affaire depuis la fiche d’un contact venu par un lead (l’origine se pose toute seule), ou rattacher le lead sur la fiche de l’affaire.",
+      "filters": "Période : sur l’ARRIVÉE DU LEAD, pas sur la création de l’affaire (la chaîne suit les leads de la période jusqu’à aujourd’hui). Conseiller, type, pipeline et origine : ceux de l’affaire telle qu’elle est aujourd’hui (les réaffectations ne sont pas historisées)."
+    },
+    "funnel_leads": {
+      "label": "Leads reçus",
+      "definition": "Leads enregistrés par l’entrée serveur (POST /api/leads) dans la période — une arrivée par lead, même quand plusieurs viennent de la même personne. C’est le pas où la chaîne passe du navigateur anonyme à une personne : les pas amont comptent des navigateurs, celui-ci et les suivants comptent des leads et des affaires.",
+      "excludes": "Les envois refusés par l’API (clé absente ou révoquée, charge invalide, débit dépassé) : ils ne sont pas enregistrés — Marque & réglages → Collecte les compte à part.",
+      "whenInsufficient": "Le nombre s’affiche toujours — c’est un fait, pas une statistique. Le taux de passage calculé à partir de ce pas est masqué tant que le pas précédent compte moins de 5 observations. Tant qu’aucun lead n’a jamais été reçu, le pas est « pas encore branché ».",
+      "howToFeed": "Faire appeler POST /api/leads par le simulateur ou le site, avec une clé d’API (Marque & réglages → Collecte).",
+      "filters": "Période : sur l’arrivée du lead. Origine : celle du lead. Conseiller : celui de la fiche contact du lead. Type et pipeline : sans effet ici — ils ne s’appliquent qu’à partir des affaires."
+    },
+    "funnel_simulations_completed": {
+      "label": "Simulations terminées",
+      "definition": "Navigateurs distincts pour lesquels l’extrait a reçu « simulation terminée » dans la période. Plusieurs simulations terminées du même navigateur comptent une fois.",
+      "excludes": "Les simulateurs qui n’émettent pas le signal. Une simulation terminée déclarée seulement sur le lead (dates transmises par le serveur du simulateur) n’est pas un événement de visite : elle vit sur le lead, pas ici.",
+      "whenInsufficient": "Le nombre s’affiche toujours — c’est un fait, pas une statistique. Le taux de passage calculé à partir de ce pas est masqué tant que le pas précédent compte moins de 5 observations.",
+      "howToFeed": "Appeler clozado.track(\"simulation_completed\") au dernier pas du simulateur.",
+      "filters": "Période : sur l’événement. Origine : celle transmise par la page (rattachée à une origine configurée, ou « à rapprocher »). Conseiller : sans objet — une visite n’est rattachée à personne ; avec ce filtre, le pas est sans objet. Type et pipeline : sans effet (rien n’est encore une affaire)."
+    },
+    "funnel_simulations_started": {
+      "label": "Simulations démarrées",
+      "definition": "Navigateurs distincts pour lesquels l’extrait a reçu « simulation démarrée » dans la période — un signal que le simulateur émet lui-même (clozado.track). Plusieurs simulations du même navigateur comptent une fois.",
+      "excludes": "Les simulateurs qui n’émettent pas le signal ; une simulation démarrée hors période.",
+      "whenInsufficient": "Le nombre s’affiche toujours — c’est un fait, pas une statistique. Le taux de passage calculé à partir de ce pas est masqué tant que le pas précédent compte moins de 5 observations.",
+      "howToFeed": "Appeler clozado.track(\"simulation_started\") au premier pas du simulateur (Marque & réglages → Collecte montre l’extrait et son mode d’emploi).",
+      "filters": "Période : sur l’événement. Origine : celle transmise par la page (rattachée à une origine configurée, ou « à rapprocher »). Conseiller : sans objet — une visite n’est rattachée à personne ; avec ce filtre, le pas est sans objet. Type et pipeline : sans effet (rien n’est encore une affaire)."
+    },
+    "funnel_stage_leak": {
+      "label": "Déperdition d’une étape : perdues et en cours",
+      "definition": "Les affaires de la cohorte qui ont atteint l’étape sans atteindre la suivante — soit PERDUES (aujourd’hui dans une étape marquée « perdu », comptées à l’étape la plus avancée qu’elles ont atteinte), soit EN COURS (au plus loin dans cette étape, encore ouvertes aujourd’hui, même si elles sont redescendues depuis). Perdues + en cours = tout ce qui manque au pas suivant.",
+      "excludes": "Les affaires gagnées (elles ne manquent à aucun pas).",
+      "whenInsufficient": "Le nombre s’affiche toujours — c’est un fait, pas une statistique. Le taux de passage calculé à partir de ce pas est masqué tant que le pas précédent compte moins de 5 observations.",
+      "howToFeed": "Déplacer une affaire dans l’étape marquée « perdu » (avec son motif) la range ici, à l’étape qu’elle avait atteinte.",
+      "filters": "Les mêmes que « Affaires ayant atteint une étape »."
+    },
+    "funnel_stage_reached": {
+      "label": "Affaires ayant atteint une étape",
+      "definition": "Parmi les affaires CRÉÉES dans la période (une cohorte, suivie jusqu’à aujourd’hui), celles qui sont entrées dans l’étape ou dans une étape plus avancée du même pipeline, ou qui sont gagnées aujourd’hui : une affaire passée directement de la première à la troisième étape a atteint la deuxième — elle est allée au moins aussi loin. La première étape compte toutes les affaires créées.",
+      "excludes": "Rien : une entrée reconstituée après coup compte aussi — c’est le fait d’être entré qui compte ici, pas la date. Les étapes finales (gagné, perdu) ne sont pas des pas du funnel : gagné est l’arrivée, perdu est la déperdition.",
+      "whenInsufficient": "Le nombre s’affiche toujours — c’est un fait, pas une statistique. Le taux de passage calculé à partir de ce pas est masqué tant que le pas précédent compte moins de 5 observations.",
+      "howToFeed": "Créer des affaires et les faire avancer d’étape en étape (kanban ou fiche).",
+      "filters": "Période : sur la CRÉATION de l’affaire (cohorte). Conseiller, type, pipeline et origine : ceux de l’affaire telle qu’elle est aujourd’hui (les réaffectations ne sont pas historisées). Un funnel par pipeline."
+    },
+    "funnel_visitors": {
+      "label": "Visiteurs",
+      "definition": "Navigateurs distincts (l’identifiant anonyme posé par l’extrait JavaScript, jamais une adresse IP) ayant chargé une page équipée dans la période. Un même navigateur qui revient compte une fois.",
+      "excludes": "Les pages sans extrait ; les navigateurs qui refusent tout stockage (pas d’identifiant, donc pas de visite) ; les envois refusés par l’API (domaine non déclaré, clé révoquée) — comptés dans Marque & réglages → Collecte, jamais ici.",
+      "whenInsufficient": "Le nombre s’affiche toujours — c’est un fait, pas une statistique. Le taux de passage calculé à partir de ce pas est masqué tant que le pas précédent compte moins de 5 observations. Tant qu’aucune visite n’a jamais été reçue, le pas est « pas encore branché ».",
+      "howToFeed": "Poser l’extrait JavaScript sur le site (Marque & réglages → Collecte) : chaque chargement de page équipée compte.",
+      "filters": "Période : sur l’événement. Origine : celle transmise par la page (rattachée à une origine configurée, ou « à rapprocher »). Conseiller : sans objet — une visite n’est rattachée à personne ; avec ce filtre, le pas est sans objet. Type et pipeline : sans effet (rien n’est encore une affaire)."
+    },
+    "funnel_won": {
+      "label": "Affaires gagnées",
+      "definition": "Parmi les affaires du pas précédent, celles qui sont AUJOURD’HUI dans une étape marquée « gagné » — l’état courant, celui du kanban. Dans la chaîne, le pas précédent est « affaires issues de ces leads » ; dans le funnel d’un pipeline, la dernière étape intermédiaire.",
+      "excludes": "Une affaire gagnée puis ressortie de l’étape (rouverte) n’est plus gagnée ; une organisation sans étape marquée « gagné » n’a pas de signature mesurable.",
+      "whenInsufficient": "Le nombre s’affiche toujours — c’est un fait, pas une statistique. Le taux de passage calculé à partir de ce pas est masqué tant que le pas précédent compte moins de 5 observations.",
+      "howToFeed": "Déplacer l’affaire dans l’étape marquée « gagné » (kanban ou fiche).",
+      "filters": "Les mêmes que le pas précédent. Conseiller, type, pipeline et origine : ceux de l’affaire telle qu’elle est aujourd’hui (les réaffectations ne sont pas historisées)."
+    },
+    "lead_to_first_contact": {
+      "label": "Délai lead → premier contact effectif",
+      "definition": "Pour chaque contact venu par un lead, durée entre l’arrivée de son PREMIER lead et la première interaction consignée avec lui à partir de là (appel, email ou rendez-vous — pas une note), médiane et moyenne.",
+      "excludes": "Les contacts sans interaction consignée depuis l’arrivée du lead (comptés à part : ils attendent encore un premier contact) ; les notes (une note n’est pas un contact) ; les interactions antérieures au lead (la relation existait déjà) ; les contacts arrivés autrement que par un lead ; les fiches supprimées (leurs interactions le sont aussi).",
+      "whenInsufficient": "Masqué en dessous de 5 observations ; l’écran indique combien il en manque.",
+      "howToFeed": "Une observation = un lead reçu par l’API (Marque & réglages → Collecte) puis un appel, un email ou un rendez-vous consigné sur la fiche du contact.",
+      "filters": "Période : sur la première interaction. Conseiller : celui de la fiche contact. Origine : celle du premier lead. Type d’affaire et pipeline : sans effet — ce délai se mesure avant toute affaire."
+    },
+    "loss_breakdown": {
+      "label": "Répartition des pertes",
+      "definition": "Les affaires perdues de la période, réparties par motif (au moment de la perte), par étape de départ (celle d’où l’affaire est tombée — « dès la création » si elle est née perdue), par conseiller responsable et par type d’affaire ; pour chaque ligne, le nombre, le montant perdu et la part du total.",
+      "excludes": "Les mêmes que « Affaires perdues ». Une affaire perdue sans motif figure sur la ligne « Sans motif » — une information, pas un oubli du calcul.",
+      "whenInsufficient": "La part d’une ligne est masquée tant que le total des pertes est inférieur à 5 ; nombres et montants s’affichent toujours.",
+      "howToFeed": "Configurer les motifs (Marque & réglages) et choisir le motif au moment de perdre.",
+      "filters": "Les mêmes que « Affaires perdues » ; chaque ligne ouvre la liste des affaires qu’elle compte."
+    },
+    "loss_rate": {
+      "label": "Taux de perte",
+      "definition": "Sur la période, les affaires perdues rapportées aux affaires closes (perdues + gagnées) — gagnées suivant la même règle : aujourd’hui dans une étape marquée « gagné », à la date de leur dernière entrée dans cette étape.",
+      "excludes": "Les affaires encore en cours (pas closes) ; les entrées reconstituées, des deux côtés.",
+      "whenInsufficient": "Masqué sous 5 affaires closes ; l’écran indique combien il en manque.",
+      "howToFeed": "Clore des affaires — gagnées ou perdues.",
+      "filters": "Les mêmes que « Affaires perdues »."
+    },
+    "lost_deal": {
+      "label": "Affaires perdues",
+      "definition": "Une affaire AUJOURD’HUI dans une étape marquée « perdu » (l’état courant, celui du kanban). Sa date de perte, son étape de départ et son motif sont ceux de sa DERNIÈRE entrée dans l’étape perdue, lus dans le journal des passages — le motif au moment de la perte, pas la valeur courante de la fiche. Le montant perdu est le montant estimé de l’affaire (valeur courante).",
+      "excludes": "Une affaire perdue puis rouverte (elle vit). Une perte antérieure au journal — sa ligne d’entrée a été reconstituée à la date de création, la date réelle de la perte est inconnue : écartée du calcul et comptée à part, jamais datée par une valeur plausible. Les affaires sans montant estimé comptent dans le nombre, pas dans le montant — comptées à part.",
+      "whenInsufficient": "Les nombres et les montants s’affichent toujours ; seules les parts (en pour-cent) sont masquées sous 5 pertes.",
+      "howToFeed": "Déplacer une affaire dans l’étape marquée « perdu » et choisir son motif (kanban ou fiche) — le motif se corrige sur la fiche tant qu’elle y est.",
+      "filters": "Période : sur la date de la perte (dernière entrée dans l’étape perdue). Conseiller, type, pipeline et origine : ceux de l’affaire telle qu’elle est aujourd’hui (les réaffectations ne sont pas historisées)."
+    },
+    "partner_acceptance_rate": {
+      "label": "Taux d’acceptation",
+      "definition": "Par partenaire, les partages acceptés rapportés aux partages envoyés — un partage sans réponse n’est pas accepté. Refusés et sans réponse sont affichés à côté.",
+      "excludes": "Rien.",
+      "whenInsufficient": "Masqué tant que le partenaire compte moins de 5 partages envoyés.",
+      "howToFeed": "Le partenaire répond depuis son lien (accepter, refuser).",
+      "filters": "Les mêmes que « Partages envoyés »."
+    },
+    "partner_commissions": {
+      "label": "Commissions générées",
+      "definition": "Par partenaire, sur les partages de la période : les commissions ACQUISES (confirmées ou réglées, au montant calculé figé à la confirmation) et les commissions PRÉVUES encore vivantes (partage en attente ou accepté). Une chaîne de renvois porte une seule commission : celle de son dernier lien.",
+      "excludes": "Les commissions prévues d’un partage refusé, révoqué, expiré ou remplacé par un renvoi (caduques) ; une commission sans montant calculé compte dans le nombre, pas dans la somme — comptée à part.",
+      "whenInsufficient": "Les montants s’affichent toujours.",
+      "howToFeed": "Fixer la commission à l’envoi du partage, la confirmer quand l’affaire aboutit, déclarer son règlement (écran de suivi).",
+      "filters": "Les mêmes que « Partages envoyés »."
+    },
+    "partner_response_delay": {
+      "label": "Délai de réponse du partenaire",
+      "definition": "Par partenaire, la même mesure que « Délai partage → réponse du partenaire » de l’écran Délais : du premier envoi de la chaîne à la réponse (acceptation ou refus), médiane et moyenne.",
+      "excludes": "Les partages sans réponse ; les liens remplacés par un renvoi (seul le dernier porte la réponse).",
+      "whenInsufficient": "Masqué en dessous de 5 observations ; l’écran indique combien il en manque.",
+      "howToFeed": "Une observation = un partage auquel le partenaire a répondu.",
+      "filters": "Période : sur le premier envoi (la cohorte), pas sur la réponse — l’écran Délais, lui, borne sur la date de réponse. Conseiller, type, pipeline, origine : ceux de l’affaire."
+    },
+    "partner_shares": {
+      "label": "Partages envoyés",
+      "definition": "Par partenaire, les partages envoyés dans la période, suivis jusqu’à aujourd’hui. Un partage = une chaîne de renvois de lien : le lien renvoyé n’est pas un second partage, c’est le même, envoyé à la date du premier, et seul le dernier lien de la chaîne porte la réponse et la commission. L’issue d’un partage est celle de son dernier lien : accepté, refusé, ou sans réponse (en attente, expiré, révoqué).",
+      "excludes": "Rien : un partage révoqué sans réponse compte comme sans réponse, pas comme refusé.",
+      "whenInsufficient": "Le nombre s’affiche toujours — c’est un fait, pas une statistique. Le taux de passage calculé à partir de ce pas est masqué tant que le pas précédent compte moins de 5 observations.",
+      "howToFeed": "Partager une affaire depuis sa fiche.",
+      "filters": "Période : sur le PREMIER envoi de la chaîne (la cohorte). Conseiller, type, pipeline et origine : ceux de l’affaire telle qu’elle est aujourd’hui (les réaffectations ne sont pas historisées)."
+    },
+    "partner_transformation_rate": {
+      "label": "Taux de transformation",
+      "definition": "Par partenaire, parmi les partages acceptés, ceux dont l’affaire est AUJOURD’HUI dans une étape marquée « gagné » (état courant), rapportés aux partages acceptés.",
+      "excludes": "Les partages non acceptés ; une affaire gagnée puis rouverte n’est plus gagnée.",
+      "whenInsufficient": "Masqué tant que le partenaire compte moins de 5 partages acceptés.",
+      "howToFeed": "Déplacer l’affaire partagée dans l’étape marquée « gagné ».",
+      "filters": "Les mêmes que « Partages envoyés »."
+    },
+    "pipeline_open": {
+      "label": "Affaires en cours",
+      "definition": "À AUJOURD’HUI, les affaires dans une étape sans issue (ni gagnée ni perdue) et la somme de leurs montants estimés — l’encours du pipeline, ce qui peut encore se signer.",
+      "excludes": "Les affaires sans montant estimé, dans la somme (comptées à part) ; les affaires closes.",
+      "whenInsufficient": "Le nombre et le montant s’affichent toujours.",
+      "howToFeed": "Créer des affaires et les faire avancer dans le pipeline.",
+      "filters": "La PÉRIODE EST SANS EFFET : un encours est un état à aujourd’hui. Conseiller, type, pipeline, origine : ceux de l’affaire."
+    },
+    "share_response_delay": {
+      "label": "Délai partage → réponse du partenaire",
+      "definition": "Durée entre l’envoi d’un partage et la réponse du partenaire (acceptation ou refus). Un lien renvoyé ne compte pas comme un nouveau partage : la durée part du PREMIER envoi de la chaîne.",
+      "excludes": "Les partages sans réponse (en attente, révoqués sans réponse, expirés) ; les partages remplacés par un renvoi (seul le dernier de la chaîne porte la réponse).",
+      "whenInsufficient": "Masqué en dessous de 5 observations ; l’écran indique combien il en manque.",
+      "howToFeed": "Une observation = un partage auquel le partenaire a répondu depuis son lien (accepté ou refusé).",
+      "filters": "Période : sur la date de réponse. Conseiller, type, pipeline et origine : ceux de l’affaire telle qu’elle est aujourd’hui (les réaffectations ne sont pas historisées)."
+    },
+    "stage_duration": {
+      "label": "Temps passé par étape",
+      "definition": "Pour chaque étape intermédiaire du pipeline, durée entre l’entrée d’une affaire dans l’étape et sa sortie (le passage suivant), médiane et moyenne sur les passages terminés. Une affaire qui revisite une étape compte un passage par visite.",
+      "excludes": "Le passage en cours (l’affaire y est encore — compté à part) ; les lignes reconstituées après coup (ligne d’étape initiale déduite de la date de création) — comptées à part, jamais dans la durée ; les étapes finales (gagné, perdu) : une affaire n’en sort pas, le temps qu’on y passe ne mesure rien.",
+      "whenInsufficient": "Masqué en dessous de 5 observations ; l’écran indique combien il en manque.",
+      "howToFeed": "Une observation = un passage terminé : déplacer une affaire vers une autre étape (kanban ou fiche) clôt le passage précédent.",
+      "filters": "Période : sur la fin du passage. Conseiller, type, pipeline et origine : ceux de l’affaire telle qu’elle est aujourd’hui (les réaffectations ne sont pas historisées)."
+    },
+    "stage_pair_delay": {
+      "label": "Délai entre deux étapes consécutives",
+      "definition": "Pour chaque paire d’étapes qui se suivent dans un pipeline, durée entre la première entrée d’une affaire dans la première et sa première entrée dans la seconde, sur les affaires qui ont atteint les deux — médiane et moyenne.",
+      "excludes": "Les affaires qui n’ont pas atteint la seconde étape ; les paires non consécutives ; les entrées reconstituées ; les paires qui partiraient d’une étape finale (gagné, perdu) : elle n’a pas de suivante.",
+      "whenInsufficient": "Masqué en dessous de 5 observations ; l’écran indique combien il en manque.",
+      "howToFeed": "Une observation = une affaire entrée dans la première étape, puis dans la seconde.",
+      "filters": "Période : sur l’entrée dans la seconde étape. Conseiller, type, pipeline et origine : ceux de l’affaire telle qu’elle est aujourd’hui (les réaffectations ne sont pas historisées)."
+    },
+    "won_amount": {
+      "label": "Montant signé",
+      "definition": "La somme des montants estimés des affaires signées de la période (« Affaires signées », même règle) — la collecte d’un conseiller en patrimoine, le volume d’un courtier. Le montant estimé de l’affaire, valeur courante, assumé.",
+      "excludes": "Les affaires signées sans montant estimé : dans le nombre, pas dans la somme — comptées à part, et un montant dont rien n’est connu s’écrit « — », jamais 0 €.",
+      "whenInsufficient": "Les montants s’affichent toujours.",
+      "howToFeed": "Renseigner le montant estimé sur la fiche de l’affaire.",
+      "filters": "Les mêmes qu’« Affaires signées »."
+    }
+  },
+  "export": {
+    "acceptes": "Acceptés",
+    "acquises_sans_montant": "Acquises — sans montant",
+    "actif": "Actif",
+    "affaire_gagnee": "Affaire → gagnée (%)",
+    "affaires": "Affaires",
+    "affaires_allees_au_moins_jusque_la": "Affaires (allées au moins jusque-là)",
+    "affaires_creees_la_cohorte": "Affaires créées (la cohorte)",
+    "affaires_dans_l_etape_aujourd_hui": "Affaires dans l’étape aujourd’hui",
+    "affaires_perdues": "Affaires perdues",
+    "affichage": "Affichage",
+    "affichage_de_la_part": "Affichage de la part",
+    "affichage_des_taux": "Affichage des taux",
+    "affichage_du_delai": "Affichage du délai",
+    "affichage_du_taux": "Affichage du taux",
+    "affichage_du_taux_d_acceptation": "Affichage du taux d’acceptation",
+    "affichage_du_taux_de_transformation": "Affichage du taux de transformation",
+    "affiche": "affiché",
+    "anciennete": "Ancienneté",
+    "au_dela_du_seuil_de_relance_98d8": "Au-delà du seuil de relance de l’organisation ({thresholdDays} jours)",
+    "aucun_lead_recu_entree_des_leads_c689": "aucun lead reçu (entrée des leads à brancher)",
+    "aucune_observation_il_en_faut_pour_9ee9": "aucune observation — il en faut {missing} pour afficher un chiffre",
+    "commissions": "Commissions",
+    "commissions_acquises": "Commissions acquises (€)",
+    "commissions_prevues": "Commissions prévues (€)",
+    "conseiller": "Conseiller",
+    "contacts_etablis": "Contacts établis",
+    "d_une_etape_a_la_suivante": "D’une étape à la suivante — {label}",
+    "date_de_confirmation_inconnue_ecartees_du_3b76": "Date de confirmation inconnue (écartées du vieillissement)",
+    "delai_de_reponse_mediane_jours": "Délai de réponse — médiane (jours)",
+    "delai_de_reponse_moyenne_jours": "Délai de réponse — moyenne (jours)",
+    "deperdition": "Déperdition (%)",
+    "detail": "Détail",
+    "dont_en_attente": "dont en attente",
+    "dont_expires": "dont expirés",
+    "dont_revoques": "dont révoqués",
+    "ecartees_date_inconnue": "Écartées (date inconnue)",
+    "ecartees_du_calcul_jamais_datees_par_c88c": "écartées du calcul, jamais datées par une valeur plausible",
+    "ecartees_reconstituees": "Écartées (reconstituées)",
+    "en_cours": "En cours",
+    "en_cours_au_plus_loin_ici": "En cours au plus loin ici",
+    "en_cours_au_total": "En cours (au total)",
+    "en_cours_en_cours": "{n, plural, one {# en cours} other {# en cours}}",
+    "encours_de_commissions_a_aujourd_hui_100b": "Encours de commissions, à aujourd’hui (la période ne s’y applique pas)",
+    "ensemble": "Ensemble",
+    "etape": "Étape",
+    "etapes": "Étapes",
+    "etat": "État",
+    "etat_a_aujourd_hui_la_periode_e6d5": "état à aujourd’hui, la période ne s’applique pas",
+    "exporte_le": "Exporté le",
+    "format": "Format",
+    "gagnees": "Gagnées",
+    "gagnees_sur_la_meme_periode": "Gagnées sur la même période",
+    "indicateur": "Indicateur",
+    "indicateurs_du_pack": "Indicateurs du pack « {t} »{value}",
+    "issue_d_un_lead_issues_d_2dc2": "{n, plural, one {# issue d’un lead} other {# issues d’un lead}}",
+    "jours_mediane": "jours (médiane)",
+    "la_chaine_de_la_visite_a_fa8a": "La chaîne — de la visite à la signature",
+    "le_cycle": "Le cycle",
+    "le_denominateur": "(le dénominateur)",
+    "lead_affaire_affaire_gagnee": "lead → affaire : {rateDisplay} ; affaire → gagnée : {rateDisplay2}",
+    "lead_sans_premier_contact_consigne_leads_5f95": "{n, plural, one {# lead sans premier contact consigné} other {# leads sans premier contact consigné}}",
+    "leads": "Leads",
+    "les_visites_ne_sont_pas_encore_901f": "les visites ne sont pas encore mesurées (extrait à poser)",
+    "masque_il_manque_affaire_close_affaires_463b": "masqué : il manque {missing, plural, one {# affaire close} other {# affaires closes}}",
+    "masque_il_manque_observation_observations": "masqué : il manque {missing, plural, one {# observation} other {# observations}} {base}",
+    "masque_il_manque_observation_observations_pour_2e1c": "masqué : il manque {missing, plural, one {# observation} other {# observations}} pour afficher un chiffre",
+    "mediane_jours": "Médiane (jours)",
+    "metier": "Métier",
+    "montant_perdu": "Montant perdu (€)",
+    "motif": "Motif",
+    "nombre": "Nombre",
+    "non_calcule_pour_l_ensemble_voir_2480": "non calculé pour l’ensemble — voir Délais",
+    "non_mesurable": "non mesurable : {unavailable}",
+    "note": "Note",
+    "observations": "Observations",
+    "observations_en_dessous_la_cellule_est_e2b1": "{minObservations} observations — en dessous, la cellule est vide et la colonne « Affichage » dit ce qui manque",
+    "observations_passages_termines": "Observations (passages terminés)",
+    "organisation": "Organisation",
+    "origine": "Origine",
+    "origine_a_rapprocher": "Origine à rapprocher",
+    "pack_par_defaut_aucun_pack_choisi_159d": "(pack par défaut : aucun pack choisi dans Marque & réglages)",
+    "par_conseiller": "Par conseiller",
+    "par_etape_de_depart": "Par étape de départ",
+    "par_etape_du_pipeline": "Par étape du pipeline — {label}",
+    "par_motif": "Par motif",
+    "par_origine_laquelle_genere_des_affaires_6ba2": "Par origine — laquelle génère des affaires qui se signent",
+    "par_partenaire": "Par partenaire",
+    "par_pipeline": "par pipeline : {join}",
+    "par_type_d_affaire": "Par type d’affaire",
+    "parametre": "Paramètre",
+    "parametres_de_l_export": "Paramètres de l’export",
+    "partages_acceptes": "(partages acceptés)",
+    "partages_envoyes": "Partages envoyés",
+    "partages_envoyes_adac": "(partages envoyés)",
+    "partenaire": "Partenaire",
+    "passages_reconstitues_ecartes": "Passages reconstitués écartés",
+    "perdue_perdues": "{n, plural, one {# perdue} other {# perdues}}",
+    "perdues_au_total": "Perdues (au total)",
+    "perdues_depuis_cette_etape": "Perdues depuis cette étape",
+    "periode": "Période",
+    "perte_pertes": "{n, plural, one {# perte} other {# pertes}}",
+    "pertes_anterieures_au_journal_ecartees_date_72d8": "Pertes antérieures au journal, écartées (date de la perte inconnue)",
+    "pipeline": "Pipeline",
+    "plus_d_affaires_que_de_contacts_8baf": "plus d’affaires que de contacts établis : des interactions ne sont pas consignées",
+    "plus_de_leads_que_de_simulations_688b": "plus de leads que de simulations terminées mesurées : des leads arrivent sans passer par l’extrait",
+    "prevues_nombre": "Prévues — nombre",
+    "prevues_sans_montant": "Prévues — sans montant",
+    "refuses": "Refusés",
+    "reponses_observations": "Réponses (observations)",
+    "sans_montant": "Sans montant",
+    "sans_objet": "sans objet",
+    "sans_objet_4087": "sans objet : {join}",
+    "sans_objet_a6d2": "sans objet : {reason}",
+    "sans_origine_aucun_lead": "Sans origine (aucun lead)",
+    "sans_reponse": "Sans réponse",
+    "separateur_virgule_decimale_montants_en_euros_0255": "séparateur « ; », virgule décimale, montants en euros et durées en jours sans unité dans les cellules",
+    "seuil_d_affichage": "Seuil d’affichage",
+    "simulations_demarrees": "Simulations démarrées",
+    "simulations_terminees": "Simulations terminées",
+    "societe": "Société",
+    "sur_la_periode": "Sur la période",
+    "taux_d_acceptation": "Taux d’acceptation (%)",
+    "taux_de_passage": "Taux de passage (%)",
+    "taux_de_perte": "Taux de perte",
+    "taux_de_transformation": "Taux de transformation (%)",
+    "taux_depuis_la_derniere_etape_intermediaire_0db5": "taux depuis la dernière étape intermédiaire atteinte",
+    "temps_passe_par_etape": "Temps passé par étape — {label}",
+    "tous": "Tous",
+    "toutes": "Toutes",
+    "type": "Type",
+    "type_d_affaire": "Type d’affaire",
+    "unite": "Unité",
+    "valeur": "Valeur",
+    "vieillissement_des_commissions_confirmees_non_reglees_212c": "Vieillissement des commissions confirmées non réglées, à aujourd’hui",
+    "visiteurs": "Visiteurs"
+  },
+  "losses": {
+    "deleted": "(supprimé)",
+    "from_creation": "Dès la création",
+    "no_owner": "Sans responsable",
+    "no_reason": "Sans motif",
+    "no_type": "Sans type"
+  },
+  "origins": {
+    "unknown": "Sans origine (aucun lead)",
+    "unmatched": "À rapprocher"
+  },
+  "packs": {
+    "assurance": {
+      "label": "Courtier en assurance",
+      "audience": "Assurance emprunteur, prévoyance, santé, IARD.",
+      "description": "La transformation et la réactivité : les leads reçus et le délai de premier contact, les dossiers créés et signés, ce qui se perd et pourquoi, l’acceptation des partages, les commissions acquises."
+    },
+    "cgp": {
+      "label": "Conseil en gestion de patrimoine",
+      "audience": "CGP, conseil en investissement, courtage en placements.",
+      "description": "Les encours et la collecte : ce qui est signé et pour combien, ce qui est en cours dans le pipeline, les commissions acquises, la transformation des dossiers partagés, les délais et les pertes."
+    },
+    "courtier_credit": {
+      "label": "Courtier en crédit",
+      "audience": "Courtage en prêt immobilier, rachat de crédit, crédit professionnel.",
+      "description": "Les volumes et les délais : ce qui entre, ce qui se signe et pour combien, combien de temps prend une signature, la réactivité sur les leads, ce qui se perd, les apporteurs et les commissions acquises."
+    },
+    "generique": {
+      "label": "Tout métier",
+      "audience": "Une PME, un cabinet qui ne se reconnaît dans aucun pack.",
+      "description": "Un équilibre : ce qui entre et se signe, l’encours du pipeline, le délai de signature, les pertes, les partages et les commissions acquises."
+    }
+  },
+  "periodPhrase": {
+    "depuis_le_debut": "depuis le début",
+    "sur_les": "sur les {toLowerCase}"
+  },
+  "periods": {
+    "12m": "12 derniers mois",
+    "30j": "30 derniers jours",
+    "90j": "90 derniers jours",
+    "tout": "Depuis le début"
+  },
+  "reasons": {
+    "lead_filter_delay": "Sans objet avec ce filtre : il retient les affaires sans lead, et ce délai part d’un lead.",
+    "no_events": "Pas encore branché : aucune visite n’a jamais été reçue.",
+    "no_lead_row": "Sans lead : rien en amont ne correspond.",
+    "no_leads": "Pas encore branché : aucun lead n’a jamais été reçu.",
+    "origin_unknown": "Sans objet avec ce filtre : il retient les affaires sans lead, et la chaîne part des visites et des leads. Le funnel par pipeline, lui, les compte.",
+    "owner": "Sans objet par conseiller : une visite n’est rattachée à personne."
+  },
+  "views": {
+    "delais": "Délais et durées",
+    "funnel": "Funnel de conversion",
+    "partenaires": "Partenaires et commissions",
+    "pertes": "Analyse des pertes",
+    "tableau-de-bord": "Tableau de bord — les indicateurs du pack métier"
+  }
+}

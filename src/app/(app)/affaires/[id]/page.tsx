@@ -36,12 +36,14 @@ import { getOrganizationOfRecord } from "@/db/queries/organizations";
 import { listPartners } from "@/db/queries/partners";
 import { formatCommission, formatDate, formatDays, formatEuros, formatPercent } from "@/lib/format";
 import { requireUser } from "@/lib/session";
+import { getTranslations } from "next-intl/server";
+import type { TranslatorOf } from "@/i18n/translator";
 
-const COMMISSION_STATE_LABELS: Record<string, string> = {
-  prevue: "prévue",
-  confirmee: "confirmée",
-  reglee: "réglée",
-};
+/** L'état d'une commission, en mots — `deals.detail.commissionStates.<état>` ; un état inconnu s'affiche tel quel. */
+const COMMISSION_STATES = ["prevue", "confirmee", "reglee"] as const;
+function commissionStateLabel(state: string, t: TranslatorOf<"deals.detail">): string {
+  return (COMMISSION_STATES as readonly string[]).includes(state) ? t(`commissionStates.${state as (typeof COMMISSION_STATES)[number]}`) : state;
+}
 
 export default async function DealPage({
   params,
@@ -51,6 +53,8 @@ export default async function DealPage({
   /** `erreur` : section tâches ; `erreurJournal` : journal. */
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  const tr = await getTranslations("deals.detail");
+  const tq = await getTranslations("settings.queries");
   const user = await requireUser();
   const { id } = await params;
   const query = await searchParams;
@@ -71,7 +75,7 @@ export default async function DealPage({
     listPartners(user),
     listDealShares(user, id),
     listCommissionsForDeal(user, id),
-    listDealJournal(user, id),
+    listDealJournal(user, id, await getTranslations("activities.queries")),
     listLossReasons(user),
     getDealStageDurations(user, id),
     listOrgUsers(user),
@@ -145,7 +149,7 @@ export default async function DealPage({
             {deal.estimatedAmount && ` · ≈ ${formatEuros(deal.estimatedAmount)}`}
           </>
         }
-        backTo={{ href: "/affaires", label: "Affaires" }}
+        backTo={{ href: "/affaires", label: tr("affaires") }}
         // Le statut est une information d'identité de l'affaire, pas une
         // section : il tenait une carte entière pour un seul badge. Il est
         // explicitement nommé « Statut de l'affaire » parce que la page
@@ -153,7 +157,7 @@ export default async function DealPage({
         // refusée…) : deux vocabulaires proches, deux objets différents.
         actions={
           <span className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Statut de l&apos;affaire</span>
+            <span className="text-xs text-muted-foreground">{tr("statut_de_l_affaire")}</span>
             <DealStatusBadge label={currentDealStatus.label} color={currentDealStatus.color} />
           </span>
         }
@@ -161,11 +165,11 @@ export default async function DealPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Pipeline</CardTitle>
+          <CardTitle>{tr("pipeline")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <form action={moveStage} className="flex flex-wrap items-end gap-2">
-            <Field label="Étape" htmlFor="statusId">
+            <Field label={tr("etape")} htmlFor="statusId">
               <select
                 id="statusId"
                 name="statusId"
@@ -175,24 +179,24 @@ export default async function DealPage({
                 {pipelineStages.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.label}
-                    {s.outcome === "won" ? " (gagné)" : s.outcome === "lost" ? " (perdu)" : ""}
+                    {s.outcome === "won" ? tr("gagne") : s.outcome === "lost" ? tr("perdu") : ""}
                   </option>
                 ))}
               </select>
             </Field>
             <Button type="submit" variant="outline">
-              Déplacer
+              {tr("deplacer")}
             </Button>
             {"outcome" in currentDealStatus && currentDealStatus.outcome === "lost" && (
               <p className="w-full text-xs text-muted-foreground">
-                Affaire perdue{deal.lossReasonId ? "" : " — renseigne le motif ci-dessous"}.
+                {tr("affaire_perdue", { value: deal.lossReasonId ? "" : tr("renseigne_le_motif_ci_dessous") })}
               </p>
             )}
           </form>
 
           <form action={saveDetails} className="flex flex-col gap-4 border-t border-border pt-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Montant estimé (€)" htmlFor="estimatedAmount">
+              <Field label={tr("montant_estime")} htmlFor="estimatedAmount">
                 <Input
                   id="estimatedAmount"
                   name="estimatedAmount"
@@ -202,12 +206,12 @@ export default async function DealPage({
                 />
               </Field>
               <Field
-                label="Probabilité (%)"
+                label={tr("probabilite")}
                 htmlFor="probability"
                 hint={
                   "outcome" in currentDealStatus && currentDealStatus.probability != null
-                    ? `Vide = celle de l'étape (${formatPercent(currentDealStatus.probability)}).`
-                    : "Vide = celle de l'étape."
+                    ? tr("vide_celle_de_l_etape", { formatPercent: (formatPercent(currentDealStatus.probability)) ?? "" })
+                    : tr("vide_celle_de_l_etape_f17a")
                 }
               >
                 <Input
@@ -220,7 +224,7 @@ export default async function DealPage({
                   defaultValue={deal.probability ? String(Number(deal.probability)) : ""}
                 />
               </Field>
-              <Field label="Clôture prévue" htmlFor="expectedCloseDate">
+              <Field label={tr("cloture_prevue")} htmlFor="expectedCloseDate">
                 <Input
                   id="expectedCloseDate"
                   name="expectedCloseDate"
@@ -228,14 +232,14 @@ export default async function DealPage({
                   defaultValue={deal.expectedCloseDate ?? ""}
                 />
               </Field>
-              <Field label="Responsable" htmlFor="ownerId">
+              <Field label={tr("responsable")} htmlFor="ownerId">
                 <select
                   id="ownerId"
                   name="ownerId"
                   defaultValue={deal.ownerId ?? ""}
                   className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
                 >
-                  <option value="">Personne</option>
+                  <option value="">{tr("personne")}</option>
                   {orgUsers.map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.name || u.email}
@@ -245,14 +249,14 @@ export default async function DealPage({
               </Field>
             </div>
             {"outcome" in currentDealStatus && currentDealStatus.outcome === "lost" && (
-              <Field label="Motif de perte" htmlFor="lossReasonId" hint="La liste se configure dans Marque & réglages.">
+              <Field label={tr("motif_de_perte")} htmlFor="lossReasonId" hint={tr("la_liste_se_configure_dans_marque_d1d6")}>
                 <select
                   id="lossReasonId"
                   name="lossReasonId"
                   defaultValue={deal.lossReasonId ?? ""}
                   className="h-8 max-w-64 rounded-lg border border-input bg-transparent px-2.5 text-sm"
                 >
-                  <option value="">Sans motif</option>
+                  <option value="">{tr("sans_motif")}</option>
                   {lossReasons.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.label}
@@ -262,14 +266,14 @@ export default async function DealPage({
               </Field>
             )}
             <Button type="submit" variant="outline" className="w-fit">
-              Enregistrer
+              {tr("enregistrer")}
             </Button>
           </form>
 
           {durations.length > 0 && (
             <div className="flex flex-col gap-2 border-t border-border pt-4">
               <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                Temps par étape
+                {tr("temps_par_etape")}
               </h3>
               <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
                 {durations.map((d) => {
@@ -283,8 +287,8 @@ export default async function DealPage({
                       />
                       <span>{d.label}</span>
                       <span className="tabular-nums text-muted-foreground">
-                        {days < 1 ? "moins d'un jour" : formatDays(days)}
-                        {d.current && " · en cours"}
+                        {days < 1 ? tr("moins_d_un_jour") : formatDays(days)}
+                        {d.current && tr("en_cours")}
                       </span>
                     </li>
                   );
@@ -299,40 +303,40 @@ export default async function DealPage({
           jamais rattachée toute seule après coup — ici, le geste humain, journalisé. */}
       <Card>
         <CardHeader>
-          <CardTitle>Origine</CardTitle>
+          <CardTitle>{tr("origine")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <p className="text-sm">
             {currentLead ? (
               <>
-                Lead du {formatDate(currentLead.receivedAt)} — <span className="font-medium">{leadOriginLabel(currentLead)}</span>
+                {tr.rich("lead_du", { formatDate: formatDate(currentLead.receivedAt), leadOriginLabel: leadOriginLabel(currentLead, tq), span: (chunks) => <span className="font-medium">{chunks}</span> })}
                 {currentLead.pageUrl && <span className="text-muted-foreground"> · {currentLead.pageUrl}</span>}
               </>
             ) : (
-              <span className="text-muted-foreground">Aucune origine rattachée.</span>
+              <span className="text-muted-foreground">{tr("aucune_origine_rattachee")}</span>
             )}
           </p>
           {!deal.contactId ? (
-            <p className="text-xs text-muted-foreground">Sans fiche contact, aucun lead ne peut être rattaché à cette affaire.</p>
+            <p className="text-xs text-muted-foreground">{tr("sans_fiche_contact_aucun_lead_ne_fe08")}</p>
           ) : contactLeads.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Ce contact n&apos;a reçu aucun lead : rien à rattacher.</p>
+            <p className="text-xs text-muted-foreground">{tr("ce_contact_n_a_recu_aucun_7e40")}</p>
           ) : (
             <form action={setDealOriginAction.bind(null, id)} className="flex flex-wrap items-end gap-2">
               <Field
-                label="Lead à l'origine de l'affaire"
+                label={tr("lead_a_l_origine_de_l_9387")}
                 htmlFor="leadId"
-                hint="Posé automatiquement à la création depuis le dernier lead reçu avant. Un lead arrivé après ne se rattache qu'ici — et c'est journalisé."
+                hint={tr("pose_automatiquement_a_la_creation_depuis_4f3d")}
               >
                 <select id="leadId" name="leadId" defaultValue={deal.leadId ?? ""} className="h-8 min-w-64 rounded-lg border border-input bg-transparent px-2.5 text-sm">
-                  <option value="">Aucune origine</option>
+                  <option value="">{tr("aucune_origine")}</option>
                   {contactLeads.map((l) => (
                     <option key={l.id} value={l.id}>
-                      {formatDate(l.receivedAt)} — {leadOriginLabel(l)}
+                      {formatDate(l.receivedAt)} — {leadOriginLabel(l, tq)}
                     </option>
                   ))}
                 </select>
               </Field>
-              <Button type="submit" variant="outline">Enregistrer</Button>
+              <Button type="submit" variant="outline">{tr("enregistrer")}</Button>
             </form>
           )}
         </CardContent>
@@ -341,7 +345,7 @@ export default async function DealPage({
       {shares.length > 0 && (
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold">
-            {shares.length} partage{shares.length > 1 ? "s" : ""}
+            {tr("partage_partages", { count: shares.length })}
           </h2>
           <ListCard>
             {shares.map(({ share, partnerName }) => {
@@ -350,11 +354,7 @@ export default async function DealPage({
                 <li key={share.id} className="flex flex-col gap-2 px-4 py-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex min-w-0 flex-col">
-                      <span className="truncate text-sm font-medium">{partnerName}</span>
-                      <span className="text-xs tabular-nums text-muted-foreground">
-                        Envoyé le {formatDate(share.sentAt)}
-                        {share.expiresAt && ` · expire le ${formatDate(share.expiresAt)}`}
-                      </span>
+                      {tr.rich("envoye_le", { partnerName, formatDate: formatDate(share.sentAt), n: (share.expiresAt && tr("expire_le", { formatDate: formatDate(share.expiresAt) })) ?? "", span: (chunks) => <span className="truncate text-sm font-medium">{chunks}</span>, span2: (chunks) => <span className="text-xs tabular-nums text-muted-foreground">{chunks}</span> })}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <ShareStatusBadge status={share.status} />
@@ -364,7 +364,7 @@ export default async function DealPage({
                           <form action={revoke}>
                             <input type="hidden" name="shareId" value={share.id} />
                             <Button type="submit" variant="ghost" size="sm">
-                              Révoquer
+                              {tr("revoquer")}
                             </Button>
                           </form>
                         </>
@@ -375,14 +375,7 @@ export default async function DealPage({
                   {commission && (
                     <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 px-3 py-2">
                       <span className="text-xs">
-                        <span className="text-muted-foreground">Commission </span>
-                        <span className="font-medium tabular-nums">
-                          {formatCommission(commission)}
-                        </span>
-                        <span className="text-muted-foreground">
-                          {" · "}
-                          {COMMISSION_STATE_LABELS[commission.state] ?? commission.state}
-                        </span>
+                        {tr.rich("commission", { formatCommission: formatCommission(commission), n: commissionStateLabel(commission.state, tr), span: (chunks) => <span className="text-muted-foreground">{chunks}</span>, span2: (chunks) => <span className="font-medium tabular-nums">{chunks}</span>, span3: (chunks) => <span className="text-muted-foreground">{chunks}</span> })}
                       </span>
                       {commission.state === "prevue" && (
                         <ConfirmCommissionButton commissionId={commission.id} />
@@ -420,7 +413,7 @@ export default async function DealPage({
         tasks={dealTasks}
         backTo={`/affaires/${id}`}
         dealId={id}
-        emptyText="Aucune tâche pour cette affaire — celles que le suivi génère (relances, commission) arriveront ici toutes seules."
+        emptyText={tr("aucune_tache_pour_cette_affaire_celles_2ca0")}
         erreur={query.erreur}
       />
 
@@ -435,7 +428,7 @@ export default async function DealPage({
           dealId={id}
           context="deal"
           erreur={query[JOURNAL_ERROR_PARAM]}
-          description="Interactions, étapes franchies, partages et tâches achevées sur cette affaire — une interaction consignée ici se retrouve aussi sur la fiche du client."
+          description={tr("interactions_etapes_franchies_partages_et_taches_3236")}
         />
       </div>
     </>

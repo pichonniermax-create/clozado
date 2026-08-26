@@ -6,6 +6,9 @@ import { AINotConfiguredError, AITruncatedError, getAIProvider } from "@/lib/ai"
 import { reviewNewsletter } from "@/lib/newsletter/review";
 import { parsePartialNewsletter } from "@/lib/newsletter/stream-parse";
 import type { OrgScopeUser } from "@/lib/session";
+import { getTranslations } from "next-intl/server";
+import { errorMessage } from "@/lib/form-actions";
+import { isAppError } from "@/lib/errors";
 
 const bodySchema = z.object({
   targetId: z.uuid(),
@@ -27,16 +30,17 @@ const bodySchema = z.object({
  * détail du protocole plus bas.
  */
 export async function POST(request: Request) {
+  const t = await getTranslations("newsletters.apiAiDesign");
   const session = await auth();
   if (!session?.user) {
-    return NextResponse.json({ error: "Authentification requise." }, { status: 401 });
+    return NextResponse.json({ error: t("authentification_requise") }, { status: 401 });
   }
 
   const rawBody = await request.json().catch(() => null);
   const body = bodySchema.safeParse(rawBody);
   if (!body.success) {
     return NextResponse.json(
-      { error: "Requête invalide.", issues: body.error.issues },
+      { error: t("requete_invalide"), issues: body.error.issues },
       { status: 400 }
     );
   }
@@ -50,12 +54,8 @@ export async function POST(request: Request) {
   try {
     context = await getDesignContext(user, body.data.targetId);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Erreur inconnue.";
-    const status = message.startsWith("Accès refusé")
-      ? 403
-      : message.includes("introuvable")
-        ? 404
-        : 400;
+    const message = await errorMessage(err);
+    const status = isAppError(err) ? err.status : 400;
     return NextResponse.json({ error: message }, { status });
   }
 
@@ -124,7 +124,7 @@ export async function POST(request: Request) {
         send({
           type: "done",
           newsletter,
-          review: reviewNewsletter(newsletter, allowedFigures),
+          review: reviewNewsletter(newsletter, allowedFigures, await getTranslations("newsletters.review")),
         });
       } catch (err) {
         const message =
@@ -132,7 +132,7 @@ export async function POST(request: Request) {
             ? err.message
             : err instanceof Error
               ? err.message
-              : "Erreur de génération IA.";
+              : t("erreur_de_generation_ia");
         send({ type: "error", error: message });
       } finally {
         controller.close();

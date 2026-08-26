@@ -11,6 +11,7 @@ import {
   type ImportReport,
   type ImportRowInput,
 } from "@/lib/contacts/actions";
+import { useTranslations } from "next-intl";
 
 /**
  * Import CSV en trois temps, tout sur un écran : le fichier est lu et
@@ -21,20 +22,8 @@ import {
  * raison.
  */
 
-const TARGETS: { value: ImportField | ""; label: string }[] = [
-  { value: "", label: "— Ignorer cette colonne —" },
-  { value: "name", label: "Nom complet" },
-  { value: "firstName", label: "Prénom" },
-  { value: "lastName", label: "Nom" },
-  { value: "email", label: "Email" },
-  { value: "phone", label: "Téléphone" },
-  { value: "companyName", label: "Société" },
-  { value: "jobTitle", label: "Fonction" },
-  { value: "city", label: "Ville" },
-  { value: "postalCode", label: "Code postal" },
-  { value: "country", label: "Pays" },
-  { value: "notes", label: "Notes" },
-];
+/** Les champs cibles d'une colonne, dans l'ordre du sélecteur ; leurs libellés sont `contacts.importWizard.fields.<champ>` (« ignore » pour la colonne ignorée). */
+const TARGETS: (ImportField | "")[] = ["", "name", "firstName", "lastName", "email", "phone", "companyName", "jobTitle", "city", "postalCode", "country", "notes"];
 
 /** Détection du séparateur sur la première ligne : ; , ou tabulation. */
 function detectSeparator(firstLine: string): string {
@@ -130,6 +119,7 @@ async function readFileText(file: File): Promise<string> {
 }
 
 export function ImportWizard() {
+  const tr = useTranslations("contacts.importWizard");
   const [fileName, setFileName] = useState<string | null>(null);
   const [parsed, setParsed] = useState<ParsedCsv | null>(null);
   const [mapping, setMapping] = useState<(ImportField | "")[]>([]);
@@ -147,7 +137,7 @@ export function ImportWizard() {
       const text = await readFileText(file);
       const p = parseCsv(text);
       if (p.headers.length === 0 || p.rows.length === 0) {
-        setReadError("Ce fichier ne contient pas de lignes exploitables (en-tête + au moins une ligne).");
+        setReadError(tr("ce_fichier_ne_contient_pas_de_1c5a"));
         setParsed(null);
         setFileName(null);
         return;
@@ -156,7 +146,7 @@ export function ImportWizard() {
       setParsed(p);
       setMapping(p.headers.map((h) => guessTarget(h, p.headers)));
     } catch {
-      setReadError("Impossible de lire ce fichier.");
+      setReadError(tr("impossible_de_lire_ce_fichier"));
     }
   }
 
@@ -189,7 +179,7 @@ export function ImportWizard() {
         completed: [],
         skipped: [],
         error:
-          "L'import a échoué en route (réseau ou serveur) — ta préparation est intacte, réessaie depuis ce même écran.",
+          tr("l_import_a_echoue_en_route_55f6"),
       });
     } finally {
       setSending(false);
@@ -203,25 +193,23 @@ export function ImportWizard() {
       <div className="flex flex-col gap-4">
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-sm font-medium tabular-nums">
-            {report.inserted} fiche{report.inserted > 1 ? "s" : ""} créée{report.inserted > 1 ? "s" : ""}
-            {report.completed.length > 0 &&
-              ` · ${report.completed.length} complétée${report.completed.length > 1 ? "s" : ""}`}
-            {report.skipped.length > 0 &&
-              ` · ${report.skipped.length} ligne${report.skipped.length > 1 ? "s" : ""} écartée${report.skipped.length > 1 ? "s" : ""}`}
+            {tr("fiche_fiches_creee_creees", { inserted: report.inserted, n: (report.completed.length > 0 &&
+              tr("completee_completees", { count: report.completed.length })) || "", n2: (report.skipped.length > 0 &&
+              tr("ligne_lignes_ecartee_ecartees", { count: report.skipped.length })) || "" })}
           </p>
           {report.error && <p className="mt-2 text-sm text-destructive">{report.error}</p>}
         </div>
 
         {report.completed.length > 0 && (
           <section className="flex flex-col gap-2">
-            <h2 className="text-sm font-semibold">Fiches complétées — champs vides remplis, rien d&apos;écrasé</h2>
+            <h2 className="text-sm font-semibold">{tr("fiches_completees_champs_vides_remplis_rien_7347")}</h2>
             <div className="overflow-x-auto rounded-xl border border-border bg-card">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className="px-4 py-2 font-medium">Ligne</th>
-                    <th className="px-4 py-2 font-medium">Fiche</th>
-                    <th className="px-4 py-2 font-medium">Champs remplis</th>
+                    <th className="px-4 py-2 font-medium">{tr("ligne")}</th>
+                    <th className="px-4 py-2 font-medium">{tr("fiche")}</th>
+                    <th className="px-4 py-2 font-medium">{tr("champs_remplis")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -247,8 +235,8 @@ export function ImportWizard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                  <th className="px-4 py-2 font-medium">Ligne</th>
-                  <th className="px-4 py-2 font-medium">Raison</th>
+                  <th className="px-4 py-2 font-medium">{tr("ligne")}</th>
+                  <th className="px-4 py-2 font-medium">{tr("raison")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -265,7 +253,7 @@ export function ImportWizard() {
 
         <div className="flex gap-2">
           <Link href="/contacts" className={buttonVariants()}>
-            Voir les contacts
+            {tr("voir_les_contacts")}
           </Link>
           <Button
             variant="outline"
@@ -275,7 +263,7 @@ export function ImportWizard() {
               setFileName(null);
             }}
           >
-            Importer un autre fichier
+            {tr("importer_un_autre_fichier")}
           </Button>
         </div>
       </div>
@@ -286,7 +274,7 @@ export function ImportWizard() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <label htmlFor="csv" className="text-sm font-medium">
-          Fichier CSV
+          {tr("fichier_csv")}
         </label>
         <input
           id="csv"
@@ -296,8 +284,7 @@ export function ImportWizard() {
           className="w-fit text-sm file:mr-3 file:rounded-lg file:border file:border-border file:bg-card file:px-3 file:py-1.5 file:text-sm file:font-medium"
         />
         <p className="text-xs text-muted-foreground">
-          Première ligne = en-têtes. Séparateur point-virgule, virgule ou tabulation — détecté tout seul.
-          Toutes les fiches importées sont des personnes.
+          {tr("premiere_ligne_en_tetes_separateur_point_76d7")}
         </p>
         {readError && <p className="text-sm text-destructive">{readError}</p>}
       </div>
@@ -306,22 +293,21 @@ export function ImportWizard() {
         <>
           <section className="flex flex-col gap-3">
             <h2 className="text-sm font-semibold">
-              Correspondance des colonnes — {fileName} · {parsed.rows.length} ligne
-              {parsed.rows.length > 1 ? "s" : ""}
+              {tr("correspondance_des_colonnes_ligne_lignes", { fileName: (fileName) ?? "", count: parsed.rows.length })}
             </h2>
             <div className="overflow-x-auto rounded-xl border border-border bg-card">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className="px-4 py-2 font-medium">Colonne du fichier</th>
-                    <th className="px-4 py-2 font-medium">Devient</th>
-                    <th className="px-4 py-2 font-medium">Exemple (1re ligne)</th>
+                    <th className="px-4 py-2 font-medium">{tr("colonne_du_fichier")}</th>
+                    <th className="px-4 py-2 font-medium">{tr("devient")}</th>
+                    <th className="px-4 py-2 font-medium">{tr("exemple_1re_ligne")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {parsed.headers.map((h, i) => (
                     <tr key={`${h}-${i}`}>
-                      <td className="px-4 py-2 font-medium">{h || <span className="text-muted-foreground">(sans titre)</span>}</td>
+                      <td className="px-4 py-2 font-medium">{h || <span className="text-muted-foreground">{tr("sans_titre")}</span>}</td>
                       <td className="px-4 py-2">
                         <select
                           value={mapping[i] ?? ""}
@@ -330,9 +316,9 @@ export function ImportWizard() {
                           }
                           className="rounded-lg border border-input bg-transparent px-2 py-1 text-sm"
                         >
-                          {TARGETS.map((t) => (
-                            <option key={t.value} value={t.value}>
-                              {t.label}
+                          {TARGETS.map((value) => (
+                            <option key={value} value={value}>
+                              {tr(`fields.${value || "ignore"}`)}
                             </option>
                           ))}
                         </select>
@@ -347,23 +333,23 @@ export function ImportWizard() {
             </div>
             {!hasName && (
               <p className="text-sm text-warning">
-                Associe au moins une colonne à « Nom complet » ou « Nom » pour pouvoir importer.
+                {tr("associe_au_moins_une_colonne_a_84f6")}
               </p>
             )}
           </section>
 
           <section className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold">Aperçu — rien n&apos;est encore importé</h2>
+            <h2 className="text-sm font-semibold">{tr("apercu_rien_n_est_encore_importe")}</h2>
             {preview.length === 0 ? (
-              <EmptyState>Aucune ligne à montrer.</EmptyState>
+              <EmptyState>{tr("aucune_ligne_a_montrer")}</EmptyState>
             ) : (
               <div className="overflow-x-auto rounded-xl border border-border bg-card">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                      {TARGETS.filter((t) => t.value && mapping.includes(t.value)).map((t) => (
-                        <th key={t.value} className="px-4 py-2 font-medium">
-                          {t.label}
+                      {TARGETS.filter((value) => value && mapping.includes(value)).map((value) => (
+                        <th key={value} className="px-4 py-2 font-medium">
+                          {tr(`fields.${value || "ignore"}`)}
                         </th>
                       ))}
                     </tr>
@@ -373,9 +359,9 @@ export function ImportWizard() {
                       .slice(0, 5)
                       .map((r) => (
                         <tr key={r.line}>
-                          {TARGETS.filter((t) => t.value && mapping.includes(t.value)).map((t) => (
-                            <td key={t.value} className="max-w-48 truncate px-4 py-2">
-                              {r.values[t.value as ImportField] ?? ""}
+                          {TARGETS.filter((value) => value && mapping.includes(value)).map((value) => (
+                            <td key={value} className="max-w-48 truncate px-4 py-2">
+                              {r.values[value as ImportField] ?? ""}
                             </td>
                           ))}
                         </tr>
@@ -385,7 +371,7 @@ export function ImportWizard() {
               </div>
             )}
             <fieldset className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
-              <legend className="px-1 text-sm font-medium">Si une fiche existe déjà (même email)</legend>
+              <legend className="px-1 text-sm font-medium">{tr("si_une_fiche_existe_deja_meme_8c50")}</legend>
               <label className="flex items-start gap-2 text-sm">
                 <input
                   type="radio"
@@ -395,11 +381,7 @@ export function ImportWizard() {
                   onChange={() => setMode("complete")}
                 />
                 <span>
-                  La compléter — seuls ses champs vides reçoivent les valeurs du fichier.
-                  <span className="block text-xs text-muted-foreground">
-                    Jamais d&apos;écrasement : une valeur déjà saisie ici reste telle quelle.
-                    C&apos;est le bon choix pour réimporter l&apos;export de ton CRM.
-                  </span>
+                  {tr.rich("la_completer_seuls_ses_champs_vides_44ea", { span: (chunks) => <span className="block text-xs text-muted-foreground">{chunks}</span> })}
                 </span>
               </label>
               <label className="flex items-start gap-2 text-sm">
@@ -411,18 +393,15 @@ export function ImportWizard() {
                   onChange={() => setMode("skip")}
                 />
                 <span>
-                  L&apos;ignorer — la ligne est écartée et listée au rapport.
-                  <span className="block text-xs text-muted-foreground">
-                    N&apos;importe que les emails inconnus, ne touche à rien d&apos;existant.
-                  </span>
+                  {tr.rich("l_ignorer_la_ligne_est_ecartee_5f3b", { span: (chunks) => <span className="block text-xs text-muted-foreground">{chunks}</span> })}
                 </span>
               </label>
             </fieldset>
             <div>
               <Button onClick={submit} disabled={!hasName || sending}>
                 {sending
-                  ? "Import en cours…"
-                  : `Importer ${parsed.rows.length} ligne${parsed.rows.length > 1 ? "s" : ""}`}
+                  ? tr("import_en_cours")
+                  : tr("importer_ligne_lignes", { count: parsed.rows.length })}
               </Button>
             </div>
           </section>

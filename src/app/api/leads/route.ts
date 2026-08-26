@@ -60,6 +60,7 @@ function clientIp(request: Request): string {
 
 export async function POST(request: Request) {
   const authorization = request.headers.get("authorization") ?? "";
+  // eslint-disable-next-line local/no-visible-text -- le schéma d'authentification HTTP, pas un texte
   const rawKey = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
   if (!rawKey) {
     return NextResponse.json({ error: "missing_api_key" }, { status: 401, headers: HEADERS });
@@ -103,6 +104,7 @@ export async function POST(request: Request) {
   const lead = parsed.data;
   if (!lead.email && !lead.phone) {
     await recordRejection(auth.organizationId, "invalid_payload", auth.keyPrefix);
+    // eslint-disable-next-line local/no-visible-text -- le contrat de l'API de collecte, lu par un développeur, stable
     return NextResponse.json({ error: "invalid_payload", issues: [{ path: "email", message: "email ou phone requis" }] }, { status: 400, headers: HEADERS });
   }
   if (lead.payload) {

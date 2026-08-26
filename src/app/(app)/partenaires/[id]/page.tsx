@@ -15,12 +15,14 @@ import { listDealSharesForPartner } from "@/db/queries/deal-shares";
 import { updatePartnerAction } from "@/lib/deals/actions";
 import { formatDate } from "@/lib/format";
 import { requireUser } from "@/lib/session";
+import { getTranslations } from "next-intl/server";
 
 export default async function PartnerPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = await getTranslations("partners.detail");
   const user = await requireUser();
   const { id } = await params;
 
@@ -53,34 +55,34 @@ export default async function PartnerPage({
       <PageHeader
         title={partner.name}
         description={[partner.profession, partner.company].filter(Boolean).join(" · ") || undefined}
-        backTo={{ href: "/partenaires", label: "Partenaires" }}
-        actions={!partner.active ? <Badge variant="secondary">Inactif</Badge> : undefined}
+        backTo={{ href: "/partenaires", label: t("partenaires") }}
+        actions={!partner.active ? <Badge variant="secondary">{t("inactif")}</Badge> : undefined}
       />
 
       <Card>
         <CardHeader>
-          <CardTitle>Fiche</CardTitle>
+          <CardTitle>{t("fiche")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form action={savePartner} className="flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Nom" htmlFor="name">
+              <Field label={t("nom")} htmlFor="name">
                 <Input id="name" name="name" defaultValue={partner.name} required />
               </Field>
-              <Field label="Société" htmlFor="company">
+              <Field label={t("societe")} htmlFor="company">
                 <Input id="company" name="company" defaultValue={partner.company ?? ""} />
               </Field>
-              <Field label="Métier" htmlFor="profession">
+              <Field label={t("metier")} htmlFor="profession">
                 <Input id="profession" name="profession" defaultValue={partner.profession ?? ""} />
               </Field>
-              <Field label="Email" htmlFor="email">
+              <Field label={t("email")} htmlFor="email">
                 <Input id="email" name="email" type="email" defaultValue={partner.email ?? ""} />
               </Field>
-              <Field label="Téléphone" htmlFor="phone">
+              <Field label={t("telephone")} htmlFor="phone">
                 <Input id="phone" name="phone" defaultValue={partner.phone ?? ""} />
               </Field>
             </div>
-            <Field label="Notes" htmlFor="notes">
+            <Field label={t("notes")} htmlFor="notes">
               <Textarea
                 id="notes"
                 name="notes"
@@ -90,10 +92,10 @@ export default async function PartnerPage({
             </Field>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="active" defaultChecked={partner.active} />
-              Partenaire actif
+              {t("partenaire_actif")}
             </label>
             <Button type="submit" className="w-fit">
-              Enregistrer
+              {t("enregistrer")}
             </Button>
           </form>
         </CardContent>
@@ -103,18 +105,17 @@ export default async function PartnerPage({
           section) — l'historique n'a pas de raison d'être « en carte dans
           une carte » alors que la même liste vit nue sur les autres écrans. */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">Affaires partagées</h2>
+        <h2 className="text-sm font-semibold">{t("affaires_partagees")}</h2>
         {history.length === 0 ? (
           <EmptyState
-            title="Aucune affaire partagée avec ce partenaire"
+            title={t("aucune_affaire_partagee_avec_ce_partenaire")}
             action={
               <Link href="/affaires" className={buttonVariants({ variant: "outline" })}>
-                Voir les affaires
+                {t("voir_les_affaires")}
               </Link>
             }
           >
-            Le partage se fait depuis la fiche d&apos;une affaire : un lien à ton nom, une réponse en
-            un clic — l&apos;historique apparaîtra ici.
+            {t("le_partage_se_fait_depuis_la_143b")}
           </EmptyState>
         ) : (
           <ListCard>
@@ -123,7 +124,7 @@ export default async function PartnerPage({
                 key={share.id}
                 href={`/affaires/${deal.id}`}
                 title={deal.title}
-                subtitle={`Envoyée le ${formatDate(share.sentAt)}`}
+                subtitle={t("envoyee_le", { formatDate: formatDate(share.sentAt) })}
                 trailing={<ShareStatusBadge status={share.status} />}
                 chevron={false}
               />

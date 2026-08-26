@@ -10,6 +10,7 @@ import {
 } from "@/db/queries/activities";
 import { errorMessage, withError } from "@/lib/form-actions";
 import { requireUser } from "@/lib/session";
+import { AppError } from "@/lib/errors";
 
 /**
  * Server actions du journal — org-scopées via `requireUser()`, même
@@ -30,7 +31,7 @@ export async function logActivityAction(context: FicheContext, formData: FormDat
   let destination = context.backTo;
   try {
     const type = String(formData.get("type") ?? "");
-    if (!isActivityType(type)) throw new Error("Choisis le type d'interaction.");
+    if (!isActivityType(type)) throw new AppError("choisis_le_type_d_interaction");
     await createActivity(user, user.id, {
       type,
       content: String(formData.get("content") ?? ""),
@@ -39,7 +40,7 @@ export async function logActivityAction(context: FicheContext, formData: FormDat
       dealId: context.dealId ?? null,
     });
   } catch (error) {
-    destination = withError(context.backTo, errorMessage(error), JOURNAL_ERROR_PARAM);
+    destination = withError(context.backTo, await errorMessage(error), JOURNAL_ERROR_PARAM);
   }
   redirect(destination);
 }
@@ -50,7 +51,7 @@ export async function deleteActivityAction(context: { backTo: string; activityId
   try {
     await deleteActivity(user, context.activityId);
   } catch (error) {
-    destination = withError(context.backTo, errorMessage(error), JOURNAL_ERROR_PARAM);
+    destination = withError(context.backTo, await errorMessage(error), JOURNAL_ERROR_PARAM);
   }
   redirect(destination);
 }

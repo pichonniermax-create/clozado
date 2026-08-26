@@ -13,6 +13,7 @@ import {
 } from "./filters";
 import { lostDealCondition } from "./losses";
 import { finishRate, type RateStat } from "./types";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /**
  * La famille « funnel » — le calcul, en SQL, des pas définis dans
@@ -47,12 +48,8 @@ export type FunnelStep = {
   rate: RateStat | null;
 };
 
-const REASON_ORIGIN_UNKNOWN =
-  "Sans objet avec ce filtre : il retient les affaires sans lead, et la chaîne part des visites et des leads. Le funnel par pipeline, lui, les compte.";
-const REASON_OWNER = "Sans objet par conseiller : une visite n'est rattachée à personne.";
-const REASON_NO_EVENTS = "Pas encore branché : aucune visite n'a jamais été reçue.";
-const REASON_NO_LEADS = "Pas encore branché : aucun lead n'a jamais été reçu.";
-const REASON_NO_LEAD_ROW = "Sans lead : rien en amont ne correspond.";
+/** Les raisons d'un pas « sans objet » vivent dans les messages (`metrics.reasons.*`) : le rapport reçoit le traducteur de l'appelant. */
+export type MetricsTranslator = TranslatorOf<"metrics">;
 
 function unavailable(reason: string): FunnelCount {
   return { n: 0, unavailable: reason };
@@ -263,7 +260,7 @@ async function dealsFromLeads(organizationId: string, filters: MetricFilters) {
   `);
 }
 
-export async function funnelChain(user: OrgScopeUser, filters: MetricFilters = {}): Promise<FunnelChain> {
+export async function funnelChain(user: OrgScopeUser, filters: MetricFilters = {}, t: MetricsTranslator): Promise<FunnelChain> {
   const org = organizationOf(user);
   const [acq, lead, dealRows] = await Promise.all([
     acquisitionCounts(org, filters),
@@ -284,8 +281,8 @@ export async function funnelChain(user: OrgScopeUser, filters: MetricFilters = {
   };
 
   const originUnknown = filters.originId === ORIGIN_UNKNOWN;
-  const upstreamReason = originUnknown ? REASON_ORIGIN_UNKNOWN : !acq.ever ? REASON_NO_EVENTS : filters.ownerId ? REASON_OWNER : undefined;
-  const leadReason = originUnknown ? REASON_ORIGIN_UNKNOWN : !lead.ever ? REASON_NO_LEADS : undefined;
+  const upstreamReason = originUnknown ? t("reasons.origin_unknown") : !acq.ever ? t("reasons.no_events") : filters.ownerId ? t("reasons.owner") : undefined;
+  const leadReason = originUnknown ? t("reasons.origin_unknown") : !lead.ever ? t("reasons.no_leads") : undefined;
   const count = (reason: string | undefined, n: number): FunnelCount => (reason ? unavailable(reason) : { n });
 
   return {
@@ -438,7 +435,7 @@ export type OriginFunnelRow = {
   dealToWon: RateStat | null;
 };
 
-export async function funnelByOrigin(user: OrgScopeUser, filters: MetricFilters = {}): Promise<OriginFunnelRow[]> {
+export async function funnelByOrigin(user: OrgScopeUser, filters: MetricFilters = {}, t: MetricsTranslator): Promise<OriginFunnelRow[]> {
   const org = organizationOf(user);
   const eventOrigin = filters.originId ? leadOriginCondition(sql`e`, filters.originId) : sql`TRUE`;
   const [origins, events, leads, deals] = await Promise.all([
@@ -489,8 +486,8 @@ export async function funnelByOrigin(user: OrgScopeUser, filters: MetricFilters 
   }
 
   const labels = new Map<string, string>(origins.map((o) => [String(o.id), String(o.label)]));
-  labels.set(ORIGIN_UNMATCHED, "À rapprocher");
-  labels.set(ORIGIN_UNKNOWN, "Sans origine (aucun lead)");
+  labels.set(ORIGIN_UNMATCHED, t("origins.unmatched"));
+  labels.set(ORIGIN_UNKNOWN, t("origins.unknown"));
   // Toutes les origines configurées (une origine à zéro est une information), les deux lignes
   // spéciales seulement si elles portent quelque chose — et, avec un filtre origine, cette ligne seule.
   const keys = [...labels.keys()].filter((key) => {
@@ -503,8 +500,8 @@ export async function funnelByOrigin(user: OrgScopeUser, filters: MetricFilters 
   const result = keys.map((key): OriginFunnelRow => {
     const a = acc.get(key) ?? blank();
     const upstream = (n: number): FunnelCount =>
-      key === ORIGIN_UNKNOWN ? unavailable(REASON_NO_LEAD_ROW) : filters.ownerId ? unavailable(REASON_OWNER) : { n };
-    const leadSide = (n: number): FunnelCount => (key === ORIGIN_UNKNOWN ? unavailable(REASON_NO_LEAD_ROW) : { n });
+      key === ORIGIN_UNKNOWN ? unavailable(t("reasons.no_lead_row")) : filters.ownerId ? unavailable(t("reasons.owner")) : { n };
+    const leadSide = (n: number): FunnelCount => (key === ORIGIN_UNKNOWN ? unavailable(t("reasons.no_lead_row")) : { n });
     const leadsCount = leadSide(a.leads);
     return {
       key,
@@ -536,11 +533,11 @@ export type FunnelReport = {
   origins: OriginFunnelRow[];
 };
 
-export async function funnelReport(user: OrgScopeUser, filters: MetricFilters = {}): Promise<FunnelReport> {
+export async function funnelReport(user: OrgScopeUser, filters: MetricFilters = {}, t: MetricsTranslator): Promise<FunnelReport> {
   const [chain, pipelines, origins] = await Promise.all([
-    funnelChain(user, filters),
+    funnelChain(user, filters, t),
     pipelineFunnels(user, filters),
-    funnelByOrigin(user, filters),
+    funnelByOrigin(user, filters, t),
   ]);
   return { chain, pipelines, origins };
 }

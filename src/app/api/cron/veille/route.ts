@@ -20,9 +20,11 @@ const STOP_AFTER_MS = 240_000;
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
+    // eslint-disable-next-line local/no-visible-text -- réponse à une machine (le cron), jamais lue par une personne
     return NextResponse.json({ error: "CRON_SECRET absent : le cron de veille est désactivé." }, { status: 503 });
   }
   if (request.headers.get("authorization") !== `Bearer ${secret}`) {
+    // eslint-disable-next-line local/no-visible-text -- réponse à une machine (le cron), jamais lue par une personne
     return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
   }
 

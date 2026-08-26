@@ -1,6 +1,7 @@
 import { eq, sql, type SQL } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { OrgScopeUser } from "@/lib/session";
+import { AppError } from "@/lib/errors";
 
 /**
  * LE garde-fou générique à utiliser dans toute requête (lecture ou
@@ -45,8 +46,6 @@ export function assertOrgAccess(
 ): void {
   if (user.role === "super_admin") return;
   if (!user.organizationId || recordOrganizationId !== user.organizationId) {
-    throw new Error(
-      "Accès refusé : cette donnée n'appartient pas à ton organisation."
-    );
+    throw new AppError("acces_refuse_cette_donnee_n_appartient_pas_044a", undefined, 403);
   }
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { exportContactData } from "@/db/queries/contacts";
 import type { OrgScopeUser } from "@/lib/session";
+import { getTranslations } from "next-intl/server";
 
 /**
  * GET /api/contacts/[id]/export — l'export réglementaire complet d'une
@@ -9,9 +10,10 @@ import type { OrgScopeUser } from "@/lib/session";
  * l'export lui-même est tracé dans le journal des accès.
  */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const t = await getTranslations("contacts.apiIdExport");
   const session = await auth();
   if (!session?.user) {
-    return NextResponse.json({ error: "Connexion requise." }, { status: 401 });
+    return NextResponse.json({ error: t("connexion_requise") }, { status: 401 });
   }
   const user = session.user as OrgScopeUser & { id: string };
   const { id } = await params;
@@ -25,6 +27,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       },
     });
   } catch {
-    return NextResponse.json({ error: "Fiche introuvable." }, { status: 404 });
+    return NextResponse.json({ error: t("fiche_introuvable") }, { status: 404 });
   }
 }

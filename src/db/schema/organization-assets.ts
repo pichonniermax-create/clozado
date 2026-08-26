@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { check, customType, integer, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
+import { AppError } from "@/lib/errors";
 
 /**
  * `bytea` : drizzle-orm n'a pas de colonne native. Le pilote HTTP de Neon
@@ -20,7 +21,7 @@ export const bytea = customType<{ data: Buffer; driverData: string }>({
     if (typeof value === "string") {
       return value.startsWith("\\x") ? Buffer.from(value.slice(2), "hex") : Buffer.from(value, "base64");
     }
-    throw new Error("bytea : format renvoyé par le pilote inattendu.");
+    throw new AppError("bytea_format_renvoye_par_le_pilote_inattendu");
   },
 });
 

@@ -6,6 +6,7 @@ import { TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { reissueDealShareAction } from "@/lib/deals/actions";
+import { useTranslations } from "next-intl";
 
 /**
  * "Renvoyer" révoque le partage existant et en crée un nouveau — le
@@ -14,6 +15,7 @@ import { reissueDealShareAction } from "@/lib/deals/actions";
  * `<form action>` pour cette raison précise.
  */
 export function ReissueShareButton({ shareId }: { shareId: string }) {
+  const t = useTranslations("shares.reissueShareButton");
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -47,7 +49,7 @@ export function ReissueShareButton({ shareId }: { shareId: string }) {
             dirait pas qu'on ne pourra plus jamais réafficher ce lien. */}
         <p className="flex items-center gap-1.5 font-medium">
           <TriangleAlert className="size-3.5 shrink-0 text-warning" />
-          Nouveau lien — il ne sera plus jamais réaffiché.
+          {t("nouveau_lien_il_ne_sera_plus_0f7a")}
         </p>
         <Input
           readOnly
@@ -57,10 +59,10 @@ export function ReissueShareButton({ shareId }: { shareId: string }) {
         />
         <div className="flex gap-2">
           <Button size="sm" onClick={copy}>
-            {copied ? "Copié !" : "Copier le lien"}
+            {copied ? t("copie") : t("copier_le_lien")}
           </Button>
           <Button size="sm" variant="ghost" onClick={() => router.refresh()}>
-            Terminé
+            {t("termine")}
           </Button>
         </div>
       </div>
@@ -72,7 +74,7 @@ export function ReissueShareButton({ shareId }: { shareId: string }) {
     // « partages sans réponse » de l'écran de suivi — invisible tant qu'on
     // ne la survole pas, elle ne se donnait pas pour un bouton.
     <Button type="button" variant="outline" size="sm" onClick={reissue} disabled={pending}>
-      {pending ? "…" : "Renvoyer le lien"}
+      {pending ? "…" : t("renvoyer_le_lien")}
     </Button>
   );
 }

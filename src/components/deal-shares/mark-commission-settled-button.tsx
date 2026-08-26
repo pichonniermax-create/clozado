@@ -4,9 +4,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { markCommissionSettledAction } from "@/lib/deals/actions";
+import { useTranslations } from "next-intl";
 
 /** L'action réelle de la pile "commissions confirmées non réglées" — une constatation, jamais un paiement déclenché. */
 export function MarkCommissionSettledButton({ commissionId }: { commissionId: string }) {
+  const t = useTranslations("shares.markCommissionSettledButton");
   const router = useRouter();
   const [pending, setPending] = useState(false);
 
@@ -22,7 +24,7 @@ export function MarkCommissionSettledButton({ commissionId }: { commissionId: st
 
   return (
     <Button type="button" variant="outline" size="sm" onClick={run} disabled={pending}>
-      {pending ? "…" : "Marquer réglée"}
+      {pending ? "…" : t("marquer_reglee")}
     </Button>
   );
 }

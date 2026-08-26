@@ -2,25 +2,25 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { SignUpForm } from "@/components/auth/sign-up-form";
+import { useTranslations } from "next-intl";
+import { PRODUCT_NAME } from "@/lib/brand";
+import { getTranslations } from "next-intl/server";
 
-export const metadata: Metadata = {
-  title: "Créer un espace — Clozado",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("auth.signup");
+  return { title: t("creer_un_espace_product", { product: PRODUCT_NAME }) };
+}
 
 export default function SignUpPage() {
+  const t = useTranslations("auth.signup");
   return (
     <AuthShell
-      title="Créer un espace Clozado"
-      description="Ton espace est isolé : tes affaires, tes partenaires et tes commissions n'appartiennent qu'à toi."
+      title={t("creer_un_espace_clozado")}
+      description={t("ton_espace_est_isole_tes_affaires_b093")}
       footer={
         <>
-          Tu as déjà un espace ?{" "}
-          <Link
-            href="/login"
-            className="font-medium text-foreground underline underline-offset-4"
-          >
-            Se connecter
-          </Link>
+          {t.rich("tu_as_deja_un_espace_se_6820", { link: (chunks) => <Link href="/login"
+            className="font-medium text-foreground underline underline-offset-4">{chunks}</Link> })}
         </>
       }
     >

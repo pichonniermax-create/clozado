@@ -1,3 +1,4 @@
+import type { TranslatorOf } from "@/i18n/translator";
 import { PRODUCT_TIMEZONE } from "@/lib/timezone";
 
 /**
@@ -44,17 +45,22 @@ export function periodStart(period: string): string | null {
   return null;
 }
 
-const MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-
-/** « 6 août 2026 », « juillet 2026 », « 3e trimestre 2026 », « 2026 » — la période en français, pour l'écran et pour la mention « (source, date) ». */
-export function formatPeriod(period: string): string {
+/**
+ * « 6 août 2026 », « juillet 2026 », « 3e trimestre 2026 », « 2026 » — la
+ * période en mots, pour l'écran et pour la mention « (source, date) ».
+ * Les jours et les mois viennent d'`Intl` ; le trimestre, d'un message
+ * (`figures.periods.quarter`) — aucun mot en dur.
+ */
+export function formatPeriod(period: string, t: TranslatorOf<"figures">): string {
   let m: RegExpExecArray | null;
   if ((m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(period))) {
     return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: PRODUCT_TIMEZONE }).format(
       new Date(`${period}T12:00:00Z`)
     );
   }
-  if ((m = /^(\d{4})-(\d{2})$/.exec(period))) return `${MONTHS[Number(m[2]) - 1] ?? m[2]} ${m[1]}`;
-  if ((m = /^(\d{4})-T([1-4])$/.exec(period))) return `${m[2]}${m[2] === "1" ? "er" : "e"} trimestre ${m[1]}`;
+  if ((m = /^(\d{4})-(\d{2})$/.exec(period))) {
+    return new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${period}-15T12:00:00Z`));
+  }
+  if ((m = /^(\d{4})-T([1-4])$/.exec(period))) return t("periods.quarter", { quarter: Number(m[2]), year: m[1] });
   return period;
 }

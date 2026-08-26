@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { signUpAction, type AuthFormState } from "@/lib/auth/actions";
+import { useTranslations } from "next-intl";
 
 const initialState: AuthFormState = { error: null };
 
 export function SignUpForm() {
+  const t = useTranslations("auth.signUpForm");
   const [state, action, pending] = useActionState(signUpAction, initialState);
 
   // Champs contrôlés à dessein : React 19 réinitialise un formulaire non
@@ -20,12 +22,11 @@ export function SignUpForm() {
   return (
     <form action={action} className="flex flex-col gap-4">
       <Field
-        label="Nom de ton cabinet"
+        label={t("nom_de_ton_cabinet")}
         htmlFor="organizationName"
         hint={
           <>
-            C&apos;est ce nom que verront tes partenaires sur les pages de partage. Tu pourras le
-            changer ensuite.
+            {t("c_est_ce_nom_que_verront_5ed5")}
           </>
         }
       >
@@ -33,7 +34,7 @@ export function SignUpForm() {
           id="organizationName"
           name="organizationName"
           autoComplete="organization"
-          placeholder="Courtier Dupont"
+          placeholder={t("courtier_dupont")}
           required
           minLength={2}
           maxLength={120}
@@ -42,13 +43,13 @@ export function SignUpForm() {
         />
       </Field>
 
-      <Field label="Email professionnel" htmlFor="email">
+      <Field label={t("email_professionnel")} htmlFor="email">
         <Input
           id="email"
           name="email"
           type="email"
           autoComplete="email"
-          placeholder="toi@cabinet.fr"
+          placeholder={t("toi_cabinet_fr")}
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -62,12 +63,11 @@ export function SignUpForm() {
       )}
 
       <Button type="submit" disabled={pending}>
-        {pending ? "Création en cours…" : "Créer mon espace"}
+        {pending ? t("creation_en_cours") : t("creer_mon_espace")}
       </Button>
 
       <p className="text-xs text-muted-foreground">
-        Tu deviens l&apos;administrateur de cet espace. Pas de mot de passe à retenir : tu
-        recevras un lien de connexion par email.
+        {t("tu_deviens_l_administrateur_de_cet_19d2")}
       </p>
     </form>
   );

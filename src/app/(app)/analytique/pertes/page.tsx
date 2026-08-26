@@ -30,12 +30,11 @@ import {
   type ParsedMetricFilters,
 } from "@/lib/metrics";
 import { requireUser } from "@/lib/session";
+import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 
 const BASE_PATH = "/analytique/pertes";
 
-function plural(n: number, singular: string, pluralForm = `${singular}s`) {
-  return `${n} ${n > 1 ? pluralForm : singular}`;
-}
 
 function DefinitionLink({ id, children }: { id: keyof typeof METRICS; children: ReactNode }) {
   return (
@@ -47,39 +46,36 @@ function DefinitionLink({ id, children }: { id: keyof typeof METRICS; children: 
 
 /** L'état sans perte : une bonne nouvelle ou un pipeline pas tenu — l'inventaire le dit, avec les gestes. */
 function NotEnoughData({ report, filtered }: { report: LossesReport; filtered: boolean }) {
+  const t = useTranslations("analytics.pertes");
+  const tm = useTranslations("metrics");
   return (
     <EmptyState
       icon={<TrendingDown />}
-      title={filtered ? "Aucune perte sur cette sélection" : "Aucune affaire perdue pour l'instant"}
+      title={filtered ? t("aucune_perte_sur_cette_selection") : t("aucune_affaire_perdue_pour_l_instant")}
       action={
         filtered ? (
           <Link href={BASE_PATH} className={buttonVariants({ variant: "outline" })}>
-            Retirer les filtres
+            {t("retirer_les_filtres")}
           </Link>
         ) : (
           <>
-            <Link href="/affaires" className={buttonVariants({ variant: "outline" })}>
-              Ouvrir le pipeline
-            </Link>
-            <Link href="/settings" className={buttonVariants({ variant: "ghost" })}>
-              Configurer les motifs
-            </Link>
+            {t.rich("ouvrir_le_pipeline_configurer_les_motifs", { link: (chunks) => <Link href="/affaires" className={buttonVariants({ variant: "outline" })}>{chunks}</Link>, link2: (chunks) => <Link href="/settings" className={buttonVariants({ variant: "ghost" })}>{chunks}</Link> })}
           </>
         )
       }
     >
       {filtered
-        ? "Aucune affaire perdue à cette date, pour ce conseiller, ce type, ce pipeline ou cette origine — élargis la période ou retire un filtre."
-        : "Une perte se compte quand une affaire est déplacée dans l'étape marquée « perdu », avec son motif : c'est ce geste qui nourrit cet écran."}
+        ? t("aucune_affaire_perdue_a_cette_date_185c")
+        : t("une_perte_se_compte_quand_une_1fd0")}
       <span className="mt-3 block text-left">
         <span className="flex flex-col gap-1.5 text-xs">
           <span className="text-foreground">
-            {METRICS.lost_deal.label} — <span className="tabular-nums">{report.total.n}</span>
-            {report.excludedReconstructed.n > 0 && `, ${plural(report.excludedReconstructed.n, "perte antérieure au journal écartée (date inconnue)", "pertes antérieures au journal écartées (date inconnue)")}`}
+            {tm("definitions.lost_deal.label")} — <span className="tabular-nums">{report.total.n}</span>
+            {report.excludedReconstructed.n > 0 && t("pertes_anterieures_ecartees", { n: report.excludedReconstructed.n })}
           </span>
-          {!filtered && <span>{METRICS.lost_deal.howToFeed}</span>}
+          {!filtered && <span>{tm("definitions.lost_deal.howToFeed")}</span>}
           <span className="text-foreground">
-            Gagnées sur la période — <span className="tabular-nums">{report.won}</span>
+            {t.rich("gagnees_sur_la_periode", { won: report.won, span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
           </span>
         </span>
       </span>
@@ -107,12 +103,13 @@ function BreakdownSection({
   /** Les paramètres de la liste pour une ligne — null quand la ligne n'a pas de liste (« sans responsable »). */
   link: (row: LossBreakdownRow) => Partial<DealSelectionParams> | null;
 }) {
+  const t = useTranslations("analytics.pertes");
   const tableRows: BreakdownRow[] = rows.map((row) => {
     const over = scopedPipelineId ? link(row) : null;
     return {
       key: row.key,
       label: over ? (
-        <Link href={dealsListHref(parsed, scopedPipelineId!, { cohorte: "perte", ...over })} className="underline-offset-2 hover:underline" title="Voir ces affaires">
+        <Link href={dealsListHref(parsed, scopedPipelineId!, { cohorte: "perte", ...over })} className="underline-offset-2 hover:underline" title={t("voir_ces_affaires")}>
           {row.label}
         </Link>
       ) : (
@@ -131,22 +128,24 @@ function BreakdownSection({
       </h2>
       <p className="-mt-1 text-xs text-muted-foreground text-pretty">{subtitle}</p>
       {tableRows.length === 0 ? (
-        <EmptyState>Rien à répartir sur cette sélection.</EmptyState>
+        <EmptyState>{t("rien_a_repartir_sur_cette_selection")}</EmptyState>
       ) : (
-        <BreakdownTable rows={tableRows} labelHeader={labelHeader} amountHeader="Montant perdu" />
+        <BreakdownTable rows={tableRows} labelHeader={labelHeader} amountHeader={t("montant_perdu")} />
       )}
     </section>
   );
 }
 
 export default async function LossesPage({ searchParams }: { searchParams: Promise<MetricSearchParams> }) {
+  const t = await getTranslations("analytics.pertes");
+  const tm = await getTranslations("metrics");
   const user = await requireUser();
   const raw = await searchParams;
 
   const header = (
     <PageHeader
-      title="Analyse des pertes"
-      description="Pourquoi les affaires se perdent — par motif, par étape de départ, par conseiller, par type — et combien ça coûte. Chaque ligne ouvre la liste des affaires qu'elle compte."
+      title={t("analyse_des_pertes")}
+      description={t("pourquoi_les_affaires_se_perdent_par_b36f")}
     />
   );
 
@@ -154,9 +153,8 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
     return (
       <>
         {header}
-        <EmptyState title="Tu es en vue globale">
-          Choisis une organisation dans le bandeau super admin en haut de l&apos;écran pour voir ses pertes — un agrégat ne
-          traverse jamais la frontière entre deux organisations.
+        <EmptyState title={t("tu_es_en_vue_globale")}>
+          {t("choisis_une_organisation_dans_le_bandeau_593c")}
         </EmptyState>
       </>
     );
@@ -168,13 +166,13 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
     listDealTypes(user),
     listOrgUsers(user),
     listOrigins(user),
-    lossesReport(user, parsed.filters),
+    lossesReport(user, parsed.filters, tm),
   ]);
   const scopedPipelineId = parsed.filters.pipelineId ?? (pipelines.length === 1 ? pipelines[0].id : null);
   const hasData = lossesHasAnyData(report);
-  const period = periodPhrase(parsed);
+  const period = periodPhrase(parsed, tm);
 
-  const totalLabel = <span className="tabular-nums">{plural(report.total.n, "affaire perdue", "affaires perdues")}</span>;
+  const totalLabel = <span className="tabular-nums">{t("affaire_perdue_affaires_perdues", { n: report.total.n })}</span>;
 
   return (
     <>
@@ -187,7 +185,7 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
         <>
           <section className="flex flex-col gap-3">
             <h2 className="text-sm font-semibold">
-              <DefinitionLink id="lost_deal">Sur la période</DefinitionLink>
+              <DefinitionLink id="lost_deal">{t("sur_la_periode")}</DefinitionLink>
             </h2>
             <p className="text-sm text-pretty">
               {scopedPipelineId ? (
@@ -200,49 +198,47 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
               {period},{" "}
               {report.total.withoutAmount === report.total.n ? (
                 <>
-                  montant estimé perdu inconnu <span className="text-muted-foreground">({report.total.n} sans montant)</span>
+                  {t.rich("montant_estime_perdu_inconnu_sans_montant", { n: report.total.n, span: (chunks) => <span className="text-muted-foreground">{chunks}</span> })}
                 </>
               ) : (
                 <>
-                  <span className="tabular-nums">{formatEuros(report.total.amount)}</span> de montant estimé perdu
+                  {t.rich("de_montant_estime_perdu", { formatEuros: (formatEuros(report.total.amount)) ?? "", span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
                   {report.total.withoutAmount > 0 && (
-                    <span className="text-muted-foreground"> ({report.total.withoutAmount} sans montant)</span>
+                    <span className="text-muted-foreground"> {t("sans_montant", { withoutAmount: report.total.withoutAmount })}</span>
                   )}
                 </>
               )}
-              {" · "}
-              <span className="tabular-nums">{plural(report.won, "gagnée")}</span> sur la même période{" · "}
-              <DefinitionLink id="loss_rate">taux de perte</DefinitionLink> <span className="tabular-nums">{rateText(report.lossRate, true)}</span>
+              {t.rich("gagnee_gagnees_sur_la_meme_periode", { won: report.won, span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
+              <DefinitionLink id="loss_rate">{t("taux_de_perte")}</DefinitionLink> <span className="tabular-nums">{rateText(report.lossRate, true)}</span>
               {report.lossRate.hidden && (
-                <span className="text-muted-foreground"> (masqué : il manque {report.lossRate.missing} affaire{report.lossRate.missing > 1 ? "s" : ""} close{report.lossRate.missing > 1 ? "s" : ""})</span>
+                <span className="text-muted-foreground"> {t("masque_il_manque_affaire_affaires_close_3720", { missing: report.lossRate.missing })}</span>
               )}
               .
             </p>
             {report.excludedReconstructed.n > 0 && (
               <p className="-mt-1 text-xs text-muted-foreground text-pretty">
-                {plural(report.excludedReconstructed.n, "perte antérieure au journal écartée", "pertes antérieures au journal écartées")} (date de la
-                perte inconnue),{" "}
+                {t("perte_anterieure_au_journal_ecartee_pertes_17e3", { n: report.excludedReconstructed.n })}
                 {report.excludedReconstructed.withoutAmount === report.excludedReconstructed.n ? (
-                  "montant inconnu"
+                  t("montant_inconnu")
                 ) : (
                   <>
                     <span className="tabular-nums">{formatEuros(report.excludedReconstructed.amount)}</span>
-                    {report.excludedReconstructed.withoutAmount > 0 && ` (${report.excludedReconstructed.withoutAmount} sans montant)`}
+                    {report.excludedReconstructed.withoutAmount > 0 && t("sans_montant", { withoutAmount: report.excludedReconstructed.withoutAmount })}
                   </>
                 )}{" "}
-                — jamais datées par une valeur plausible.
+                {t("jamais_datees_par_une_valeur_plausible")}
               </p>
             )}
             {!scopedPipelineId && (
-              <p className="-mt-1 text-xs text-muted-foreground">Filtre sur un pipeline pour ouvrir la liste des affaires de chaque ligne.</p>
+              <p className="-mt-1 text-xs text-muted-foreground">{t("filtre_sur_un_pipeline_pour_ouvrir_614b")}</p>
             )}
           </section>
 
           <BreakdownSection
             id="loss_breakdown"
-            title="Par motif"
-            subtitle="Le motif au moment de la perte — pas la valeur courante de la fiche. « Sans motif » : perdue sans motif choisi."
-            labelHeader="Motif"
+            title={t("par_motif")}
+            subtitle={t("le_motif_au_moment_de_la_a901")}
+            labelHeader={t("motif")}
             rows={report.byReason}
             parsed={parsed}
             scopedPipelineId={scopedPipelineId}
@@ -250,9 +246,9 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
           />
           <BreakdownSection
             id="loss_breakdown"
-            title="Par étape de départ"
-            subtitle="L'étape d'où l'affaire est tombée. « Dès la création » : née perdue."
-            labelHeader="Étape"
+            title={t("par_etape_de_depart")}
+            subtitle={t("l_etape_d_ou_l_affaire_baa2")}
+            labelHeader={t("etape")}
             rows={report.byStage}
             parsed={parsed}
             scopedPipelineId={scopedPipelineId}
@@ -260,9 +256,9 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
           />
           <BreakdownSection
             id="loss_breakdown"
-            title="Par conseiller"
-            subtitle="Le responsable de l'affaire aujourd'hui (les réaffectations ne sont pas historisées)."
-            labelHeader="Conseiller"
+            title={t("par_conseiller")}
+            subtitle={t("le_responsable_de_l_affaire_aujourd_701f")}
+            labelHeader={t("conseiller")}
             rows={report.byOwner}
             parsed={parsed}
             scopedPipelineId={scopedPipelineId}
@@ -270,9 +266,9 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
           />
           <BreakdownSection
             id="loss_breakdown"
-            title="Par type d'affaire"
-            subtitle="Le type de l'affaire aujourd'hui."
-            labelHeader="Type"
+            title={t("par_type_d_affaire")}
+            subtitle={t("le_type_de_l_affaire_aujourd_f9d6")}
+            labelHeader={t("type")}
             rows={report.byType}
             parsed={parsed}
             scopedPipelineId={scopedPipelineId}
@@ -284,16 +280,7 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
       <MetricDefinitions metrics={metricsOfFamily("losses")} />
 
       <p className="text-xs text-muted-foreground text-pretty">
-        Une part calculée sur moins de {MIN_OBSERVATIONS} pertes est masquée ; nombres et montants s&apos;affichent toujours. Les motifs se
-        configurent dans{" "}
-        <Link href="/settings" className="underline underline-offset-2 hover:text-foreground">
-          Marque &amp; réglages
-        </Link>
-        ; le funnel montre depuis quelle étape les affaires se perdent, en volume, dans{" "}
-        <Link href="/analytique/funnel" className="underline underline-offset-2 hover:text-foreground">
-          Analytique → Funnel
-        </Link>
-        .
+        {t.rich("une_part_calculee_sur_moins_de_19ce", { minObservations: MIN_OBSERVATIONS, link: (chunks) => <Link href="/settings" className="underline underline-offset-2 hover:text-foreground">{chunks}</Link>, link2: (chunks) => <Link href="/analytique/funnel" className="underline underline-offset-2 hover:text-foreground">{chunks}</Link> })}
       </p>
     </>
   );

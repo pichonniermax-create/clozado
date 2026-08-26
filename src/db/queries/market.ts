@@ -13,6 +13,8 @@ import type { OrgScopeUser } from "@/lib/session";
 import { formatIndicatorValue, getIndicator, MARKET_INDICATORS, type MarketIndicator } from "@/lib/watch/indicators";
 import type { Observation } from "@/lib/watch/market-readers";
 import { formatPeriod } from "@/lib/watch/periods";
+import { AppError } from "@/lib/errors";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /**
  * LES CHIFFRES — les observations de marché partagées (`market_observations`,
@@ -24,7 +26,7 @@ import { formatPeriod } from "@/lib/watch/periods";
  */
 
 function requireOrganization(user: OrgScopeUser): string {
-  if (!user.organizationId) throw new Error("Aucune organisation sélectionnée.");
+  if (!user.organizationId) throw new AppError("aucune_organisation_selectionnee");
   return user.organizationId;
 }
 
@@ -32,7 +34,8 @@ function requireOrganization(user: OrgScopeUser): string {
 // Observations partagées et santé
 // ---------------------------------------------------------------------------
 
-export async function upsertObservation(indicator: MarketIndicator, obs: Observation): Promise<void> {
+/** `sourceName` : le nom de la source dans la langue de référence du produit (la table des observations est partagée entre organisations) — l'appelant le prend dans les messages. */
+export async function upsertObservation(indicator: MarketIndicator, obs: Observation, sourceName: string): Promise<void> {
   await db
     .insert(marketObservations)
     .values({
@@ -42,7 +45,7 @@ export async function upsertObservation(indicator: MarketIndicator, obs: Observa
       valueText: obs.valueText,
       valueNum: obs.valueNum === null ? null : String(obs.valueNum),
       unit: obs.unit ?? indicator.unit,
-      sourceName: indicator.sourceName,
+      sourceName,
       sourceUrl: indicator.sourceUrl,
       fetchedAt: new Date(),
     })
@@ -53,7 +56,7 @@ export async function upsertObservation(indicator: MarketIndicator, obs: Observa
         valueText: obs.valueText,
         valueNum: obs.valueNum === null ? null : String(obs.valueNum),
         unit: obs.unit ?? indicator.unit,
-        sourceName: indicator.sourceName,
+        sourceName,
         sourceUrl: indicator.sourceUrl,
         fetchedAt: new Date(),
       },
@@ -140,7 +143,7 @@ export async function followIndicators(organizationId: string, keys: readonly st
 
 export async function followIndicator(user: OrgScopeUser, key: string): Promise<void> {
   const organizationId = requireOrganization(user);
-  if (!getIndicator(key)) throw new Error("Cet indicateur n'existe pas.");
+  if (!getIndicator(key)) throw new AppError("cet_indicateur_n_existe_pas");
   await followIndicators(organizationId, [key]);
 }
 
@@ -173,7 +176,7 @@ export function proposedIndicators(followed: readonly string[], packKeys: readon
  * écrites. La valeur est celle qui se cite (« 2,25 % »), la date la
  * période telle que publiée, la source celle du catalogue.
  */
-export async function syncIndicatorFigures(organizationId: string): Promise<number> {
+export async function syncIndicatorFigures(organizationId: string, t: TranslatorOf<"figures">): Promise<number> {
   const keys = await listFollowedIndicatorKeys(organizationId);
   const observations = await getLatestObservations(keys);
   let written = 0;
@@ -182,11 +185,11 @@ export async function syncIndicatorFigures(organizationId: string): Promise<numb
     const obs = observations.get(key);
     if (!indicator || !obs) continue;
     const row = {
-      label: indicator.label,
+      label: t(`indicators.${indicator.key}.label`),
       value: formatIndicatorValue(obs.valueText, indicator.unit),
       sourceName: obs.sourceName,
       sourceUrl: obs.sourceUrl,
-      asOf: formatPeriod(obs.period),
+      asOf: formatPeriod(obs.period, t),
       asOfDate: obs.periodStart,
       updatedAt: new Date(),
     };
@@ -244,9 +247,9 @@ export async function listCitableFigures(organizationId: string): Promise<Verifi
 function readFigureInput(input: VerifiedFigureInput): VerifiedFigureInput {
   const label = input.label.trim();
   const value = input.value.trim();
-  if (!label) throw new Error("Le libellé du chiffre est obligatoire.");
-  if (!value) throw new Error("La valeur du chiffre est obligatoire.");
-  if (input.asOfDate && !/^\d{4}-\d{2}-\d{2}$/.test(input.asOfDate)) throw new Error("La date est illisible.");
+  if (!label) throw new AppError("le_libelle_du_chiffre_est_obligatoire");
+  if (!value) throw new AppError("la_valeur_du_chiffre_est_obligatoire");
+  if (input.asOfDate && !/^\d{4}-\d{2}-\d{2}$/.test(input.asOfDate)) throw new AppError("la_date_est_illisible");
   return {
     label,
     value,
@@ -273,14 +276,14 @@ export async function createVerifiedFigure(user: OrgScopeUser, input: VerifiedFi
 
 async function getOwnFigure(user: OrgScopeUser, id: string): Promise<VerifiedFigure> {
   const row = await db.query.verifiedFigures.findFirst({ where: eq(verifiedFigures.id, id) });
-  if (!row) throw new Error("Chiffre introuvable.");
+  if (!row) throw new AppError("chiffre_introuvable", undefined, 404);
   assertOrgAccess(user, row.organizationId);
   return row;
 }
 
 export async function updateVerifiedFigure(user: OrgScopeUser, id: string, input: VerifiedFigureInput): Promise<void> {
   const figure = await getOwnFigure(user, id);
-  if (figure.indicatorKey) throw new Error("Ce chiffre vient d'un indicateur de marché : il est mis à jour par la collecte, pas à la main.");
+  if (figure.indicatorKey) throw new AppError("ce_chiffre_vient_d_un_indicateur_de_e5b0");
   await db
     .update(verifiedFigures)
     .set({ ...readFigureInput(input), updatedAt: new Date() })
@@ -289,6 +292,6 @@ export async function updateVerifiedFigure(user: OrgScopeUser, id: string, input
 
 export async function deleteVerifiedFigure(user: OrgScopeUser, id: string): Promise<void> {
   const figure = await getOwnFigure(user, id);
-  if (figure.indicatorKey) throw new Error("Ce chiffre vient d'un indicateur de marché : cesse de suivre l'indicateur pour le retirer.");
+  if (figure.indicatorKey) throw new AppError("ce_chiffre_vient_d_un_indicateur_de_9aa2");
   await db.delete(verifiedFigures).where(eq(verifiedFigures.id, id));
 }

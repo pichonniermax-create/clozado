@@ -2,12 +2,39 @@
  * Les appels HTTP de la veille — un seul endroit pour le délai, l'agent,
  * la taille maximale et la traduction des échecs en une cause LISIBLE,
  * celle que la source affiche (« injoignable depuis le … (délai
- * dépassé) »). Jamais un message technique brut à l'écran.
+ * dépassé) »). Jamais un message technique brut à l'écran : l'échec porte
+ * un CODE et ses valeurs, la phrase vient des messages
+ * (`watch.fetchErrors.<code>`, chantier i18n) au moment de l'écrire ou de
+ * l'afficher — `readableError` dans refresh.ts.
  */
+export type WatchFetchCode =
+  | "timeout"
+  | "unreachable"
+  | "http"
+  | "feed_unreadable"
+  | "feed_not_feed"
+  | "content_unreadable"
+  | "period_unreadable"
+  | "no_observation"
+  | "unexpected_format"
+  | "empty_observation"
+  | "multiple_series"
+  | "no_recent_value"
+  | "no_series"
+  | "metadata_without_observation"
+  | "date_unreadable";
+
+export type WatchHttpReason = "forbidden" | "not_found" | "rate_limited" | "server" | "refused";
+
 export class WatchFetchError extends Error {
-  constructor(message: string) {
-    super(message);
+  readonly code: WatchFetchCode;
+  readonly values: Record<string, string | number>;
+
+  constructor(code: WatchFetchCode, values: Record<string, string | number> = {}) {
+    super(code);
     this.name = "WatchFetchError";
+    this.code = code;
+    this.values = values;
   }
 }
 
@@ -28,14 +55,14 @@ export async function fetchWithTimeout(url: string, timeoutMs: number, accept: s
     });
   } catch (error) {
     if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
-      throw new WatchFetchError(`délai dépassé (${Math.round(timeoutMs / 1000)} s)`);
+      throw new WatchFetchError("timeout", { seconds: Math.round(timeoutMs / 1000) });
     }
-    throw new WatchFetchError("site injoignable");
+    throw new WatchFetchError("unreachable");
   }
   if (!response.ok) {
-    const reason =
-      response.status === 403 ? "accès refusé" : response.status === 404 ? "page introuvable" : response.status === 429 ? "trop de requêtes" : response.status >= 500 ? "erreur du site" : "refus";
-    throw new WatchFetchError(`réponse ${response.status} (${reason})`);
+    const reason: WatchHttpReason =
+      response.status === 403 ? "forbidden" : response.status === 404 ? "not_found" : response.status === 429 ? "rate_limited" : response.status >= 500 ? "server" : "refused";
+    throw new WatchFetchError("http", { status: response.status, reason });
   }
   return response;
 }

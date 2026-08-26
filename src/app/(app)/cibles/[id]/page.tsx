@@ -30,6 +30,7 @@ import {
   updateTargetAction,
 } from "@/lib/targets/actions";
 import { missingIdentityFacets, parseCriteria } from "@/lib/targets/criteria";
+import { getTranslations } from "next-intl/server";
 
 export default async function TargetPage({
   params,
@@ -38,6 +39,8 @@ export default async function TargetPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ page?: string; q?: string; erreur?: string }>;
 }) {
+  const t = await getTranslations("targets.detail");
+  const tt = await getTranslations("targets");
   const user = await requireUser();
   const { id } = await params;
   const query = await searchParams;
@@ -57,7 +60,7 @@ export default async function TargetPage({
     isStatic && q ? searchContactsToAdd(user, target, q) : Promise.resolve([]),
   ]);
   const recentSends = await listRecentSendsForTarget(target, members.total);
-  const summary = describeTarget(target, options);
+  const summary = describeTarget(target, options, tt);
   const missing = missingIdentityFacets(target);
   const archived = Boolean(target.archivedAt);
 
@@ -78,15 +81,15 @@ export default async function TargetPage({
             {target.description && <span className="text-muted-foreground"> — {target.description}</span>}
           </>
         }
-        backTo={{ href: "/cibles", label: "Cibles" }}
+        backTo={{ href: "/cibles", label: t("cibles") }}
         actions={
           <span className="flex flex-wrap items-center gap-2">
             {archived ? (
               <>
-                <Badge variant="secondary">Désactivée</Badge>
+                <Badge variant="secondary">{t("desactivee")}</Badge>
                 <form action={restoreTargetAction.bind(null, target.id)}>
                   <Button type="submit" variant="outline">
-                    Réactiver
+                    {t("reactiver")}
                   </Button>
                 </form>
               </>
@@ -94,17 +97,17 @@ export default async function TargetPage({
               <>
                 <Link href={`/newsletters/new?cible=${target.id}`} className={buttonVariants()}>
                   <Mail />
-                  Écrire une newsletter pour cette cible
+                  {t("ecrire_une_newsletter_pour_cette_cible")}
                 </Link>
                 <form action={duplicateTargetAction.bind(null, target.id)}>
                   <Button type="submit" variant="outline">
                     <Copy />
-                    Dupliquer
+                    {t("dupliquer")}
                   </Button>
                 </form>
                 <form action={archiveTargetAction.bind(null, target.id)}>
                   <Button type="submit" variant="ghost">
-                    Désactiver
+                    {t("desactiver")}
                   </Button>
                 </form>
               </>
@@ -119,23 +122,19 @@ export default async function TargetPage({
 
       {archived && (
         <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-          Désactivée le {formatDate(target.archivedAt!)} : elle n&apos;est plus proposée dans le composer ni sur les fiches,
-          mais les newsletters qui lui ont été envoyées la gardent en historique.
+          {t("desactivee_le_elle_n_est_plus_159e", { formatDate: formatDate(target.archivedAt!) })}
         </p>
       )}
 
       {sentCount > 0 && (
         <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">
-          <span className="font-medium tabular-nums">{sentCount}</span> newsletter{sentCount > 1 ? "s ont" : " a"} été
-          marquée{sentCount > 1 ? "s" : ""} envoyée{sentCount > 1 ? "s" : ""} à cette cible. Leur historique — les
-          destinataires et les critères du jour — ne change pas si tu modifies la cible. Pour un nouveau découpage,
-          duplique-la plutôt.
+          {t.rich("newsletter_a_s_ont_ete_marquee_5a1f", { sentCount, span: (chunks) => <span className="font-medium tabular-nums">{chunks}</span> })}
         </p>
       )}
 
       {missing.length > 0 && !archived && (
         <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-          Identité éditoriale incomplète : {missing.join(", ").toLowerCase()}. Le composer écrit avec ce qui est rempli.
+          {t("identite_editoriale_incomplete_le_composer_ecrit_efd3", { toLowerCase: missing.map((key) => tt(`facets.${key}.label`)).join(", ").toLowerCase() })}
         </p>
       )}
 
@@ -158,13 +157,13 @@ export default async function TargetPage({
           interests: target.interests ?? "",
           avoid: target.avoid ?? "",
         }}
-        submitLabel="Enregistrer la cible"
+        submitLabel={t("enregistrer_la_cible")}
       />
 
       {/* La liste RÉELLE : recalculée à chaque consultation, jamais figée. */}
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold tabular-nums">
-          {members.total} contact{members.total > 1 ? "s" : ""} dans cette cible aujourd&apos;hui
+          {t("contact_contacts_dans_cette_cible_aujourd_6a85", { total: members.total })}
         </h2>
 
         {isStatic && (
@@ -175,17 +174,17 @@ export default async function TargetPage({
                 type="search"
                 name="q"
                 defaultValue={q}
-                placeholder="Ajouter des contacts : nom, email, société…"
+                placeholder={t("ajouter_des_contacts_nom_email_societe")}
                 className="max-w-md"
-                aria-label="Rechercher des contacts à ajouter"
+                aria-label={t("rechercher_des_contacts_a_ajouter")}
               />
               <Button type="submit" variant="outline">
-                Rechercher
+                {t("rechercher")}
               </Button>
             </form>
             {q &&
               (candidates.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucun contact ne correspond à « {q} ».</p>
+                <p className="text-sm text-muted-foreground">{t("aucun_contact_ne_correspond_a", { q })}</p>
               ) : (
                 <form action={addMembersAction.bind(null, target.id)} className="flex flex-col gap-3">
                   <input type="hidden" name="q" value={q} />
@@ -198,13 +197,13 @@ export default async function TargetPage({
                           <span className="text-xs text-muted-foreground">
                             {[c.email, c.city].filter(Boolean).join(" · ")}
                           </span>
-                          {c.alreadyMember && <Badge variant="secondary">Déjà dans la cible</Badge>}
+                          {c.alreadyMember && <Badge variant="secondary">{t("deja_dans_la_cible")}</Badge>}
                         </label>
                       </li>
                     ))}
                   </ul>
                   <Button type="submit" variant="outline" className="w-fit">
-                    Ajouter les contacts cochés
+                    {t("ajouter_les_contacts_coches")}
                   </Button>
                 </form>
               ))}
@@ -214,8 +213,8 @@ export default async function TargetPage({
         {members.rows.length === 0 ? (
           <EmptyState>
             {isStatic
-              ? "Aucun contact dans cette sélection pour l'instant — cherche-les ci-dessus et coche-les."
-              : "Aucun contact ne répond à ces critères aujourd'hui. Élargis-les, ou vérifie les étiquettes et les fiches concernées."}
+              ? t("aucun_contact_dans_cette_selection_pour_f17f")
+              : t("aucun_contact_ne_repond_a_ces_85ef")}
           </EmptyState>
         ) : (
           <ListCard>
@@ -230,7 +229,7 @@ export default async function TargetPage({
                   </Link>
                   <form action={removeMemberAction.bind(null, target.id, c.id)}>
                     <Button type="submit" variant="ghost" size="sm">
-                      Retirer
+                      {t("retirer")}
                     </Button>
                   </form>
                 </ListRow>
@@ -240,7 +239,7 @@ export default async function TargetPage({
                   href={`/contacts/${c.id}`}
                   title={c.name}
                   subtitle={[c.email, c.kind === "person" ? c.companyName : null, c.city].filter(Boolean).join(" · ") || "—"}
-                  trailing={c.kind === "company" ? <Badge variant="secondary">Société</Badge> : undefined}
+                  trailing={c.kind === "company" ? <Badge variant="secondary">{t("societe")}</Badge> : undefined}
                 />
               )
             )}
@@ -251,17 +250,17 @@ export default async function TargetPage({
           <nav className="flex items-center justify-between text-sm">
             {members.page > 1 ? (
               <Link href={pageHref(members.page - 1)} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-                ← Précédents
+                {t("precedents")}
               </Link>
             ) : (
               <span />
             )}
             <span className="tabular-nums text-muted-foreground">
-              Page {members.page} sur {members.pageCount} · {TARGET_MEMBERS_PAGE_SIZE} par page
+              {t("page_sur_par_page", { page: members.page, pageCount: members.pageCount, targetMembersPageSize: TARGET_MEMBERS_PAGE_SIZE })}
             </span>
             {members.page < members.pageCount ? (
               <Link href={pageHref(members.page + 1)} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-                Suivants →
+                {t("suivants")}
               </Link>
             ) : (
               <span />
@@ -272,11 +271,10 @@ export default async function TargetPage({
 
       {/* L'anti-répétition : lue dans la photographie des envois, pas dans les critères. */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">Déjà envoyé à ces contacts</h2>
+        <h2 className="text-sm font-semibold">{t("deja_envoye_a_ces_contacts")}</h2>
         {recentSends.length === 0 ? (
           <EmptyState>
-            Aucune newsletter marquée envoyée ne recoupe cette cible sur les douze derniers mois. L&apos;historique se
-            construit quand tu marques une newsletter « envoyée ».
+            {t("aucune_newsletter_marquee_envoyee_ne_recoupe_89da")}
           </EmptyState>
         ) : (
           <ListCard>

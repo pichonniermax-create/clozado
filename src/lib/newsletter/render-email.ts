@@ -64,6 +64,7 @@ const FALLBACK_PRIMARY = DEFAULT_BRAND_PRIMARY;
 const FALLBACK_SECONDARY = "#0f172a";
 const FALLBACK_INK = "#1a1a1a";
 const FALLBACK_BACKGROUND = "#f4f4f2";
+// eslint-disable-next-line local/no-visible-text -- une pile de polices CSS, pas un texte
 const FALLBACK_HEADING_FONT = "Georgia, 'Times New Roman', serif";
 const FALLBACK_BODY_FONT = "Arial, Helvetica, sans-serif";
 const FALLBACK_RADIUS = 6;

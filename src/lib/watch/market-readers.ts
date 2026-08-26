@@ -29,7 +29,7 @@ function toNumber(text: string): number | null {
 function observation(periodRaw: string, valueText: string, unit: string | null): Observation {
   const period = normalizePeriod(periodRaw);
   const start = periodStart(period);
-  if (!start) throw new WatchFetchError(`période illisible (« ${periodRaw} »)`);
+  if (!start) throw new WatchFetchError("period_unreadable", { period: periodRaw });
   return { period, periodStart: start, valueText: valueText.trim(), valueNum: toNumber(valueText), unit };
 }
 
@@ -68,15 +68,15 @@ async function readEcb(flow: string, key: string, unit: string): Promise<Observa
   const response = await fetchWithTimeout(url, TIMEOUT_MS, "text/csv");
   const csv = await readBodyText(response, 200_000);
   const lines = csv.split(/\r?\n/).filter((l) => l.trim());
-  if (lines.length < 2) throw new WatchFetchError("aucune observation renvoyée");
+  if (lines.length < 2) throw new WatchFetchError("no_observation");
   const header = parseCsvLine(lines[0]);
   const periodIdx = header.indexOf("TIME_PERIOD");
   const valueIdx = header.indexOf("OBS_VALUE");
-  if (periodIdx < 0 || valueIdx < 0) throw new WatchFetchError("format inattendu (colonnes absentes)");
+  if (periodIdx < 0 || valueIdx < 0) throw new WatchFetchError("unexpected_format");
   const last = parseCsvLine(lines[lines.length - 1]);
   const period = last[periodIdx]?.trim();
   const value = last[valueIdx]?.trim();
-  if (!period || !value) throw new WatchFetchError("observation vide");
+  if (!period || !value) throw new WatchFetchError("empty_observation");
   return observation(period, value, unit);
 }
 
@@ -96,14 +96,14 @@ async function readEurostat(dataset: string, params: Record<string, string>, uni
   const ids = json.id ?? [];
   const sizes = json.size ?? [];
   // Toutes les autres dimensions sont de taille 1 (une série) : l'index plat est l'index du temps.
-  if (ids.some((id, i) => id !== "time" && sizes[i] !== 1)) throw new WatchFetchError("plusieurs séries renvoyées");
+  if (ids.some((id, i) => id !== "time" && sizes[i] !== 1)) throw new WatchFetchError("multiple_series");
   const periods = Object.entries(timeIndex).sort((a, b) => a[1] - b[1]);
   for (let i = periods.length - 1; i >= 0; i--) {
     const [period, idx] = periods[i];
     const value = values[String(idx)];
     if (value !== undefined && value !== null) return observation(period, String(value), unit);
   }
-  throw new WatchFetchError("aucune valeur sur les dernières périodes");
+  throw new WatchFetchError("no_recent_value");
 }
 
 const sdmx = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_", removeNSPrefix: true, parseTagValue: false });
@@ -118,12 +118,12 @@ async function readInsee(idbank: string, unit: string): Promise<Observation> {
   const dataset = root?.DataSet as Record<string, unknown> | undefined;
   const seriesNode = dataset?.Series;
   const series = (Array.isArray(seriesNode) ? seriesNode[0] : seriesNode) as Record<string, unknown> | undefined;
-  if (!series) throw new WatchFetchError("aucune série renvoyée");
+  if (!series) throw new WatchFetchError("no_series");
   const obsNode = series.Obs;
   const obs = (Array.isArray(obsNode) ? obsNode[0] : obsNode) as Record<string, string> | undefined;
   const period = obs?.["@_TIME_PERIOD"];
   const value = obs?.["@_OBS_VALUE"];
-  if (!period || !value) throw new WatchFetchError("observation vide");
+  if (!period || !value) throw new WatchFetchError("empty_observation");
   return observation(period, value, unit);
 }
 
@@ -143,11 +143,11 @@ async function readWebstat(dataset: string, periodicity: MarketIndicator["period
   const custom = json.metas?.custom ?? {};
   const lastDate = custom.series_last_time_period_date;
   const twoValues = custom.series_last_two_obs_values;
-  if (!lastDate || !twoValues) throw new WatchFetchError("métadonnées sans observation");
+  if (!lastDate || !twoValues) throw new WatchFetchError("metadata_without_observation");
   const date = new Date(lastDate);
-  if (Number.isNaN(date.getTime())) throw new WatchFetchError(`date illisible (« ${lastDate} »)`);
+  if (Number.isNaN(date.getTime())) throw new WatchFetchError("date_unreadable", { date: lastDate });
   const last = twoValues.split(",")[0]?.trim();
-  if (!last) throw new WatchFetchError("observation vide");
+  if (!last) throw new WatchFetchError("empty_observation");
   const freq = custom.series_freq;
   const effective: MarketIndicator["periodicity"] =
     freq === "M" ? "monthly" : freq === "Q" ? "quarterly" : freq === "A" ? "annual" : freq === "D" || freq === "B" ? "daily" : periodicity;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 /**
  * Enregistrement automatique.
@@ -41,6 +42,7 @@ export function useAutosave({
   save: () => Promise<void>;
   delay?: number;
 }) {
+  const tr = useTranslations("newsletters.useAutosave");
   const [state, setState] = useState<SaveState>({ status: "idle" });
 
   const saveRef = useRef(save);
@@ -83,7 +85,7 @@ export function useAutosave({
         } catch (err) {
           setState({
             status: "error",
-            message: err instanceof Error ? err.message : "Enregistrement impossible.",
+            message: err instanceof Error ? err.message : tr("enregistrement_impossible"),
           });
           break;
         }
@@ -91,7 +93,7 @@ export function useAutosave({
     } finally {
       inFlight.current = false;
     }
-  }, []);
+  }, [tr]);
 
   useEffect(() => {
     if (!hasContent) return;
@@ -108,12 +110,13 @@ export function useAutosave({
   return state;
 }
 
-/** « il y a 3 s », « il y a 2 min » — sans faire tourner d'horloge inutilement. */
+/** « il y a 3 s », « il y a 2 min », « maintenant » — par `Intl.RelativeTimeFormat` (aucun mot en dur), sans faire tourner d'horloge inutilement. */
 export function formatSavedAt(at: number, now: number): string {
   const s = Math.max(0, Math.round((now - at) / 1000));
-  if (s < 5) return "à l'instant";
-  if (s < 60) return `il y a ${s} s`;
+  const relative = new Intl.RelativeTimeFormat("fr-FR", { style: "short", numeric: "auto" });
+  if (s < 5) return relative.format(0, "second");
+  if (s < 60) return relative.format(-s, "second");
   const m = Math.round(s / 60);
-  if (m < 60) return `il y a ${m} min`;
-  return `il y a ${Math.round(m / 60)} h`;
+  if (m < 60) return relative.format(-m, "minute");
+  return relative.format(-Math.round(m / 60), "hour");
 }

@@ -1,4 +1,5 @@
 import type { CsvCell, CsvTable } from "@/lib/csv";
+import type { TranslatorOf } from "@/i18n/translator";
 import type { OrgScopeUser } from "@/lib/session";
 import { dashboardIndicators, type DashboardIndicator } from "./dashboard";
 import { MIN_OBSERVATIONS } from "./definitions";
@@ -11,6 +12,7 @@ import { partnersReport, type MoneyCount, type PartnersReport } from "./partners
 import { periodPhrase } from "./period-phrase";
 import type { MetricSearchParams, ParsedMetricFilters } from "./search-params";
 import type { DurationStat, RateStat } from "./types";
+import { AppError } from "@/lib/errors";
 
 /**
  * L'export CSV d'une vue analytique — la projection en tableaux du MÊME
@@ -23,12 +25,13 @@ import type { DurationStat, RateStat } from "./types";
  * qui lui manque ; un montant dont rien n'est connu est vide, jamais 0 ;
  * un compte sans objet est vide, la note dit pourquoi.
  */
+/** Les vues exportables ; leurs libellés sont `metrics.views.<vue>` dans les messages. */
 export const EXPORT_VIEWS = {
-  delais: { label: "Délais et durées", path: "/analytique/delais" },
-  funnel: { label: "Funnel de conversion", path: "/analytique/funnel" },
-  pertes: { label: "Analyse des pertes", path: "/analytique/pertes" },
-  partenaires: { label: "Partenaires et commissions", path: "/analytique/partenaires" },
-  "tableau-de-bord": { label: "Tableau de bord — les indicateurs du pack métier", path: "/dashboard" },
+  delais: { path: "/analytique/delais" },
+  funnel: { path: "/analytique/funnel" },
+  pertes: { path: "/analytique/pertes" },
+  partenaires: { path: "/analytique/partenaires" },
+  "tableau-de-bord": { path: "/dashboard" },
 } as const;
 
 export type ExportView = keyof typeof EXPORT_VIEWS;
@@ -48,28 +51,24 @@ export type ExportLookups = {
   dashboard?: { pack: BusinessPack; chosen: boolean };
 };
 
-const SHOWN = "affiché";
 
-function plural(n: number, singular: string, pluralForm = `${singular}s`) {
-  return `${n} ${n > 1 ? pluralForm : singular}`;
-}
 
 /** La même phrase que sous les tableaux de durées (`statNotes`). */
-function durationDisplay(stat: DurationStat): string {
-  if (stat.unavailable) return `non mesurable : ${stat.unavailable}`;
+function durationDisplay(t: TranslatorOf<"metrics">, stat: DurationStat): string {
+  if (stat.unavailable) return t("export.non_mesurable", { unavailable: stat.unavailable });
   if (stat.hidden) {
     return stat.n === 0
-      ? `aucune observation — il en faut ${stat.missing} pour afficher un chiffre`
-      : `masqué : il manque ${plural(stat.missing, "observation")} pour afficher un chiffre`;
+      ? t("export.aucune_observation_il_en_faut_pour_9ee9", { missing: stat.missing })
+      : t("export.masque_il_manque_observation_observations_pour_2e1c", { missing: stat.missing });
   }
-  return SHOWN;
+  return t("export.affiche");
 }
 
 /** La même phrase que sous un taux de funnel (`rateText`). */
-function rateDisplay(rate: RateStat | null, base = "au pas précédent"): string {
-  if (!rate) return "sans objet";
-  if (rate.hidden || rate.percent === null) return `masqué : il manque ${plural(rate.missing, "observation")} ${base}`;
-  return SHOWN;
+function rateDisplay(t: TranslatorOf<"metrics">, rate: RateStat | null, base?: string): string {
+  if (!rate) return t("export.sans_objet");
+  if (rate.hidden || rate.percent === null) return t("export.masque_il_manque_observation_observations", { missing: rate.missing, base: (base) ?? "" });
+  return t("export.affiche");
 }
 
 const days = (stat: DurationStat, value: number | null): number | null => (stat.hidden ? null : value);
@@ -86,17 +85,17 @@ const amount = (m: MoneyCount | { n: number; amount: number; withoutAmount: numb
 
 // ---------------------------------------------------------------- Délais
 
-function delaysTables(report: DelaysReport, lookups: ExportLookups): CsvTable[] {
+function delaysTables(t: TranslatorOf<"metrics">, report: DelaysReport, lookups: ExportLookups): CsvTable[] {
   const tables: CsvTable[] = [
     {
-      title: "Le cycle",
-      columns: ["Indicateur", "Médiane (jours)", "Moyenne (jours)", "Observations", "Affichage", "En cours", "Écartées (reconstituées)", "Écartées (date inconnue)"],
+      title: t("export.le_cycle"),
+      columns: [t("export.indicateur"), t("export.mediane_jours"), "Moyenne (jours)", t("export.observations"), t("export.affichage"), t("export.en_cours"), t("export.ecartees_reconstituees"), t("export.ecartees_date_inconnue")],
       rows: report.cycle.map(({ metric, stat }) => [
-        metric.label,
+        t(`definitions.${metric.id}.label`),
         days(stat, stat.medianDays),
         days(stat, stat.meanDays),
         observations(stat),
-        durationDisplay(stat),
+        durationDisplay(t, stat),
         stat.pending,
         stat.excludedReconstructed,
         stat.excludedUnknown,
@@ -110,16 +109,16 @@ function delaysTables(report: DelaysReport, lookups: ExportLookups): CsvTable[] 
     const pairs = report.pairs.filter((p) => p.pipelineId === pipeline.id);
     if (stages.length > 0) {
       tables.push({
-        title: `Temps passé par étape — ${pipeline.label}`,
-        columns: ["Étape", "Médiane (jours)", "Moyenne (jours)", "Observations (passages terminés)", "Affichage", "Affaires dans l'étape aujourd'hui", "Passages reconstitués écartés"],
-        rows: stages.map((s) => [s.label, days(s, s.medianDays), days(s, s.meanDays), observations(s), durationDisplay(s), s.pending, s.excludedReconstructed]),
+        title: t("export.temps_passe_par_etape", { label: pipeline.label }),
+        columns: [t("export.etape"), t("export.mediane_jours"), "Moyenne (jours)", t("export.observations_passages_termines"), t("export.affichage"), t("export.affaires_dans_l_etape_aujourd_hui"), t("export.passages_reconstitues_ecartes")],
+        rows: stages.map((s) => [s.label, days(s, s.medianDays), days(s, s.meanDays), observations(s), durationDisplay(t, s), s.pending, s.excludedReconstructed]),
       });
     }
     if (pairs.length > 0) {
       tables.push({
-        title: `D'une étape à la suivante — ${pipeline.label}`,
-        columns: ["Étapes", "Médiane (jours)", "Moyenne (jours)", "Observations", "Affichage"],
-        rows: pairs.map((p) => [`${p.fromLabel} → ${p.toLabel}`, days(p, p.medianDays), days(p, p.meanDays), observations(p), durationDisplay(p)]),
+        title: t("export.d_une_etape_a_la_suivante", { label: pipeline.label }),
+        columns: [t("export.etapes"), t("export.mediane_jours"), "Moyenne (jours)", t("export.observations"), t("export.affichage")],
+        rows: pairs.map((p) => [`${p.fromLabel} → ${p.toLabel}`, days(p, p.medianDays), days(p, p.meanDays), observations(p), durationDisplay(t, p)]),
       });
     }
   }
@@ -129,79 +128,79 @@ function delaysTables(report: DelaysReport, lookups: ExportLookups): CsvTable[] 
 // ---------------------------------------------------------------- Funnel
 
 /** Les mentions d'un pas de la chaîne — les mêmes faits que sous le pas à l'écran, en texte. */
-function chainNote(chain: FunnelChain, step: FunnelStep): string {
+function chainNote(t: TranslatorOf<"metrics">, chain: FunnelChain, step: FunnelStep): string {
   const over = step.rate !== null && step.rate.percent !== null && step.rate.percent > 100;
   const parts: string[] = [];
   switch (step.metric.id) {
     case "funnel_visitors":
-      if (!chain.collection.everEvents) parts.push("les visites ne sont pas encore mesurées (extrait à poser)");
+      if (!chain.collection.everEvents) parts.push(t("export.les_visites_ne_sont_pas_encore_901f"));
       break;
     case "funnel_leads":
-      if (!chain.collection.everLeads) parts.push("aucun lead reçu (entrée des leads à brancher)");
-      else if (over) parts.push("plus de leads que de simulations terminées mesurées : des leads arrivent sans passer par l'extrait");
+      if (!chain.collection.everLeads) parts.push(t("export.aucun_lead_recu_entree_des_leads_c689"));
+      else if (over) parts.push(t("export.plus_de_leads_que_de_simulations_688b"));
       break;
     case "funnel_contacted":
-      if (chain.leadsPending > 0) parts.push(plural(chain.leadsPending, "lead sans premier contact consigné", "leads sans premier contact consigné"));
+      if (chain.leadsPending > 0) parts.push(t("export.lead_sans_premier_contact_consigne_leads_5f95", { n: chain.leadsPending }));
       break;
     case "funnel_deals_from_leads":
-      if (over) parts.push("plus d'affaires que de contacts établis : des interactions ne sont pas consignées");
-      if (chain.deals.byPipeline.length > 1) parts.push(`par pipeline : ${chain.deals.byPipeline.map((p) => `${p.label} ${p.n}`).join(" · ")}`);
+      if (over) parts.push(t("export.plus_d_affaires_que_de_contacts_8baf"));
+      if (chain.deals.byPipeline.length > 1) parts.push(t("export.par_pipeline", { join: chain.deals.byPipeline.map((p) => `${p.label} ${p.n}`).join(" · ") }));
       break;
     case "funnel_won":
-      if (!step.count.unavailable) parts.push(`${plural(chain.deals.lost, "perdue")} · ${plural(chain.deals.open, "en cours", "en cours")}`);
+      if (!step.count.unavailable) parts.push(`${t("export.perdue_perdues", { n: chain.deals.lost })} · ${t("export.en_cours_en_cours", { n: chain.deals.open })}`);
       break;
   }
   return parts.join(" · ");
 }
 
-function funnelTables(report: FunnelReport): CsvTable[] {
-  const rateColumns = ["Taux de passage (%)", "Déperdition (%)", "Affichage du taux"];
+function funnelTables(t: TranslatorOf<"metrics">, report: FunnelReport): CsvTable[] {
+  const rateColumns = [t("export.taux_de_passage"), t("export.deperdition"), t("export.affichage_du_taux")];
   const rateCells = (rate: RateStat | null, unavailable?: string): CsvCell[] => [
     percent(rate),
     drop(rate),
-    unavailable ? `sans objet : ${unavailable}` : rateDisplay(rate),
+    unavailable ? `sans objet : ${unavailable}` : rateDisplay(t, rate),
   ];
   const tables: CsvTable[] = [
     {
-      title: "La chaîne — de la visite à la signature",
-      columns: ["Pas", "Nombre", ...rateColumns, "Note"],
+      title: t("export.la_chaine_de_la_visite_a_fa8a"),
+      columns: ["Pas", t("export.nombre"), ...rateColumns, t("export.note")],
       rows: report.chain.steps.map((step) => [
-        step.metric.label,
+        t(`definitions.${step.metric.id}.label`),
         count(step.count),
         ...rateCells(step.rate, step.count.unavailable),
-        chainNote(report.chain, step),
+        chainNote(t, report.chain, step),
       ]),
     },
   ];
   for (const funnel of report.pipelines) {
     const rows: CsvCell[][] = [
-      ["Affaires créées (la cohorte)", funnel.created, null, null, "sans objet", null, null, funnel.created > 0 ? `dont ${plural(funnel.createdFromLead, "issue d'un lead", "issues d'un lead")}` : ""],
+      [t("export.affaires_creees_la_cohorte"), funnel.created, null, null, t("export.sans_objet"), null, null, funnel.created > 0 ? `dont ${t("export.issue_d_un_lead_issues_d_2dc2", { n: funnel.createdFromLead })}` : ""],
       ...funnel.stages.map((s): CsvCell[] => [s.label, s.reached, ...rateCells(s.rate), s.lostHere, s.openHere, ""]),
-      ["Gagnées", funnel.won, ...rateCells(funnel.wonRate), null, null, "taux depuis la dernière étape intermédiaire atteinte"],
-      ["Perdues (au total)", funnel.lost, null, null, "sans objet", null, null, ""],
-      ["En cours (au total)", funnel.open, null, null, "sans objet", null, null, ""],
+      [t("export.gagnees"), funnel.won, ...rateCells(funnel.wonRate), null, null, t("export.taux_depuis_la_derniere_etape_intermediaire_0db5")],
+      [t("export.perdues_au_total"), funnel.lost, null, null, t("export.sans_objet"), null, null, ""],
+      [t("export.en_cours_au_total"), funnel.open, null, null, t("export.sans_objet"), null, null, ""],
     ];
     tables.push({
-      title: `Par étape du pipeline — ${funnel.label}`,
-      columns: ["Étape", "Affaires (allées au moins jusque-là)", ...rateColumns, "Perdues depuis cette étape", "En cours au plus loin ici", "Note"],
+      title: t("export.par_etape_du_pipeline", { label: funnel.label }),
+      columns: [t("export.etape"), t("export.affaires_allees_au_moins_jusque_la"), ...rateColumns, t("export.perdues_depuis_cette_etape"), t("export.en_cours_au_plus_loin_ici"), t("export.note")],
       rows,
     });
   }
   tables.push({
-    title: "Par origine — laquelle génère des affaires qui se signent",
+    title: t("export.par_origine_laquelle_genere_des_affaires_6ba2"),
     columns: [
-      "Origine",
-      "Visiteurs",
-      "Simulations démarrées",
-      "Simulations terminées",
-      "Leads",
-      "Contacts établis",
-      "Affaires",
-      "Gagnées",
+      t("export.origine"),
+      t("export.visiteurs"),
+      t("export.simulations_demarrees"),
+      t("export.simulations_terminees"),
+      t("export.leads"),
+      t("export.contacts_etablis"),
+      t("export.affaires"),
+      t("export.gagnees"),
       "Lead → affaire (%)",
-      "Affaire → gagnée (%)",
-      "Affichage des taux",
-      "Note",
+      t("export.affaire_gagnee"),
+      t("export.affichage_des_taux"),
+      t("export.note"),
     ],
     rows: report.origins.map((row) => {
       const counts = [row.visitors, row.started, row.completed, row.leads, row.contacted, row.deals, row.won];
@@ -211,8 +210,8 @@ function funnelTables(report: FunnelReport): CsvTable[] {
         ...counts.map(count),
         percent(row.leadToDeal),
         percent(row.dealToWon),
-        `lead → affaire : ${rateDisplay(row.leadToDeal)} ; affaire → gagnée : ${rateDisplay(row.dealToWon)}`,
-        reasons.length ? `sans objet : ${reasons.join(" ; ")}` : "",
+        t("export.lead_affaire_affaire_gagnee", { rateDisplay: rateDisplay(t, row.leadToDeal), rateDisplay2: rateDisplay(t, row.dealToWon) }),
+        reasons.length ? t("export.sans_objet_4087", { join: reasons.join(" ; ") }) : "",
       ];
     }),
   });
@@ -221,73 +220,73 @@ function funnelTables(report: FunnelReport): CsvTable[] {
 
 // ---------------------------------------------------------------- Pertes
 
-function lossesTables(report: LossesReport): CsvTable[] {
+function lossesTables(t: TranslatorOf<"metrics">, report: LossesReport): CsvTable[] {
   const { total, excludedReconstructed: ex, lossRate } = report;
   const breakdown = (title: string, labelHeader: string, rows: LossBreakdownRow[]): CsvTable => ({
     title,
-    columns: [labelHeader, "Affaires", "Part (%)", "Affichage de la part", "Montant perdu (€)", "Sans montant"],
+    columns: [labelHeader, t("export.affaires"), "Part (%)", t("export.affichage_de_la_part"), t("export.montant_perdu"), t("export.sans_montant")],
     rows: rows.map((r) => [
       r.label,
       r.n,
       percent(r.share),
-      r.share.hidden ? `masqué : il manque ${plural(r.share.missing, "perte")} pour afficher une part` : SHOWN,
+      r.share.hidden ? `masqué : il manque ${t("export.perte_pertes", { n: r.share.missing })} pour afficher une part` : t("export.affiche"),
       amount(r),
       r.withoutAmount,
     ]),
   });
   return [
     {
-      title: "Sur la période",
-      columns: ["Indicateur", "Affaires", "Montant (€)", "Sans montant", "Taux (%)", "Affichage"],
+      title: t("export.sur_la_periode"),
+      columns: [t("export.indicateur"), t("export.affaires"), "Montant (€)", t("export.sans_montant"), "Taux (%)", t("export.affichage")],
       rows: [
-        ["Affaires perdues", total.n, amount(total), total.withoutAmount, null, ""],
-        ["Pertes antérieures au journal, écartées (date de la perte inconnue)", ex.n, amount(ex), ex.withoutAmount, null, "écartées du calcul, jamais datées par une valeur plausible"],
-        ["Gagnées sur la même période", report.won, null, null, null, ""],
-        ["Taux de perte", null, null, null, percent(lossRate), lossRate.hidden ? `masqué : il manque ${plural(lossRate.missing, "affaire close", "affaires closes")}` : SHOWN],
+        [t("export.affaires_perdues"), total.n, amount(total), total.withoutAmount, null, ""],
+        [t("export.pertes_anterieures_au_journal_ecartees_date_72d8"), ex.n, amount(ex), ex.withoutAmount, null, t("export.ecartees_du_calcul_jamais_datees_par_c88c")],
+        [t("export.gagnees_sur_la_meme_periode"), report.won, null, null, null, ""],
+        [t("export.taux_de_perte"), null, null, null, percent(lossRate), lossRate.hidden ? t("export.masque_il_manque_affaire_close_affaires_463b", { missing: lossRate.missing }) : t("export.affiche")],
       ],
     },
-    breakdown("Par motif", "Motif", report.byReason),
-    breakdown("Par étape de départ", "Étape", report.byStage),
-    breakdown("Par conseiller", "Conseiller", report.byOwner),
-    breakdown("Par type d'affaire", "Type", report.byType),
+    breakdown(t("export.par_motif"), t("export.motif"), report.byReason),
+    breakdown(t("export.par_etape_de_depart"), t("export.etape"), report.byStage),
+    breakdown(t("export.par_conseiller"), t("export.conseiller"), report.byOwner),
+    breakdown(t("export.par_type_d_affaire"), t("export.type"), report.byType),
   ];
 }
 
 // ---------------------------------------------------------------- Partenaires
 
-function partnersTables(report: PartnersReport): CsvTable[] {
+function partnersTables(t: TranslatorOf<"metrics">, report: PartnersReport): CsvTable[] {
   const { totals, commissions } = report;
   const moneyCells = (m: MoneyCount): CsvCell[] => [amount(m), m.n, m.withoutAmount];
   return [
     {
-      title: "Par partenaire",
+      title: t("export.par_partenaire"),
       columns: [
-        "Partenaire",
-        "Métier",
-        "Société",
-        "Actif",
-        "Partages envoyés",
-        "Acceptés",
-        "Refusés",
-        "Sans réponse",
-        "dont en attente",
-        "dont expirés",
-        "dont révoqués",
-        "Taux d'acceptation (%)",
-        "Affichage du taux d'acceptation",
-        "Délai de réponse — médiane (jours)",
-        "Délai de réponse — moyenne (jours)",
-        "Réponses (observations)",
-        "Affichage du délai",
-        "Gagnées",
-        "Taux de transformation (%)",
-        "Affichage du taux de transformation",
-        "Commissions acquises (€)",
+        t("export.partenaire"),
+        t("export.metier"),
+        t("export.societe"),
+        t("export.actif"),
+        t("export.partages_envoyes"),
+        t("export.acceptes"),
+        t("export.refuses"),
+        t("export.sans_reponse"),
+        t("export.dont_en_attente"),
+        t("export.dont_expires"),
+        t("export.dont_revoques"),
+        t("export.taux_d_acceptation"),
+        t("export.affichage_du_taux_d_acceptation"),
+        t("export.delai_de_reponse_mediane_jours"),
+        t("export.delai_de_reponse_moyenne_jours"),
+        t("export.reponses_observations"),
+        t("export.affichage_du_delai"),
+        t("export.gagnees"),
+        t("export.taux_de_transformation"),
+        t("export.affichage_du_taux_de_transformation"),
+        t("export.commissions_acquises"),
         "Acquises — nombre",
-        "Acquises — sans montant",
-        "Commissions prévues (€)",
-        "Prévues — nombre",
-        "Prévues — sans montant",
+        t("export.acquises_sans_montant"),
+        t("export.commissions_prevues"),
+        t("export.prevues_nombre"),
+        t("export.prevues_sans_montant"),
       ],
       rows: [
         ...report.partners.map((p): CsvCell[] => [
@@ -303,19 +302,19 @@ function partnersTables(report: PartnersReport): CsvTable[] {
           p.expired,
           p.revoked,
           percent(p.acceptanceRate),
-          rateDisplay(p.acceptanceRate, "(partages envoyés)"),
+          rateDisplay(t, p.acceptanceRate, t("export.partages_envoyes_adac")),
           days(p.responseDelay, p.responseDelay.medianDays),
           days(p.responseDelay, p.responseDelay.meanDays),
           observations(p.responseDelay),
-          durationDisplay(p.responseDelay),
+          durationDisplay(t, p.responseDelay),
           p.won,
           percent(p.transformationRate),
-          rateDisplay(p.transformationRate, "(partages acceptés)"),
+          rateDisplay(t, p.transformationRate, t("export.partages_acceptes")),
           ...moneyCells(p.earned),
           ...moneyCells(p.planned),
         ]),
         [
-          "Ensemble",
+          t("export.ensemble"),
           null,
           null,
           null,
@@ -327,31 +326,31 @@ function partnersTables(report: PartnersReport): CsvTable[] {
           null,
           null,
           percent(totals.acceptanceRate),
-          rateDisplay(totals.acceptanceRate, "(partages envoyés)"),
+          rateDisplay(t, totals.acceptanceRate, t("export.partages_envoyes_adac")),
           null,
           null,
           null,
-          "non calculé pour l'ensemble — voir Délais",
+          t("export.non_calcule_pour_l_ensemble_voir_2480"),
           totals.won,
           percent(totals.transformationRate),
-          rateDisplay(totals.transformationRate, "(partages acceptés)"),
+          rateDisplay(t, totals.transformationRate, t("export.partages_acceptes")),
           ...moneyCells(totals.earned),
           ...moneyCells(totals.planned),
         ],
       ],
     },
     {
-      title: "Encours de commissions, à aujourd'hui (la période ne s'y applique pas)",
-      columns: ["État", "Commissions", "Montant (€)", "Sans montant"],
+      title: t("export.encours_de_commissions_a_aujourd_hui_100b"),
+      columns: [t("export.etat"), t("export.commissions"), "Montant (€)", t("export.sans_montant")],
       rows: commissions.states.map((s) => [s.label, s.n, amount(s), s.withoutAmount]),
     },
     {
-      title: "Vieillissement des commissions confirmées non réglées, à aujourd'hui",
-      columns: ["Ancienneté", "Commissions", "Montant (€)", "Sans montant"],
+      title: t("export.vieillissement_des_commissions_confirmees_non_reglees_212c"),
+      columns: [t("export.anciennete"), t("export.commissions"), "Montant (€)", t("export.sans_montant")],
       rows: [
         ...commissions.aging.map((b): CsvCell[] => [b.label, b.n, amount(b), b.withoutAmount]),
-        [`Au-delà du seuil de relance de l'organisation (${commissions.overdue.thresholdDays} jours)`, commissions.overdue.n, amount(commissions.overdue), commissions.overdue.withoutAmount],
-        ["Date de confirmation inconnue (écartées du vieillissement)", commissions.unknownConfirmedAt.n, amount(commissions.unknownConfirmedAt), commissions.unknownConfirmedAt.withoutAmount],
+        [t("export.au_dela_du_seuil_de_relance_98d8", { thresholdDays: commissions.overdue.thresholdDays }), commissions.overdue.n, amount(commissions.overdue), commissions.overdue.withoutAmount],
+        [t("export.date_de_confirmation_inconnue_ecartees_du_3b76"), commissions.unknownConfirmedAt.n, amount(commissions.unknownConfirmedAt), commissions.unknownConfirmedAt.withoutAmount],
       ],
     },
   ];
@@ -359,26 +358,26 @@ function partnersTables(report: PartnersReport): CsvTable[] {
 
 // ---------------------------------------------------------------- Tableau de bord
 
-function dashboardTables(indicators: DashboardIndicator[], pack: BusinessPack, chosen: boolean): CsvTable[] {
+function dashboardTables(t: TranslatorOf<"metrics">, indicators: DashboardIndicator[], pack: BusinessPack, chosen: boolean): CsvTable[] {
   const rows: CsvCell[][] = indicators.map(({ metric, value, periodApplies }) => {
-    const period = periodApplies ? "" : "état à aujourd'hui, la période ne s'applique pas";
+    const period = periodApplies ? "" : t("export.etat_a_aujourd_hui_la_periode_e6d5");
     switch (value.kind) {
       case "count":
-        return [metric.label, value.n, "nombre", null, null, SHOWN, [value.detail, period].filter(Boolean).join(" · ")];
+        return [t(`definitions.${metric.id}.label`), value.n, "nombre", null, null, t("export.affiche"), [value.detail, period].filter(Boolean).join(" · ")];
       case "euros":
-        return [metric.label, amount(value.money), "euros", null, value.money.n, SHOWN, [`${value.money.n} ${value.money.n > 1 ? value.countWord[1] : value.countWord[0]}`, value.money.withoutAmount > 0 ? `${value.money.withoutAmount} sans montant` : "", value.detail, period].filter(Boolean).join(" · ")];
+        return [t(`definitions.${metric.id}.label`), amount(value.money), "euros", null, value.money.n, t("export.affiche"), [value.countPhrase, value.money.withoutAmount > 0 ? `${value.money.withoutAmount} sans montant` : "", value.detail, period].filter(Boolean).join(" · ")];
       case "days":
-        return [metric.label, days(value.stat, value.stat.medianDays), "jours (médiane)", days(value.stat, value.stat.meanDays), observations(value.stat), durationDisplay(value.stat), period];
+        return [t(`definitions.${metric.id}.label`), days(value.stat, value.stat.medianDays), t("export.jours_mediane"), days(value.stat, value.stat.meanDays), observations(value.stat), durationDisplay(t, value.stat), period];
       case "ratio":
-        return [metric.label, percent(value.rate), "%", null, value.rate.base, rateDisplay(value.rate, "(le dénominateur)"), [value.detail, period].filter(Boolean).join(" · ")];
+        return [t(`definitions.${metric.id}.label`), percent(value.rate), "%", null, value.rate.base, rateDisplay(t, value.rate, t("export.le_denominateur")), [value.detail, period].filter(Boolean).join(" · ")];
       case "unavailable":
-        return [metric.label, null, "", null, null, `sans objet : ${value.reason}`, period];
+        return [t(`definitions.${metric.id}.label`), null, "", null, null, t("export.sans_objet_a6d2", { reason: value.reason }), period];
     }
   });
   return [
     {
-      title: `Indicateurs du pack « ${pack.label} »${chosen ? "" : " (pack par défaut : aucun pack choisi dans Marque & réglages)"}`,
-      columns: ["Indicateur", "Valeur", "Unité", "Moyenne (jours)", "Observations", "Affichage", "Détail"],
+      title: t("export.indicateurs_du_pack", { t: t(`packs.${pack.key}.label`), value: chosen ? "" : t("export.pack_par_defaut_aucun_pack_choisi_159d") }),
+      columns: [t("export.indicateur"), t("export.valeur"), t("export.unite"), "Moyenne (jours)", t("export.observations"), t("export.affichage"), t("export.detail")],
       rows,
     },
   ];
@@ -387,36 +386,37 @@ function dashboardTables(indicators: DashboardIndicator[], pack: BusinessPack, c
 // ---------------------------------------------------------------- Le document
 
 /** Le premier tableau du fichier : la vue, l'organisation et les filtres appliqués — un export sans son contexte ne vaut rien. */
-export function exportPreamble(view: ExportView, parsed: ParsedMetricFilters, lookups: ExportLookups, exportedAt = new Date()): CsvTable {
+export function exportPreamble(t: TranslatorOf<"metrics">, view: ExportView, parsed: ParsedMetricFilters, lookups: ExportLookups, exportedAt = new Date()): CsvTable {
   const { filters, params } = parsed;
   const user = lookups.users.find((u) => u.id === filters.ownerId);
   const originLabel =
     filters.originId === ORIGIN_UNKNOWN
-      ? "Sans origine (aucun lead)"
+      ? t("export.sans_origine_aucun_lead")
       : filters.originId === ORIGIN_UNMATCHED
-        ? "Origine à rapprocher"
-        : (lookups.origins.find((o) => o.id === filters.originId)?.label ?? "Toutes");
+        ? t("export.origine_a_rapprocher")
+        : (lookups.origins.find((o) => o.id === filters.originId)?.label ?? t("export.toutes"));
   const rows: CsvCell[][] = [
-    ["Vue", EXPORT_VIEWS[view].label],
-    ["Organisation", lookups.organizationName],
-    ["Période", periodPhrase(parsed)],
+    ["Vue", t(`views.${view}`)],
+    [t("export.organisation"), lookups.organizationName],
+    [t("export.periode"), periodPhrase(parsed, t)],
   ];
   if (params.du) rows.push(["Du", params.du]);
   if (params.au) rows.push(["Au (inclus)", params.au]);
   rows.push(
-    ["Conseiller", user ? user.name || user.email : "Tous"],
-    ["Type d'affaire", lookups.types.find((t) => t.id === filters.typeId)?.label ?? "Tous"],
-    ["Pipeline", lookups.pipelines.find((p) => p.id === filters.pipelineId)?.label ?? "Tous"],
-    ["Origine", originLabel],
-    ["Exporté le", exportedAt.toISOString()],
-    ["Seuil d'affichage", `${MIN_OBSERVATIONS} observations — en dessous, la cellule est vide et la colonne « Affichage » dit ce qui manque`],
-    ["Format", "séparateur « ; », virgule décimale, montants en euros et durées en jours sans unité dans les cellules"]
+    [t("export.conseiller"), user ? user.name || user.email : t("export.tous")],
+    [t("export.type_d_affaire"), lookups.types.find((t) => t.id === filters.typeId)?.label ?? t("export.tous")],
+    [t("export.pipeline"), lookups.pipelines.find((p) => p.id === filters.pipelineId)?.label ?? t("export.tous")],
+    [t("export.origine"), originLabel],
+    [t("export.exporte_le"), exportedAt.toISOString()],
+    [t("export.seuil_d_affichage"), t("export.observations_en_dessous_la_cellule_est_e2b1", { minObservations: MIN_OBSERVATIONS })],
+    [t("export.format"), t("export.separateur_virgule_decimale_montants_en_euros_0255")]
   );
-  return { title: "Paramètres de l'export", columns: ["Paramètre", "Valeur"], rows };
+  return { title: t("export.parametres_de_l_export"), columns: [t("export.parametre"), t("export.valeur")], rows };
 }
 
 /** Les tableaux de la vue — le rapport de l'écran, projeté. */
 export async function exportTables(
+  t: TranslatorOf<"metrics">,
   view: ExportView,
   user: OrgScopeUser,
   filters: MetricFilters,
@@ -426,17 +426,17 @@ export async function exportTables(
 ): Promise<CsvTable[]> {
   switch (view) {
     case "delais":
-      return delaysTables(await delaysReport(user, filters), lookups);
+      return delaysTables(t, await delaysReport(user, filters, t), lookups);
     case "funnel":
-      return funnelTables(await funnelReport(user, filters));
+      return funnelTables(t, await funnelReport(user, filters, t));
     case "pertes":
-      return lossesTables(await lossesReport(user, filters));
+      return lossesTables(t, await lossesReport(user, filters, t));
     case "partenaires":
-      return partnersTables(await partnersReport(user, filters));
+      return partnersTables(t, await partnersReport(user, filters, t));
     case "tableau-de-bord": {
-      if (!lookups.dashboard) throw new Error("L'export du tableau de bord a besoin du pack métier de l'organisation.");
+      if (!lookups.dashboard) throw new AppError("l_export_du_tableau_de_bord_a_351c");
       const { pack, chosen } = lookups.dashboard;
-      return dashboardTables(await dashboardIndicators(user, pack.indicators, filters, params), pack, chosen);
+      return dashboardTables(t, await dashboardIndicators(user, pack.indicators, filters, params, t), pack, chosen);
     }
   }
 }

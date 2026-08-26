@@ -12,6 +12,7 @@ import {
 } from "./durations";
 import type { MetricFilters } from "./filters";
 import type { DurationStat } from "./types";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /**
  * La vue « délais et durées » entière, en un seul objet : l'écran l'affiche,
@@ -28,9 +29,9 @@ export type DelaysReport = {
   pairs: StagePairDelay[];
 };
 
-export async function delaysReport(user: OrgScopeUser, filters: MetricFilters = {}): Promise<DelaysReport> {
+export async function delaysReport(user: OrgScopeUser, filters: MetricFilters = {}, t: TranslatorOf<"metrics">): Promise<DelaysReport> {
   const [leadToFirstContact, creationToWon, shareResponse, commissionSettlement, stages, pairs] = await Promise.all([
-    leadToFirstContactDelay(user, filters),
+    leadToFirstContactDelay(user, filters, t),
     creationToWonDelay(user, filters),
     shareResponseDelay(user, filters),
     commissionSettlementDelay(user, filters),

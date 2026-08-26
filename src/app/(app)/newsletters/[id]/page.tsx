@@ -8,8 +8,10 @@ import { getRenderContext, listNewsletterSources } from "@/db/queries/newsletter
 import { loadNewsletter } from "@/lib/newsletter/actions";
 import { requestOrigin } from "@/lib/request-origin";
 import { requireUser } from "@/lib/session";
+import { getTranslations } from "next-intl/server";
 
 export default async function EditNewsletterPage(props: PageProps<"/newsletters/[id]">) {
+  const tr = await getTranslations("newsletters.detail");
   const user = await requireUser();
   const { id } = await props.params;
   const query = await props.searchParams;
@@ -40,12 +42,12 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
     <>
       <PageHeader
         title={data.newsletter.title}
-        backTo={{ href: "/newsletters", label: "Newsletters" }}
+        backTo={{ href: "/newsletters", label: tr("newsletters") }}
       />
       <NewsletterEditor
         targets={editorTargets.map((t) => ({
           id: t.id,
-          label: t.archivedAt ? `${t.label} (désactivée)` : t.label,
+          label: t.archivedAt ? tr("desactivee", { label: t.label }) : t.label,
           count: counts.get(t.id) ?? 0,
         }))}
         brand={context.brand}

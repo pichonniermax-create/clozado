@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { dealTypes } from "@/db/schema";
 import { orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
+import { AppError } from "@/lib/errors";
 
 /** Types d'affaire de l'organisation de l'appelant. Aucun défaut seedé : voir deal-statuses.ts pour pourquoi. */
 export async function listDealTypes(user: OrgScopeUser) {
@@ -30,10 +31,10 @@ function slugify(label: string): string {
  */
 export async function createDealType(user: OrgScopeUser, label: string) {
   if (!user.organizationId) {
-    throw new Error("Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer un type d'affaire.");
+    throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_30eb");
   }
   const trimmed = label.trim();
-  if (!trimmed) throw new Error("Libellé requis.");
+  if (!trimmed) throw new AppError("libelle_requis");
 
   const existing = await db
     .select()

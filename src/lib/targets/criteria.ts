@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /**
  * LES CRITÈRES D'UN SEGMENT — le format stocké dans `mail_targets.criteria`
@@ -17,28 +18,20 @@ import { z } from "zod";
  * investisseur ») se règle par deux cibles ; si ce besoin devient courant,
  * une clé `anyOf` pourra s'ajouter sans casser l'existant.
  *
- * Les libellés ci-dessous sont ceux de l'écran ET de la description en une
- * phrase (`describeCriteria`) : un seul vocabulaire, jamais de jargon.
+ * Les libellés des sources et des présences d'affaires sont ceux de l'écran
+ * ET de la description en une phrase (`describeCriteria`) : un seul
+ * vocabulaire, jamais de jargon — dans les messages (`targets.sources`,
+ * `targets.dealPresence`), pour la langue de la personne.
  */
 
-export const CONTACT_SOURCE_LABELS = {
-  manual: "Saisie à la main",
-  import: "Import CSV",
-  external: "Système externe",
-  lead: "Arrivée par un lead",
-} as const;
+export const CONTACT_SOURCES = ["manual", "import", "external", "lead"] as const;
+export type ContactSource = (typeof CONTACT_SOURCES)[number];
 
-export type ContactSource = keyof typeof CONTACT_SOURCE_LABELS;
+export const DEAL_PRESENCES = ["any", "open", "won", "lost", "none"] as const;
+export type DealPresence = (typeof DEAL_PRESENCES)[number];
 
-export const DEAL_PRESENCE_LABELS = {
-  any: "Au moins une affaire, quelle qu'elle soit",
-  open: "Au moins une affaire en cours",
-  won: "Au moins une affaire gagnée",
-  lost: "Au moins une affaire perdue",
-  none: "Aucune affaire",
-} as const;
-
-export type DealPresence = keyof typeof DEAL_PRESENCE_LABELS;
+/** Le traducteur du namespace `targets`, que l'appelant passe : la description ne sait pas d'où vient la langue. */
+export type TargetsTranslator = TranslatorOf<"targets">;
 
 const uuidList = z.array(z.uuid()).max(50);
 const textList = z.array(z.string().trim().min(1).max(80)).max(20);
@@ -129,63 +122,59 @@ function nameOf<T extends { id: string }>(list: T[], id: string, label: (item: T
  * la photographie d'un envoi. `[]` n'arrive jamais : sans critère, c'est
  * « Tous les contacts ».
  */
-export function describeCriteria(criteria: SegmentCriteria, options: CriteriaOptions): string[] {
+export function describeCriteria(criteria: SegmentCriteria, options: CriteriaOptions, t: TargetsTranslator): string[] {
   const c = normalizeCriteria(criteria);
   const out: string[] = [];
-  const tagName = (id: string) => nameOf(options.tags, id, (t) => t.label, "(étiquette supprimée)");
+  const tagName = (id: string) => nameOf(options.tags, id, (t) => t.label, t("criteria.etiquette_supprimee"));
   const userName = (id: string) =>
-    nameOf(options.users, id, (u) => u.name || u.email || "un conseiller", "(conseiller parti)");
+    nameOf(options.users, id, (u) => u.name || u.email || "un conseiller", t("criteria.conseiller_parti"));
   const stages = options.pipelines.flatMap((p) => p.stages.map((s) => ({ id: s.id, label: s.label })));
 
-  if (c.kind === "person") out.push("Personnes");
-  if (c.kind === "company") out.push("Sociétés");
+  if (c.kind === "person") out.push(t("criteria.personnes"));
+  if (c.kind === "company") out.push(t("criteria.societes"));
   if (c.tagsAny?.length) {
     const labels = c.tagsAny.map(tagName);
-    out.push(labels.length === 1 ? `porte l'étiquette ${labels[0]}` : `porte l'étiquette ${joinOr(labels)}`);
+    out.push(labels.length === 1 ? t("criteria.porte_l_etiquette", { value: labels[0] }) : t("criteria.porte_l_etiquette_31ed", { joinOr: joinOr(labels) }));
   }
-  if (c.tagsNone?.length) out.push(`sans l'étiquette ${joinOr(c.tagsNone.map(tagName))}`);
+  if (c.tagsNone?.length) out.push(t("criteria.sans_l_etiquette", { joinOr: joinOr(c.tagsNone.map(tagName)) }));
   if (c.ageMin !== undefined && c.ageMax !== undefined) out.push(`entre ${c.ageMin} et ${c.ageMax} ans`);
-  else if (c.ageMin !== undefined) out.push(`${c.ageMin} ans et plus`);
-  else if (c.ageMax !== undefined) out.push(`jusqu'à ${c.ageMax} ans`);
-  if (c.hasEmail) out.push("avec une adresse email");
-  if (c.cities?.length) out.push(`à ${joinOr(c.cities)}`);
+  else if (c.ageMin !== undefined) out.push(t("criteria.ans_et_plus", { ageMin: c.ageMin }));
+  else if (c.ageMax !== undefined) out.push(t("criteria.jusqu_a_ans", { ageMax: c.ageMax }));
+  if (c.hasEmail) out.push(t("criteria.avec_une_adresse_email"));
+  if (c.cities?.length) out.push(t("criteria.a", { joinOr: joinOr(c.cities) }));
   if (c.countries?.length) out.push(`pays : ${joinOr(c.countries)}`);
-  if (c.ownerIds?.length) out.push(`suivi par ${joinOr(c.ownerIds.map(userName))}`);
-  if (c.deals) out.push(DEAL_PRESENCE_LABELS[c.deals].charAt(0).toLowerCase() + DEAL_PRESENCE_LABELS[c.deals].slice(1));
+  if (c.ownerIds?.length) out.push(t("criteria.suivi_par", { joinOr: joinOr(c.ownerIds.map(userName)) }));
+  if (c.deals) {
+    const presence = t(`dealPresence.${c.deals}`);
+    out.push(presence.charAt(0).toLowerCase() + presence.slice(1));
+  }
   if (c.dealStageIds?.length) {
-    const labels = c.dealStageIds.map((id) => nameOf(stages, id, (s) => s.label, "(étape supprimée)"));
-    out.push(labels.length === 1 ? `affaire dans l'étape ${labels[0]}` : `affaire dans l'étape ${joinOr(labels)}`);
+    const labels = c.dealStageIds.map((id) => nameOf(stages, id, (s) => s.label, t("criteria.etape_supprimee")));
+    out.push(labels.length === 1 ? t("criteria.affaire_dans_l_etape", { value: labels[0] }) : t("criteria.affaire_dans_l_etape_f806", { joinOr: joinOr(labels) }));
   }
   if (c.dealPipelineIds?.length) {
     out.push(
-      `affaire dans le pipeline ${joinOr(c.dealPipelineIds.map((id) => nameOf(options.pipelines, id, (p) => p.label, "(pipeline supprimé)")))}`
+      t("criteria.affaire_dans_le_pipeline", { joinOr: joinOr(c.dealPipelineIds.map((id) => nameOf(options.pipelines, id, (p) => p.label, t("criteria.pipeline_supprime")))) })
     );
   }
-  if (c.createdMoreThanDays !== undefined) out.push(`fiche créée il y a plus de ${c.createdMoreThanDays} jours`);
-  if (c.createdLessThanDays !== undefined) out.push(`fiche créée il y a moins de ${c.createdLessThanDays} jours`);
-  if (c.inactiveForDays !== undefined) out.push(`sans interaction depuis plus de ${c.inactiveForDays} jours`);
+  if (c.createdMoreThanDays !== undefined) out.push(t("criteria.fiche_creee_il_y_a_plus_9aad", { createdMoreThanDays: c.createdMoreThanDays }));
+  if (c.createdLessThanDays !== undefined) out.push(t("criteria.fiche_creee_il_y_a_moins_fc42", { createdLessThanDays: c.createdLessThanDays }));
+  if (c.inactiveForDays !== undefined) out.push(t("criteria.sans_interaction_depuis_plus_de_jours", { inactiveForDays: c.inactiveForDays }));
   if (c.sources?.length) {
-    out.push(`fiche venue de : ${joinOr(c.sources.map((s) => CONTACT_SOURCE_LABELS[s].toLowerCase()))}`);
+    out.push(t("criteria.fiche_venue_de", { joinOr: joinOr(c.sources.map((s) => t(`sources.${s}`).toLowerCase())) }));
   }
   if (c.originIds?.length) {
-    out.push(`origine : ${joinOr(c.originIds.map((id) => nameOf(options.origins, id, (o) => o.label, "(origine supprimée)")))}`);
+    out.push(`origine : ${joinOr(c.originIds.map((id) => nameOf(options.origins, id, (o) => o.label, t("criteria.origine_supprimee"))))}`);
   }
-  return out.length > 0 ? out : ["Tous les contacts"];
+  return out.length > 0 ? out : [t("criteria.tous_les_contacts")];
 }
 
-/** Les six facettes de l'identité éditoriale, dans l'ordre de l'écran et du prompt — un seul vocabulaire ici. */
-export const IDENTITY_FACETS = [
-  { key: "persona", label: "Qui est cette personne", hint: "Une ou deux phrases : sa situation, ce qu'elle vit en ce moment." },
-  { key: "concerns", label: "Ce qui la préoccupe", hint: "Les questions qu'elle se pose vraiment — c'est à elles que l'email répond." },
-  { key: "knowledgeLevel", label: "Son niveau de connaissance du sujet", hint: "Débutant, averti, expert : ce qui décide de ce qu'on explique et de ce qu'on ne réexplique pas." },
-  { key: "editorialVoice", label: "Le ton à adopter", hint: "Comment on lui parle : pédagogue, direct, complice…" },
-  { key: "interests", label: "Ce qui l'intéresse", hint: "Les sujets qui la font ouvrir un email." },
-  { key: "avoid", label: "Ce qu'on ne lui dit pas", hint: "Ce qui ferait un email à côté : le jargon, les sujets hors de sa situation, les promesses." },
-] as const;
+/** Les six facettes de l'identité éditoriale, dans l'ordre de l'écran et du prompt ; libellé et aide dans les messages (`targets.facets.<clé>`). */
+export const IDENTITY_FACET_KEYS = ["persona", "concerns", "knowledgeLevel", "editorialVoice", "interests", "avoid"] as const;
 
-export type IdentityFacetKey = (typeof IDENTITY_FACETS)[number]["key"];
+export type IdentityFacetKey = (typeof IDENTITY_FACET_KEYS)[number];
 
-/** Une identité est complète quand les six facettes sont remplies — l'écran montre ce qui manque, le prompt compose avec ce qui est là. */
-export function missingIdentityFacets(target: Record<IdentityFacetKey, string | null>): string[] {
-  return IDENTITY_FACETS.filter((f) => !target[f.key]?.trim()).map((f) => f.label);
+/** Une identité est complète quand les six facettes sont remplies — l'écran montre ce qui manque (par clé, qu'il traduit), le prompt compose avec ce qui est là. */
+export function missingIdentityFacets(target: Record<IdentityFacetKey, string | null>): IdentityFacetKey[] {
+  return IDENTITY_FACET_KEYS.filter((key) => !target[key]?.trim());
 }

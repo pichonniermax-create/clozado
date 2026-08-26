@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { rateText } from "@/components/analytics/funnel-steps";
 import { formatEuros } from "@/lib/format";
 import type { RateStat } from "@/lib/metrics";
+import { useTranslations } from "next-intl";
 
 /**
  * LE tableau d'une répartition — une ligne par catégorie (motif, étape,
@@ -32,6 +33,7 @@ export function BreakdownTable({
   countHeader?: string;
   amountHeader?: string;
 }) {
+  const t = useTranslations("analytics.breakdownTable");
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full min-w-[32rem] text-sm">
@@ -44,7 +46,7 @@ export function BreakdownTable({
               {countHeader}
             </th>
             <th scope="col" className="px-4 py-2.5 text-right font-medium">
-              Part
+              {t("part")}
             </th>
             <th scope="col" className="px-4 py-2.5 text-right font-medium">
               {amountHeader}
@@ -63,7 +65,7 @@ export function BreakdownTable({
                 {row.withoutAmount === row.n ? <span className="text-muted-foreground">—</span> : formatEuros(row.amount)}
                 {row.withoutAmount > 0 && (
                   <span className="block text-xs text-muted-foreground">
-                    {row.withoutAmount} sans montant
+                    {t("sans_montant", { withoutAmount: row.withoutAmount })}
                   </span>
                 )}
               </td>

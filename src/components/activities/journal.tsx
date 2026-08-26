@@ -24,11 +24,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
-import { TASK_AUTO_RULE_LABELS } from "@/components/tasks/labels";
-import { ACTIVITY_TYPE_LABELS, journalHeadline } from "@/components/activities/labels";
+import { autoRuleLabel } from "@/components/tasks/labels";
+import { ACTIVITY_TYPES, journalHeadline } from "@/components/activities/labels";
 import type { Journal as JournalData, JournalEntry, JournalKind } from "@/db/queries/activities";
 import { deleteActivityAction, logActivityAction } from "@/lib/activities/actions";
 import { formatDateTime } from "@/lib/format";
+import { useTranslations } from "next-intl";
 
 /**
  * Le journal unifié d'une fiche (contact ou affaire) ou de l'organisation
@@ -65,6 +66,8 @@ export function Journal({
   description?: string;
   emptyText?: string;
 }) {
+  const t = useTranslations("activities.journal");
+  const ta = useTranslations("activities");
   const quickEntry = context !== "org";
   const count = journal.entries.length;
 
@@ -76,7 +79,7 @@ export function Journal({
           {count > 0 && ` (${count}${journal.truncated ? "+" : ""})`}
         </h2>
         {journal.truncated && (
-          <span className="text-xs text-muted-foreground">Les {count} entrées les plus récentes</span>
+          <span className="text-xs text-muted-foreground">{t("les_entrees_les_plus_recentes", { count })}</span>
         )}
       </div>
       {description && <p className="-mt-1 text-xs text-muted-foreground">{description}</p>}
@@ -94,29 +97,28 @@ export function Journal({
             <select
               name="type"
               defaultValue="call"
-              aria-label="Type d'interaction"
+              aria-label={t("type_d_interaction")}
               className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
             >
-              {Object.entries(ACTIVITY_TYPE_LABELS).map(([value, label]) => (
+              {ACTIVITY_TYPES.map((value) => (
                 <option key={value} value={value}>
-                  {label}
+                  {ta(`types.${value}`)}
                 </option>
               ))}
             </select>
             <Input
               name="content"
-              placeholder="Ce qui s'est dit, ce qui a été convenu…"
-              aria-label="Compte rendu"
+              placeholder={t("ce_qui_s_est_dit_ce_870e")}
+              aria-label={t("compte_rendu")}
               className="min-w-56 flex-1"
             />
-            <Input name="occurredAt" type="datetime-local" aria-label="Date et heure" className="w-fit" />
+            <Input name="occurredAt" type="datetime-local" aria-label={t("date_et_heure")} className="w-fit" />
             <Button type="submit" variant="outline">
-              Consigner
+              {t("consigner")}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Date vide = maintenant. Le journal consigne ce qui a eu lieu — pour un rendez-vous à venir,
-            crée une tâche.
+            {t("date_vide_maintenant_le_journal_consigne_7b91")}
           </p>
         </form>
       )}
@@ -124,7 +126,7 @@ export function Journal({
       {count === 0 ? (
         <EmptyState>
           {emptyText ??
-            "Rien encore. Les appels, rendez-vous et notes se consignent ci-dessus ; les étapes, partages et tâches achevées arrivent tout seuls."}
+            t("rien_encore_les_appels_rendez_vous_2f2c")}
         </EmptyState>
       ) : (
         <ol className="flex flex-col">
@@ -174,6 +176,9 @@ function JournalRow({
   context: "contact" | "deal" | "org";
   backTo: string;
 }) {
+  const t = useTranslations("activities.journal");
+  const ta = useTranslations("activities");
+  const tt = useTranslations("tasks");
   const showDeal = entry.dealId && entry.dealTitle && context !== "deal";
   const showContact = entry.contactId && entry.contactName && context !== "contact";
   // Le titre de la tâche est déjà dans l'intitulé (journalHeadline).
@@ -192,10 +197,10 @@ function JournalRow({
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5 pb-4">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <p className="text-sm font-medium">{journalHeadline(entry)}</p>
+          <p className="text-sm font-medium">{journalHeadline(entry, ta)}</p>
           {entry.stage && <StageChange stage={entry.stage} />}
           {entry.autoRule && (
-            <Badge variant="secondary">{TASK_AUTO_RULE_LABELS[entry.autoRule] ?? entry.autoRule}</Badge>
+            <Badge variant="secondary">{autoRuleLabel(entry.autoRule, tt)}</Badge>
           )}
           {entry.activityId && (
             <form
@@ -206,8 +211,8 @@ function JournalRow({
                 type="submit"
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Supprimer cette interaction"
-                title="Supprimer cette interaction"
+                aria-label={t("supprimer_cette_interaction")}
+                title={t("supprimer_cette_interaction")}
               >
                 <Trash2 />
               </Button>
@@ -216,27 +221,17 @@ function JournalRow({
         </div>
         {body && <p className="text-sm whitespace-pre-line text-muted-foreground">{body}</p>}
         <p className="text-xs tabular-nums text-muted-foreground">
-          {entry.actorLabel ?? "Système"} · {formatDateTime(entry.at)}
+          {entry.actorLabel ?? t("systeme")} · {formatDateTime(entry.at)}
           {showDeal && (
             <>
-              {" · affaire "}
-              <Link
-                href={`/affaires/${entry.dealId}`}
-                className="font-medium text-foreground underline underline-offset-2"
-              >
-                {entry.dealTitle}
-              </Link>
+              {t.rich("affaire", { dealTitle: (entry.dealTitle) ?? "", link: (chunks) => <Link href={`/affaires/${entry.dealId}`}
+                className="font-medium text-foreground underline underline-offset-2">{chunks}</Link> })}
             </>
           )}
           {showContact && (
             <>
-              {" · contact "}
-              <Link
-                href={`/contacts/${entry.contactId}`}
-                className="font-medium text-foreground underline underline-offset-2"
-              >
-                {entry.contactName}
-              </Link>
+              {t.rich("contact", { contactName: (entry.contactName) ?? "", link: (chunks) => <Link href={`/contacts/${entry.contactId}`}
+                className="font-medium text-foreground underline underline-offset-2">{chunks}</Link> })}
             </>
           )}
         </p>
@@ -247,6 +242,7 @@ function JournalRow({
 
 /** « Nouveau → Partagée », avec les couleurs des étapes — même code visuel que le temps par étape de la fiche affaire. */
 function StageChange({ stage }: { stage: NonNullable<JournalEntry["stage"]> }) {
+  const t = useTranslations("activities.journal");
   return (
     <span className="flex flex-wrap items-center gap-1.5 text-sm">
       {stage.fromLabel && (
@@ -261,8 +257,8 @@ function StageChange({ stage }: { stage: NonNullable<JournalEntry["stage"]> }) {
       <StageDot color={stage.toColor} />
       <span>
         {stage.toLabel}
-        {stage.outcome === "won" && " (gagnée)"}
-        {stage.outcome === "lost" && " (perdue)"}
+        {stage.outcome === "won" && t("gagnee")}
+        {stage.outcome === "lost" && t("perdue")}
       </span>
     </span>
   );

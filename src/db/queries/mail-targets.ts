@@ -29,8 +29,11 @@ import {
   type SegmentCriteria,
 } from "@/lib/targets/criteria";
 import type { TargetTemplate } from "@/lib/targets/templates";
+import type { TranslatorOf } from "@/i18n/translator";
+import type { TargetsTranslator } from "@/lib/targets/criteria";
 import { createContactTag, getContact, listContacts } from "./contacts";
 import { getOwnOrganization } from "./organizations";
+import { AppError } from "@/lib/errors";
 
 /**
  * LES CIBLES — un segment VIVANT sur `contacts` (ou une sélection manuelle)
@@ -183,7 +186,7 @@ export async function listMailTargets(user: OrgScopeUser, opts: { includeArchive
 
 export async function getMailTarget(user: OrgScopeUser, id: string) {
   const target = await db.query.mailTargets.findFirst({ where: eq(mailTargets.id, id) });
-  if (!target) throw new Error("Cible introuvable.");
+  if (!target) throw new AppError("cible_introuvable", undefined, 404);
   assertOrgAccess(user, target.organizationId);
   return target;
 }
@@ -427,9 +430,9 @@ export async function listSignatories(organizationId: string) {
 }
 
 /** La description en phrases d'une cible : ses critères, ou « sélection manuelle ». */
-export function describeTarget(target: Pick<MailTarget, "kind" | "criteria">, options: CriteriaOptions): string[] {
-  if (target.kind === "static") return ["Sélection manuelle"];
-  return describeCriteria(parseCriteria(target.criteria), options);
+export function describeTarget(target: Pick<MailTarget, "kind" | "criteria">, options: CriteriaOptions, t: TargetsTranslator): string[] {
+  if (target.kind === "static") return [t("queries.selection_manuelle")];
+  return describeCriteria(parseCriteria(target.criteria), options, t);
 }
 
 // ---------------------------------------------------------------------------
@@ -492,12 +495,12 @@ async function nextPosition(organizationId: string): Promise<number> {
 async function assertSignatoryInOrg(signatoryId: string | null, organizationId: string) {
   if (!signatoryId) return;
   const row = await db.query.signatories.findFirst({ where: eq(signatories.id, signatoryId) });
-  if (!row || row.organizationId !== organizationId) throw new Error("Ce signataire n'appartient pas à ton organisation.");
+  if (!row || row.organizationId !== organizationId) throw new AppError("ce_signataire_n_appartient_pas_a_ton_5595");
 }
 
 function cleanInput(input: MailTargetInput) {
   const label = input.label.trim();
-  if (!label) throw new Error("Le nom de la cible est obligatoire.");
+  if (!label) throw new AppError("le_nom_de_la_cible_est_obligatoire");
   const text = (v: string | null) => (v?.trim() ? v.trim() : null);
   return {
     label,
@@ -517,9 +520,7 @@ function cleanInput(input: MailTargetInput) {
 
 export async function createMailTarget(user: OrgScopeUser, input: MailTargetInput) {
   if (!user.organizationId) {
-    throw new Error(
-      "Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer une cible."
-    );
+    throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_a7a4");
   }
   const values = cleanInput(input);
   await assertSignatoryInOrg(values.defaultSignatoryId, user.organizationId);
@@ -602,17 +603,17 @@ export async function restoreMailTarget(user: OrgScopeUser, id: string) {
 export async function addStaticMembers(user: OrgScopeUser, targetId: string, contactIds: string[]): Promise<number> {
   const target = await getMailTarget(user, targetId);
   if (target.kind !== "static") {
-    throw new Error("Cette cible est un segment : ses membres viennent de ses critères, pas d'une sélection.");
+    throw new AppError("cette_cible_est_un_segment_ses_membres_5680");
   }
   const ids = [...new Set(contactIds.filter(Boolean))];
-  if (ids.length === 0) throw new Error("Coche au moins un contact à ajouter.");
+  if (ids.length === 0) throw new AppError("coche_au_moins_un_contact_a_ajouter");
   // Seules les fiches vivantes de la même organisation entrent — la FK
   // composite le garantit en base, on filtre ici pour un message clair.
   const owned = await db
     .select({ id: contacts.id })
     .from(contacts)
     .where(and(eq(contacts.organizationId, target.organizationId), isNull(contacts.deletedAt), inArray(contacts.id, ids)));
-  if (owned.length === 0) throw new Error("Aucun de ces contacts n'appartient à ton organisation.");
+  if (owned.length === 0) throw new AppError("aucun_de_ces_contacts_n_appartient_a_5659");
   await db
     .insert(mailTargetMembers)
     .values(owned.map((c) => ({ organizationId: target.organizationId, targetId, contactId: c.id })))
@@ -666,12 +667,10 @@ export function missingPackTargets(pack: BusinessPack, existing: Pick<MailTarget
  * n'existent pas. Idempotent par slug : relancer ne crée que ce qui manque,
  * et ne touche jamais une cible existante (même modifiée, même désactivée).
  */
-export async function createPackTargets(user: OrgScopeUser): Promise<{ created: number; pack: BusinessPack }> {
+export async function createPackTargets(user: OrgScopeUser, t: TranslatorOf<"templates">): Promise<{ created: number; pack: BusinessPack }> {
   const org = await getOwnOrganization(user);
   if (!org) {
-    throw new Error(
-      "Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer des cibles."
-    );
+    throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_1633");
   }
   const { pack } = resolveBusinessPack(org.businessPack);
   const existing = await db
@@ -681,9 +680,13 @@ export async function createPackTargets(user: OrgScopeUser): Promise<{ created: 
   const missing = missingPackTargets(pack, existing);
   if (missing.length === 0) return { created: 0, pack };
 
-  const labels = [
-    ...new Set(missing.flatMap((t) => [...(t.criteria.tagLabelsAny ?? []), ...(t.criteria.tagLabelsNone ?? [])])),
-  ];
+  // Les étiquettes du gabarit, dans la langue de l'organisation : « Primo-accédant|Investisseur » → des libellés.
+  const tagLabelsOf = (slug: TargetTemplate["slug"], which: "tagsAny" | "tagsNone"): string[] => {
+    // Une clé absente est normale (tous les gabarits n'ont pas d'étiquettes) : le typage ne peut pas le savoir.
+    const key = `targets.${slug}.${which}` as never;
+    return t.has(key) ? String(t(key)).split("|").map((l) => l.trim()).filter(Boolean) : [];
+  };
+  const labels = [...new Set(missing.flatMap((tpl) => [...tagLabelsOf(tpl.slug, "tagsAny"), ...tagLabelsOf(tpl.slug, "tagsNone")]))];
   const tagIds = new Map<string, string>();
   for (const label of labels) {
     const tag = await createContactTag(user, label);
@@ -691,26 +694,27 @@ export async function createPackTargets(user: OrgScopeUser): Promise<{ created: 
   }
 
   let position = await nextPosition(org.id);
-  const rows = missing.map((t) => {
-    const { tagLabelsAny, tagLabelsNone, ...rest } = t.criteria;
+  const rows = missing.map((tpl) => {
+    const tagsAny = tagLabelsOf(tpl.slug, "tagsAny").map((l) => tagIds.get(l)!);
+    const tagsNone = tagLabelsOf(tpl.slug, "tagsNone").map((l) => tagIds.get(l)!);
     const criteria = normalizeCriteria({
-      ...rest,
-      tagsAny: tagLabelsAny?.map((l) => tagIds.get(l)!),
-      tagsNone: tagLabelsNone?.map((l) => tagIds.get(l)!),
+      ...tpl.criteria,
+      tagsAny: tagsAny.length ? tagsAny : undefined,
+      tagsNone: tagsNone.length ? tagsNone : undefined,
     });
     return {
       organizationId: org.id,
-      slug: t.slug,
-      label: t.label,
-      description: t.description,
+      slug: tpl.slug,
+      label: t(`targets.${tpl.slug}.label`),
+      description: t(`targets.${tpl.slug}.description`),
       kind: "segment" as const,
       criteria,
-      persona: t.persona,
-      concerns: t.concerns,
-      knowledgeLevel: t.knowledgeLevel,
-      editorialVoice: t.editorialVoice,
-      interests: t.interests,
-      avoid: t.avoid,
+      persona: t(`targets.${tpl.slug}.persona`),
+      concerns: t(`targets.${tpl.slug}.concerns`),
+      knowledgeLevel: t(`targets.${tpl.slug}.knowledgeLevel`),
+      editorialVoice: t(`targets.${tpl.slug}.editorialVoice`),
+      interests: t(`targets.${tpl.slug}.interests`),
+      avoid: t(`targets.${tpl.slug}.avoid`),
       position: position++,
     };
   });

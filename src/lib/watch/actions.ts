@@ -29,6 +29,9 @@ import { requireUser, requireSessionUser } from "@/lib/session";
 import { discoverFeed } from "@/lib/watch/feeds";
 import { scheduleWatchRefresh } from "@/lib/watch/schedule";
 import { formatDateTime } from "@/lib/format";
+import { getTranslations } from "next-intl/server";
+import { toAppLocale } from "@/i18n/locales";
+import { translatorFor } from "@/i18n/translator";
 
 /**
  * Server actions de la veille — org-scopées via `requireUser()`, même
@@ -58,7 +61,7 @@ export async function createTopicAction(formData: FormData) {
   try {
     await createWatchTopic(user, readTopicForm(formData));
   } catch (error) {
-    destination = withError(destination, errorMessage(error));
+    destination = withError(destination, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -70,7 +73,7 @@ export async function updateTopicAction(id: string, formData: FormData) {
   try {
     await updateWatchTopic(user, id, readTopicForm(formData));
   } catch (error) {
-    destination = withError(destination, errorMessage(error));
+    destination = withError(destination, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -82,7 +85,7 @@ export async function archiveTopicAction(id: string) {
   try {
     await archiveWatchTopic(user, id);
   } catch (error) {
-    destination = withError(destination, errorMessage(error));
+    destination = withError(destination, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -94,7 +97,7 @@ export async function restoreTopicAction(id: string) {
   try {
     await restoreWatchTopic(user, id);
   } catch (error) {
-    destination = withError(destination, errorMessage(error));
+    destination = withError(destination, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -107,6 +110,7 @@ export async function restoreTopicAction(id: string) {
  * le dit, pour que l'utilisateur rattache la source à un sujet.
  */
 export async function createSourceAction(formData: FormData) {
+  const t = await getTranslations("watch.actions");
   const user = await requireUser();
   let destination = back("sources");
   try {
@@ -131,13 +135,13 @@ export async function createSourceAction(formData: FormData) {
     };
     const source = await createWatchSource(user, input);
     const info = discovered
-      ? `Source ajoutée — flux trouvé : ${source.feedUrl}.`
+      ? t("source_ajoutee_flux_trouve", { feedUrl: (source.feedUrl) ?? "" })
       : source.feedUrl
-        ? "Source ajoutée avec son flux."
-        : "Source ajoutée sans flux : elle sera cherchée par son domaine à chaque collecte, à condition d'être rattachée à un sujet.";
+        ? t("source_ajoutee_avec_son_flux")
+        : t("source_ajoutee_sans_flux_elle_sera_c04a");
     destination = withError(destination, info, "info");
   } catch (error) {
-    destination = withError(destination, errorMessage(error));
+    destination = withError(destination, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -149,7 +153,7 @@ export async function archiveSourceAction(id: string) {
   try {
     await archiveWatchSource(user, id);
   } catch (error) {
-    destination = withError(destination, errorMessage(error));
+    destination = withError(destination, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -161,7 +165,7 @@ export async function restoreSourceAction(id: string) {
   try {
     await restoreWatchSource(user, id);
   } catch (error) {
-    destination = withError(destination, errorMessage(error));
+    destination = withError(destination, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -169,13 +173,14 @@ export async function restoreSourceAction(id: string) {
 
 /** « Réessayer » ou « Réveiller » : la source redevient due, la prochaine collecte la relit. */
 export async function retrySourceAction(id: string) {
+  const t = await getTranslations("watch.actions");
   const user = await requireUser();
   let destination = back("sources");
   try {
     await retryWatchSource(user, id);
-    destination = withError(destination, "La source sera relue à la prochaine collecte.", "info");
+    destination = withError(destination, t("la_source_sera_relue_a_la_e3a4"), "info");
   } catch (error) {
-    destination = withError(destination, errorMessage(error));
+    destination = withError(destination, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -183,23 +188,24 @@ export async function retrySourceAction(id: string) {
 
 /** « Actualiser maintenant » : une collecte par dix minutes ; elle démarre tout de suite et s'exécute après la réponse. */
 export async function refreshWatchAction() {
+  const t = await getTranslations("watch.actions");
   const user = await requireUser();
   let destination = PAGE;
   if (!user.organizationId) {
-    destination = withError(PAGE, "Aucune organisation sélectionnée.");
+    destination = withError(PAGE, t("aucune_organisation_selectionnee"));
   } else {
     try {
       const result = await scheduleWatchRefresh(user.organizationId, "manual");
-      if (result.status === "started") destination = withError(PAGE, "Collecte lancée — les nouveautés apparaissent au fil de l'eau.", "info");
-      else if (result.status === "running") destination = withError(PAGE, "Une collecte est déjà en cours.", "info");
+      if (result.status === "started") destination = withError(PAGE, t("collecte_lancee_les_nouveautes_apparaissent_au_b885"), "info");
+      else if (result.status === "running") destination = withError(PAGE, t("une_collecte_est_deja_en_cours"), "info");
       else
         destination = withError(
           PAGE,
-          `Une collecte vient d'avoir lieu : la prochaine à la main est possible à partir de ${formatDateTime(result.until)} (${WATCH_MANUAL_COOLDOWN_MINUTES} minutes entre deux).`,
+          t("une_collecte_vient_d_avoir_lieu_1eeb", { formatDateTime: formatDateTime(result.until), watchManualCooldownMinutes: WATCH_MANUAL_COOLDOWN_MINUTES }),
           "info"
         );
     } catch (error) {
-      destination = withError(PAGE, errorMessage(error));
+      destination = withError(PAGE, await errorMessage(error));
     }
   }
   revalidatePath(PAGE);
@@ -213,7 +219,7 @@ export async function addToBasketAction(itemId: string) {
   try {
     await addToBasket(user, itemId, session.id);
   } catch (error) {
-    destination = withError(PAGE, errorMessage(error));
+    destination = withError(PAGE, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -225,7 +231,7 @@ export async function removeFromBasketAction(itemId: string) {
   try {
     await removeFromBasket(user, itemId);
   } catch (error) {
-    destination = withError(PAGE, errorMessage(error));
+    destination = withError(PAGE, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -237,7 +243,7 @@ export async function clearBasketAction() {
   try {
     await clearBasket(user);
   } catch (error) {
-    destination = withError(PAGE, errorMessage(error));
+    destination = withError(PAGE, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -249,7 +255,7 @@ export async function dismissItemAction(itemId: string) {
   try {
     await dismissWatchItem(user, itemId);
   } catch (error) {
-    destination = withError(PAGE, errorMessage(error));
+    destination = withError(PAGE, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -261,7 +267,7 @@ export async function restoreItemAction(itemId: string) {
   try {
     await restoreWatchItem(user, itemId);
   } catch (error) {
-    destination = withError(PAGE, errorMessage(error));
+    destination = withError(PAGE, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -274,7 +280,7 @@ export async function resummarizeAction(itemId: string) {
   try {
     await resetSummary(user, itemId);
   } catch (error) {
-    destination = withError(PAGE, errorMessage(error));
+    destination = withError(PAGE, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -282,23 +288,25 @@ export async function resummarizeAction(itemId: string) {
 
 /** « Suivre la veille de mon métier » — idempotent : ne crée que ce qui manque. */
 export async function createPackWatchAction() {
+  const t = await getTranslations("watch.actions");
   const user = await requireUser();
   let destination = PAGE;
   try {
     const org = await getOwnOrganization(user);
     const { pack } = resolveBusinessPack(org?.businessPack);
-    const created = await createPackWatchDefaults(user, pack);
+    const templates = await translatorFor(toAppLocale(org?.defaultLocale), "templates");
+    const created = await createPackWatchDefaults(user, pack, templates);
     const total = created.topics + created.sources + created.indicators;
     destination = withError(
       PAGE,
       total === 0
-        ? "Tout ce que propose ton métier est déjà suivi — rien à créer."
-        : `Ajouté : ${created.topics} sujet${created.topics > 1 ? "s" : ""}, ${created.sources} source${created.sources > 1 ? "s" : ""}, ${created.indicators} indicateur${created.indicators > 1 ? "s" : ""}. La première collecte démarre.`,
+        ? t("tout_ce_que_propose_ton_metier_1e31")
+        : t("ajoute_sujet_sujets_source_sources_indicateur_75c5", { topics: created.topics, sources: created.sources, indicators: created.indicators }),
       "info"
     );
     if (total > 0 && user.organizationId) await scheduleWatchRefresh(user.organizationId, "visit");
   } catch (error) {
-    destination = withError(PAGE, errorMessage(error));
+    destination = withError(PAGE, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -306,11 +314,12 @@ export async function createPackWatchAction() {
 
 /** Depuis le panier : « écrire une newsletter à partir de ça », avec la cible choisie — le composer reçoit la matière et la cible d'un coup. */
 export async function writeFromBasketAction(formData: FormData) {
+  const t = await getTranslations("watch.actions");
   await requireUser();
   const targetId = String(formData.get("targetId") ?? "").trim();
   if (!targetId) {
     revalidatePath(PAGE);
-    redirect(withError(`${PAGE}#panier`, "Choisis d'abord la cible à qui écrire."));
+    redirect(withError(`${PAGE}#panier`, t("choisis_d_abord_la_cible_a_9f68")));
   }
   redirect(`/newsletters/new?cible=${encodeURIComponent(targetId)}&panier=1`);
 }

@@ -36,13 +36,15 @@ import {
 } from "@/lib/contacts/actions";
 import { formatDate, formatDateTime, formatEuros } from "@/lib/format";
 import { requireUser } from "@/lib/session";
+import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
+import type { TranslatorOf } from "@/i18n/translator";
 
-const ACCESS_LABELS: Record<string, string> = {
-  view: "Consultation",
-  export: "Export",
-  delete: "Suppression",
-  merge: "Fusion",
-};
+/** Les gestes du journal d'accès, en mots — `contacts.detail.access.<geste>` ; un geste inconnu s'affiche tel quel. */
+const ACCESS_ACTIONS = ["view", "export", "delete", "merge"] as const;
+function accessLabel(action: string, t: TranslatorOf<"contacts.detail">): string {
+  return (ACCESS_ACTIONS as readonly string[]).includes(action) ? t(`access.${action as (typeof ACCESS_ACTIONS)[number]}`) : action;
+}
 
 export default async function ContactPage({
   params,
@@ -52,6 +54,7 @@ export default async function ContactPage({
   /** `erreur` : section tâches ; `erreurJournal` : journal ; `erreurNewsletter` : rédaction depuis la fiche. */
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  const tr = await getTranslations("contacts.detail");
   const user = await requireUser();
   const { id } = await params;
   const query = await searchParams;
@@ -72,7 +75,7 @@ export default async function ContactPage({
     contact.deletedAt
       ? Promise.resolve([])
       : findDuplicateCandidates(user, { name: contact.name, email: contact.email }, id),
-    contact.deletedAt ? Promise.resolve(null) : listContactJournal(user, id),
+    contact.deletedAt ? Promise.resolve(null) : listContactJournal(user, id, await getTranslations("activities.queries")),
     contact.deletedAt ? Promise.resolve([]) : listMailTargets(user),
     // De quelles cibles cette fiche fait partie — recalculé maintenant, jamais une liste figée.
     contact.deletedAt ? Promise.resolve([]) : listTargetsOfContact(user, id),
@@ -89,9 +92,9 @@ export default async function ContactPage({
       <>
         <PageHeader
           title={contact.name}
-          description={`Fiche supprimée le ${formatDate(contact.deletedAt)} — identité effacée, traçabilité des affaires conservée.`}
-          backTo={{ href: "/contacts", label: "Contacts" }}
-          actions={<Badge variant="secondary">Supprimée</Badge>}
+          description={tr("fiche_supprimee_le_identite_effacee_tracabilite_32e3", { formatDate: formatDate(contact.deletedAt) })}
+          backTo={{ href: "/contacts", label: tr("contacts") }}
+          actions={<Badge variant="secondary">{tr("supprimee")}</Badge>}
         />
         <DealsSection deals={deals} />
       </>
@@ -107,12 +110,12 @@ export default async function ContactPage({
             .filter(Boolean)
             .join(" · ") || undefined
         }
-        backTo={{ href: "/contacts", label: "Contacts" }}
+        backTo={{ href: "/contacts", label: tr("contacts") }}
         actions={
           <span className="flex items-center gap-2">
-            {!isPerson && <Badge variant="secondary">Société</Badge>}
+            {!isPerson && <Badge variant="secondary">{tr("societe")}</Badge>}
             {owner && (
-              <span className="text-xs text-muted-foreground">Suivi par {owner.name ?? owner.email}</span>
+              <span className="text-xs text-muted-foreground">{tr("suivi_par", { n: owner.name ?? owner.email })}</span>
             )}
           </span>
         }
@@ -135,13 +138,10 @@ export default async function ContactPage({
       {/* Les cibles dont cette fiche fait partie AUJOURD'HUI : un segment se
           recalcule, une étiquette posée ou retirée change la réponse. */}
       <p className="flex flex-wrap items-center gap-1.5 text-sm">
-        <span className="text-muted-foreground">Dans les cibles :</span>
+        <span className="text-muted-foreground">{tr("dans_les_cibles")}</span>
         {contactTargets.length === 0 ? (
           <span className="text-muted-foreground">
-            aucune pour l&apos;instant —{" "}
-            <Link href="/cibles" className="underline underline-offset-2 hover:text-foreground">
-              voir les cibles
-            </Link>
+            {tr.rich("aucune_pour_l_instant_voir_les_4a14", { link: (chunks) => <Link href="/cibles" className="underline underline-offset-2 hover:text-foreground">{chunks}</Link> })}
           </span>
         ) : (
           contactTargets.map((t) => (
@@ -154,7 +154,7 @@ export default async function ContactPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Fiche</CardTitle>
+          <CardTitle>{tr("fiche")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form
@@ -170,58 +170,58 @@ export default async function ContactPage({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {isPerson ? (
                 <>
-                  <Field label="Prénom" htmlFor="firstName">
+                  <Field label={tr("prenom")} htmlFor="firstName">
                     <Input id="firstName" name="firstName" defaultValue={contact.firstName ?? ""} />
                   </Field>
-                  <Field label="Nom" htmlFor="lastName">
+                  <Field label={tr("nom")} htmlFor="lastName">
                     <Input id="lastName" name="lastName" defaultValue={contact.lastName ?? ""} />
                   </Field>
                 </>
               ) : (
-                <Field label="Raison sociale" htmlFor="name" className="sm:col-span-2">
+                <Field label={tr("raison_sociale")} htmlFor="name" className="sm:col-span-2">
                   <Input id="name" name="name" defaultValue={contact.name} required />
                 </Field>
               )}
               {isPerson && (
                 <input type="hidden" name="name" value="" />
               )}
-              <Field label="Email" htmlFor="email">
+              <Field label={tr("email")} htmlFor="email">
                 <Input id="email" name="email" type="email" defaultValue={contact.email ?? ""} />
               </Field>
-              <Field label="Téléphone" htmlFor="phone">
+              <Field label={tr("telephone")} htmlFor="phone">
                 <Input id="phone" name="phone" defaultValue={contact.phone ?? ""} />
               </Field>
               {isPerson && (
                 <>
-                  <Field label="Société" htmlFor="companyName">
+                  <Field label={tr("societe")} htmlFor="companyName">
                     <Input id="companyName" name="companyName" defaultValue={contact.companyName ?? ""} />
                   </Field>
-                  <Field label="Fonction" htmlFor="jobTitle">
+                  <Field label={tr("fonction")} htmlFor="jobTitle">
                     <Input id="jobTitle" name="jobTitle" defaultValue={contact.jobTitle ?? ""} />
                   </Field>
-                  <Field label="Date de naissance" htmlFor="birthDate">
+                  <Field label={tr("date_de_naissance")} htmlFor="birthDate">
                     <Input id="birthDate" name="birthDate" type="date" defaultValue={contact.birthDate ?? ""} />
                   </Field>
                 </>
               )}
-              <Field label="Ville" htmlFor="city">
+              <Field label={tr("ville")} htmlFor="city">
                 <Input id="city" name="city" defaultValue={contact.city ?? ""} />
               </Field>
-              <Field label="Code postal" htmlFor="postalCode">
+              <Field label={tr("code_postal")} htmlFor="postalCode">
                 <Input id="postalCode" name="postalCode" defaultValue={contact.postalCode ?? ""} />
               </Field>
-              <Field label="Pays" htmlFor="country">
+              <Field label={tr("pays")} htmlFor="country">
                 <Input id="country" name="country" defaultValue={contact.country ?? ""} />
               </Field>
               {orgUsers.length > 0 && (
-                <Field label="Conseiller attribué" htmlFor="ownerId">
+                <Field label={tr("conseiller_attribue")} htmlFor="ownerId">
                   <select
                     id="ownerId"
                     name="ownerId"
                     defaultValue={contact.ownerId ?? ""}
                     className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
                   >
-                    <option value="">Personne</option>
+                    <option value="">{tr("personne")}</option>
                     {orgUsers.map((u) => (
                       <option key={u.id} value={u.id}>
                         {u.name || u.email}
@@ -231,18 +231,18 @@ export default async function ContactPage({
                 </Field>
               )}
             </div>
-            <Field label="Notes" htmlFor="notes">
+            <Field label={tr("notes")} htmlFor="notes">
               <Textarea id="notes" name="notes" defaultValue={contact.notes ?? ""} className="min-h-16" />
             </Field>
             <Button type="submit" className="w-fit">
-              Enregistrer
+              {tr("enregistrer")}
             </Button>
           </form>
         </CardContent>
       </Card>
 
       {/* Étiquettes — configurables par organisation, posées ici. */}
-      <DetailsCard summary="Étiquettes" variant="archive">
+      <DetailsCard summary={tr("etiquettes")} variant="archive">
         <form action={saveContactTagsAction.bind(null, contact.id)} className="flex flex-col gap-3 p-4">
           {allTags.length > 0 ? (
             <div className="flex flex-wrap gap-x-4 gap-y-2">
@@ -260,25 +260,24 @@ export default async function ContactPage({
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Aucune étiquette dans ton organisation pour l&apos;instant — crée la première ci-dessous.
+              {tr("aucune_etiquette_dans_ton_organisation_pour_4ff3")}
             </p>
           )}
-          <Field label="Nouvelle étiquette" htmlFor="newTag" hint="Créée pour toute l'organisation et posée sur cette fiche.">
-            <Input id="newTag" name="newTag" placeholder="VIP, Prospect, Notaire…" className="max-w-60" />
+          <Field label={tr("nouvelle_etiquette")} htmlFor="newTag" hint={tr("creee_pour_toute_l_organisation_et_98c8")}>
+            <Input id="newTag" name="newTag" placeholder={tr("vip_prospect_notaire")} className="max-w-60" />
           </Field>
           <Button type="submit" variant="outline" className="w-fit">
-            Enregistrer les étiquettes
+            {tr("enregistrer_les_etiquettes")}
           </Button>
         </form>
       </DetailsCard>
 
       {!isPerson && (
         <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold">Personnes rattachées</h2>
+          <h2 className="text-sm font-semibold">{tr("personnes_rattachees")}</h2>
           {employees.length === 0 ? (
             <EmptyState>
-              Aucune personne rattachée à cette société. Le lien se pose depuis la fiche d&apos;une
-              personne.
+              {tr("aucune_personne_rattachee_a_cette_societe_ec5c")}
             </EmptyState>
           ) : (
             <ListCard>
@@ -297,11 +296,7 @@ export default async function ContactPage({
 
       {isPerson && company && (
         <p className="text-sm text-muted-foreground">
-          Rattaché à la société{" "}
-          <Link href={`/contacts/${company.id}`} className="font-medium underline underline-offset-2">
-            {company.name}
-          </Link>
-          .
+          {tr.rich("rattache_a_la_societe", { name: company.name, link: (chunks) => <Link href={`/contacts/${company.id}`} className="font-medium underline underline-offset-2">{chunks}</Link> })}
         </p>
       )}
 
@@ -311,7 +306,7 @@ export default async function ContactPage({
         tasks={tasks}
         backTo={`/contacts/${contact.id}`}
         contactId={contact.id}
-        emptyText="Aucune tâche pour ce contact — l'ajout rapide ci-dessous la rattache à cette fiche."
+        emptyText={tr("aucune_tache_pour_ce_contact_l_20ff")}
         erreur={query.erreur}
       />
 
@@ -325,19 +320,17 @@ export default async function ContactPage({
           contactId={contact.id}
           context="contact"
           erreur={query[JOURNAL_ERROR_PARAM]}
-          description="Appels, emails, rendez-vous et notes — et ce que ses affaires racontent : étapes franchies, partages, tâches achevées."
+          description={tr("appels_emails_rendez_vous_et_notes_920c")}
         />
       )}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold">
-          Newsletters reçues{received.length > 0 && ` (${received.length})`}
+          {tr("newsletters_recues", { n: (received.length > 0 && ` (${received.length})`) || "" })}
         </h2>
         {received.length === 0 ? (
           <EmptyState>
-            Aucune newsletter marquée envoyée à cette personne. L&apos;historique se construit quand une newsletter
-            est marquée « envoyée » à une cible dont elle fait partie — l&apos;envoi lui-même se fait depuis ton
-            outil d&apos;emailing.
+            {tr("aucune_newsletter_marquee_envoyee_a_cette_15d7")}
           </EmptyState>
         ) : (
           <ListCard>
@@ -346,7 +339,7 @@ export default async function ContactPage({
                 key={n.id}
                 href={`/newsletters/${n.id}`}
                 title={n.subject || n.title}
-                subtitle={`Envoyée le ${n.sentAt ? formatDate(n.sentAt) : "—"}${n.topics.length > 0 ? ` · sujets : ${n.topics.join(", ")}` : ""}`}
+                subtitle={tr("envoyee_le", { value: n.sentAt ? formatDate(n.sentAt) : "—", value2: n.topics.length > 0 ? tr("sujets", { join: n.topics.join(", ") }) : "" })}
               />
             ))}
           </ListCard>
@@ -365,7 +358,7 @@ export default async function ContactPage({
               <select
                 name="targetId"
                 defaultValue={mailTargets[0].id}
-                aria-label="Cible"
+                aria-label={tr("cible")}
                 className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
               >
                 {mailTargets.map((t) => (
@@ -379,32 +372,24 @@ export default async function ContactPage({
             )}
             <Button type="submit" variant="outline">
               <Mail />
-              Rédiger une newsletter pour ce contact
+              {tr("rediger_une_newsletter_pour_ce_contact")}
             </Button>
             <p className="w-full text-xs text-muted-foreground">
-              Ouvre l&apos;éditeur sur un brouillon dont le brief est déjà rempli depuis cette fiche
-              (nom, fonction, société, étiquettes, affaires en cours) — jamais les notes.
+              {tr("ouvre_l_editeur_sur_un_brouillon_5a8a")}
             </p>
           </form>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Pour rédiger une newsletter depuis cette fiche, il faut d&apos;abord{" "}
-            <Link href="/cibles" className="underline underline-offset-2">
-              une cible
-            </Link>{" "}
-            dans ton organisation.
+            {tr.rich("pour_rediger_une_newsletter_depuis_cette_d057", { link: (chunks) => <Link href="/cibles" className="underline underline-offset-2">{chunks}</Link> })}
           </p>
         )}
       </section>
 
       {duplicates.length > 0 && (
         <section className="flex flex-col gap-3 rounded-xl border border-warning/40 bg-warning/5 p-4">
-          <h2 className="text-sm font-semibold">Doublons possibles</h2>
+          <h2 className="text-sm font-semibold">{tr("doublons_possibles")}</h2>
           <p className="text-sm text-muted-foreground">
-            {duplicates.length > 1 ? "Ces fiches portent" : "Cette fiche porte"} le même nom ou le
-            même email. Fusionner verse l&apos;autre fiche dans <span className="font-medium">celle-ci</span> :
-            ses affaires, tâches et étiquettes arrivent ici, ses champs remplissent les tiens
-            restés vides, puis elle est fermée.
+            {tr.rich("cette_fiche_porte_ces_fiches_portent_6dd9", { count: duplicates.length, span: (chunks) => <span className="font-medium">{chunks}</span> })}
           </p>
           <ul className="flex flex-col gap-2">
             {duplicates.map((d) => (
@@ -419,7 +404,7 @@ export default async function ContactPage({
                 </span>
                 <form action={mergeContactsAction.bind(null, contact.id, d.id)}>
                   <Button type="submit" variant="outline" size="sm">
-                    Fusionner dans cette fiche
+                    {tr("fusionner_dans_cette_fiche")}
                   </Button>
                 </form>
               </li>
@@ -428,15 +413,15 @@ export default async function ContactPage({
         </section>
       )}
 
-      <DetailsCard variant="archive" summary={`Journal des accès (${accessLog.length})`} flush>
+      <DetailsCard variant="archive" summary={tr("journal_des_acces", { count: accessLog.length })} flush>
         <ul className="divide-y divide-border">
           {accessLog.map((entry) => (
             <ListRow key={entry.id} className="py-2.5">
               <span className="text-sm">
-                {ACCESS_LABELS[entry.action] ?? entry.action}
+                {accessLabel(entry.action, tr)}
                 <span className="text-muted-foreground">
                   {" · "}
-                  {entry.userName || entry.userEmail || "système"}
+                  {entry.userName || entry.userEmail || tr("systeme")}
                 </span>
               </span>
               <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
@@ -447,19 +432,18 @@ export default async function ContactPage({
         </ul>
       </DetailsCard>
 
-      <DetailsCard variant="archive" summary="Export et suppression">
+      <DetailsCard variant="archive" summary={tr("export_et_suppression")}>
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
-              Toutes les données de cette fiche — identité, étiquettes, affaires, tâches,
-              interactions, journal des accès — dans un fichier JSON.
+              {tr("toutes_les_donnees_de_cette_fiche_873e")}
             </p>
             <a
               href={`/api/contacts/${contact.id}/export`}
               className={buttonVariants({ variant: "outline", size: "sm" })}
             >
               <Download />
-              Exporter les données
+              {tr("exporter_les_donnees")}
             </a>
           </div>
           <form
@@ -467,16 +451,14 @@ export default async function ContactPage({
             className="flex flex-col gap-3 border-t border-border pt-4"
           >
             <p className="text-sm text-muted-foreground">
-              La suppression détruit l&apos;identité (nom, coordonnées, notes, interactions,
-              tâches) — définitivement. Les affaires restent, reliées à une fiche anonyme, et le
-              nom du client y est effacé.
+              {tr("la_suppression_detruit_l_identite_nom_8228")}
             </p>
             <label className="flex items-start gap-2 text-sm">
               <input type="checkbox" required className="mt-0.5" />
-              Je comprends que cette suppression est définitive.
+              {tr("je_comprends_que_cette_suppression_est_efda")}
             </label>
             <Button type="submit" variant="destructive" className="w-fit" size="sm">
-              Supprimer ce contact
+              {tr("supprimer_ce_contact")}
             </Button>
           </form>
         </div>
@@ -492,28 +474,29 @@ function DealsSection({
   deals: { id: string; title: string; estimatedAmount: string | null; createdAt: Date }[];
   contactId?: string;
 }) {
+  const t = useTranslations("contacts.detail");
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">Affaires liées</h2>
+        <h2 className="text-sm font-semibold">{t("affaires_liees")}</h2>
         {contactId && (
           <Link
             href={`/affaires?contact=${contactId}`}
             className="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            Nouvelle affaire pour ce contact →
+            {t("nouvelle_affaire_pour_ce_contact")}
           </Link>
         )}
       </div>
       {deals.length === 0 ? (
         <EmptyState>
-          Aucune affaire reliée à cette fiche —{" "}
+          {t("aucune_affaire_reliee_a_cette_fiche")}{" "}
           {contactId ? (
             <Link href={`/affaires?contact=${contactId}`} className="underline underline-offset-2 hover:text-foreground">
-              crée la première depuis le pipeline
+              {t("cree_la_premiere_depuis_le_pipeline")}
             </Link>
           ) : (
-            "elles apparaîtront ici"
+            t("elles_apparaitront_ici")
           )}
           .
         </EmptyState>
@@ -524,7 +507,7 @@ function DealsSection({
               key={d.id}
               href={`/affaires/${d.id}`}
               title={d.title}
-              subtitle={`Créée le ${formatDate(d.createdAt)}`}
+              subtitle={t("creee_le", { formatDate: formatDate(d.createdAt) })}
               trailing={
                 d.estimatedAmount ? (
                   <span className="text-sm font-medium tabular-nums">

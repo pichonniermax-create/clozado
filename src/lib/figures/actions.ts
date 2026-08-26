@@ -15,6 +15,8 @@ import { errorMessage, withError } from "@/lib/form-actions";
 import { resolveBusinessPack } from "@/lib/metrics/packs";
 import { requireUser } from "@/lib/session";
 import { followPackIndicators, refreshOrganizationIndicators } from "@/lib/watch/refresh";
+import { getTranslations } from "next-intl/server";
+import { AppError } from "@/lib/errors";
 
 /**
  * Server actions des chiffres vérifiés et des indicateurs suivis — même
@@ -42,7 +44,7 @@ export async function createFigureAction(formData: FormData) {
   try {
     await createVerifiedFigure(user, readFigureForm(formData));
   } catch (error) {
-    destination = withError(destination, errorMessage(error));
+    destination = withError(destination, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -54,7 +56,7 @@ export async function updateFigureAction(id: string, formData: FormData) {
   try {
     await updateVerifiedFigure(user, id, readFigureForm(formData));
   } catch (error) {
-    destination = withError(`${PAGE}#chiffres`, errorMessage(error));
+    destination = withError(`${PAGE}#chiffres`, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -66,7 +68,7 @@ export async function deleteFigureAction(id: string) {
   try {
     await deleteVerifiedFigure(user, id);
   } catch (error) {
-    destination = withError(destination, errorMessage(error));
+    destination = withError(destination, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -80,7 +82,7 @@ export async function followIndicatorAction(key: string) {
     await followIndicator(user, key);
     if (user.organizationId) await refreshOrganizationIndicators(user.organizationId);
   } catch (error) {
-    destination = withError(destination, errorMessage(error));
+    destination = withError(destination, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -92,7 +94,7 @@ export async function unfollowIndicatorAction(key: string) {
   try {
     await unfollowIndicator(user, key);
   } catch (error) {
-    destination = withError(destination, errorMessage(error));
+    destination = withError(destination, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -100,21 +102,22 @@ export async function unfollowIndicatorAction(key: string) {
 
 /** « Suivre les indicateurs de mon métier » — idempotent. */
 export async function followPackIndicatorsAction() {
+  const t = await getTranslations("figures.actions");
   const user = await requireUser();
   let destination = PAGE;
   try {
-    if (!user.organizationId) throw new Error("Aucune organisation sélectionnée.");
+    if (!user.organizationId) throw new AppError("aucune_organisation_selectionnee");
     const org = await getOwnOrganization(user);
     const { pack } = resolveBusinessPack(org?.businessPack);
     const added = await followPackIndicators(user.organizationId, pack.watch.indicators);
     await refreshOrganizationIndicators(user.organizationId);
     destination = withError(
       PAGE,
-      added === 0 ? "Tous les indicateurs de ton métier sont déjà suivis." : `${added} indicateur${added > 1 ? "s" : ""} suivi${added > 1 ? "s" : ""}, lu${added > 1 ? "s" : ""} et copié${added > 1 ? "s" : ""} dans les chiffres vérifiés.`,
+      added === 0 ? t("tous_les_indicateurs_de_ton_metier_dde4") : t("indicateur_indicateurs_suivi_suivis_lu_lus_ede8", { added }),
       "info"
     );
   } catch (error) {
-    destination = withError(destination, errorMessage(error));
+    destination = withError(destination, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);
@@ -122,14 +125,15 @@ export async function followPackIndicatorsAction() {
 
 /** Relit maintenant les indicateurs suivis (même s'ils ont été lus il y a moins d'un jour). */
 export async function refreshIndicatorsAction() {
+  const t = await getTranslations("figures.actions");
   const user = await requireUser();
   let destination = PAGE;
   try {
-    if (!user.organizationId) throw new Error("Aucune organisation sélectionnée.");
+    if (!user.organizationId) throw new AppError("aucune_organisation_selectionnee");
     const read = await refreshOrganizationIndicators(user.organizationId, { force: true });
-    destination = withError(PAGE, `${read} indicateur${read > 1 ? "s" : ""} relu${read > 1 ? "s" : ""} auprès de ${read > 1 ? "leurs sources" : "sa source"}.`, "info");
+    destination = withError(PAGE, t("indicateur_indicateurs_relu_relus_aupres_de_2c94", { read }), "info");
   } catch (error) {
-    destination = withError(destination, errorMessage(error));
+    destination = withError(destination, await errorMessage(error));
   }
   revalidatePath(PAGE);
   redirect(destination);

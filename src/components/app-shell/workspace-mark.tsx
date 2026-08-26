@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/app-shell/brand-mark";
 import { cn } from "@/lib/utils";
+import { PRODUCT_NAME } from "@/lib/brand";
 
 /**
  * La marque affichée dans l'espace de travail : le logo téléversé de
@@ -17,7 +18,7 @@ export type WorkspaceMarkProps = {
 };
 
 /** La marque de l'espace gestionnaire (vue globale super admin) : le produit. */
-export const PRODUCT_MARK: WorkspaceMarkProps = { logo: null, name: "Clozado" };
+export const PRODUCT_MARK: WorkspaceMarkProps = { logo: null, name: PRODUCT_NAME };
 
 export function WorkspaceMark({
   logo,

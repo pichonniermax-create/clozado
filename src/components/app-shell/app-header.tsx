@@ -6,6 +6,7 @@ import type { NavBadge } from "@/components/app-shell/navigation";
 import { QuickCreateMenu } from "@/components/app-shell/quick-create-menu";
 import type { WorkspaceMarkProps } from "@/components/app-shell/workspace-mark";
 import { Input } from "@/components/ui/input";
+import { useTranslations } from "next-intl";
 
 /**
  * L'en-tête des écrans internes — la coquille n'en avait pas (inventaire
@@ -31,6 +32,7 @@ export function AppHeader({
   badges: Record<NavBadge, number>;
   user: { name: string | null; email: string | null };
 }) {
+  const t = useTranslations("shell.appHeader");
   async function signOutAction() {
     "use server";
     await signOut({ redirectTo: "/login" });
@@ -41,7 +43,7 @@ export function AppHeader({
       <MobileNav mark={mark} hasOrganization={hasOrganization} badges={badges} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">
-          {organizationName ?? <span className="text-muted-foreground">Vue globale</span>}
+          {organizationName ?? <span className="text-muted-foreground">{t("vue_globale")}</span>}
         </p>
       </div>
 
@@ -54,8 +56,8 @@ export function AppHeader({
           <Input
             type="search"
             name="q"
-            placeholder="Rechercher un contact…"
-            aria-label="Rechercher un contact"
+            placeholder={t("rechercher_un_contact")}
+            aria-label={t("rechercher_un_contact_938c")}
             className="w-64 pl-8"
           />
         </div>

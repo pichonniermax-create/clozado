@@ -1,8 +1,11 @@
+import { getTranslations } from "next-intl/server";
+import { isAppError } from "@/lib/errors";
+
 /**
  * Retour d'une action serveur vers l'écran appelant, l'erreur éventuelle
  * en paramètre d'URL montrée une fois : se tromper dans un formulaire n'est
- * pas une panne, on ne bascule pas sur un écran d'erreur. Partagé par les
- * modules tâches, interactions et contacts.
+ * pas une panne, on ne bascule pas sur un écran d'erreur. Partagé par
+ * tous les modules.
  */
 
 export function withError(backTo: string, message: string, param = "erreur"): string {
@@ -14,8 +17,17 @@ export function withError(backTo: string, message: string, param = "erreur"): st
   return `${path}${separator}${param}=${encodeURIComponent(message)}${hash ? `#${hash}` : ""}`;
 }
 
-export function errorMessage(error: unknown): string {
-  return error instanceof Error && error.message
-    ? error.message
-    : "L'opération a échoué de notre côté — réessaie.";
+/**
+ * La phrase à montrer pour une erreur attrapée par une action : la clé
+ * d'une `AppError` traduite dans la langue de la personne ; le message
+ * générique pour tout le reste — une exception technique ne s'affiche
+ * jamais telle quelle.
+ */
+export async function errorMessage(error: unknown): Promise<string> {
+  const t = await getTranslations("errors");
+  if (isAppError(error)) {
+    // La clé est dynamique par construction : le typage des messages ne peut pas la connaître.
+    return t(error.key as never, error.values as never);
+  }
+  return t("common.generic");
 }

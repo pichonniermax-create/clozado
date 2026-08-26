@@ -2,6 +2,8 @@ import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { eq } from "drizzle-orm";
 import NextAuth from "next-auth";
 import Nodemailer from "next-auth/providers/nodemailer";
+import { createTransport } from "nodemailer";
+import { renderMagicLinkEmail } from "@/lib/email/magic-link";
 import { db } from "@/db";
 import { accounts, users, verificationTokens } from "@/db/schema";
 
@@ -25,6 +27,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         auth: { user: "resend", pass: process.env.RESEND_API_KEY },
       },
       from: process.env.EMAIL_FROM ?? "onboarding@resend.dev",
+      // Le lien de connexion dans la langue de son destinataire (chantier
+      // i18n, étape 4) — à la place du modèle anglais d'Auth.js. Le
+      // transport est le même que le sien ; ce qui change, c'est le texte.
+      async sendVerificationRequest({ identifier, url, provider }) {
+        const email = await renderMagicLinkEmail(identifier, url);
+        const result: { rejected?: unknown[]; pending?: unknown[] } = await createTransport(provider.server).sendMail({
+          to: identifier,
+          from: provider.from,
+          ...email,
+        });
+        const failed = [...(result.rejected ?? []), ...(result.pending ?? [])].filter(Boolean);
+        if (failed.length > 0) throw new Error(`magic-link: rejected ${failed.map(String).join(", ")}`);
+      },
     }),
   ],
   callbacks: {

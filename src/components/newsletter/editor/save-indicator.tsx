@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, Check, Loader2 } from "lucide-react";
 import { formatSavedAt, type SaveState } from "./use-autosave";
+import { useTranslations } from "next-intl";
 
 /**
  * Discret par principe — sauf en cas d'échec, où il doit se voir : croire
  * son travail enregistré alors qu'il ne l'est pas est le pire des états.
  */
 export function SaveIndicator({ state }: { state: SaveState }) {
+  const tr = useTranslations("newsletters.saveIndicator");
   const [now, setNow] = useState(() => Date.now());
 
   // L'horloge ne tourne que pendant qu'un « il y a X » est affiché.
@@ -27,7 +29,7 @@ export function SaveIndicator({ state }: { state: SaveState }) {
         className="flex items-center gap-1.5 text-xs font-medium text-destructive"
       >
         <AlertTriangle className="size-3.5" />
-        Non enregistré — {state.message}
+        {tr("non_enregistre", { message: state.message })}
       </span>
     );
   }
@@ -36,19 +38,19 @@ export function SaveIndicator({ state }: { state: SaveState }) {
     return (
       <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Loader2 className="size-3.5 animate-spin" />
-        Enregistrement…
+        {tr("enregistrement")}
       </span>
     );
   }
 
   if (state.status === "pending") {
-    return <span className="text-xs text-muted-foreground">Modifications en cours…</span>;
+    return <span className="text-xs text-muted-foreground">{tr("modifications_en_cours")}</span>;
   }
 
   return (
     <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
       <Check className="size-3.5 text-success" />
-      Enregistré {formatSavedAt(state.at, now)}
+      {tr("enregistre", { formatSavedAt: formatSavedAt(state.at, now) })}
     </span>
   );
 }

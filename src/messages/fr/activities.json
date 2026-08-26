@@ -1,0 +1,71 @@
+{
+  "headlines": {
+    "lead_received": "Lead reçu · {origin}",
+    "share_accepted": "Partage accepté par {partner}",
+    "share_declined": "Partage refusé par {partner}",
+    "share_expired": "Partage expiré (constaté) · {partner}",
+    "share_revoked": "Partage révoqué · {partner}",
+    "share_sent": "Partage envoyé à {partner}",
+    "share_viewed": "Partage consulté par {partner}",
+    "task_done": "Tâche achevée : {body}"
+  },
+  "journal": {
+    "affaire": "· affaire <link>{dealTitle}</link>",
+    "ce_qui_s_est_dit_ce_870e": "Ce qui s’est dit, ce qui a été convenu…",
+    "compte_rendu": "Compte rendu",
+    "consigner": "Consigner",
+    "contact": "· contact <link>{contactName}</link>",
+    "date_et_heure": "Date et heure",
+    "date_vide_maintenant_le_journal_consigne_7b91": "Date vide = maintenant. Le journal consigne ce qui a eu lieu — pour un rendez-vous à venir, crée une tâche.",
+    "gagnee": "(gagnée)",
+    "les_entrees_les_plus_recentes": "Les {count} entrées les plus récentes",
+    "perdue": "(perdue)",
+    "rien_encore_les_appels_rendez_vous_2f2c": "Rien encore. Les appels, rendez-vous et notes se consignent ci-dessus ; les étapes, partages et tâches achevées arrivent tout seuls.",
+    "supprimer_cette_interaction": "Supprimer cette interaction",
+    "systeme": "Système",
+    "type_d_interaction": "Type d’interaction"
+  },
+  "kinds": {
+    "call": "Appel",
+    "commented": "Commentaire",
+    "commission_updated": "Commission",
+    "deal_created": "Affaire créée",
+    "email": "Email",
+    "lead_received": "Lead reçu",
+    "meeting": "Rendez-vous",
+    "note": "Note",
+    "origin_changed": "Origine de l’affaire",
+    "share_accepted": "Partage accepté",
+    "share_declined": "Partage refusé",
+    "share_expired": "Partage expiré (constaté)",
+    "share_revoked": "Partage révoqué",
+    "share_sent": "Partage envoyé",
+    "share_viewed": "Partage consulté",
+    "stage": "Changement d’étape",
+    "task_done": "Tâche achevée"
+  },
+  "queries": {
+    "fiche_existante_completee": "Fiche existante complétée : {join}.",
+    "fiche_existante_deja_a_jour_rien_e67c": "Fiche existante, déjà à jour : rien à compléter.",
+    "fields": {
+      "firstName": "prénom",
+      "lastName": "nom",
+      "phone": "téléphone",
+      "companyName": "société",
+      "jobTitle": "fonction",
+      "city": "ville",
+      "postalCode": "code postal",
+      "country": "pays",
+      "notes": "notes"
+    },
+    "nouvelle_fiche_creee": "Nouvelle fiche créée.",
+    "origine_non_renseignee": "origine non renseignée",
+    "utilisateur": "Utilisateur"
+  },
+  "types": {
+    "call": "Appel",
+    "email": "Email",
+    "meeting": "Rendez-vous",
+    "note": "Note"
+  }
+}

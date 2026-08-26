@@ -1,4 +1,5 @@
 import type { AnyBlock, NewsletterOutput } from "./blocks";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /**
  * Revue déterministe, sans IA, exécutée après chaque génération — reprise
@@ -76,7 +77,8 @@ function findUnauthorizedFigures(text: string, allowedKeys: Set<string>): string
 
 export function reviewNewsletter(
   output: NewsletterOutput,
-  allowedFigures: string[]
+  allowedFigures: string[],
+  t: TranslatorOf<"newsletters.review">
 ): ReviewResult {
   const issues: ReviewIssue[] = [];
   const allowedKeys = new Set(allowedFigures.map(figureKey).filter(Boolean));
@@ -86,7 +88,7 @@ export function reviewNewsletter(
       for (const figure of findUnauthorizedFigures(field, allowedKeys)) {
         issues.push({
           code: "unauthorized_figure",
-          message: `Chiffre non autorisé "${figure}" dans un bloc ${block.type} — ni un chiffre vérifié de l'organisation, ni un [placeholder].`,
+          message: t("chiffre_non_autorise_dans_un_bloc_3f72", { figure, type: block.type }),
           blockIndex: index,
         });
       }
@@ -97,20 +99,20 @@ export function reviewNewsletter(
   if (ctaCount > 1) {
     issues.push({
       code: "multiple_ctas",
-      message: `${ctaCount} blocs d'appel à l'action (cta/bouton) — un seul est autorisé par newsletter.`,
+      message: t("blocs_d_appel_a_l_action_c471", { ctaCount }),
     });
   }
 
   if (output.subject.length > SUBJECT_MAX) {
     issues.push({
       code: "subject_too_long",
-      message: `Objet de ${output.subject.length} caractères — maximum ${SUBJECT_MAX}.`,
+      message: t("objet_de_caracteres_maximum", { count: output.subject.length, subjectMax: SUBJECT_MAX }),
     });
   }
   if (output.preheader.length > PREHEADER_MAX) {
     issues.push({
       code: "preheader_too_long",
-      message: `Préheader de ${output.preheader.length} caractères — maximum ${PREHEADER_MAX}.`,
+      message: t("preheader_de_caracteres_maximum", { count: output.preheader.length, preheaderMax: PREHEADER_MAX }),
     });
   }
 

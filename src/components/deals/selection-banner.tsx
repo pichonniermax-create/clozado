@@ -3,6 +3,8 @@ import { Funnel } from "lucide-react";
 import { periodPhrase } from "@/lib/metrics/period-phrase";
 import { buttonVariants } from "@/components/ui/button";
 import { LOSS_NO_REASON, LOST_FROM_CREATION, ORIGIN_UNKNOWN, ORIGIN_UNMATCHED, type ParsedDealSelection } from "@/lib/metrics";
+import { useTranslations } from "next-intl";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /**
  * Le bandeau qui dit ce que la liste montre quand elle vient d'un clic sur
@@ -20,7 +22,9 @@ export function describeDealSelection(
     origins: { id: string; label: string }[];
     users: { id: string; name: string | null; email: string }[];
     reasons?: { id: string; label: string }[];
-  }
+  },
+  t: TranslatorOf<"deals.selectionBanner">,
+  tm: TranslatorOf<"metrics">
 ): string {
   const { selection, parsed } = sel;
   const { filters } = selection;
@@ -30,37 +34,37 @@ export function describeDealSelection(
     selection.cohort === "perte"
       ? "perdues"
       : selection.outcome === "gagnee"
-        ? "gagnées"
+        ? t("gagnees")
         : selection.outcome === "perdue"
           ? "perdues"
           : selection.outcome === "en-cours"
-            ? "en cours"
+            ? t("en_cours")
             : null;
 
-  const period = periodPhrase(parsed);
+  const period = periodPhrase(parsed, tm);
   if (selection.cohort === "perte") {
-    parts.push(`${period} (à la date de la perte)`);
-    if (selection.lossReasonId === LOSS_NO_REASON) parts.push("sans motif");
+    parts.push(t("a_la_date_de_la_perte", { period }));
+    if (selection.lossReasonId === LOSS_NO_REASON) parts.push(t("sans_motif"));
     else if (selection.lossReasonId) parts.push(`motif « ${lookups.reasons?.find((r) => r.id === selection.lossReasonId)?.label ?? "?"} »`);
-    if (selection.lostFromStageId === LOST_FROM_CREATION) parts.push("nées perdues");
-    else if (selection.lostFromStageId) parts.push(`perdues depuis « ${lookups.stages.find((s) => s.id === selection.lostFromStageId)?.label ?? "?"} »`);
+    if (selection.lostFromStageId === LOST_FROM_CREATION) parts.push(t("nees_perdues"));
+    else if (selection.lostFromStageId) parts.push(t("perdues_depuis", { n: lookups.stages.find((s) => s.id === selection.lostFromStageId)?.label ?? "?" }));
   } else {
-    parts.push(selection.cohort === "lead" ? `issues d'un lead reçu ${period}` : `créées ${period}`);
+    parts.push(selection.cohort === "lead" ? t("issues_d_un_lead_recu", { period }) : t("creees", { period }));
   }
 
-  if (filters.typeId) parts.push(`de type « ${lookups.types.find((t) => t.id === filters.typeId)?.label ?? "?"} »`);
-  if (filters.originId === ORIGIN_UNKNOWN) parts.push("sans origine (aucun lead)");
-  else if (filters.originId === ORIGIN_UNMATCHED) parts.push("d'origine à rapprocher");
-  else if (filters.originId) parts.push(`d'origine « ${lookups.origins.find((o) => o.id === filters.originId)?.label ?? "?"} »`);
+  if (filters.typeId) parts.push(t("de_type", { n: lookups.types.find((t) => t.id === filters.typeId)?.label ?? "?" }));
+  if (filters.originId === ORIGIN_UNKNOWN) parts.push(t("sans_origine_aucun_lead"));
+  else if (filters.originId === ORIGIN_UNMATCHED) parts.push(t("d_origine_a_rapprocher"));
+  else if (filters.originId) parts.push(t("d_origine", { n: lookups.origins.find((o) => o.id === filters.originId)?.label ?? "?" }));
   if (filters.ownerId) {
     const u = lookups.users.find((u) => u.id === filters.ownerId);
-    if (u) parts.push(`suivies par ${u.name || u.email}`);
+    if (u) parts.push(t("suivies_par", { n: u.name || u.email }));
   }
   if (selection.reachedStageId) {
-    parts.push(`ayant atteint « ${lookups.stages.find((s) => s.id === selection.reachedStageId)?.label ?? "?"} »`);
+    parts.push(t("ayant_atteint", { n: lookups.stages.find((s) => s.id === selection.reachedStageId)?.label ?? "?" }));
   }
   if (selection.furthestStageId) {
-    parts.push(`au plus loin dans « ${lookups.stages.find((s) => s.id === selection.furthestStageId)?.label ?? "?"} »`);
+    parts.push(t("au_plus_loin_dans", { n: lookups.stages.find((s) => s.id === selection.furthestStageId)?.label ?? "?" }));
   }
   return `Affaires ${outcome ? `${outcome} ` : ""}${parts.join(", ")}`;
 }
@@ -79,23 +83,18 @@ export function DealSelectionBanner({
   backHref: string;
   backLabel: string;
 }) {
+  const t = useTranslations("deals.selectionBanner");
   return (
     <section
-      aria-label="Sélection venue de l'analytique"
+      aria-label={t("selection_venue_de_l_analytique")}
       className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/30 bg-accent/40 px-4 py-3 text-sm"
     >
       <Funnel className="size-4 shrink-0 text-primary-ink" aria-hidden />
       <p className="min-w-0 flex-1 text-pretty">
-        <span className="font-medium">{description}</span>
-        <span className="text-muted-foreground tabular-nums"> — {total} affaire{total > 1 ? "s" : ""}, exactement ce que l&apos;analyse a compté.</span>
+        {t.rich("affaire_affaires_exactement_ce_que_l_c114", { description, total, span: (chunks) => <span className="font-medium">{chunks}</span>, span2: (chunks) => <span className="text-muted-foreground tabular-nums">{chunks}</span> })}
       </p>
       <span className="flex shrink-0 items-center gap-1">
-        <Link href={backHref} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-          {backLabel}
-        </Link>
-        <Link href={clearHref} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          Retirer la sélection
-        </Link>
+        {t.rich("retirer_la_selection", { backLabel, link: (chunks) => <Link href={backHref} className={buttonVariants({ variant: "ghost", size: "sm" })}>{chunks}</Link>, link2: (chunks) => <Link href={clearHref} className={buttonVariants({ variant: "outline", size: "sm" })}>{chunks}</Link> })}
       </span>
     </section>
   );

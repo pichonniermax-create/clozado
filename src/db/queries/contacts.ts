@@ -16,6 +16,8 @@ import {
 import { assertOrgAccess, orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
 import { listOpenTasksForContact } from "./tasks";
+import { AppError } from "@/lib/errors";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /** Taille de page de la liste — côté serveur, jamais la table entière en mémoire. */
 export const CONTACTS_PAGE_SIZE = 50;
@@ -77,7 +79,7 @@ export async function listContacts(
 /** Une fiche par id — pierre tombale comprise (une affaire peut y mener). Lève si autre organisation. */
 export async function getContact(user: OrgScopeUser, id: string) {
   const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, id) });
-  if (!contact) throw new Error("Contact introuvable.");
+  if (!contact) throw new AppError("contact_introuvable", undefined, 404);
   assertOrgAccess(user, contact.organizationId);
   return contact;
 }
@@ -189,7 +191,7 @@ export async function createContact(user: OrgScopeUser, createdBy: string, input
   if (!user.organizationId) {
     // Seul un super admin sans organisation choisie peut arriver ici : un
     // admin/membre a TOUJOURS une organisation (contrainte en base).
-    throw new Error("Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer un contact.");
+    throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_f1fd");
   }
   if (input.ownerId) await assertUserInOrg(input.ownerId, user.organizationId);
 
@@ -227,7 +229,7 @@ export async function updateContact(
   input: Omit<CreateContactInput, "kind" | "source">
 ) {
   const contact = await getContact(user, id);
-  if (contact.deletedAt) throw new Error("Ce contact a été supprimé.");
+  if (contact.deletedAt) throw new AppError("ce_contact_a_ete_supprime");
   if (input.ownerId) await assertUserInOrg(input.ownerId, contact.organizationId);
 
   const isCompany = contact.kind === "company";
@@ -259,7 +261,7 @@ export async function updateContact(
 async function assertUserInOrg(userId: string, organizationId: string) {
   const u = await db.query.users.findFirst({ where: eq(users.id, userId) });
   if (!u || u.organizationId !== organizationId) {
-    throw new Error("Ce conseiller n'appartient pas à l'organisation du contact.");
+    throw new AppError("ce_conseiller_n_appartient_pas_a_l_dc88");
   }
 }
 
@@ -291,9 +293,9 @@ export async function setContactTags(user: OrgScopeUser, contactId: string, tagI
 }
 
 export async function createContactTag(user: OrgScopeUser, label: string) {
-  if (!user.organizationId) throw new Error("Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer une étiquette.");
+  if (!user.organizationId) throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_1c83");
   const trimmed = label.trim();
-  if (!trimmed) throw new Error("Libellé d'étiquette vide.");
+  if (!trimmed) throw new AppError("libelle_d_etiquette_vide");
   const [tag] = await db
     .insert(contactTags)
     .values({ organizationId: user.organizationId, label: trimmed })
@@ -404,9 +406,9 @@ export async function exportContactData(user: OrgScopeUser, contactId: string, a
  * - client_name des affaires liées récrit — l'affaire, ses montants et son
  *   journal PRM survivent, reliés à la tombale via contact_id.
  */
-export async function deleteContact(user: OrgScopeUser, contactId: string, actorId: string) {
+export async function deleteContact(user: OrgScopeUser, contactId: string, actorId: string, t: TranslatorOf<"contacts.queries">) {
   const contact = await getContact(user, contactId);
-  if (contact.deletedAt) throw new Error("Ce contact est déjà supprimé.");
+  if (contact.deletedAt) throw new AppError("ce_contact_est_deja_supprime");
 
   // L'écriture du journal AVANT la destruction : si quelque chose échoue
   // ensuite, on sait au moins qui a initié la suppression.
@@ -422,12 +424,12 @@ export async function deleteContact(user: OrgScopeUser, contactId: string, actor
     db.delete(contactTagAssignments).where(eq(contactTagAssignments.contactId, contactId)),
     db
       .update(deals)
-      .set({ clientName: "Client supprimé", updatedAt: new Date() })
+      .set({ clientName: t("client_supprime"), updatedAt: new Date() })
       .where(eq(deals.contactId, contactId)),
     db
       .update(contacts)
       .set({
-        name: "Contact supprimé",
+        name: t("contact_supprime"),
         firstName: null,
         lastName: null,
         email: null,
@@ -464,17 +466,17 @@ export async function deleteContact(user: OrgScopeUser, contactId: string, actor
  * l'écran au moment de la fusion est celle qu'on garde). L'absorbé
  * devient une pierre tombale SANS destruction d'historique d'affaires.
  */
-export async function mergeContacts(user: OrgScopeUser, survivorId: string, absorbedId: string, actorId: string) {
-  if (survivorId === absorbedId) throw new Error("Impossible de fusionner une fiche avec elle-même.");
+export async function mergeContacts(user: OrgScopeUser, survivorId: string, absorbedId: string, actorId: string, t: TranslatorOf<"contacts.queries">) {
+  if (survivorId === absorbedId) throw new AppError("impossible_de_fusionner_une_fiche_avec_elle_79d9");
   const survivor = await getContact(user, survivorId);
   const absorbed = await getContact(user, absorbedId);
   if (survivor.organizationId !== absorbed.organizationId) {
     // Ne devrait jamais arriver (getContact borne déjà), ceinture et bretelles.
-    throw new Error("Ces deux fiches n'appartiennent pas à la même organisation.");
+    throw new AppError("ces_deux_fiches_n_appartiennent_pas_a_3552");
   }
-  if (survivor.deletedAt || absorbed.deletedAt) throw new Error("Impossible de fusionner une fiche supprimée.");
+  if (survivor.deletedAt || absorbed.deletedAt) throw new AppError("impossible_de_fusionner_une_fiche_supprimee");
   if (survivor.kind !== absorbed.kind) {
-    throw new Error("Impossible de fusionner une personne physique avec une personne morale.");
+    throw new AppError("impossible_de_fusionner_une_personne_physique_avec_da13");
   }
 
   await logContactAccess(survivor, actorId, "merge");
@@ -537,7 +539,7 @@ export async function mergeContacts(user: OrgScopeUser, survivorId: string, abso
     db
       .update(contacts)
       .set({
-        name: "Fiche fusionnée",
+        name: t("fiche_fusionnee"),
         firstName: null,
         lastName: null,
         email: null,
@@ -605,16 +607,16 @@ const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_IMPORT_ROWS = 5000;
 
 /** Champs qu'une ligne d'import peut remplir sur une fiche existante — jamais name/email (l'identité qui a servi à apparier). */
-const COMPLETABLE: { field: Exclude<ImportField, "name" | "email">; label: string }[] = [
-  { field: "firstName", label: "prénom" },
-  { field: "lastName", label: "nom" },
-  { field: "phone", label: "téléphone" },
-  { field: "companyName", label: "société" },
-  { field: "jobTitle", label: "fonction" },
-  { field: "city", label: "ville" },
-  { field: "postalCode", label: "code postal" },
-  { field: "country", label: "pays" },
-  { field: "notes", label: "notes" },
+const COMPLETABLE: { field: Exclude<ImportField, "name" | "email"> }[] = [
+  { field: "firstName" },
+  { field: "lastName" },
+  { field: "phone" },
+  { field: "companyName" },
+  { field: "jobTitle" },
+  { field: "city" },
+  { field: "postalCode" },
+  { field: "country" },
+  { field: "notes" },
 ];
 
 /**
@@ -626,18 +628,20 @@ export async function importContacts(
   user: OrgScopeUser,
   actorId: string,
   rows: ImportRowInput[],
-  mode: ImportMode
+  mode: ImportMode,
+  /** Les raisons du rapport d'import, dans la langue de la personne. */
+  t: TranslatorOf<"contacts.queries">
 ): Promise<ImportReport> {
   if (!user.organizationId) {
-    return { inserted: 0, completed: [], skipped: [], error: "Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant d'importer." };
+    return { inserted: 0, completed: [], skipped: [], error: t("aucune_organisation_selectionnee_choisis_une_organisation_5b59") };
   }
-  if (rows.length === 0) return { inserted: 0, completed: [], skipped: [], error: "Aucune ligne à importer." };
+  if (rows.length === 0) return { inserted: 0, completed: [], skipped: [], error: t("aucune_ligne_a_importer") };
   if (rows.length > MAX_IMPORT_ROWS) {
     return {
       inserted: 0,
       completed: [],
       skipped: [],
-      error: `Trop de lignes (${rows.length}) : l'import est limité à ${MAX_IMPORT_ROWS} par passage.`,
+      error: t("trop_de_lignes_l_import_est_f3ad", { count: rows.length, maxImportRows: MAX_IMPORT_ROWS }),
     };
   }
 
@@ -665,16 +669,16 @@ export async function importContacts(
     const email = v.email?.trim() || null;
 
     if (!name) {
-      report.skipped.push({ line: row.line, reason: "Nom manquant." });
+      report.skipped.push({ line: row.line, reason: t("nom_manquant") });
       continue;
     }
     if (email && !EMAIL_SHAPE.test(email)) {
-      report.skipped.push({ line: row.line, reason: `Email invalide : « ${email} ».` });
+      report.skipped.push({ line: row.line, reason: t("email_invalide", { email }) });
       continue;
     }
     const emailKey = email?.toLowerCase();
     if (emailKey && seenInFile.has(emailKey)) {
-      report.skipped.push({ line: row.line, reason: `Ignorée : « ${email} » apparaît plus haut dans le fichier.` });
+      report.skipped.push({ line: row.line, reason: t("ignoree_apparait_plus_haut_dans_le_de7d", { email: (email) ?? "" }) });
       continue;
     }
     if (emailKey) seenInFile.add(emailKey);
@@ -682,28 +686,28 @@ export async function importContacts(
     const matches = emailKey ? (byEmail.get(emailKey) ?? []) : [];
     if (matches.length > 0) {
       if (mode === "skip") {
-        report.skipped.push({ line: row.line, reason: `Ignorée : « ${email} » existe déjà dans tes contacts.` });
+        report.skipped.push({ line: row.line, reason: t("ignoree_existe_deja_dans_tes_contacts", { email: (email) ?? "" }) });
         continue;
       }
       if (matches.length > 1) {
         report.skipped.push({
           line: row.line,
-          reason: `Plusieurs fiches portent « ${email} » — à départager à la main avant de compléter.`,
+          reason: t("plusieurs_fiches_portent_a_departager_a_a3f7", { email: (email) ?? "" }),
         });
         continue;
       }
       const target = matches[0];
       const updates: Partial<Record<string, string>> = {};
       const fields: string[] = [];
-      for (const { field, label } of COMPLETABLE) {
+      for (const { field } of COMPLETABLE) {
         const incoming = v[field]?.trim();
         if (incoming && !target[field]) {
           updates[field] = incoming;
-          fields.push(label);
+          fields.push(t(`fields.${field}`));
         }
       }
       if (fields.length === 0) {
-        report.skipped.push({ line: row.line, reason: `Déjà à jour : « ${email} » n'avait rien à compléter.` });
+        report.skipped.push({ line: row.line, reason: t("deja_a_jour_n_avait_rien_0d9e", { email: (email) ?? "" }) });
         continue;
       }
       toComplete.push({ line: row.line, contact: target, updates, fields });
@@ -778,9 +782,9 @@ export async function countContacts(user: OrgScopeUser): Promise<number> {
  * met que ce qu'un email pourrait légitimement refléter. Le composer de
  * newsletters n'est pas modifié : il reçoit un brouillon comme un autre.
  */
-export async function buildContactNewsletterBrief(user: OrgScopeUser, contactId: string) {
+export async function buildContactNewsletterBrief(user: OrgScopeUser, contactId: string, t: TranslatorOf<"contacts.queries">) {
   const contact = await getContact(user, contactId);
-  if (contact.deletedAt) throw new Error("Cette fiche a été supprimée : on n'écrit plus à cette personne.");
+  if (contact.deletedAt) throw new AppError("cette_fiche_a_ete_supprimee_on_n_b6bc");
 
   const [tagRows, openDeals] = await Promise.all([
     db
@@ -812,16 +816,16 @@ export async function buildContactNewsletterBrief(user: OrgScopeUser, contactId:
     : "";
   const who = [contact.name, role || null, contact.city].filter(Boolean).join(", ");
 
-  const lines = [`Destinataire : ${who}.`];
-  if (tagRows.length > 0) lines.push(`Étiquettes : ${tagRows.map((t) => t.label).join(", ")}.`);
+  const lines = [t("destinataire", { who })];
+  if (tagRows.length > 0) lines.push(t("etiquettes", { join: tagRows.map((t) => t.label).join(", ") }));
   if (openDeals.length > 0) {
     lines.push(
-      `Affaires en cours : ${openDeals.map((d) => `« ${d.title} » (étape ${d.stageLabel})`).join(" ; ")}.`
+      t("affaires_en_cours", { join: openDeals.map((d) => `« ${d.title} » (étape ${d.stageLabel})`).join(" ; ") })
     );
   }
-  lines.push("Objectif de l'email : (à préciser avant de générer)");
+  lines.push(t("objectif_de_l_email_a_preciser_2f4d"));
 
-  return { title: `Newsletter pour ${contact.name}`, brief: lines.join("\n") };
+  return { title: t("newsletter_pour", { name: contact.name }), brief: lines.join("\n") };
 }
 
 /** Les conseillers de l'organisation (pour l'attribution). */

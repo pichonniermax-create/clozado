@@ -1,0 +1,121 @@
+{
+  "confirmCommissionButton": {
+    "confirmer": "Confirmer"
+  },
+  "markCommissionSettledButton": {
+    "marquer_reglee": "Marquer réglée"
+  },
+  "partnerShareView": {
+    "a_confirmer_avant_le": "À confirmer avant le {formatDate}.",
+    "acceptees_le_cette_page_fait_foi_6457": "Acceptées le {formatDate} — cette page fait foi en cas de désaccord.",
+    "accepter": "Accepter",
+    "ajouter_un_commentaire": "Ajouter un commentaire",
+    "annuler": "Annuler",
+    "apercu_ce_que_le_partenaire_verra": "Aperçu — ce que le partenaire verra",
+    "aucun_echange_pour_l_instant": "Aucun échange pour l’instant.",
+    "bonjour": "Bonjour {firstNameOf},",
+    "client": "{typeLabel} · Client : {clientName}{n}",
+    "commission": "Commission {formatCommission} — {value}",
+    "conditions": "Conditions : {proposedTerms}",
+    "conditions_proposees": "Conditions proposées",
+    "confirmee": "confirmée",
+    "confirmer_l_acceptation": "Confirmer l’acceptation",
+    "confirmer_le_refus": "Confirmer le refus",
+    "confirmez_votre_acceptation": "Confirmez votre acceptation",
+    "confirmez_votre_refus": "Confirmez votre refus",
+    "echanges": "Échanges",
+    "envoyer": "Envoyer",
+    "errors": {
+      "not_found": "Ce lien n’est plus valide.",
+      "revoked": "Ce lien n’est plus valable. Contactez directement la personne qui vous l’a envoyé.",
+      "expired": "Ce lien n’est plus valable. Contactez directement la personne qui vous l’a envoyé.",
+      "already_resolved": "Vous avez déjà répondu à ce partage.",
+      "rate_limited": "Trop de tentatives — réessayez dans une minute.",
+      "invalid_action": "Une erreur est survenue.",
+      "network": "Connexion impossible. Réessayez."
+    },
+    "le": "— le {formatDate}",
+    "le_partenaire_pourra_commenter_une_fois_6de0": "Le partenaire pourra commenter une fois le lien envoyé.",
+    "motif_facultatif": "Motif (facultatif)",
+    "prevue": "prévue",
+    "refuser": "Refuser",
+    "reglee": "réglée",
+    "status": {
+      "pending": "En attente de votre réponse",
+      "accepted": "Vous avez accepté ce partage",
+      "declined": "Vous avez refusé ce partage",
+      "revoked": "Ce partage a été révoqué"
+    },
+    "statut_de_l_affaire": "Statut de l’affaire :",
+    "vous": "Vous"
+  },
+  "public": {
+    "ce_lien_n_est_pas_valide_a29e": "Ce lien n’est pas valide. Vérifiez que vous l’avez copié en entier, ou contactez la personne qui vous l’a envoyé.",
+    "ce_lien_n_est_plus_valable_ef02": "Ce lien n’est plus valable. Contactez directement la personne qui vous l’a envoyé pour en obtenir un nouveau."
+  },
+  "publicError": {
+    "cette_page_n_a_pas_pu_6ee9": "Cette page n’a pas pu s’afficher.",
+    "reessaie_dans_un_instant_si_le_1279": "Réessaie dans un instant. Si le problème persiste, contacte la personne qui t’a envoyé ce lien."
+  },
+  "queries": {
+    "commission_confirmee": "Commission confirmée.",
+    "commission_marquee_reglee": "Commission marquée réglée."
+  },
+  "reissueShareButton": {
+    "copie": "Copié !",
+    "copier_le_lien": "Copier le lien",
+    "nouveau_lien_il_ne_sera_plus_0f7a": "Nouveau lien — il ne sera plus jamais réaffiché.",
+    "renvoyer_le_lien": "Renvoyer le lien",
+    "termine": "Terminé"
+  },
+  "shareComposer": {
+    "apercu": "Aperçu",
+    "aucun_partenaire_actif_ajoutez_en_un_de95": "Aucun partenaire actif. Ajoutez-en un depuis l’écran Partenaires.",
+    "ce_lien_ne_sera_plus_jamais_4980": "Ce lien ne sera plus jamais réaffiché. Copie-le maintenant et transmets-le à {name}. Si tu le perds, il faudra renvoyer le partage — ce qui annulera celui-ci et en créera un nouveau.",
+    "choisir_un_partenaire": "Choisir un partenaire",
+    "choisis_d_abord_un_partenaire": "Choisis d’abord un partenaire.",
+    "comment_la_calculer": "Comment la calculer",
+    "commission": "Commission",
+    "commission_4315": "Commission :",
+    "conditions": "Conditions : {proposedTerms}",
+    "conditions_proposees": "Conditions proposées",
+    "confirme_l_envoi": "Confirme l’envoi",
+    "confirmer_et_generer_le_lien": "Confirmer et générer le lien",
+    "copie": "Copié !",
+    "copier_le_lien": "Copier le lien",
+    "envoi": "Envoi...",
+    "envoyer_le_partage": "Envoyer le partage",
+    "ex_commission_versee_a_l_acte_ddd2": "Ex : commission versée à l’acte, sous réserve de signature.",
+    "facultatif_sans_date_le_lien_reste_98db": "Facultatif. Sans date, le lien reste valable tant que tu ne le révoques pas.",
+    "fixer_une_commission_pour_ce_partage_2a94": "Fixer une commission pour ce partage<span>Décoche si elle sera négociée plus tard.</span>",
+    "j_ai_copie_le_lien_termine": "J’ai copié le lien — Terminé",
+    "l_envoi_a_echoue_de_notre_2adc": "L’envoi a échoué de notre côté — rien n’a été créé, réessaie.",
+    "la_fixer_maintenant_c_est_ce_9dcd": "La fixer maintenant, c’est ce qui t’engage vis-à-vis du confrère — plutôt que de la laisser en texte libre à interpréter plus tard.",
+    "le_lien_cesse_de_fonctionner_le": "Le lien cesse de fonctionner le",
+    "le_montant": "le montant",
+    "le_taux_et_le_montant_de_fa0e": "le taux et le montant de référence",
+    "lien_cree_a_copier_maintenant": "Lien créé — à copier maintenant",
+    "message_au_partenaire": "Message au partenaire",
+    "modifier": "Modifier",
+    "montant": "Montant (€)",
+    "montant_de_reference": "Montant de référence (€)",
+    "montant_fixe": "Montant fixe",
+    "partager_cette_affaire": "Partager cette affaire",
+    "partenaire": "Partenaire",
+    "pourcentage": "Pourcentage",
+    "renseigne_le_montant_de_la_commission_a84e": "Renseigne le montant de la commission, ou décoche « Fixer une commission ».",
+    "renseigne_le_taux_et_le_montant_ddd6": "Renseigne le taux et le montant de référence, ou décoche « Fixer une commission ».",
+    "renseigne_pour_voir_le_calcul": "Renseigne {value} pour voir le calcul.",
+    "taux": "Taux (%)",
+    "tu_partages_avec": "Tu partages <span>{title}</span> avec <span2>{name}</span2>.",
+    "votre_partenaire": "Votre partenaire"
+  },
+  "shareStatusBadge": {
+    "status": {
+      "pending": "En attente",
+      "accepted": "Acceptée",
+      "declined": "Refusée",
+      "revoked": "Révoquée"
+    }
+  }
+}

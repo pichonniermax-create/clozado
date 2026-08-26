@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { Copy, GripVertical, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 /**
  * Le cadre autour d'une unité du document : ce qui la rend saisissable,
@@ -43,6 +44,7 @@ export function UnitFrame({
   /** Bloc ouvert en édition : il porte alors ses propres commandes. */
   editing: boolean;
 }) {
+  const t = useTranslations("newsletters.unitFrame");
   const [handleHeld, setHandleHeld] = useState(false);
 
   return (
@@ -84,8 +86,8 @@ export function UnitFrame({
       <div className="pointer-events-none absolute top-1 right-1 z-10 flex items-center gap-0.5 rounded-md border border-border bg-popover p-0.5 opacity-0 shadow-sm transition-opacity group-focus-within/unit:pointer-events-auto group-focus-within/unit:opacity-100 group-hover/unit:pointer-events-auto group-hover/unit:opacity-100">
         <button
           type="button"
-          aria-label="Déplacer ce bloc"
-          title="Glisser pour déplacer"
+          aria-label={t("deplacer_ce_bloc")}
+          title={t("glisser_pour_deplacer")}
           onMouseDown={() => setHandleHeld(true)}
           onMouseUp={() => setHandleHeld(false)}
           className="flex size-6 cursor-grab items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground active:cursor-grabbing"
@@ -94,8 +96,8 @@ export function UnitFrame({
         </button>
         <button
           type="button"
-          aria-label="Dupliquer ce bloc"
-          title="Dupliquer"
+          aria-label={t("dupliquer_ce_bloc")}
+          title={t("dupliquer")}
           onClick={onDuplicate}
           className="flex size-6 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
         >
@@ -103,8 +105,8 @@ export function UnitFrame({
         </button>
         <button
           type="button"
-          aria-label="Supprimer ce bloc"
-          title="Supprimer"
+          aria-label={t("supprimer_ce_bloc")}
+          title={t("supprimer")}
           onClick={onDelete}
           className="flex size-6 items-center justify-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
         >

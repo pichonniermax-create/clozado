@@ -1,0 +1,93 @@
+{
+  "accountMenu": {
+    "marque_reglages": "Marque & réglages",
+    "mon_compte": "Mon compte",
+    "se_deconnecter": "Se déconnecter"
+  },
+  "appHeader": {
+    "rechercher_un_contact": "Rechercher un contact…",
+    "rechercher_un_contact_938c": "Rechercher un contact",
+    "vue_globale": "Vue globale"
+  },
+  "boundaries": {
+    "analytics": {
+      "cet_ecran_analytique_n_a_pas_e12b": "Cet écran analytique n’a pas pu être chargé.",
+      "tableau_de_bord": "Tableau de bord"
+    },
+    "contacts": {
+      "les_contacts_n_ont_pas_pu_9f64": "Les contacts n’ont pas pu être chargés."
+    },
+    "dashboard": {
+      "le_tableau_de_bord_n_a_448c": "Le tableau de bord n’a pas pu être chargé."
+    },
+    "deals": {
+      "les_affaires_n_ont_pas_pu_8b5d": "Les affaires n’ont pas pu être chargées."
+    },
+    "figures": {
+      "les_chiffres_n_ont_pas_pu_785c": "Les chiffres n’ont pas pu être chargés."
+    },
+    "followup": {
+      "le_suivi_n_a_pas_pu_5372": "Le suivi n’a pas pu être chargé."
+    },
+    "partners": {
+      "les_partenaires_n_ont_pas_pu_456e": "Les partenaires n’ont pas pu être chargés."
+    },
+    "settings": {
+      "les_reglages_n_ont_pas_pu_c380": "Les réglages n’ont pas pu être chargés."
+    },
+    "shell": {
+      "cet_ecran_n_a_pas_pu_737e": "Cet écran n’a pas pu être chargé.",
+      "tableau_de_bord": "Tableau de bord"
+    },
+    "targets": {
+      "les_cibles_n_ont_pas_pu_2f15": "Les cibles n’ont pas pu être chargées."
+    },
+    "tasks": {
+      "les_taches_n_ont_pas_pu_a5d6": "Les tâches n’ont pas pu être chargées."
+    },
+    "watch": {
+      "la_veille_n_a_pas_pu_525a": "La veille n’a pas pu être chargée."
+    }
+  },
+  "globalError": {
+    "c_est_en_general_passager_et_7a6c": "C’est en général passager et ça ne vient pas de toi. Réessaie — si ça persiste, reviens dans quelques minutes.",
+    "la_page_n_a_pas_pu_d9e8": "La page n’a pas pu s’afficher.",
+    "reessayer": "Réessayer"
+  },
+  "mobileNav": {
+    "navigation": "Navigation",
+    "ouvrir_la_navigation": "Ouvrir la navigation"
+  },
+  "navigationList": {
+    "marque_reglages": "Marque & réglages"
+  },
+  "notFound": {
+    "cette_page_n_existe_pas_dans_d28e": "Cette page n’existe pas dans ton espace.",
+    "le_lien_est_peut_etre_perime_675a": "Le lien est peut-être périmé, ou la page appartient à un autre espace.",
+    "retour_au_tableau_de_bord": "Retour au tableau de bord"
+  },
+  "quickCreateMenu": {
+    "nouveau": "Nouveau"
+  },
+  "root": {
+    "description": "Suite d’outils d’assistance marketing multi-clients."
+  },
+  "rootError": {
+    "cette_page_n_a_pas_pu_6ee9": "Cette page n’a pas pu s’afficher.",
+    "retour_a_l_accueil": "Retour à l’accueil"
+  },
+  "rootNotFound": {
+    "aller_au_tableau_de_bord_accueil": "<link>Aller au tableau de bord</link><link2>Accueil</link2>",
+    "cette_page_n_existe_pas": "Cette page n’existe pas",
+    "l_adresse_est_peut_etre_erronee_cdec": "L’adresse est peut-être erronée, ou le lien périmé."
+  },
+  "superAdminBar": {
+    "changement": "Changement…",
+    "l_organisation_memorisee_n_existe_plus_c1ce": "L’organisation mémorisée n’existe plus — re-choisis dans la liste.",
+    "organisation_active": "Organisation active",
+    "super_admin": "Super admin",
+    "tu_travailles_dans": "Tu travailles dans :",
+    "vue_globale_aucune_organisation": "Vue globale (aucune organisation)",
+    "vue_globale_choisis_une_organisation_pour_d974": "Vue globale — choisis une organisation pour agir :"
+  }
+}

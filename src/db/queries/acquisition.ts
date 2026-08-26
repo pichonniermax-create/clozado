@@ -18,6 +18,8 @@ import {
 import { assertOrgAccess } from "@/db/scope";
 import { generateApiKey, generateSiteKey, hashApiKey, normalizeDomain } from "@/lib/acquisition/keys";
 import type { OrgScopeUser } from "@/lib/session";
+import { AppError } from "@/lib/errors";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /**
  * La collecte d'acquisition : origines configurées et débordement libre,
@@ -30,7 +32,7 @@ import type { OrgScopeUser } from "@/lib/session";
 
 function requireOrganization(user: OrgScopeUser): string {
   if (!user.organizationId) {
-    throw new Error("Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran.");
+    throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_f057");
   }
   return user.organizationId;
 }
@@ -47,7 +49,7 @@ export async function listOrigins(user: OrgScopeUser) {
 export async function createOrigin(user: OrgScopeUser, label: string) {
   const org = requireOrganization(user);
   const trimmed = label.trim();
-  if (!trimmed) throw new Error("Le libellé de l'origine est obligatoire.");
+  if (!trimmed) throw new AppError("le_libelle_de_l_origine_est_obligatoire");
   const [existing] = await db
     .select()
     .from(origins)
@@ -109,11 +111,11 @@ export async function attachOrigin(
 ) {
   const org = requireOrganization(user);
   const trimmed = raw.trim();
-  if (!trimmed) throw new Error("Texte d'origine vide.");
+  if (!trimmed) throw new AppError("texte_d_origine_vide");
   let originId: string;
   if ("originId" in target) {
     const [origin] = await db.select().from(origins).where(and(eq(origins.id, target.originId), eq(origins.organizationId, org)));
-    if (!origin) throw new Error("Origine introuvable pour cette organisation.");
+    if (!origin) throw new AppError("origine_introuvable_pour_cette_organisation", undefined, 404);
     originId = origin.id;
   } else {
     originId = (await createOrigin(user, target.newLabel)).id;
@@ -177,9 +179,9 @@ export async function listApiKeys(user: OrgScopeUser) {
 /** Crée une clé et renvoie sa valeur EN CLAIR — une seule fois, jamais récupérable ensuite. */
 export async function createApiKey(user: OrgScopeUser, createdBy: string, label: string) {
   const org = requireOrganization(user);
-  if (user.role !== "admin") throw new Error("Réservé à l'admin de l'organisation.");
+  if (user.role !== "admin") throw new AppError("reserve_a_l_admin_de_l_organisation");
   const trimmed = label.trim();
-  if (!trimmed) throw new Error("Donne un nom à la clé (où elle sera utilisée).");
+  if (!trimmed) throw new AppError("donne_un_nom_a_la_cle_ou_2849");
   const { key, prefix, hash } = generateApiKey();
   const [row] = await db
     .insert(apiKeys)
@@ -190,7 +192,7 @@ export async function createApiKey(user: OrgScopeUser, createdBy: string, label:
 
 export async function revokeApiKey(user: OrgScopeUser, id: string) {
   const org = requireOrganization(user);
-  if (user.role !== "admin") throw new Error("Réservé à l'admin de l'organisation.");
+  if (user.role !== "admin") throw new AppError("reserve_a_l_admin_de_l_organisation");
   await db
     .update(apiKeys)
     .set({ revokedAt: new Date() })
@@ -220,22 +222,22 @@ export async function listSiteKeys(user: OrgScopeUser) {
   return db.select().from(siteKeys).where(eq(siteKeys.organizationId, org)).orderBy(desc(siteKeys.createdAt));
 }
 
-export async function createSiteKey(user: OrgScopeUser, label: string) {
+export async function createSiteKey(user: OrgScopeUser, label: string, t: TranslatorOf<"settings.queries">) {
   const org = requireOrganization(user);
-  if (user.role !== "admin") throw new Error("Réservé à l'admin de l'organisation.");
+  if (user.role !== "admin") throw new AppError("reserve_a_l_admin_de_l_organisation");
   const [row] = await db
     .insert(siteKeys)
-    .values({ organizationId: org, key: generateSiteKey(), label: label.trim() || "Site principal" })
+    .values({ organizationId: org, key: generateSiteKey(), label: label.trim() || t("site_principal") })
     .returning();
   return row;
 }
 
 export async function revokeSiteKey(user: OrgScopeUser, id: string) {
   const org = requireOrganization(user);
-  if (user.role !== "admin") throw new Error("Réservé à l'admin de l'organisation.");
+  if (user.role !== "admin") throw new AppError("reserve_a_l_admin_de_l_organisation");
   const active = await db.select({ id: siteKeys.id }).from(siteKeys).where(and(eq(siteKeys.organizationId, org), isNull(siteKeys.revokedAt)));
   if (active.length <= 1 && active.some((k) => k.id === id)) {
-    throw new Error("Crée d'abord une nouvelle clé de site : révoquer la dernière active couperait toute collecte.");
+    throw new AppError("cree_d_abord_une_nouvelle_cle_de_1cca");
   }
   await db
     .update(siteKeys)
@@ -264,7 +266,7 @@ export async function resolveSiteKey(key: string): Promise<SiteKeyResolution> {
 /** Un domaine par ligne, normalisé (hôte, port éventuel, sans schéma ni chemin) ; les illisibles sont ignorés. */
 export async function updateAllowedDomains(user: OrgScopeUser, input: string[]) {
   const org = requireOrganization(user);
-  if (user.role !== "admin") throw new Error("Réservé à l'admin de l'organisation.");
+  if (user.role !== "admin") throw new AppError("reserve_a_l_admin_de_l_organisation");
   const domains = [...new Set(input.map(normalizeDomain).filter((d): d is string => Boolean(d)))];
   await db.update(organizations).set({ allowedDomains: domains, updatedAt: new Date() }).where(eq(organizations.id, org));
   return domains;
@@ -334,15 +336,15 @@ export type LeadInput = {
 };
 
 /** Les champs qu'un lead peut remplir sur une fiche existante — jamais name/email (l'identité qui a servi à apparier). */
-const LEAD_COMPLETABLE: { field: keyof Contact & keyof LeadInput; label: string }[] = [
-  { field: "firstName", label: "prénom" },
-  { field: "lastName", label: "nom" },
-  { field: "phone", label: "téléphone" },
-  { field: "companyName", label: "société" },
-  { field: "jobTitle", label: "fonction" },
-  { field: "city", label: "ville" },
-  { field: "postalCode", label: "code postal" },
-  { field: "country", label: "pays" },
+const LEAD_COMPLETABLE: { field: keyof Contact & keyof LeadInput }[] = [
+  { field: "firstName" },
+  { field: "lastName" },
+  { field: "phone" },
+  { field: "companyName" },
+  { field: "jobTitle" },
+  { field: "city" },
+  { field: "postalCode" },
+  { field: "country" },
 ];
 
 export type ReceivedLead = { leadId: string; contactId: string; matchedExistingContact: boolean; enrichedFields: string[] };
@@ -360,7 +362,7 @@ export type ReceivedLead = { leadId: string; contactId: string; matchedExistingC
 export async function receiveLead(organizationId: string, apiKeyId: string, input: LeadInput): Promise<ReceivedLead> {
   const email = input.email?.trim().toLowerCase() || null;
   const phone = input.phone?.trim() || null;
-  if (!email && !phone) throw new Error("Un lead porte au moins un email ou un téléphone.");
+  if (!email && !phone) throw new AppError("un_lead_porte_au_moins_un_email_dc0f");
 
   const derivedName =
     input.name?.trim() ||
@@ -385,11 +387,12 @@ export async function receiveLead(organizationId: string, apiKeyId: string, inpu
   if (contact) {
     matched = true;
     const updates: Partial<Record<string, string>> = {};
-    for (const { field, label } of LEAD_COMPLETABLE) {
+    // Les champs complétés sont stockés par CLÉ (« firstName ») : le journal les nomme dans la langue de la personne qui lit.
+    for (const { field } of LEAD_COMPLETABLE) {
       const incoming = (input[field] as string | null)?.trim();
       if (incoming && !contact[field]) {
         updates[field] = incoming;
-        enriched.push(label);
+        enriched.push(field);
       }
     }
     if (enriched.length > 0) {
@@ -518,7 +521,7 @@ export type LeadSummary = Pick<Lead, "id" | "receivedAt" | "simulator" | "origin
 /** Les leads d'un contact, les plus récents d'abord — pour le champ Origine d'une affaire et le journal. */
 export async function listLeadsForContact(user: OrgScopeUser, contactId: string): Promise<LeadSummary[]> {
   const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, contactId) });
-  if (!contact) throw new Error("Contact introuvable.");
+  if (!contact) throw new AppError("contact_introuvable", undefined, 404);
   assertOrgAccess(user, contact.organizationId);
   return db
     .select({
@@ -548,8 +551,8 @@ export async function latestLeadBefore(organizationId: string, contactId: string
 }
 
 /** Libellé d'un lead pour le journal et le champ Origine : l'origine configurée, sinon le texte reçu, sinon le simulateur. */
-export function leadOriginLabel(lead: { originLabel: string | null; originRaw: string | null; simulator: string | null }): string {
-  return lead.originLabel ?? lead.originRaw ?? lead.simulator ?? "origine non renseignée";
+export function leadOriginLabel(lead: { originLabel: string | null; originRaw: string | null; simulator: string | null }, t: TranslatorOf<"settings.queries">): string {
+  return lead.originLabel ?? lead.originRaw ?? lead.simulator ?? t("origine_non_renseignee");
 }
 
 /**
@@ -557,24 +560,24 @@ export function leadOriginLabel(lead: { originLabel: string | null; originRaw: s
  * journalisé (`origin_changed`) qui couvre « affaire créée à la main, lead
  * identifié après coup ». Le lead doit appartenir au contact de l'affaire.
  */
-export async function setDealOrigin(user: OrgScopeUser, actorUserId: string, dealId: string, leadId: string | null) {
+export async function setDealOrigin(user: OrgScopeUser, actorUserId: string, dealId: string, leadId: string | null, t: TranslatorOf<"settings.queries">) {
   const deal = await db.query.deals.findFirst({ where: eq(deals.id, dealId) });
-  if (!deal) throw new Error("Affaire introuvable.");
+  if (!deal) throw new AppError("affaire_introuvable", undefined, 404);
   assertOrgAccess(user, deal.organizationId);
   if (deal.leadId === leadId) return deal;
 
-  let message = "Origine détachée";
+  let message = t("origine_detachee");
   if (leadId) {
     const [lead] = await db
       .select({ id: leads.id, contactId: leads.contactId, originRaw: leads.originRaw, simulator: leads.simulator, originLabel: origins.label, receivedAt: leads.receivedAt })
       .from(leads)
       .leftJoin(origins, eq(leads.originId, origins.id))
       .where(and(eq(leads.id, leadId), eq(leads.organizationId, deal.organizationId)));
-    if (!lead) throw new Error("Lead introuvable pour cette organisation.");
+    if (!lead) throw new AppError("lead_introuvable_pour_cette_organisation", undefined, 404);
     if (!deal.contactId || lead.contactId !== deal.contactId) {
-      throw new Error("Ce lead n'appartient pas au contact de cette affaire.");
+      throw new AppError("ce_lead_n_appartient_pas_au_contact_c80a");
     }
-    message = `Origine rattachée : ${leadOriginLabel(lead)}`;
+    message = `Origine rattachée : ${leadOriginLabel(lead, t)}`;
   }
 
   await db.batch([

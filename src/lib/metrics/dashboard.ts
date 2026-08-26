@@ -9,6 +9,7 @@ import { partnersReport, type MoneyCount } from "./partners";
 import { metricQueryString, type MetricSearchParams } from "./search-params";
 import type { DurationStat, RateStat } from "./types";
 import { volumesReport, type AmountCount } from "./volumes";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /**
  * Les indicateurs du tableau de bord — UNE valeur par indicateur du pack,
@@ -20,7 +21,7 @@ import { volumesReport, type AmountCount } from "./volumes";
  */
 export type DashboardValue =
   | { kind: "count"; n: number; detail?: string }
-  | { kind: "euros"; money: AmountCount | MoneyCount; countWord: [string, string]; detail?: string }
+  | { kind: "euros"; money: AmountCount | MoneyCount; countPhrase: string; detail?: string }
   | { kind: "days"; stat: DurationStat }
   | { kind: "ratio"; rate: RateStat; detail: string }
   | { kind: "unavailable"; reason: string };
@@ -37,24 +38,22 @@ export type DashboardIndicator = {
 
 const STATE_INDICATORS: readonly DashboardIndicatorId[] = ["pipeline_open"];
 
-function plural(n: number, singular: string, pluralForm = `${singular}s`) {
-  return `${n} ${n > 1 ? pluralForm : singular}`;
-}
 
 export async function dashboardIndicators(
   user: OrgScopeUser,
   ids: readonly DashboardIndicatorId[],
   filters: MetricFilters,
-  params: MetricSearchParams
+  params: MetricSearchParams,
+  t: TranslatorOf<"metrics">
 ): Promise<DashboardIndicator[]> {
   const wants = (...candidates: DashboardIndicatorId[]) => candidates.some((c) => ids.includes(c));
   const [volumes, losses, partners, leads, creationToWon, leadToFirstContact, shareResponse, commissionSettlement] = await Promise.all([
     wants("deals_created", "deals_won", "won_amount", "pipeline_open") ? volumesReport(user, filters) : null,
-    wants("loss_rate", "lost_deal") ? lossesReport(user, filters) : null,
-    wants("partner_shares", "partner_acceptance_rate", "partner_transformation_rate", "partner_commissions") ? partnersReport(user, filters) : null,
+    wants("loss_rate", "lost_deal") ? lossesReport(user, filters, t) : null,
+    wants("partner_shares", "partner_acceptance_rate", "partner_transformation_rate", "partner_commissions") ? partnersReport(user, filters, t) : null,
     wants("funnel_leads") ? leadFunnelCounts(user, filters) : null,
     wants("creation_to_won") ? creationToWonDelay(user, filters) : null,
-    wants("lead_to_first_contact") ? leadToFirstContactDelay(user, filters) : null,
+    wants("lead_to_first_contact") ? leadToFirstContactDelay(user, filters, t) : null,
     wants("share_response_delay") ? shareResponseDelay(user, filters) : null,
     wants("commission_settlement_delay") ? commissionSettlementDelay(user, filters) : null,
   ]);
@@ -68,13 +67,13 @@ export async function dashboardIndicators(
         return { value: { kind: "count", n: volumes!.created }, href: href("/analytique/funnel") };
       case "deals_won":
         return {
-          value: { kind: "count", n: volumes!.won.n, detail: volumes!.won.withoutAmount > 0 ? `${plural(volumes!.won.withoutAmount, "sans montant", "sans montant")}` : undefined },
+          value: { kind: "count", n: volumes!.won.n, detail: volumes!.won.withoutAmount > 0 ? `${t("dashboard.sans_montant_sans_montant", { n: volumes!.won.withoutAmount })}` : undefined },
           href: href("/analytique/pertes"),
         };
       case "won_amount":
-        return { value: { kind: "euros", money: volumes!.won, countWord: ["affaire signée", "affaires signées"] }, href: href("/analytique/pertes") };
+        return { value: { kind: "euros", money: volumes!.won, countPhrase: t("dashboard.affaire_signee_affaires_signees", { n: volumes!.won.n }) }, href: href("/analytique/pertes") };
       case "pipeline_open":
-        return { value: { kind: "euros", money: volumes!.open, countWord: ["affaire en cours", "affaires en cours"] }, href: "/affaires" };
+        return { value: { kind: "euros", money: volumes!.open, countPhrase: t("dashboard.affaire_en_cours_affaires_en_cours", { n: volumes!.open.n }) }, href: "/affaires" };
       case "creation_to_won":
         return { value: { kind: "days", stat: creationToWon! }, href: href("/analytique/delais") };
       case "lead_to_first_contact":
@@ -85,7 +84,7 @@ export async function dashboardIndicators(
         return { value: { kind: "days", stat: commissionSettlement! }, href: href("/analytique/delais") };
       case "loss_rate":
         return {
-          value: { kind: "ratio", rate: losses!.lossRate, detail: `${plural(losses!.total.n, "perdue")} pour ${plural(losses!.won, "signée")}` },
+          value: { kind: "ratio", rate: losses!.lossRate, detail: `${t("dashboard.perdue_perdues", { n: losses!.total.n })} pour ${t("dashboard.signee_signees", { n: losses!.won })}` },
           href: href("/analytique/pertes"),
         };
       case "lost_deal":
@@ -93,28 +92,28 @@ export async function dashboardIndicators(
           value: {
             kind: "count",
             n: losses!.total.n,
-            detail: losses!.total.n > 0 && losses!.total.withoutAmount < losses!.total.n ? `${formatEurosPlain(losses!.total.amount)} de montant estimé perdu` : undefined,
+            detail: losses!.total.n > 0 && losses!.total.withoutAmount < losses!.total.n ? t("dashboard.de_montant_estime_perdu", { formatEurosPlain: formatEurosPlain(losses!.total.amount) }) : undefined,
           },
           href: href("/analytique/pertes"),
         };
       case "funnel_leads":
         return {
-          value: leads!.ever ? { kind: "count", n: leads!.leads, detail: `${plural(leads!.contacted, "contact établi", "contacts établis")}` } : { kind: "unavailable", reason: "aucun lead reçu : brancher l'entrée des leads (Marque & réglages → Collecte)" },
+          value: leads!.ever ? { kind: "count", n: leads!.leads, detail: `${t("dashboard.contact_etabli_contacts_etablis", { n: leads!.contacted })}` } : { kind: "unavailable", reason: t("dashboard.aucun_lead_recu_brancher_l_entree_27c0") },
           href: href("/analytique/funnel"),
         };
       case "partner_shares":
         return {
-          value: { kind: "count", n: partners!.totals.sent, detail: `${plural(partners!.totals.accepted, "accepté")} · ${plural(partners!.totals.declined, "refusé")}` },
+          value: { kind: "count", n: partners!.totals.sent, detail: `${t("dashboard.accepte_acceptes", { n: partners!.totals.accepted })} · ${t("dashboard.refuse_refuses", { n: partners!.totals.declined })}` },
           href: href("/analytique/partenaires"),
         };
       case "partner_acceptance_rate":
         return {
-          value: { kind: "ratio", rate: partners!.totals.acceptanceRate, detail: `${plural(partners!.totals.accepted, "accepté")} sur ${plural(partners!.totals.sent, "partage envoyé", "partages envoyés")}` },
+          value: { kind: "ratio", rate: partners!.totals.acceptanceRate, detail: `${t("dashboard.accepte_acceptes", { n: partners!.totals.accepted })} sur ${t("dashboard.partage_envoye_partages_envoyes", { n: partners!.totals.sent })}` },
           href: href("/analytique/partenaires"),
         };
       case "partner_transformation_rate":
         return {
-          value: { kind: "ratio", rate: partners!.totals.transformationRate, detail: `${plural(partners!.totals.won, "gagnée")} sur ${plural(partners!.totals.accepted, "partage accepté", "partages acceptés")}` },
+          value: { kind: "ratio", rate: partners!.totals.transformationRate, detail: `${t("dashboard.gagnee_gagnees", { n: partners!.totals.won })} sur ${t("dashboard.partage_accepte_partages_acceptes", { n: partners!.totals.accepted })}` },
           href: href("/analytique/partenaires"),
         };
       case "partner_commissions": {
@@ -123,8 +122,8 @@ export async function dashboardIndicators(
           value: {
             kind: "euros",
             money: earned,
-            countWord: ["commission acquise", "commissions acquises"],
-            detail: planned.n > 0 ? `prévues ${planned.withoutAmount === planned.n ? "au montant inconnu" : formatEurosPlain(planned.amount)} (${planned.n})` : undefined,
+            countPhrase: t("dashboard.commission_acquise_commissions_acquises", { n: earned.n }),
+            detail: planned.n > 0 ? t("dashboard.prevues", { value: planned.withoutAmount === planned.n ? t("dashboard.au_montant_inconnu") : formatEurosPlain(planned.amount), n: planned.n }) : undefined,
           },
           href: href("/analytique/partenaires"),
         };

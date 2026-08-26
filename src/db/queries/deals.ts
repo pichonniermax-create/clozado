@@ -16,6 +16,7 @@ import { dealSelectionCondition, type DealSelection } from "@/lib/metrics/funnel
 import { latestLeadBefore } from "./acquisition";
 import { getDefaultDealStatus } from "./deal-statuses";
 import type { OrgScopeUser } from "@/lib/session";
+import { AppError } from "@/lib/errors";
 
 /** Affaires de l'organisation de l'appelant, plus récentes d'abord, avec libellé de type/statut pour l'affichage. */
 export async function listDeals(user: OrgScopeUser) {
@@ -59,9 +60,7 @@ export async function createDeal(
   input: CreateDealInput
 ) {
   if (!user.organizationId) {
-    throw new Error(
-      "Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer une affaire."
-    );
+    throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_a16a");
   }
 
   // Le type doit exister ET appartenir à cette organisation — vérifié ici
@@ -69,7 +68,7 @@ export async function createDeal(
   // application plutôt qu'une simple violation de contrainte SQL).
   const type = await db.query.dealTypes.findFirst({ where: eq(dealTypes.id, input.typeId) });
   if (!type || type.organizationId !== user.organizationId) {
-    throw new Error("Type d'affaire introuvable pour cette organisation.");
+    throw new AppError("type_d_affaire_introuvable_pour_cette_organisation", undefined, 404);
   }
 
   // Le statut résolu porte aussi le pipeline : une affaire naît TOUJOURS
@@ -78,7 +77,7 @@ export async function createDeal(
   if (input.statusId) {
     status = await db.query.dealStatuses.findFirst({ where: eq(dealStatuses.id, input.statusId) });
     if (!status || status.organizationId !== user.organizationId) {
-      throw new Error("Statut introuvable pour cette organisation.");
+      throw new AppError("statut_introuvable_pour_cette_organisation", undefined, 404);
     }
   } else {
     status = await getDefaultDealStatus(user.organizationId);
@@ -88,10 +87,10 @@ export async function createDeal(
   if (input.contactId) {
     const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, input.contactId) });
     if (!contact || contact.organizationId !== user.organizationId) {
-      throw new Error("Fiche contact introuvable pour cette organisation.");
+      throw new AppError("fiche_contact_introuvable_pour_cette_organisation", undefined, 404);
     }
     if (contact.deletedAt) {
-      throw new Error("Cette fiche contact a été supprimée : elle ne peut plus porter d'affaire.");
+      throw new AppError("cette_fiche_contact_a_ete_supprimee_elle_160e");
     }
     if (!clientName) clientName = contact.name;
   }
@@ -156,26 +155,26 @@ export async function changeDealStage(
   lossReasonId?: string | null
 ) {
   const deal = await db.query.deals.findFirst({ where: eq(deals.id, dealId) });
-  if (!deal) throw new Error("Affaire introuvable.");
+  if (!deal) throw new AppError("affaire_introuvable", undefined, 404);
   assertOrgAccess(user, deal.organizationId);
   if (deal.statusId === statusId) return deal;
 
   const status = await db.query.dealStatuses.findFirst({ where: eq(dealStatuses.id, statusId) });
   if (!status || status.organizationId !== deal.organizationId) {
-    throw new Error("Étape introuvable pour cette organisation.");
+    throw new AppError("etape_introuvable_pour_cette_organisation", undefined, 404);
   }
   // La FK composite deals_status_pipeline_fk le refuserait de toute façon —
   // ici pour l'erreur claire. Changer de pipeline sera un geste dédié,
   // jamais un effet de bord d'un changement d'étape.
   if (status.pipelineId !== deal.pipelineId) {
-    throw new Error("Cette étape appartient à un autre pipeline que celui de l'affaire.");
+    throw new AppError("cette_etape_appartient_a_un_autre_pipeline_9d7d");
   }
 
   let reasonId: string | null = null;
   if (status.outcome === "lost" && lossReasonId) {
     const reason = await db.query.lossReasons.findFirst({ where: eq(lossReasons.id, lossReasonId) });
     if (!reason || reason.organizationId !== deal.organizationId) {
-      throw new Error("Motif de perte introuvable pour cette organisation.");
+      throw new AppError("motif_de_perte_introuvable_pour_cette_organisation", undefined, 404);
     }
     reasonId = reason.id;
   }
@@ -223,13 +222,13 @@ export type DealDetailsInput = {
 
 export async function updateDealDetails(user: OrgScopeUser, dealId: string, input: DealDetailsInput) {
   const deal = await db.query.deals.findFirst({ where: eq(deals.id, dealId) });
-  if (!deal) throw new Error("Affaire introuvable.");
+  if (!deal) throw new AppError("affaire_introuvable", undefined, 404);
   assertOrgAccess(user, deal.organizationId);
 
   if (input.ownerId) {
     const owner = await db.query.users.findFirst({ where: eq(users.id, input.ownerId) });
     if (!owner || owner.organizationId !== deal.organizationId) {
-      throw new Error("Ce conseiller n'appartient pas à l'organisation de l'affaire.");
+      throw new AppError("ce_conseiller_n_appartient_pas_a_l_2bd0");
     }
   }
   let lossReasonId = deal.lossReasonId;
@@ -237,7 +236,7 @@ export async function updateDealDetails(user: OrgScopeUser, dealId: string, inpu
     if (input.lossReasonId) {
       const reason = await db.query.lossReasons.findFirst({ where: eq(lossReasons.id, input.lossReasonId) });
       if (!reason || reason.organizationId !== deal.organizationId) {
-        throw new Error("Motif de perte introuvable pour cette organisation.");
+        throw new AppError("motif_de_perte_introuvable_pour_cette_organisation", undefined, 404);
       }
       lossReasonId = reason.id;
     } else {

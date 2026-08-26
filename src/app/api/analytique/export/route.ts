@@ -16,6 +16,7 @@ import {
   type MetricSearchParams,
 } from "@/lib/metrics";
 import { requireUser } from "@/lib/session";
+import { getTranslations } from "next-intl/server";
 
 /**
  * GET /api/analytique/export?vue=<delais|funnel|pertes|partenaires>&<filtres>
@@ -56,8 +57,9 @@ export async function GET(req: Request) {
     dashboard: resolveBusinessPack(org?.businessPack),
   };
   const now = new Date();
-  const tables = await exportTables(view, user, parsed.filters, lookups, parsed.params);
-  const body = csvDocument([exportPreamble(view, parsed, lookups, now), ...tables]);
+  const tm = await getTranslations("metrics");
+  const tables = await exportTables(tm, view, user, parsed.filters, lookups, parsed.params);
+  const body = csvDocument([exportPreamble(tm, view, parsed, lookups, now), ...tables]);
 
   return new NextResponse(body, {
     headers: {

@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/app-shell/page-header";
 import { StatTile } from "@/components/stat-tile";
 import { Journal } from "@/components/activities/journal";
 import { PackIndicators } from "@/components/dashboard/pack-indicators";
-import { TASK_AUTO_RULE_LABELS } from "@/components/tasks/labels";
+import { autoRuleLabel } from "@/components/tasks/labels";
 import { TaskMetaLine } from "@/components/tasks/task-section";
 import { listOrganizationJournal } from "@/db/queries/activities";
 import { countContacts } from "@/db/queries/contacts";
@@ -24,15 +24,13 @@ import { completeTaskAction } from "@/lib/tasks/actions";
 import { formatDays, formatEuros } from "@/lib/format";
 import { DASHBOARD_PERIOD, hasAnyDeal, openDeals, parseMetricFilters, PERIOD_PRESETS } from "@/lib/metrics";
 import { requireUser } from "@/lib/session";
+import { getTranslations } from "next-intl/server";
 
 /** Tâches montrées sur le tableau de bord — le reste vit sur l'écran des tâches. */
 const TASKS_PREVIEW = 6;
 /** Entrées d'activité récente. */
 const JOURNAL_PREVIEW = 8;
 
-function plural(n: number, singular: string, pluralForm = `${singular}s`) {
-  return `${n} ${n > 1 ? pluralForm : singular}`;
-}
 
 /**
  * Le tableau de bord agrège les trois modules — tâches, PRM, pipeline et
@@ -45,6 +43,8 @@ function plural(n: number, singular: string, pluralForm = `${singular}s`) {
  * ici.
  */
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ periode?: string }> }) {
+  const t = await getTranslations("dashboard.page");
+  const tt = await getTranslations("tasks");
   const user = await requireUser();
   const raw = await searchParams;
 
@@ -61,8 +61,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     return (
       <>
         <PageHeader
-          title="Organisations"
-          description="Vue globale super admin — choisis une organisation (ici ou dans le bandeau) pour travailler dedans."
+          title={t("organisations")}
+          description={t("vue_globale_super_admin_choisis_une_36d9")}
         />
         <ListCard>
           {organizations.map((org) => (
@@ -77,7 +77,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   type="submit"
                   className="text-sm font-medium text-primary-ink underline-offset-2 hover:underline"
                 >
-                  Travailler dans cette organisation
+                  {t("travailler_dans_cette_organisation")}
                 </button>
               </form>
             </ListRow>
@@ -101,7 +101,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     countContacts(user),
     listPartners(user),
     getTasksDueSummary(user, TASKS_PREVIEW),
-    listOrganizationJournal(user, JOURNAL_PREVIEW),
+    listOrganizationJournal(user, JOURNAL_PREVIEW, await getTranslations("activities.queries")),
   ]);
   // La période des indicateurs : celle de l'URL si c'est un préréglage, sinon celle du tableau de bord (pas celle des écrans analytiques).
   const parsed = parseMetricFilters({ periode: PERIOD_PRESETS.some((p) => p.key === raw.periode) ? raw.periode : DASHBOARD_PERIOD });
@@ -129,9 +129,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       detail:
         row.daysUntilExpiry !== null && row.daysUntilExpiry <= board.thresholds.expiringSoonDays
           ? row.daysUntilExpiry <= 0
-            ? "lien expiré"
-            : `expire dans ${formatDays(row.daysUntilExpiry)}`
-          : `sans réponse depuis ${formatDays(row.daysSinceSent)}`,
+            ? t("lien_expire")
+            : t("expire_dans", { formatDays: formatDays(row.daysUntilExpiry) })
+          : t("sans_reponse_depuis", { formatDays: formatDays(row.daysSinceSent) }),
       critical: row.critical,
     })),
     ...board.acceptedStale.map((row) => ({
@@ -139,7 +139,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       dealId: row.dealId,
       title: row.dealTitle,
       partner: row.partnerName,
-      detail: `acceptée, rien depuis ${formatDays(row.daysSinceActivity)}`,
+      detail: t("acceptee_rien_depuis", { formatDays: formatDays(row.daysSinceActivity) }),
       critical: false,
     })),
   ].slice(0, 5);
@@ -147,17 +147,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   return (
     <>
       <PageHeader
-        title={org?.name ?? "Tableau de bord"}
-        description={`${plural(contactsCount, "contact")} · ${plural(open.n, "affaire en cours", "affaires en cours")} · ${plural(activePartners, "partenaire actif", "partenaires actifs")}`}
+        title={org?.name ?? t("tableau_de_bord")}
+        description={`${t("contact_contacts", { n: contactsCount })} · ${t("affaire_en_cours_affaires_en_cours", { n: open.n })} · ${t("partenaire_actif_partenaires_actifs", { n: activePartners })}`}
         actions={
           <>
             <Link href="/contacts" className={buttonVariants({ variant: "outline" })}>
               <BookUser />
-              Contacts
+              {t("contacts")}
             </Link>
             <Link href="/affaires" className={buttonVariants()}>
               <Plus />
-              Nouvelle affaire
+              {t("nouvelle_affaire")}
             </Link>
           </>
         }
@@ -166,63 +166,61 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       {isFreshSpace && (
         <EmptyState
           icon={<Sparkles />}
-          title="Bienvenue dans ton espace"
+          title={t("bienvenue_dans_ton_espace")}
           action={
             <>
               <Link href="/contacts/import" className={buttonVariants()}>
-                Importer mes contacts
+                {t("importer_mes_contacts")}
               </Link>
               {partners.length === 0 && (
                 <Link href="/partenaires?nouveau=1" className={buttonVariants({ variant: "outline" })}>
-                  Ajouter un partenaire
+                  {t("ajouter_un_partenaire")}
                 </Link>
               )}
               <Link href="/affaires?nouveau=1" className={buttonVariants({ variant: "outline" })}>
-                Créer une affaire
+                {t("creer_une_affaire")}
               </Link>
             </>
           }
         >
-          Par où commencer : importe tes contacts ou crée les premières fiches, puis crée ta
-          première affaire — et partage-la à un confrère depuis sa fiche. Le tableau de bord se
-          remplit tout seul.
+          {t("par_ou_commencer_importe_tes_contacts_9cbf")}
         </EmptyState>
       )}
 
       {/* Aujourd'hui : ce qui attend une action, tous modules confondus. */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
-          label="À faire"
+          label={t("a_faire")}
           value={tasksNow}
           hint={
             tasksDue.overdue > 0
-              ? `dont ${plural(tasksDue.overdue, "en retard")}`
-              : "Tâches du jour"
+              ? t("dont_en_retard_en_retards", { overdue: tasksDue.overdue })
+              : t("taches_du_jour")
           }
           icon={<ListTodo />}
           tone={tasksDue.overdue > 0 ? "critical" : "warning"}
           href="/taches"
         />
         <StatTile
-          label="À relancer"
+          label={t("a_relancer")}
           value={board.pendingAlerts.length}
-          hint="Partages sans réponse"
+          hint={t("partages_sans_reponse")}
           icon={<BellRing />}
           tone="critical"
           href="/suivi"
         />
         <StatTile
-          label="Sans suite"
+          label={t("sans_suite")}
           value={board.acceptedStale.length}
-          hint="Acceptées, puis silence"
+          hint={t("acceptees_puis_silence")}
           icon={<PauseCircle />}
           tone="warning"
           href="/suivi"
         />
         <StatTile
-          label="À encaisser"
+          label={t("a_encaisser")}
           value={unpaidTotal > 0 ? (formatEuros(unpaidTotal) ?? "—") : "—"}
-          hint={`${plural(board.unpaidCommissions.length, "commission confirmée", "commissions confirmées")}`}
+          hint={`${t("commission_confirmee_commissions_confirmees", { n: board.unpaidCommissions.length })}`}
           icon={<Banknote />}
           tone="success"
           href="/suivi"
@@ -236,18 +234,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">À faire aujourd&apos;hui</h2>
+          <h2 className="text-sm font-semibold">{t("a_faire_aujourd_hui")}</h2>
           <Link
             href="/taches"
             className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            Toutes les tâches
+            {t("toutes_les_taches")}
             <ArrowRight className="size-3.5" />
           </Link>
         </div>
 
         {tasksDue.rows.length === 0 ? (
-          <EmptyState className="py-8">Rien d&apos;échu ni de prévu pour aujourd&apos;hui.</EmptyState>
+          <EmptyState className="py-8">{t("rien_d_echu_ni_de_prevu_3031")}</EmptyState>
         ) : (
           <>
             <ListCard>
@@ -259,8 +257,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                       variant="outline"
                       size="icon-sm"
                       className="rounded-full"
-                      aria-label={`Marquer « ${task.title} » comme faite`}
-                      title="Marquer comme faite"
+                      aria-label={t("marquer_comme_faite", { title: task.title })}
+                      title={t("marquer_comme_faite_bb0d")}
                     >
                       <Check />
                     </Button>
@@ -271,7 +269,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   </div>
                   {task.autoRule && (
                     <Badge variant="secondary" className="shrink-0">
-                      {TASK_AUTO_RULE_LABELS[task.autoRule] ?? task.autoRule}
+                      {autoRuleLabel(task.autoRule, tt)}
                     </Badge>
                   )}
                 </li>
@@ -279,11 +277,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </ListCard>
             {tasksNow > tasksDue.rows.length && (
               <p className="text-xs text-muted-foreground">
-                Et {plural(tasksNow - tasksDue.rows.length, "autre")} —{" "}
-                <Link href="/taches" className="underline underline-offset-2 hover:text-foreground">
-                  voir toutes les tâches
-                </Link>
-                .
+                {t.rich("et_autre_autres_voir_toutes_les_bb29", { n: tasksNow - tasksDue.rows.length, link: (chunks) => <Link href="/taches" className="underline underline-offset-2 hover:text-foreground">{chunks}</Link> })}
               </p>
             )}
           </>
@@ -292,18 +286,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">À traiter en priorité</h2>
+          <h2 className="text-sm font-semibold">{t("a_traiter_en_priorite")}</h2>
           <Link
             href="/suivi"
             className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            Tout le suivi
+            {t("tout_le_suivi")}
             <ArrowRight className="size-3.5" />
           </Link>
         </div>
 
         {priority.length === 0 ? (
-          <EmptyState className="py-8">Rien qui attende une relance. Tout est à jour.</EmptyState>
+          <EmptyState className="py-8">{t("rien_qui_attende_une_relance_tout_3bf4")}</EmptyState>
         ) : (
           <ListCard>
             {priority.map((row) => (
@@ -334,9 +328,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         journal={journal}
         backTo="/dashboard"
         context="org"
-        title="Activité récente"
-        description="Interactions, étapes franchies, partages, tâches achevées — toute l'organisation, les plus récentes d'abord."
-        emptyText="Rien encore : les appels, rendez-vous et notes se consignent depuis les fiches contact et affaire ; le reste arrive tout seul."
+        title={t("activite_recente")}
+        description={t("interactions_etapes_franchies_partages_taches_achevees_b466")}
+        emptyText={t("rien_encore_les_appels_rendez_vous_289d")}
       />
     </>
   );

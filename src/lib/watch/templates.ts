@@ -1,3 +1,5 @@
+import type { Messages } from "@/i18n/messages";
+
 /**
  * LA VEILLE PAR DÉFAUT D'UN MÉTIER — des données, rattachées à chaque pack
  * (src/lib/metrics/packs.ts) comme les cibles : des SUJETS (avec leurs
@@ -10,22 +12,23 @@
  * la fiscalité — c'est le métier qui parle, l'organisation ajuste.
  */
 export type WatchTopicTemplate = {
-  label: string;
-  searchTerms: string[];
+  /** Le slug du sujet : son libellé et ses termes de recherche (séparés par « | ») sont `templates.topics.<slug>.*` dans les messages — du contenu dans la langue de l'organisation. */
+  slug: keyof Messages["templates"]["topics"];
   /** « fr », « en » — sources françaises ET anglophones au choix du métier. */
   languages: string[];
 };
 
 export type WatchSourceTemplate = {
-  label: string;
+  /** Le slug de la source : son libellé est `templates.sources.<slug>` dans les messages. */
+  slug: keyof Messages["templates"]["sources"];
   siteUrl: string;
   /** Vérifié par appel réel ; null = pas de flux, la source vit par la recherche restreinte à son domaine (et a besoin d'un sujet). */
   feedUrl: string | null;
   /** ISO 3166-1 alpha-2 ; « EU » pour une institution européenne. */
   country: string;
   lang: string;
-  /** Le libellé d'un sujet du même pack, ou null pour une source générale (les articles sont classés par thème au résumé). */
-  topic: string | null;
+  /** Le slug d'un sujet du même pack, ou null pour une source générale (les articles sont classés par thème au résumé). */
+  topic: keyof Messages["templates"]["topics"] | null;
 };
 
 export type WatchDefaults = {
@@ -35,7 +38,7 @@ export type WatchDefaults = {
 };
 
 const BERCY: WatchSourceTemplate = {
-  label: "Ministère de l'Économie — actualités",
+  slug: "ministere_de_l_economie_ac97",
   siteUrl: "https://www.economie.gouv.fr",
   feedUrl: "https://www.economie.gouv.fr/rss/toutesactualites",
   country: "FR",
@@ -44,7 +47,7 @@ const BERCY: WatchSourceTemplate = {
 };
 
 const AMF_EPARGNANTS: WatchSourceTemplate = {
-  label: "AMF — épargnants",
+  slug: "amf_epargnants",
   siteUrl: "https://www.amf-france.org",
   feedUrl: "https://www.amf-france.org/fr/flux-rss/display/22",
   country: "FR",
@@ -53,7 +56,7 @@ const AMF_EPARGNANTS: WatchSourceTemplate = {
 };
 
 const AMF_COMMUNIQUES: WatchSourceTemplate = {
-  label: "AMF — communiqués de presse",
+  slug: "amf_communiques_de_presse",
   siteUrl: "https://www.amf-france.org/fr/actualites-publications/communiques",
   feedUrl: "https://www.amf-france.org/fr/flux-rss/display/23",
   country: "FR",
@@ -62,7 +65,7 @@ const AMF_COMMUNIQUES: WatchSourceTemplate = {
 };
 
 const BCE_PRESSE: WatchSourceTemplate = {
-  label: "Banque centrale européenne — communiqués",
+  slug: "banque_centrale_europeenne_communiques",
   siteUrl: "https://www.ecb.europa.eu",
   feedUrl: "https://www.ecb.europa.eu/rss/press.html",
   country: "EU",
@@ -71,7 +74,7 @@ const BCE_PRESSE: WatchSourceTemplate = {
 };
 
 const BOE_NEWS: WatchSourceTemplate = {
-  label: "Bank of England — news",
+  slug: "bank_of_england_news",
   siteUrl: "https://www.bankofengland.co.uk",
   feedUrl: "https://www.bankofengland.co.uk/rss/news",
   country: "GB",
@@ -80,21 +83,21 @@ const BOE_NEWS: WatchSourceTemplate = {
 };
 
 const ANIL: WatchSourceTemplate = {
-  label: "ANIL — information sur le logement",
+  slug: "anil_information_sur_le_54f6",
   siteUrl: "https://www.anil.org",
   feedUrl: null,
   country: "FR",
   lang: "fr",
-  topic: "Crédit immobilier",
+  topic: "credit_immobilier",
 };
 
 export const COURTIER_CREDIT_WATCH: WatchDefaults = {
   topics: [
-    { label: "Crédit immobilier", searchTerms: ["taux crédit immobilier", "prêt immobilier banques"], languages: ["fr"] },
-    { label: "Taux d'usure et conditions d'emprunt", searchTerms: ["taux d'usure", "conditions d'octroi crédit immobilier HCSF"], languages: ["fr"] },
-    { label: "Marché immobilier", searchTerms: ["prix immobilier ancien", "marché immobilier"], languages: ["fr"] },
-    { label: "Assurance emprunteur", searchTerms: ["assurance emprunteur"], languages: ["fr"] },
-    { label: "Aides à l'achat et primo-accédants", searchTerms: ["prêt à taux zéro", "aides accession propriété"], languages: ["fr"] },
+    { slug: "credit_immobilier", languages: ["fr"] },
+    { slug: "taux_d_usure_et_d2e9", languages: ["fr"] },
+    { slug: "marche_immobilier", languages: ["fr"] },
+    { slug: "assurance_emprunteur", languages: ["fr"] },
+    { slug: "aides_a_l_achat_0e62", languages: ["fr"] },
   ],
   sources: [BERCY, ANIL, BCE_PRESSE],
   indicators: [
@@ -111,11 +114,11 @@ export const COURTIER_CREDIT_WATCH: WatchDefaults = {
 
 export const CGP_WATCH: WatchDefaults = {
   topics: [
-    { label: "Assurance-vie et placements", searchTerms: ["assurance-vie rendement fonds euros", "placements épargne"], languages: ["fr"] },
-    { label: "SCPI et immobilier locatif", searchTerms: ["SCPI", "investissement locatif fiscalité"], languages: ["fr"] },
-    { label: "Fiscalité du patrimoine", searchTerms: ["fiscalité patrimoine", "succession donation impôt"], languages: ["fr"] },
-    { label: "Retraite", searchTerms: ["retraite réforme", "plan épargne retraite PER"], languages: ["fr"] },
-    { label: "Marchés financiers", searchTerms: ["marchés financiers", "central banks interest rates markets"], languages: ["fr", "en"] },
+    { slug: "assurance_vie_et_placements", languages: ["fr"] },
+    { slug: "scpi_et_immobilier_locatif", languages: ["fr"] },
+    { slug: "fiscalite_du_patrimoine", languages: ["fr"] },
+    { slug: "retraite", languages: ["fr"] },
+    { slug: "marches_financiers", languages: ["fr", "en"] },
   ],
   sources: [AMF_EPARGNANTS, AMF_COMMUNIQUES, BERCY, BCE_PRESSE, BOE_NEWS],
   indicators: ["bce_facilite_depot", "estr", "fr_tec10", "fr_inflation_ipc", "ze_inflation_ipch", "fr_prix_logements_anciens", "fr_irl_variation"],
@@ -123,11 +126,11 @@ export const CGP_WATCH: WatchDefaults = {
 
 export const ASSURANCE_WATCH: WatchDefaults = {
   topics: [
-    { label: "Assurance emprunteur", searchTerms: ["assurance emprunteur loi Lemoine"], languages: ["fr"] },
-    { label: "Prévoyance et santé", searchTerms: ["prévoyance", "complémentaire santé"], languages: ["fr"] },
-    { label: "Assurance habitation et automobile", searchTerms: ["assurance habitation", "assurance auto tarifs"], languages: ["fr"] },
-    { label: "Réglementation de l'assurance", searchTerms: ["ACPR assurance", "réglementation assurance"], languages: ["fr"] },
-    { label: "Épargne et assurance-vie", searchTerms: ["assurance-vie"], languages: ["fr"] },
+    { slug: "assurance_emprunteur", languages: ["fr"] },
+    { slug: "prevoyance_et_sante", languages: ["fr"] },
+    { slug: "assurance_habitation_et_automobile", languages: ["fr"] },
+    { slug: "reglementation_de_l_assurance", languages: ["fr"] },
+    { slug: "epargne_et_assurance_vie", languages: ["fr"] },
   ],
   sources: [BERCY, AMF_EPARGNANTS],
   indicators: ["bce_facilite_depot", "fr_inflation_ipc", "fr_usure_immo_20ans", "fr_irl_variation"],
@@ -135,10 +138,10 @@ export const ASSURANCE_WATCH: WatchDefaults = {
 
 export const GENERIQUE_WATCH: WatchDefaults = {
   topics: [
-    { label: "Actualité économique", searchTerms: ["actualité économique France", "euro area economic outlook"], languages: ["fr", "en"] },
-    { label: "Immobilier", searchTerms: ["marché immobilier"], languages: ["fr"] },
-    { label: "Fiscalité", searchTerms: ["fiscalité particuliers entreprises"], languages: ["fr"] },
-    { label: "Épargne et placements", searchTerms: ["épargne placements"], languages: ["fr"] },
+    { slug: "actualite_economique", languages: ["fr", "en"] },
+    { slug: "immobilier", languages: ["fr"] },
+    { slug: "fiscalite", languages: ["fr"] },
+    { slug: "epargne_et_placements", languages: ["fr"] },
   ],
   sources: [BERCY, BCE_PRESSE],
   indicators: ["bce_facilite_depot", "fr_tec10", "fr_inflation_ipc", "ze_inflation_ipch"],

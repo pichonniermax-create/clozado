@@ -3,6 +3,7 @@ import { db } from "@/db";
 import type { OrgScopeUser } from "@/lib/session";
 import { dealConditions, organizationOf, periodCondition, type MetricFilters } from "./filters";
 import { finishRate, type RateStat } from "./types";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /**
  * La famille « pertes » — le calcul, en SQL, de METRICS.lost_deal,
@@ -122,7 +123,7 @@ export function wonDealsQuery(organizationId: string, filters: MetricFilters): S
   `;
 }
 
-export async function lossesReport(user: OrgScopeUser, filters: MetricFilters = {}): Promise<LossesReport> {
+export async function lossesReport(user: OrgScopeUser, filters: MetricFilters = {}, t: TranslatorOf<"metrics">): Promise<LossesReport> {
   const org = organizationOf(user);
   const measure = sql`count(*) AS n, coalesce(sum(estimated_amount), 0) AS amount, count(*) FILTER (WHERE estimated_amount IS NULL) AS without_amount`;
   const [result, wonRows, reasons, stages, owners, types] = await Promise.all([
@@ -163,7 +164,7 @@ export async function lossesReport(user: OrgScopeUser, filters: MetricFilters = 
         const key = r.key ? String(r.key) : missing.key;
         return {
           key,
-          label: r.key ? (labels.get(key) ?? "(supprimé)") : missing.label,
+          label: r.key ? (labels.get(key) ?? t("losses.deleted")) : missing.label,
           n: num(r.n),
           amount: num(r.amount),
           withoutAmount: num(r.without_amount),
@@ -177,10 +178,10 @@ export async function lossesReport(user: OrgScopeUser, filters: MetricFilters = 
     excludedReconstructed: { n: num(reconstructedRow?.n), amount: num(reconstructedRow?.amount), withoutAmount: num(reconstructedRow?.without_amount) },
     won,
     lossRate: finishRate(total.n, total.n + won),
-    byReason: breakdown("reason", labelMap(reasons), { key: LOSS_NO_REASON, label: "Sans motif" }),
-    byStage: breakdown("stage", labelMap(stages), { key: LOST_FROM_CREATION, label: "Dès la création" }),
-    byOwner: breakdown("owner", labelMap(owners), { key: LOSS_NO_OWNER, label: "Sans responsable" }),
-    byType: breakdown("type", labelMap(types), { key: "sans-type", label: "Sans type" }),
+    byReason: breakdown("reason", labelMap(reasons), { key: LOSS_NO_REASON, label: t("losses.no_reason") }),
+    byStage: breakdown("stage", labelMap(stages), { key: LOST_FROM_CREATION, label: t("losses.from_creation") }),
+    byOwner: breakdown("owner", labelMap(owners), { key: LOSS_NO_OWNER, label: t("losses.no_owner") }),
+    byType: breakdown("type", labelMap(types), { key: "sans-type", label: t("losses.no_type") }),
   };
 }
 

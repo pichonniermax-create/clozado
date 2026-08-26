@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AppError } from "@/lib/errors";
 
 /**
  * SOURCE UNIQUE du modèle de blocs. Le schéma d'outil transmis à l'IA
@@ -29,33 +30,12 @@ export const BLOCK_TYPES = [
 export type BlockType = (typeof BLOCK_TYPES)[number];
 
 /**
- * Libellés FR à l'usage de l'admin (UI, messages d'erreur) — pas de contenu
- * de marque.
- *
- * Règle de rédaction : ces mots s'affichent tels quels dans l'éditeur, et
- * doivent se comprendre sans explication par quelqu'un qui n'a jamais fait
- * de mise en page. Pas de « CTA », pas de « séparateur » au sens graphiste.
+ * Les libellés et l'explication de chaque type de bloc vivent dans les
+ * messages (`newsletters.blocks.<type>.label` / `.hint`, chantier i18n) :
+ * ces mots s'affichent tels quels dans l'éditeur, et doivent se comprendre
+ * sans explication par quelqu'un qui n'a jamais fait de mise en page. Pas
+ * de « CTA », pas de « séparateur » au sens graphiste.
  */
-export const BLOCK_LABELS: Record<BlockType, string> = {
-  titre: "Titre",
-  texte: "Texte",
-  chiffre_cle: "Chiffre clé",
-  fiches: "Fiches",
-  cta: "Encart d'action",
-  bouton: "Bouton",
-  separateur: "Trait de séparation",
-};
-
-/** Une ligne qui dit à quoi sert le bloc, affichée au moment de le choisir. */
-export const BLOCK_HINTS: Record<BlockType, string> = {
-  titre: "Ouvre une section",
-  texte: "Un ou plusieurs paragraphes",
-  chiffre_cle: "Un chiffre marquant, affiché en gros",
-  fiches: "2 à 4 encadrés courts, côte à côte",
-  cta: "Un pavé qui pousse à cliquer",
-  bouton: "Un simple bouton",
-  separateur: "Sépare deux parties",
-};
 
 /**
  * LA forme des blocs, écrite UNE SEULE FOIS et instanciée à deux niveaux
@@ -171,7 +151,7 @@ export function parseBlockPayload(type: string, payload: unknown) {
   const schema = BLOCK_PAYLOAD_SCHEMAS[type as BlockType];
   const result = schema.safeParse(payload);
   if (!result.success) {
-    throw new Error(`Payload invalide pour un bloc "${type}" : ${result.error.message}`);
+    throw new AppError("payload_invalide_pour_un_bloc", { type, detail: result.error.message });
   }
   return result.data;
 }
@@ -279,6 +259,7 @@ export function buildEmitNewsletterTool() {
   return {
     name: "emit_newsletter",
     description:
+      // eslint-disable-next-line local/no-visible-text -- la description d\'un outil donnée au modèle, pas un texte d\'interface
       "Émet la newsletter composée : objet, préheader, et la liste ordonnée des blocs.",
     input_schema: inputSchema,
   } as const;

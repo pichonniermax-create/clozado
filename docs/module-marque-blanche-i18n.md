@@ -703,9 +703,144 @@ Rien de construit maintenant ; rien de codé qui l'empêche. Le jour venu :
   bord A et B, panneau mobile A, vitrine A, super admin global et dans A,
   connexion).
 
+## Étape 4 — les textes sortis du code : `next-intl`, le français, le lint qui refuse une chaîne visible
+
+### Ce qui est construit
+
+- **`next-intl` sans routage par langue** (décision de l'étape 1). `src/i18n/request.ts`
+  résout la langue de la requête — celle de la personne connectée
+  (`users.locale`, sinon `organizations.default_locale`, sinon le français),
+  mise en cache par requête — et charge les messages. Les composants
+  serveur lisent `getTranslations`/`useTranslations`, les composants client
+  reçoivent du `NextIntlClientProvider` de la coquille racine les seuls
+  espaces dont ils ont besoin (`CLIENT_NAMESPACES`, douze sur vingt-trois :
+  le reste ne sert qu'au rendu serveur et ne part pas dans la page). Hors
+  requête — le cron de veille, les tâches générées, les valeurs par défaut
+  semées à la création d'un espace, l'email de connexion —
+  `translatorFor(locale, espace)` construit un traducteur pour une langue
+  choisie explicitement : celle de l'organisation (`localeOfOrganization`)
+  ou du destinataire (`localeOfUser`).
+- **Les messages : 23 espaces, 2 422 messages** dans `src/messages/fr/*.json`,
+  assemblés par `src/messages/fr.ts`, un espace par module (`contacts`,
+  `deals`, `analytics`, `metrics`, `newsletters`, `watch`, `figures`,
+  `targets`, `templates`, `brand`, `shell`, `nav`, `errors`, `ui`…). Les
+  clés sont **typées contre le français** (`declare module "next-intl"` dans
+  `src/i18n/global.ts`) : une clé absente ne compile pas. Une clé est le
+  slug du texte français (six mots, plus une empreinte quand il est plus
+  long) ; les pluriels sont des messages ICU (`{n, plural, one {…} other
+  {…}}`, 134 aujourd'hui) — plus de `plural(n, "mot")` dans le code ; les
+  textes avec un lien ou une mise en forme passent par `t.rich` (80 sites).
+  L'apostrophe des messages est typographique (`’`), l'apostrophe droite
+  étant le caractère de citation d'ICU.
+- **Les registres portent des clés, plus des libellés.** Définitions et
+  packs d'indicateurs (`metrics.definitions.<id>.*`, `metrics.packs.*`),
+  navigation (`nav.*`), indicateurs de marché (`figures.indicators.*`),
+  modèles de cibles, de sujets et de sources (`templates.*`), blocs de
+  newsletter, types d'activité, priorités et règles de tâches, critères de
+  cible, paires de contraste et diagnostics de marque, erreurs de collecte
+  de la veille : chacun est un `id` typé `keyof Messages[…]`, lu par un
+  traducteur là où il s'affiche.
+- **Les erreurs** : `AppError(clé, valeurs, statut)` (`src/lib/errors.ts`)
+  porte une clé de `errors.json`, jamais une phrase ; `errorMessage()` la
+  traduit au moment de l'afficher (formulaires) et les routes API rendent
+  son statut. Les requêtes qui ÉCRIVENT un texte en base — le journal, les
+  tâches automatiques, les noms des pipelines, statuts et cibles par défaut
+  d'un nouvel espace, les résumés de la veille, les chiffres synchronisés —
+  reçoivent un traducteur (`<module>.queries.*`) : ce qui est stocké est
+  écrit dans la langue de l'organisation, pas dans celle du code.
+- **Les formats viennent d'`Intl`** : durées et jours (`Intl.NumberFormat`
+  en style unité), temps relatifs (`Intl.RelativeTimeFormat`), périodes
+  des observations de marché (mois par `Intl.DateTimeFormat`, trimestre par
+  un message ordinal) — aucun mot de calendrier en dur.
+- **L'email de connexion en français** — le seul email système qui part
+  aujourd'hui. `sendVerificationRequest` (dans `src/auth.ts`) remplace le
+  modèle anglais d'Auth.js par `renderMagicLinkEmail`
+  (`src/lib/email/magic-link.ts`) : sujet, texte et HTML dans la langue du
+  DESTINATAIRE (`localeOfUser({ email })` — il n'y a pas de personne
+  connectée à ce moment-là), aux couleurs du produit (la connexion reste
+  Clozado, étape 3). `localeOfUser`/`localeOfOrganization` vivent dans
+  `src/i18n/locale-lookup.ts`, sans dépendre d'Auth.js, pour que `auth.ts`
+  puisse les importer sans cycle.
+- **Le nom du produit** est une constante, `PRODUCT_NAME` (`src/lib/brand.ts`)
+  — la seule chaîne visible qui a le droit de vivre dans le code, avec son
+  exception déclarée ; le titre de l'onglet, la marque de la barre latérale
+  et l'espace gestionnaire la lisent.
+- **Le lint qui refuse une chaîne visible** : `local/no-visible-text`
+  (`eslint-rules/no-visible-text.mjs`, activée sur `src/**` sauf
+  `src/lib/ai/**`). Elle refuse un texte dans le JSX (hors `code`/`pre`/
+  `kbd`), un attribut visible en dur (`placeholder`, `title`, `alt`,
+  `label`, `description`, `aria-label`… — liste explicite), une propriété
+  d'objet textuelle (`label`, `hint`, `message`, `subject`…), un argument
+  d'appel, un gabarit ou une constante qui ressemble à de la prose (une
+  heuristique : accents, ponctuation finale, deux mots, un mot capitalisé —
+  et jamais une liste de classes, un fragment HTML/CSS, une clé, une URL, un
+  caractère seul). Une exception se déclare par
+  `// eslint-disable-next-line local/no-visible-text -- raison` : douze
+  aujourd'hui, toutes lisibles par `grep`, aucune pour un texte d'interface
+  (le nom du produit, les consignes au modèle, les tables de reconnaissance
+  des dates des sources, une pile de polices CSS, la description d'un outil
+  donnée au modèle, la réponse d'un cron à une machine, le schéma
+  d'authentification et le contrat de l'API de collecte, les codes d'erreur
+  d'Auth.js, le script `s.js` servi aux sites des clients).
+- **Le second garde-fou** : `local/client-namespaces` refuse, dans un
+  fichier `"use client"`, un `useTranslations("espace…")` dont l'espace
+  n'est pas dans `CLIENT_NAMESPACES` — ce cas ne casse ni la compilation ni
+  le rendu serveur, il casse dans le navigateur (MISSING_MESSAGE). Les
+  frontières d'erreur (`error.tsx`, composants client) lisent pour cela
+  `shell.boundaries.<module>`, et non l'espace de leur module.
+
+### Ce qu'il faut savoir
+
+- **Changer un texte français, c'est changer la valeur d'une clé, pas la
+  clé.** La clé est un identifiant stable (le slug du texte tel qu'il était
+  quand il est sorti du code) ; elle ne se renomme que si le sens change.
+  Ajouter une langue (étape 5) = un jeu `src/messages/<langue>/*.json` de
+  mêmes clés, une entrée dans `LOADERS` et dans `LOCALES` — le type
+  `Messages` reste celui du français, les autres jeux doivent s'y conformer.
+- **Le code des prompts (`src/lib/ai/**`) est hors du lint** : leur langue
+  est celle des contenus générés, et ils changeront avec l'étape 5 (générer
+  dans la langue de l'organisation), pas avec les messages d'interface.
+- **Le codemod qui a fait l'extraction n'est pas conservé** : c'était un
+  outil d'une fois (analyse TypeScript, un passage par fichier) ; le
+  garde-fou durable est le lint, qui refuse toute chaîne réintroduite.
+- **`CLIENT_NAMESPACES` est un choix de poids de page**, pas une contrainte
+  technique : tout envoyer au navigateur marcherait, mais `metrics`,
+  `analytics` et `templates` (près de 800 messages) ne servent qu'au rendu
+  serveur.
+- **Le texte visible de la page de connexion et d'inscription est en
+  français par défaut** : sans personne connectée, la langue de la requête
+  est celle par défaut du produit. La langue de la vitrine de partage
+  (`/partage/[jeton]`) suivra celle de l'organisation émettrice à l'étape 5.
+
+### Décisions réversibles
+
+- Des clés en slug du français plutôt que des clés « sémantiques »
+  (`contacts.list.empty.title`) : la seconde forme se lit mieux dans le
+  code, mais 2 400 clés à nommer à la main sont hors de portée d'une étape ;
+  les renommer plus tard est mécanique (une clé n'apparaît qu'à un ou deux
+  endroits, typés).
+- L'email de connexion aux couleurs du produit : au nom de l'organisation
+  quand les emails système partiront depuis son expéditeur (étape 5,
+  `emailSender()`).
+
+### Preuves
+
+- `npx eslint .` : **0 message** sur 301 fichiers — dont 0
+  `local/no-visible-text` sur les 289 fichiers de `src`, et 0
+  `local/client-namespaces`. Preuve négative des deux règles : un fichier
+  temporaire avec `<p title="Le titre">Bonjour tout le monde</p>` est refusé
+  deux fois (attribut, texte JSX) ; un composant client lisant
+  `metrics.definitions` est refusé avec le message qui dit quoi faire.
+- `tsc --noEmit` : 0 erreur ; `next build` : réussi. 2 422 messages,
+  tous valides en ICU (vérification par `intl-messageformat` avant le
+  build) ; 0 clé orpheline (chaque clé est référencée, statiquement ou par
+  un préfixe dynamique typé).
+- Au navigateur (build de production, session forgée) : deux passes, 99 contrôles, 0 constat : 47 écrans sur une organisation sans données (états vides, formulaires dépliés, import, composer, réglages, vue globale du super admin, connexion/inscription/vérification, vitrine de partage invalide, mobile) puis 52 sur l’organisation `_perf-test` peuplée (5 000 contacts, 500 affaires, 2 000 tâches, 3 000 interactions : fiches, journal, kanban et liste, analytique avec données et filtres, recherche et pagination, tâches terminées, affaires perdues, vitrine partenaire sur un partage réel — créé puis supprimé, jeu de données détruit) ; à chaque écran : statut, erreurs de console et de page, réponses 5xx, texte visible sans clé brute (`[a-z]+(_[a-z0-9]+){2,}`), sans accolade, sans MISSING_MESSAGE ni balise `<link>` ni `undefined` ; journal serveur sans MISSING_MESSAGE. Captures dans le scratchpad de la session.
+
 ## Avancement
 
-- **Étape 3 — propagation** : prouvée au navigateur (deux organisations,
+- **Étape 4 — les textes sortis du code** : `next-intl` sans routage, 23 espaces et 2 422 messages typés contre le français, les registres en clés, `AppError` en clés, l'email de connexion en français, le nom du produit en constante ; le lint `local/no-visible-text` à 0 sur tout `src` (12 exceptions déclarées, aucune d'interface) et `local/client-namespaces` ; prouvée au navigateur (99 contrôles sur deux passes, organisation vide puis peuplée, 0 constat). Prochaine : étape 5 — l'anglais, les devises et formats par organisation, les emails système dans la langue du destinataire.
+- **Étape 3 — propagation** : `3207509`, prouvée au navigateur (deux organisations,
   deux interfaces : 54 contrôles, zéro erreur) et à blanc. STOP.
 - **Étape 2 — jetons dérivés, sélecteur, logo** : `52e2279`, prouvée à
   blanc (360 paires, aucune sous le seuil) et au navigateur (35 contrôles).

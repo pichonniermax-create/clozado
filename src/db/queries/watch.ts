@@ -19,6 +19,10 @@ import type { OrgScopeUser } from "@/lib/session";
 import type { WatchSourceTemplate, WatchTopicTemplate } from "@/lib/watch/templates";
 import { canonicalUrl, urlHash } from "@/lib/watch/url";
 import { followIndicators, listFollowedIndicatorKeys } from "./market";
+import { AppError } from "@/lib/errors";
+import type { TranslatorOf } from "@/i18n/translator";
+import { localeOfOrganization } from "@/i18n/locale";
+import { translatorFor } from "@/i18n/translator";
 
 /**
  * LA VEILLE — sujets, sources, articles, panier, collectes. Tout est par
@@ -41,7 +45,7 @@ export const WATCH_ASLEEP_AFTER_DAYS = 30;
 export const WATCH_MAX_ITEM_AGE_DAYS = 60;
 
 function requireOrganization(user: OrgScopeUser): string {
-  if (!user.organizationId) throw new Error("Aucune organisation sélectionnée.");
+  if (!user.organizationId) throw new AppError("aucune_organisation_selectionnee");
   return user.organizationId;
 }
 
@@ -58,7 +62,7 @@ export type WatchTopicInput = { label: string; searchTerms: string[]; searchLang
 
 function readTopicInput(input: WatchTopicInput): WatchTopicInput {
   const label = input.label.trim();
-  if (!label) throw new Error("Le libellé du sujet est obligatoire.");
+  if (!label) throw new AppError("le_libelle_du_sujet_est_obligatoire");
   const searchTerms = input.searchTerms.map((t) => t.trim()).filter(Boolean);
   const searchLanguages = Array.from(new Set(input.searchLanguages.map((l) => l.trim().toLowerCase()).filter((l) => l === "fr" || l === "en")));
   return { label, searchTerms, searchLanguages: searchLanguages.length ? searchLanguages : ["fr"] };
@@ -88,14 +92,14 @@ export async function createWatchTopic(user: OrgScopeUser, input: WatchTopicInpu
       .returning();
     return row;
   } catch (error) {
-    if (isUniqueViolation(error)) throw new Error(`Le sujet « ${data.label} » existe déjà.`);
+    if (isUniqueViolation(error)) throw new AppError("le_sujet_existe_deja", { label: data.label });
     throw error;
   }
 }
 
 async function getOwnTopic(user: OrgScopeUser, id: string): Promise<WatchTopic> {
   const row = await db.query.watchTopics.findFirst({ where: eq(watchTopics.id, id) });
-  if (!row) throw new Error("Sujet introuvable.");
+  if (!row) throw new AppError("sujet_introuvable", undefined, 404);
   assertOrgAccess(user, row.organizationId);
   return row;
 }
@@ -106,7 +110,7 @@ export async function updateWatchTopic(user: OrgScopeUser, id: string, input: Wa
   try {
     await db.update(watchTopics).set({ ...data, updatedAt: new Date() }).where(eq(watchTopics.id, id));
   } catch (error) {
-    if (isUniqueViolation(error)) throw new Error(`Le sujet « ${data.label} » existe déjà.`);
+    if (isUniqueViolation(error)) throw new AppError("le_sujet_existe_deja", { label: data.label });
     throw error;
   }
 }
@@ -151,11 +155,11 @@ export type WatchSourceInput = {
 function readSourceInput(input: WatchSourceInput): WatchSourceInput {
   const label = input.label.trim();
   const siteUrl = canonicalUrl(input.siteUrl.trim().match(/^https?:\/\//i) ? input.siteUrl.trim() : `https://${input.siteUrl.trim()}`);
-  if (!siteUrl) throw new Error("L'adresse du site est illisible.");
+  if (!siteUrl) throw new AppError("l_adresse_du_site_est_illisible");
   const feedUrl = input.feedUrl?.trim() ? canonicalUrl(input.feedUrl.trim()) : null;
-  if (input.feedUrl?.trim() && !feedUrl) throw new Error("L'adresse du flux est illisible.");
+  if (input.feedUrl?.trim() && !feedUrl) throw new AppError("l_adresse_du_flux_est_illisible");
   const country = input.country?.trim().toUpperCase() || null;
-  if (country && !/^[A-Z]{2}$/.test(country)) throw new Error("Le pays s'écrit en deux lettres (FR, GB, US…).");
+  if (country && !/^[A-Z]{2}$/.test(country)) throw new AppError("le_pays_s_ecrit_en_deux_lettres_92d8");
   const lang = input.lang?.trim().toLowerCase() || null;
   return {
     kind: input.kind === "competitor" ? "competitor" : "source",
@@ -187,7 +191,7 @@ export async function createWatchSource(user: OrgScopeUser, input: WatchSourceIn
   const data = readSourceInput(input);
   if (data.topicId) {
     const topic = await db.query.watchTopics.findFirst({ where: eq(watchTopics.id, data.topicId) });
-    if (!topic || topic.organizationId !== organizationId) throw new Error("Sujet introuvable.");
+    if (!topic || topic.organizationId !== organizationId) throw new AppError("sujet_introuvable", undefined, 404);
   }
   const [{ max }] = await db
     .select({ max: sql<number>`coalesce(max(${watchSources.position}), -1)::int` })
@@ -200,14 +204,14 @@ export async function createWatchSource(user: OrgScopeUser, input: WatchSourceIn
       .returning();
     return row;
   } catch (error) {
-    if (isUniqueViolation(error)) throw new Error("Ce site est déjà suivi.");
+    if (isUniqueViolation(error)) throw new AppError("ce_site_est_deja_suivi");
     throw error;
   }
 }
 
 async function getOwnSource(user: OrgScopeUser, id: string): Promise<WatchSource> {
   const row = await db.query.watchSources.findFirst({ where: eq(watchSources.id, id) });
-  if (!row) throw new Error("Source introuvable.");
+  if (!row) throw new AppError("source_introuvable", undefined, 404);
   assertOrgAccess(user, row.organizationId);
   return row;
 }
@@ -403,7 +407,7 @@ export async function listBasket(user: OrgScopeUser): Promise<WatchItemRow[]> {
 
 async function getOwnItem(user: OrgScopeUser, id: string): Promise<WatchItem> {
   const row = await db.query.watchItems.findFirst({ where: eq(watchItems.id, id) });
-  if (!row) throw new Error("Article introuvable.");
+  if (!row) throw new AppError("article_introuvable", undefined, 404);
   assertOrgAccess(user, row.organizationId);
   return row;
 }
@@ -510,9 +514,10 @@ export type StartRunResult =
  * minutes entre deux départs.
  */
 export async function startWatchRun(organizationId: string, trigger: "visit" | "manual" | "cron"): Promise<StartRunResult> {
+  const t = await translatorFor(await localeOfOrganization(organizationId), "watch.queries");
   await db
     .update(watchRuns)
-    .set({ finishedAt: new Date(), error: "Collecte interrompue (délai dépassé)." })
+    .set({ finishedAt: new Date(), error: t("collecte_interrompue_delai_depasse") })
     .where(
       and(
         eq(watchRuns.organizationId, organizationId),
@@ -551,10 +556,10 @@ export async function startWatchRun(organizationId: string, trigger: "visit" | "
   if (!id) {
     const concurrent = await getRunningRun(organizationId);
     if (concurrent) return { status: "running", run: concurrent };
-    throw new Error("La collecte n'a pas pu démarrer.");
+    throw new AppError("la_collecte_n_a_pas_pu_demarrer");
   }
   const run = await db.query.watchRuns.findFirst({ where: eq(watchRuns.id, id) });
-  if (!run) throw new Error("La collecte n'a pas pu démarrer.");
+  if (!run) throw new AppError("la_collecte_n_a_pas_pu_demarrer");
   return { status: "started", run };
 }
 
@@ -631,13 +636,15 @@ export function missingPackWatch(
   pack: BusinessPack,
   topics: Pick<WatchTopic, "label">[],
   sources: Pick<WatchSource, "kind" | "siteUrl">[],
-  followedKeys: readonly string[]
+  followedKeys: readonly string[],
+  /** Les gabarits, dans la langue de l'organisation : un sujet existe s'il porte le libellé du gabarit. */
+  t: TranslatorOf<"templates">
 ): { topics: WatchTopicTemplate[]; sources: WatchSourceTemplate[]; indicators: string[] } {
-  const topicLabels = new Set(topics.map((t) => norm(t.label)));
+  const topicLabels = new Set(topics.map((topic) => norm(topic.label)));
   const siteKeys = new Set(sources.map((s) => `${s.kind}|${canonicalUrl(s.siteUrl) ?? s.siteUrl}`));
   const followed = new Set(followedKeys);
   return {
-    topics: pack.watch.topics.filter((t) => !topicLabels.has(norm(t.label))),
+    topics: pack.watch.topics.filter((tpl) => !topicLabels.has(norm(t(`topics.${tpl.slug}.label`)))),
     sources: pack.watch.sources.filter((s) => !siteKeys.has(`source|${canonicalUrl(s.siteUrl) ?? s.siteUrl}`)),
     indicators: pack.watch.indicators.filter((k) => !followed.has(k)),
   };
@@ -651,7 +658,8 @@ export function missingPackWatch(
  */
 export async function createPackWatchDefaults(
   user: OrgScopeUser,
-  pack: BusinessPack
+  pack: BusinessPack,
+  t: TranslatorOf<"templates">
 ): Promise<{ topics: number; sources: number; indicators: number }> {
   const organizationId = requireOrganization(user);
   const [existingTopics, existingSources, followed] = await Promise.all([
@@ -659,14 +667,20 @@ export async function createPackWatchDefaults(
     listWatchSources(organizationId, { includeArchived: true }),
     listFollowedIndicatorKeys(organizationId),
   ]);
-  const missing = missingPackWatch(pack, existingTopics, existingSources, followed);
+  const missing = missingPackWatch(pack, existingTopics, existingSources, followed, t);
 
-  const topicIdByLabel = new Map(existingTopics.map((t) => [norm(t.label), t.id]));
+  const topicIdByLabel = new Map(existingTopics.map((topic) => [norm(topic.label), topic.id]));
   let topicPosition = existingTopics.length;
   for (const template of missing.topics) {
     const [row] = await db
       .insert(watchTopics)
-      .values({ organizationId, label: template.label, searchTerms: template.searchTerms, searchLanguages: template.languages, position: topicPosition++ })
+      .values({
+        organizationId,
+        label: t(`topics.${template.slug}.label`),
+        searchTerms: t(`topics.${template.slug}.terms`).split("|").map((term) => term.trim()).filter(Boolean),
+        searchLanguages: template.languages,
+        position: topicPosition++,
+      })
       .onConflictDoNothing()
       .returning();
     if (row) topicIdByLabel.set(norm(row.label), row.id);
@@ -680,12 +694,12 @@ export async function createPackWatchDefaults(
       .values({
         organizationId,
         kind: "source",
-        label: template.label,
+        label: t(`sources.${template.slug}`),
         siteUrl: canonicalUrl(template.siteUrl) ?? template.siteUrl,
         feedUrl: template.feedUrl,
         country: template.country,
         lang: template.lang,
-        topicId: template.topic ? (topicIdByLabel.get(norm(template.topic)) ?? null) : null,
+        topicId: template.topic ? (topicIdByLabel.get(norm(t(`topics.${template.topic}.label`))) ?? null) : null,
         position: sourcePosition++,
       })
       .onConflictDoNothing()

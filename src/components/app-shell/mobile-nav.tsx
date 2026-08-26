@@ -7,6 +7,7 @@ import type { NavBadge } from "@/components/app-shell/navigation";
 import { WorkspaceMark, type WorkspaceMarkProps } from "@/components/app-shell/workspace-mark";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useTranslations } from "next-intl";
 
 /**
  * La navigation repliée des petits écrans : un bouton dans l'en-tête ouvre
@@ -27,19 +28,20 @@ export function MobileNav({
   hasOrganization: boolean;
   badges: Record<NavBadge, number>;
 }) {
+  const t = useTranslations("shell.mobileNav");
   const pathname = usePathname();
 
   return (
     <Sheet key={pathname}>
       <SheetTrigger
         render={
-          <Button variant="ghost" size="icon" className="md:hidden" aria-label="Ouvrir la navigation" />
+          <Button variant="ghost" size="icon" className="md:hidden" aria-label={t("ouvrir_la_navigation")} />
         }
       >
         <Menu />
       </SheetTrigger>
       <SheetContent className="flex w-72 max-w-[85vw] flex-col bg-sidebar p-0">
-        <SheetTitle className="sr-only">Navigation</SheetTitle>
+        <SheetTitle className="sr-only">{t("navigation")}</SheetTitle>
         <div className="px-4 py-4">
           <WorkspaceMark {...mark} href="/dashboard" />
         </div>

@@ -9,40 +9,36 @@ import { parseAudienceSnapshot } from "@/db/queries/newsletters";
 import { deleteNewsletter, listNewsletters } from "@/lib/newsletter/actions";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { requireUser } from "@/lib/session";
+import { getTranslations } from "next-intl/server";
 
 export default async function NewslettersPage() {
+  const t = await getTranslations("newsletters.list");
   await requireUser();
   const items = await listNewsletters();
 
   return (
     <>
       <PageHeader
-        title="Newsletters"
-        description="Les emails que tu prépares pour tes cibles. Un brouillon devient un envoi quand tu le marques « envoyée » : l'audience est alors figée."
+        title={t("newsletters")}
+        description={t("les_emails_que_tu_prepares_pour_b188")}
         actions={
           <Link href="/newsletters/new" className={buttonVariants()}>
             <Plus />
-            Nouvelle newsletter
+            {t("nouvelle_newsletter")}
           </Link>
         }
       />
 
       {items.length === 0 ? (
         <EmptyState
-          title="Aucune newsletter pour l'instant"
+          title={t("aucune_newsletter_pour_l_instant")}
           action={
             <>
-              <Link href="/newsletters/new" className={buttonVariants()}>
-                Écrire la première
-              </Link>
-              <Link href="/cibles" className={buttonVariants({ variant: "outline" })}>
-                Voir les cibles
-              </Link>
+              {t.rich("ecrire_la_premiere_voir_les_cibles", { link: (chunks) => <Link href="/newsletters/new" className={buttonVariants()}>{chunks}</Link>, link2: (chunks) => <Link href="/cibles" className={buttonVariants({ variant: "outline" })}>{chunks}</Link> })}
             </>
           }
         >
-          Choisis une cible, décris ce que l&apos;email doit dire, et le composer rédige avec l&apos;identité de la
-          personne à qui tu écris.
+          {t("choisis_une_cible_decris_ce_que_baa4")}
         </EmptyState>
       ) : (
         <ul className="overflow-hidden rounded-xl border border-border bg-card">
@@ -56,13 +52,13 @@ export default async function NewslettersPage() {
                 <Link href={`/newsletters/${n.id}`} className="flex min-w-0 flex-1 flex-col px-4 py-3">
                   <span className="flex items-center gap-2">
                     <span className="truncate text-sm font-medium">{n.title}</span>
-                    {n.sentAt ? <Badge>Envoyée</Badge> : <Badge variant="secondary">Brouillon</Badge>}
+                    {n.sentAt ? <Badge>{t("envoyee")}</Badge> : <Badge variant="secondary">{t("brouillon")}</Badge>}
                   </span>
                   <span className="truncate text-xs tabular-nums text-muted-foreground">
-                    {n.subject ?? "Objet à écrire"}
+                    {n.subject ?? t("objet_a_ecrire")}
                     {n.sentAt
-                      ? ` · envoyée le ${formatDate(n.sentAt)}${snapshot ? ` à ${snapshot.count} contact${snapshot.count > 1 ? "s" : ""} — ${snapshot.label}` : ""}`
-                      : ` · modifiée le ${formatDateTime(n.updatedAt)}`}
+                      ? t("envoyee_le", { formatDate: formatDate(n.sentAt), value: snapshot ? t("a_contact_contacts", { count: snapshot.count, label: snapshot.label }) : "" })
+                      : t("modifiee_le", { formatDateTime: formatDateTime(n.updatedAt) })}
                   </span>
                 </Link>
                 <div className="flex shrink-0 items-center gap-1 pr-3">
@@ -75,7 +71,7 @@ export default async function NewslettersPage() {
                       }}
                     >
                       <Button variant="ghost" size="sm" type="submit">
-                        Supprimer
+                        {t("supprimer")}
                       </Button>
                     </form>
                   )}

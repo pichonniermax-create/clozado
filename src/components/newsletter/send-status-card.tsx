@@ -12,6 +12,7 @@ import {
 } from "@/lib/newsletter/actions";
 import { formatDate } from "@/lib/format";
 import { PRODUCT_TIMEZONE } from "@/lib/timezone";
+import { useTranslations } from "next-intl";
 
 /** « 2026-08-26 » dans le fuseau du produit — la valeur par défaut du champ date. */
 function todayInputValue(): string {
@@ -29,6 +30,7 @@ function todayInputValue(): string {
  * choix de cette cible.
  */
 export function SendStatusCard({ newsletter, error }: { newsletter: Newsletter; error?: string }) {
+  const t = useTranslations("newsletters.sendStatusCard");
   const snapshot = parseAudienceSnapshot(newsletter.audienceSnapshot);
   const topics = newsletter.topics.join(", ");
 
@@ -36,38 +38,33 @@ export function SendStatusCard({ newsletter, error }: { newsletter: Newsletter; 
     return (
       <Card id="envoi">
         <CardHeader>
-          <CardTitle>Envoyée le {formatDate(newsletter.sentAt)}</CardTitle>
+          <CardTitle>{t("envoyee_le", { formatDate: formatDate(newsletter.sentAt) })}</CardTitle>
           <CardDescription>
             {snapshot ? (
               <>
-                À <span className="font-medium tabular-nums">{snapshot.count}</span> contact{snapshot.count > 1 ? "s" : ""} —{" "}
-                <Link href={`/cibles/${snapshot.targetId}`} className="underline underline-offset-2">
-                  {snapshot.label}
-                </Link>
-                {snapshot.summary.length > 0 && ` (${snapshot.summary.join(" · ")})`}, tels qu&apos;ils étaient ce jour-là. Cet
-                historique ne bouge plus, même si la cible change.
+                {t.rich("a_contact_contacts_tels_qu_ils_9bcd", { count: snapshot.count, label: snapshot.label, n: (snapshot.summary.length > 0 && ` (${snapshot.summary.join(" · ")})`) || "", span: (chunks) => <span className="font-medium tabular-nums">{chunks}</span>, link: (chunks) => <Link href={`/cibles/${snapshot.targetId}`} className="underline underline-offset-2">{chunks}</Link> })}
               </>
             ) : (
-              "L'audience a été figée à cette date."
+              t("l_audience_a_ete_figee_a_aadf")
             )}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {error && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{error}</p>}
           <form action={updateNewsletterTopicsAction.bind(null, newsletter.id)} className="flex flex-wrap items-end gap-2">
-            <Field label="Sujets traités" htmlFor="topics" hint="Séparés par des virgules — c'est ce que le composer rappellera la prochaine fois qu'on écrit à ces contacts." className="min-w-72 flex-1">
-              <Input id="topics" name="topics" defaultValue={topics} placeholder="taux, assurance emprunteur" />
+            <Field label={t("sujets_traites")} htmlFor="topics" hint={t("separes_par_des_virgules_c_est_ee64")} className="min-w-72 flex-1">
+              <Input id="topics" name="topics" defaultValue={topics} placeholder={t("taux_assurance_emprunteur")} />
             </Field>
             <Button type="submit" variant="outline">
-              Enregistrer les sujets
+              {t("enregistrer_les_sujets")}
             </Button>
           </form>
           <form action={unmarkNewsletterSentAction.bind(null, newsletter.id)} className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
             <p className="text-xs text-muted-foreground">
-              Marquée par erreur ? Annuler efface la liste des destinataires et la photographie de la cible.
+              {t("marquee_par_erreur_annuler_efface_la_fcbf")}
             </p>
             <Button type="submit" variant="ghost" size="sm">
-              Annuler le marquage
+              {t("annuler_le_marquage")}
             </Button>
           </form>
         </CardContent>
@@ -78,23 +75,21 @@ export function SendStatusCard({ newsletter, error }: { newsletter: Newsletter; 
   return (
     <Card id="envoi">
       <CardHeader>
-        <CardTitle>Brouillon — pas encore envoyée</CardTitle>
+        <CardTitle>{t("brouillon_pas_encore_envoyee")}</CardTitle>
         <CardDescription>
-          L&apos;envoi se fait depuis ton outil d&apos;emailing. Une fois parti, marque-le ici : la liste des destinataires
-          est figée telle qu&apos;elle est aujourd&apos;hui, c&apos;est ce que l&apos;historique des fiches et
-          l&apos;anti-répétition liront.
+          {t("l_envoi_se_fait_depuis_ton_f872")}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {error && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{error}</p>}
         <form action={markNewsletterSentAction.bind(null, newsletter.id)} className="flex flex-wrap items-end gap-3">
-          <Field label="Date d'envoi" htmlFor="sentAt">
+          <Field label={t("date_d_envoi")} htmlFor="sentAt">
             <Input id="sentAt" name="sentAt" type="date" defaultValue={todayInputValue()} required className="w-44" />
           </Field>
-          <Field label="Sujets traités" htmlFor="topics" hint="Séparés par des virgules." className="min-w-72 flex-1">
-            <Input id="topics" name="topics" defaultValue={topics || (newsletter.subject ?? "")} placeholder="taux, assurance emprunteur" />
+          <Field label={t("sujets_traites")} htmlFor="topics" hint={t("separes_par_des_virgules")} className="min-w-72 flex-1">
+            <Input id="topics" name="topics" defaultValue={topics || (newsletter.subject ?? "")} placeholder={t("taux_assurance_emprunteur")} />
           </Field>
-          <Button type="submit">Marquer comme envoyée</Button>
+          <Button type="submit">{t("marquer_comme_envoyee")}</Button>
         </form>
       </CardContent>
     </Card>

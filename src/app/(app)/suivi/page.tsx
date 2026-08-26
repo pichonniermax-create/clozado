@@ -19,8 +19,11 @@ import {
 import { formatCommission, formatDate, formatDays, formatEuros } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 
 export default async function FollowUpPage() {
+  const t = await getTranslations("followup.page");
   const user = await requireUser();
 
   // Cet écran n'existe que rapporté à UNE organisation : il lit ses seuils
@@ -33,13 +36,11 @@ export default async function FollowUpPage() {
     return (
       <>
         <PageHeader
-          title="Suivi"
-          description="Cet écran suit les relances d'une organisation donnée."
+          title={t("suivi")}
+          description={t("cet_ecran_suit_les_relances_d_e7be")}
         />
         <EmptyState>
-          Tu es en vue globale : le suivi n&apos;existe que rapporté à une organisation précise.
-          Choisis une organisation dans le bandeau super admin en haut de l&apos;écran pour voir
-          ses relances.
+          {t("tu_es_en_vue_globale_le_21fb")}
         </EmptyState>
       </>
     );
@@ -58,17 +59,16 @@ export default async function FollowUpPage() {
   if (everShared === 0) {
     return (
       <>
-        <PageHeader title="Suivi" description="Ce qu'il faut relancer, classé par nature — pas par date." />
+        <PageHeader title={t("suivi")} description={t("ce_qu_il_faut_relancer_classe_5e23")} />
         <EmptyState
-          title="Rien à suivre pour l'instant"
+          title={t("rien_a_suivre_pour_l_instant")}
           action={
             <Link href="/affaires" className={buttonVariants({ variant: "outline" })}>
-              Voir les affaires
+              {t("voir_les_affaires")}
             </Link>
           }
         >
-          Le suivi se remplit dès que tu partages une affaire à un confrère : partages sans
-          réponse, acceptés sans suite, commissions à encaisser.
+          {t("le_suivi_se_remplit_des_que_44be")}
         </EmptyState>
       </>
     );
@@ -84,11 +84,11 @@ export default async function FollowUpPage() {
   return (
     <>
       <PageHeader
-        title="Suivi"
+        title={t("suivi")}
         description={
           todo === 0
-            ? "Rien n'attend d'action de ta part."
-            : `${todo} élément${todo > 1 ? "s" : ""} à traiter, classé${todo > 1 ? "s" : ""} par nature — pas par date.`
+            ? t("rien_n_attend_d_action_de_57be")
+            : t("element_elements_a_traiter_classe_classes_cd54", { todo })
         }
       />
 
@@ -97,10 +97,10 @@ export default async function FollowUpPage() {
           triées ensemble par date. */}
       <Pile
         icon={<AlarmClock />}
-        title="Partages sans réponse"
+        title={t("partages_sans_reponse")}
         count={board.pendingAlerts.length}
-        empty="Aucun partage en souffrance."
-        subtitle="Le confrère n'a pas répondu, ou le lien va expirer."
+        empty={t("aucun_partage_en_souffrance")}
+        subtitle={t("le_confrere_n_a_pas_repondu_fa04")}
       >
         {board.pendingAlerts.map((row) => (
           <PendingAlertRow key={row.shareId} row={row} />
@@ -109,10 +109,10 @@ export default async function FollowUpPage() {
 
       <Pile
         icon={<PauseCircle />}
-        title="Acceptées sans suite"
+        title={t("acceptees_sans_suite")}
         count={board.acceptedStale.length}
-        empty="Aucun dossier accepté ne stagne."
-        subtitle={`Acceptées, puis plus rien depuis ${board.thresholds.acceptedStaleDays} jours ou plus.`}
+        empty={t("aucun_dossier_accepte_ne_stagne")}
+        subtitle={t("acceptees_puis_plus_rien_depuis_jours_9418", { acceptedStaleDays: board.thresholds.acceptedStaleDays })}
       >
         {board.acceptedStale.map((row) => (
           <AcceptedStaleRow key={row.shareId} row={row} />
@@ -121,10 +121,10 @@ export default async function FollowUpPage() {
 
       <Pile
         icon={<Banknote />}
-        title="Commissions à encaisser"
+        title={t("commissions_a_encaisser")}
         count={board.unpaidCommissions.length}
-        empty="Aucune commission en attente de règlement."
-        subtitle="Confirmées, pas encore réglées — aucune échéance, elles restent dues."
+        empty={t("aucune_commission_en_attente_de_reglement")}
+        subtitle={t("confirmees_pas_encore_reglees_aucune_echeance_748a")}
         aside={unpaidTotal > 0 ? (formatEuros(unpaidTotal) ?? undefined) : undefined}
       >
         {board.unpaidCommissions.map((row) => (
@@ -136,9 +136,9 @@ export default async function FollowUpPage() {
       {board.inProgress.length > 0 && (
         <section className="flex flex-col gap-3 border-t border-border pt-6">
           <div className="flex items-baseline gap-2">
-            <h2 className="text-sm font-semibold">En cours</h2>
+            <h2 className="text-sm font-semibold">{t("en_cours")}</h2>
             <span className="text-sm text-muted-foreground">
-              {board.inProgress.length} · rien à faire pour l&apos;instant
+              {t("rien_a_faire_pour_l_instant", { count: board.inProgress.length })}
             </span>
           </div>
           <ListCard>
@@ -152,7 +152,7 @@ export default async function FollowUpPage() {
       {/* Niveau 3 — l'historique clos, replié : présent pour être retrouvé,
           jamais dans le champ de vision du travail du jour. */}
       {board.closed.length > 0 && (
-        <DetailsCard variant="archive" flush summary={`Partages clos (${board.closed.length})`}>
+        <DetailsCard variant="archive" flush summary={t("partages_clos", { count: board.closed.length })}>
           <ul className="divide-y divide-border">
             {board.closed.map((row) => (
               <NeutralRow key={row.shareId} row={row} />
@@ -257,12 +257,13 @@ function ActionRow({
 }
 
 function PendingAlertRow({ row }: { row: PendingAlert }) {
+  const t = useTranslations("followup.page");
   const expiry =
     row.daysUntilExpiry === null
       ? null
       : row.daysUntilExpiry <= 0
-        ? "lien expiré"
-        : `expire dans ${formatDays(row.daysUntilExpiry)}`;
+        ? t("lien_expire")
+        : t("expire_dans", { formatDays: formatDays(row.daysUntilExpiry) });
 
   return (
     <ActionRow
@@ -272,10 +273,7 @@ function PendingAlertRow({ row }: { row: PendingAlert }) {
       critical={row.critical}
       detail={
         <>
-          <span className={row.critical ? "font-medium text-destructive" : undefined}>
-            sans réponse depuis {formatDays(row.daysSinceSent)}
-          </span>
-          {expiry && ` · ${expiry}`}
+          {t.rich("sans_reponse_depuis", { formatDays: formatDays(row.daysSinceSent), n: (expiry && ` · ${expiry}`) ?? "", span: (chunks) => <span className={row.critical ? "font-medium text-destructive" : undefined}>{chunks}</span> })}
         </>
       }
       action={<ReissueShareButton shareId={row.shareId} />}
@@ -284,12 +282,13 @@ function PendingAlertRow({ row }: { row: PendingAlert }) {
 }
 
 function AcceptedStaleRow({ row }: { row: AcceptedStale }) {
+  const t = useTranslations("followup.page");
   return (
     <ActionRow
       dealTitle={row.dealTitle}
       partnerName={row.partnerName}
       dealId={row.dealId}
-      detail={`acceptée le ${formatDate(row.respondedAt ?? row.sentAt)} · rien depuis ${formatDays(row.daysSinceActivity)}`}
+      detail={t("acceptee_le_rien_depuis", { formatDate: formatDate(row.respondedAt ?? row.sentAt), formatDays: formatDays(row.daysSinceActivity) })}
       // Pas de bouton : rien à déclencher automatiquement sur du
       // relationnel. Le titre est déjà le lien vers l'affaire.
     />

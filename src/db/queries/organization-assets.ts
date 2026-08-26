@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { organizationAssets, ORGANIZATION_ASSET_KINDS, type OrganizationAsset, type OrganizationAssetKind } from "@/db/schema";
 import type { OrgScopeUser } from "@/lib/session";
+import { AppError } from "@/lib/errors";
 
 /**
  * Les images de la marque (chantier marque blanche, étape 2). Écriture :
@@ -19,7 +20,7 @@ export function isAssetKind(value: string): value is OrganizationAssetKind {
 
 function requireAdmin(user: OrgScopeUser): string {
   if (user.role !== "admin" || !user.organizationId) {
-    throw new Error("Accès refusé : seul l'admin de l'organisation peut modifier le logo.");
+    throw new AppError("acces_refuse_seul_l_admin_de_l_bed5", undefined, 403);
   }
   return user.organizationId;
 }
@@ -29,7 +30,7 @@ export type AssetInput = { mime: string; bytes: Buffer; width: number; height: n
 export async function upsertOrganizationAsset(user: OrgScopeUser, kind: OrganizationAssetKind, input: AssetInput): Promise<void> {
   const organizationId = requireAdmin(user);
   if (input.bytes.length === 0 || input.bytes.length > ASSET_MAX_BYTES) {
-    throw new Error(`L'image dépasse ${Math.round(ASSET_MAX_BYTES / 1000)} ko une fois redimensionnée — choisis une image plus simple.`);
+    throw new AppError("l_image_depasse_ko_une_fois_redimensionnee_f84f", { round: Math.round(ASSET_MAX_BYTES / 1000) });
   }
   await db
     .insert(organizationAssets)

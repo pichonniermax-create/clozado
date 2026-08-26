@@ -22,30 +22,23 @@ import {
   type MetricSearchParams,
 } from "@/lib/metrics";
 import { requireUser } from "@/lib/session";
+import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
+import type { TranslatorOf } from "@/i18n/translator";
+import type { StatNoteWords } from "@/components/analytics/duration-table";
 
 const BASE_PATH = "/analytique/delais";
 
-/** Les mots des mentions sous chaque indicateur — la règle d'assemblage vit dans `statNotes`. */
-const CYCLE_WORDS = {
-  lead_to_first_contact: {
-    pending: ["contact venu par un lead sans premier contact consigné", "contacts venus par un lead sans premier contact consigné"],
-  },
-  commission_settlement_delay: {
-    unknown: [
-      "commission réglée écartée (date de confirmation inconnue)",
-      "commissions réglées écartées (date de confirmation inconnue)",
-    ],
-  },
-} as const;
+/** Les mots des mentions sous chaque indicateur (`analytics.delais.words.*`, accordés par la langue) — la règle d'assemblage vit dans `statNotes`. */
+const cycleWords = (t: TranslatorOf<"analytics.delais">): Record<string, StatNoteWords> => ({
+  lead_to_first_contact: { pending: (n) => t("words.lead_pending", { n }) },
+  commission_settlement_delay: { unknown: (n) => t("words.commission_unknown", { n }) },
+});
+const stageWords = (t: TranslatorOf<"analytics.delais">): StatNoteWords => ({
+  pending: (n) => t("words.stage_pending", { n }),
+  reconstructed: (n) => t("words.stage_reconstructed", { n }),
+});
 
-const STAGE_WORDS = {
-  pending: ["affaire dans l'étape aujourd'hui", "affaires dans l'étape aujourd'hui"],
-  reconstructed: ["passage reconstitué écarté", "passages reconstitués écartés"],
-} as const;
-
-function plural(n: number, singular: string, pluralForm = `${singular}s`) {
-  return `${n} ${n > 1 ? pluralForm : singular}`;
-}
 
 function DefinitionLink({ id, children }: { id: keyof typeof METRICS; children: ReactNode }) {
   return (
@@ -56,11 +49,12 @@ function DefinitionLink({ id, children }: { id: keyof typeof METRICS; children: 
 }
 
 function StageLabel({ stage }: { stage: { pipelineId: string; stageId: string; label: string; color: string | null } }) {
+  const t = useTranslations("analytics.delais");
   return (
     <Link
       href={`/affaires?vue=liste&pipeline=${stage.pipelineId}&etape=${stage.stageId}`}
       className="inline-flex items-center gap-2 underline-offset-2 hover:underline"
-      title="Voir les affaires actuellement dans cette étape"
+      title={t("voir_les_affaires_actuellement_dans_cette_43a9")}
     >
       <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: stage.color ?? "var(--muted-foreground)" }} />
       {stage.label}
@@ -75,62 +69,54 @@ function StageLabel({ stage }: { stage: { pipelineId: string; stageId: string; l
  * — avec le geste inverse (élargir) en tête.
  */
 function NotEnoughData({ report, filtered }: { report: DelaysReport; filtered: boolean }) {
+  const t = useTranslations("analytics.delais");
+  const tm = useTranslations("metrics");
   const stagesCompleted = report.stages.reduce((sum, s) => sum + s.n, 0);
   const stagesPending = report.stages.reduce((sum, s) => sum + s.pending, 0);
   const stagesShown = report.stages.filter((s) => !s.hidden).length;
   return (
     <EmptyState
       icon={<Timer />}
-      title={filtered ? "Rien ne se calcule avec ces filtres" : "Pas encore assez de données pour mesurer des délais"}
+      title={filtered ? t("rien_ne_se_calcule_avec_ces_70cf") : t("pas_encore_assez_de_donnees_pour_ffb2")}
       action={
         filtered ? (
           <Link href={BASE_PATH} className={buttonVariants({ variant: "outline" })}>
-            Retirer les filtres
+            {t("retirer_les_filtres")}
           </Link>
         ) : (
           <>
-            <Link href="/affaires" className={buttonVariants({ variant: "outline" })}>
-              Ouvrir le pipeline
-            </Link>
-            <Link href="/settings" className={buttonVariants({ variant: "ghost" })}>
-              Brancher la collecte
-            </Link>
+            {t.rich("ouvrir_le_pipeline_brancher_la_collecte", { link: (chunks) => <Link href="/affaires" className={buttonVariants({ variant: "outline" })}>{chunks}</Link>, link2: (chunks) => <Link href="/settings" className={buttonVariants({ variant: "ghost" })}>{chunks}</Link> })}
           </>
         )
       }
     >
       {filtered
-        ? `Aucun indicateur n'atteint ${MIN_OBSERVATIONS} observations sur cette sélection — élargis la période ou retire un filtre.`
-        : `Un délai s'affiche à partir de ${MIN_OBSERVATIONS} observations ; en dessous, un chiffre mentirait. Chaque geste dans le produit en crée : voici où en est chaque indicateur.`}
+        ? t("aucun_indicateur_n_atteint_observations_sur_a750", { minObservations: MIN_OBSERVATIONS })
+        : t("un_delai_s_affiche_a_partir_bbc9", { minObservations: MIN_OBSERVATIONS })}
       <span className="mt-3 block text-left">
         <span className="flex flex-col gap-1.5 text-xs">
           {report.cycle.map(({ metric, stat }) => (
             <span key={metric.id} className="flex flex-col gap-0.5">
               <span className="text-foreground">
-                {metric.label} —{" "}
+                {tm(`definitions.${metric.id}.label`)} —{" "}
                 {stat.unavailable ? (
                   <span className="text-muted-foreground">{stat.unavailable}</span>
                 ) : (
                   <>
                     <span className="tabular-nums">{stat.n}/{MIN_OBSERVATIONS}</span>
-                    {stat.pending > 0 && `, ${plural(stat.pending, "en cours")}`}
-                    {stat.excludedUnknown > 0 && `, ${plural(stat.excludedUnknown, "écartée")}`}
+                    {stat.pending > 0 && t("cycle_pending", { n: stat.pending })}
+                    {stat.excludedUnknown > 0 && t("cycle_excluded", { n: stat.excludedUnknown })}
                   </>
                 )}
               </span>
-              {!filtered && <span>{metric.howToFeed}</span>}
+              {!filtered && <span>{tm(`definitions.${metric.id}.howToFeed`)}</span>}
             </span>
           ))}
           <span className="flex flex-col gap-0.5">
             <span className="text-foreground">
-              {METRICS.stage_duration.label} —{" "}
-              <span className="tabular-nums">
-                {plural(stagesCompleted, "passage terminé", "passages terminés")}
-              </span>
-              {stagesPending > 0 && `, ${plural(stagesPending, "en cours")}`}
-              {stagesShown > 0 && ` (${plural(stagesShown, "étape affichable", "étapes affichables")})`}
+              {t.rich("passage_termine_passages_termines", { label: tm("definitions.stage_duration.label"), stagesCompleted, n: (stagesPending > 0 && `, ${t("en_cours_en_courss", { n: stagesPending })}`) || "", n2: (stagesShown > 0 && ` (${t("etape_affichable_etapes_affichables", { n: stagesShown })})`) || "", span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
             </span>
-            {!filtered && <span>{METRICS.stage_duration.howToFeed}</span>}
+            {!filtered && <span>{tm("definitions.stage_duration.howToFeed")}</span>}
           </span>
         </span>
       </span>
@@ -139,6 +125,8 @@ function NotEnoughData({ report, filtered }: { report: DelaysReport; filtered: b
 }
 
 function PipelineSections({ pipeline, report, single }: { pipeline: PipelineWithStages; report: DelaysReport; single: boolean }) {
+  const t = useTranslations("analytics.delais");
+  const td = useTranslations("analytics.durationTable");
   const stages = report.stages.filter((s) => s.pipelineId === pipeline.id);
   const pairs = report.pairs.filter((p) => p.pipelineId === pipeline.id);
   if (stages.length === 0 && pairs.length === 0) return null;
@@ -146,13 +134,13 @@ function PipelineSections({ pipeline, report, single }: { pipeline: PipelineWith
   const stageRows: DurationRow[] = stages.map((s) => ({
     key: s.stageId,
     label: <StageLabel stage={s} />,
-    note: statNotes(s, STAGE_WORDS),
+    note: statNotes(s, td, stageWords(t)),
     stat: s,
   }));
   const pairRows: DurationRow[] = pairs.map((p) => ({
     key: `${p.fromStageId}-${p.toStageId}`,
     label: `${p.fromLabel} → ${p.toLabel}`,
-    note: statNotes(p),
+    note: statNotes(p, td),
     stat: p,
   }));
   return (
@@ -161,25 +149,24 @@ function PipelineSections({ pipeline, report, single }: { pipeline: PipelineWith
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold">
             {prefix}
-            <DefinitionLink id="stage_duration">{single ? "Temps passé par étape" : "temps passé par étape"}</DefinitionLink>
+            <DefinitionLink id="stage_duration">{single ? t("temps_passe_par_etape") : t("temps_passe_par_etape_19a1")}</DefinitionLink>
           </h2>
           <p className="-mt-1 text-xs text-muted-foreground">
-            Sur les passages terminés ; une affaire qui revisite une étape compte un passage par visite. Les étapes finales ne sont pas
-            listées : on n&apos;en sort pas. Le libellé ouvre les affaires qui y sont aujourd&apos;hui.
+            {t("sur_les_passages_termines_une_affaire_01c8")}
           </p>
-          <DurationTable rows={stageRows} labelHeader="Étape" />
+          <DurationTable rows={stageRows} labelHeader={t("etape")} />
         </section>
       )}
       {pairRows.length > 0 && (
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold">
             {prefix}
-            <DefinitionLink id="stage_pair_delay">{single ? "D'une étape à la suivante" : "d'une étape à la suivante"}</DefinitionLink>
+            <DefinitionLink id="stage_pair_delay">{single ? t("d_une_etape_a_la_suivante") : t("d_une_etape_a_la_suivante_2e3d")}</DefinitionLink>
           </h2>
           <p className="-mt-1 text-xs text-muted-foreground">
-            De la première entrée dans une étape à la première entrée dans la suivante, sur les affaires qui ont atteint les deux.
+            {t("de_la_premiere_entree_dans_une_5e9d")}
           </p>
-          <DurationTable rows={pairRows} labelHeader="Étapes" />
+          <DurationTable rows={pairRows} labelHeader={t("etapes")} />
         </section>
       )}
     </>
@@ -187,13 +174,16 @@ function PipelineSections({ pipeline, report, single }: { pipeline: PipelineWith
 }
 
 export default async function DelaysPage({ searchParams }: { searchParams: Promise<MetricSearchParams> }) {
+  const t = await getTranslations("analytics.delais");
+  const tm = await getTranslations("metrics");
+  const td = await getTranslations("analytics.durationTable");
   const user = await requireUser();
   const raw = await searchParams;
 
   const header = (
     <PageHeader
-      title="Délais et durées"
-      description="Combien de temps prend chaque étape du cycle — médiane et moyenne côte à côte, toujours avec le nombre d'observations. Un indicateur calculé sur trop peu de cas est masqué, jamais affiché."
+      title={t("delais_et_durees")}
+      description={t("combien_de_temps_prend_chaque_etape_2312")}
     />
   );
 
@@ -201,9 +191,8 @@ export default async function DelaysPage({ searchParams }: { searchParams: Promi
     return (
       <>
         {header}
-        <EmptyState title="Tu es en vue globale">
-          Choisis une organisation dans le bandeau super admin en haut de l&apos;écran pour voir ses délais — un agrégat ne
-          traverse jamais la frontière entre deux organisations.
+        <EmptyState title={t("tu_es_en_vue_globale")}>
+          {t("choisis_une_organisation_dans_le_bandeau_8953")}
         </EmptyState>
       </>
     );
@@ -215,14 +204,14 @@ export default async function DelaysPage({ searchParams }: { searchParams: Promi
     listDealTypes(user),
     listOrgUsers(user),
     listOrigins(user),
-    delaysReport(user, parsed.filters),
+    delaysReport(user, parsed.filters, tm),
   ]);
 
   const shows = reportShowsAnything(report);
   const cycleRows: DurationRow[] = report.cycle.map(({ metric, stat }) => ({
     key: metric.id,
-    label: <DefinitionLink id={metric.id as keyof typeof METRICS}>{metric.label}</DefinitionLink>,
-    note: statNotes(stat, CYCLE_WORDS[metric.id as keyof typeof CYCLE_WORDS]),
+    label: <DefinitionLink id={metric.id as keyof typeof METRICS}>{tm(`definitions.${metric.id}.label`)}</DefinitionLink>,
+    note: statNotes(stat, td, cycleWords(t)[metric.id] ?? {}),
     stat,
   }));
   const shownPipelines = parsed.filters.pipelineId ? pipelines.filter((p) => p.id === parsed.filters.pipelineId) : pipelines;
@@ -237,10 +226,9 @@ export default async function DelaysPage({ searchParams }: { searchParams: Promi
       ) : (
         <>
           <section className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold">Le cycle</h2>
+            <h2 className="text-sm font-semibold">{t("le_cycle")}</h2>
             <p className="-mt-1 text-xs text-muted-foreground">
-              Dans l&apos;ordre de la vie d&apos;une affaire : du lead au premier contact, de la création à la signature, du partage à la
-              réponse du partenaire, de la commission confirmée à son règlement.
+              {t("dans_l_ordre_de_la_vie_9ebc")}
             </p>
             <DurationTable rows={cycleRows} />
           </section>
@@ -254,12 +242,7 @@ export default async function DelaysPage({ searchParams }: { searchParams: Promi
       <MetricDefinitions metrics={metricsOfFamily("delays")} />
 
       <p className="text-xs text-muted-foreground">
-        Les délais se calculent à la volée sur le journal d&apos;événements de ton organisation ; la période porte sur l&apos;événement
-        qui clôt chaque délai (fin de passage, signature, réponse, règlement, première interaction). Les origines se rapprochent dans{" "}
-        <Link href="/analytique/origines" className="underline underline-offset-2 hover:text-foreground">
-          Analytique → Origines
-        </Link>
-        .
+        {t.rich("les_delais_se_calculent_a_la_1842", { link: (chunks) => <Link href="/analytique/origines" className="underline underline-offset-2 hover:text-foreground">{chunks}</Link> })}
       </p>
     </>
   );

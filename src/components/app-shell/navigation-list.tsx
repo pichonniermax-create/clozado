@@ -1,6 +1,7 @@
 import { Settings } from "lucide-react";
 import { NavLink } from "@/components/app-shell/nav-link";
 import { NAVIGATION, type NavBadge } from "@/components/app-shell/navigation";
+import { useTranslations } from "next-intl";
 
 /**
  * La liste de navigation rendue depuis `navigation.ts` — la même dans la
@@ -15,6 +16,8 @@ export function NavigationList({
   hasOrganization: boolean;
   badges: Record<NavBadge, number>;
 }) {
+  const t = useTranslations("shell.navigationList");
+  const tn = useTranslations("nav");
   return (
     <>
       <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-2">
@@ -22,15 +25,15 @@ export function NavigationList({
           const entries = section.entries.filter((e) => hasOrganization || !e.requiresOrganization);
           if (entries.length === 0) return null;
           return (
-            <div key={section.label} className="flex flex-col gap-0.5">
+            <div key={section.key} className="flex flex-col gap-0.5">
               <p className="px-3 pb-1 text-[0.6875rem] font-semibold tracking-wider text-muted-foreground uppercase">
-                {section.label}
+                {tn(`sections.${section.key}`)}
               </p>
               {entries.map((entry) => (
                 <NavLink
                   key={entry.href}
                   href={entry.href}
-                  label={entry.label}
+                  label={tn(`entries.${entry.key}`)}
                   icon={<entry.icon />}
                   badge={entry.badge ? badges[entry.badge] : undefined}
                 />
@@ -42,7 +45,7 @@ export function NavigationList({
 
       {hasOrganization && (
         <div className="border-t border-sidebar-border px-3 py-3">
-          <NavLink href="/settings" label="Marque & réglages" icon={<Settings />} />
+          <NavLink href="/settings" label={t("marque_reglages")} icon={<Settings />} />
         </div>
       )}
     </>

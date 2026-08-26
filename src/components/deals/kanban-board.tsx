@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { moveDealStageAction, updateDealDetailsAction } from "@/lib/deals/actions";
 import { formatEuros } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 export type KanbanStage = {
   id: string;
@@ -44,6 +45,7 @@ export function KanbanBoard({
   cards: KanbanCard[];
   lossReasons: LossReason[];
 }) {
+  const tr = useTranslations("deals.kanbanBoard");
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [optimisticCards, applyMove] = useOptimistic(
@@ -75,7 +77,7 @@ export function KanbanBoard({
       try {
         await moveDealStageAction(dealId, stageId);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Le déplacement a échoué de notre côté — réessaie.");
+        setError(e instanceof Error ? e.message : tr("le_deplacement_a_echoue_de_notre_9277"));
       }
       router.refresh();
     });
@@ -87,7 +89,7 @@ export function KanbanBoard({
       try {
         await updateDealDetailsAction(dealId, { lossReasonId });
       } catch (e) {
-        setError(e instanceof Error ? e.message : "L'enregistrement du motif a échoué de notre côté — réessaie.");
+        setError(e instanceof Error ? e.message : tr("l_enregistrement_du_motif_a_echoue_a3c4"));
       }
       router.refresh();
     });
@@ -129,7 +131,7 @@ export function KanbanBoard({
                     <span className="truncate">{stage.label}</span>
                     {stage.outcome && (
                       <span className="text-xs font-normal text-muted-foreground">
-                        {stage.outcome === "won" ? "· gagné" : "· perdu"}
+                        {stage.outcome === "won" ? tr("gagne") : tr("perdu")}
                       </span>
                     )}
                   </span>
@@ -141,7 +143,7 @@ export function KanbanBoard({
 
                 {columnCards.length === 0 ? (
                   <p className="rounded-lg border border-dashed border-border px-2 py-6 text-center text-xs text-muted-foreground">
-                    Dépose une affaire ici.
+                    {tr("depose_une_affaire_ici")}
                   </p>
                 ) : (
                   <ul className="flex flex-col gap-2">
@@ -181,10 +183,10 @@ export function KanbanBoard({
                             onChange={(e) => setReason(card.id, e.target.value)}
                             onClick={(e) => e.stopPropagation()}
                             className="mt-2 w-full rounded-md border border-warning/50 bg-background px-1.5 py-1 text-xs"
-                            aria-label="Motif de perte"
+                            aria-label={tr("motif_de_perte")}
                           >
                             <option value="" disabled>
-                              Motif de perte ?
+                              {tr("motif_de_perte_c1b7")}
                             </option>
                             {lossReasons.map((r) => (
                               <option key={r.id} value={r.id}>

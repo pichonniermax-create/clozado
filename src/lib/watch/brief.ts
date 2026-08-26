@@ -17,6 +17,7 @@ export type BriefSource = {
 
 export function buildBasketBrief(items: BriefSource[]): string {
   const lines: string[] = [
+    // eslint-disable-next-line local/no-visible-text -- une consigne au modèle (le brief), pas un texte d'interface : sa langue est celle des contenus générés
     "À partir des articles mis de côté ci-dessous. Cite chaque source utilisée avec son lien ; ne reprends aucune formulation d'origine — les résumés sont écrits avec nos mots.",
     "",
   ];

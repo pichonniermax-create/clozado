@@ -7,6 +7,9 @@ import type { OrgScopeUser } from "@/lib/session";
 import { PRODUCT_TIMEZONE } from "@/lib/timezone";
 import { daysBetween, getFollowUpBoard, type FollowUpBoard } from "./deal-follow-up";
 import { getOwnOrganizationOrThrow } from "./newsletters";
+import { AppError } from "@/lib/errors";
+import { toAppLocale } from "@/i18n/locales";
+import { translatorFor } from "@/i18n/translator";
 
 /**
  * Le module tâches : la liste, le cycle open → done, la récurrence
@@ -342,11 +345,11 @@ export type TaskInput = {
 function validateRecurrence(input: { recurUnit?: Task["recurUnit"]; recurEvery?: number | null; dueAt: Date | null }) {
   if (!input.recurUnit) return { recurUnit: null, recurEvery: null };
   if (!input.dueAt) {
-    throw new Error("Une récurrence sans échéance ne veut rien dire — pose d'abord une échéance.");
+    throw new AppError("une_recurrence_sans_echeance_ne_veut_rien_3108");
   }
   const every = input.recurEvery ?? 1;
   if (!Number.isInteger(every) || every < 1) {
-    throw new Error("Le pas de récurrence doit être un entier d'au moins 1.");
+    throw new AppError("le_pas_de_recurrence_doit_etre_un_b892");
   }
   return { recurUnit: input.recurUnit, recurEvery: every };
 }
@@ -354,7 +357,7 @@ function validateRecurrence(input: { recurUnit?: Task["recurUnit"]; recurEvery?:
 export async function createTask(user: OrgScopeUser, createdBy: string, input: TaskInput) {
   const org = await getOwnOrganizationOrThrow(user);
   const title = input.title.trim();
-  if (!title) throw new Error("Le titre est obligatoire.");
+  if (!title) throw new AppError("le_titre_est_obligatoire");
 
   const dueAt = parseDueDate(input.dueDate);
   const recurrence = validateRecurrence({ ...input, dueAt });
@@ -381,7 +384,7 @@ export async function createTask(user: OrgScopeUser, createdBy: string, input: T
 
 async function getTaskOrThrow(user: OrgScopeUser, taskId: string) {
   const task = await db.query.tasks.findFirst({ where: eq(tasks.id, taskId) });
-  if (!task) throw new Error("Tâche introuvable.");
+  if (!task) throw new AppError("tache_introuvable", undefined, 404);
   assertOrgAccess(user, task.organizationId);
   return task;
 }
@@ -392,7 +395,7 @@ export type TaskUpdateInput = Omit<TaskInput, "contactId" | "dealId">;
 export async function updateTask(user: OrgScopeUser, taskId: string, input: TaskUpdateInput) {
   const task = await getTaskOrThrow(user, taskId);
   const title = input.title.trim();
-  if (!title) throw new Error("Le titre est obligatoire.");
+  if (!title) throw new AppError("le_titre_est_obligatoire");
 
   const dueAt = parseDueDate(input.dueDate);
   const recurrence = validateRecurrence({ ...input, dueAt });
@@ -461,9 +464,7 @@ export async function deleteTask(user: OrgScopeUser, taskId: string) {
   if (task.autoRule) {
     // Supprimée, la ligne qui garantit l'idempotence disparaîtrait avec
     // elle : la règle recréerait la même tâche à la prochaine visite.
-    throw new Error(
-      "Cette tâche a été générée automatiquement : l'achever vaut « traité ». La supprimer la ferait revenir."
-    );
+    throw new AppError("cette_tache_a_ete_generee_automatiquement_l_6720");
   }
   await db.delete(tasks).where(eq(tasks.id, task.id));
 }
@@ -486,6 +487,8 @@ export async function deleteTask(user: OrgScopeUser, taskId: string) {
  */
 export async function generateAutoTasks(user: OrgScopeUser, knownBoard?: FollowUpBoard): Promise<void> {
   const org = await getOwnOrganizationOrThrow(user);
+  // Les tâches générées appartiennent à l'organisation : dans SA langue, pas dans celle de la personne qui a ouvert l'écran.
+  const t = await translatorFor(toAppLocale(org.defaultLocale), "tasks.queries");
   // Le tableau de bord l'a déjà calculé pour ses tuiles : on ne le recalcule pas.
   const board = knownBoard ?? (await getFollowUpBoard(user));
   const now = new Date();
@@ -527,8 +530,8 @@ export async function generateAutoTasks(user: OrgScopeUser, knownBoard?: FollowU
   for (const alert of board.pendingAlerts) {
     values.push({
       ...common(alert.dealId),
-      title: `Relancer ${alert.partnerName} — partage sans réponse sur « ${alert.dealTitle} »`,
-      notes: `Générée automatiquement : partage envoyé le ${formatDate(alert.sentAt)}, sans réponse depuis ${formatDays(alert.daysSinceSent)} (seuil : ${formatDays(board.thresholds.pendingReminderDays)}). L'achever vaut « traité » : elle ne reviendra pas pour ce partage.`,
+      title: t("relancer_partage_sans_reponse_sur", { partnerName: alert.partnerName, dealTitle: alert.dealTitle }),
+      notes: t("generee_automatiquement_partage_envoye_le_sans_172c", { formatDate: formatDate(alert.sentAt), formatDays: formatDays(alert.daysSinceSent), formatDays2: formatDays(board.thresholds.pendingReminderDays) }),
       autoRule: "share_pending",
       sourceShareId: alert.shareId,
     });
@@ -537,8 +540,8 @@ export async function generateAutoTasks(user: OrgScopeUser, knownBoard?: FollowU
   for (const stale of board.acceptedStale) {
     values.push({
       ...common(stale.dealId),
-      title: `Faire le point avec ${stale.partnerName} — « ${stale.dealTitle} » sans nouvelle`,
-      notes: `Générée automatiquement : partage accepté, sans activité depuis ${formatDays(stale.daysSinceActivity)} (seuil : ${formatDays(board.thresholds.acceptedStaleDays)}). L'achever vaut « traité » : elle ne reviendra pas pour ce partage.`,
+      title: t("faire_le_point_avec_sans_nouvelle", { partnerName: stale.partnerName, dealTitle: stale.dealTitle }),
+      notes: t("generee_automatiquement_partage_accepte_sans_activite_3240", { formatDays: formatDays(stale.daysSinceActivity), formatDays2: formatDays(board.thresholds.acceptedStaleDays) }),
       autoRule: "deal_accepted_stale",
       sourceShareId: stale.shareId,
     });
@@ -547,8 +550,8 @@ export async function generateAutoTasks(user: OrgScopeUser, knownBoard?: FollowU
   for (const commission of unpaidOverdue) {
     values.push({
       ...common(commission.dealId),
-      title: `Solder la commission de ${commission.partnerName} — « ${commission.dealTitle} »`,
-      notes: `Générée automatiquement : commission ${formatCommission(commission)} confirmée le ${formatDate(commission.confirmedAt!)}, non réglée après ${formatDays(org.commissionUnpaidDays)}. Le règlement se déclare sur la fiche de l'affaire ; achever cette tâche vaut « traité ».`,
+      title: t("solder_la_commission_de", { partnerName: commission.partnerName, dealTitle: commission.dealTitle }),
+      notes: t("generee_automatiquement_commission_confirmee_le_non_2d64", { formatCommission: formatCommission(commission), formatDate: formatDate(commission.confirmedAt!), formatDays: formatDays(org.commissionUnpaidDays) }),
       autoRule: "commission_unpaid",
       sourceCommissionId: commission.commissionId,
     });

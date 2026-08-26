@@ -21,11 +21,12 @@ export type MetricSearchParams = {
   origine?: string;
 };
 
+/** Les périodes proposées ; leurs libellés sont `metrics.periods.<key>` dans les messages. */
 export const PERIOD_PRESETS = [
-  { key: "30j", label: "30 derniers jours", days: 30 },
-  { key: "90j", label: "90 derniers jours", days: 90 },
-  { key: "12m", label: "12 derniers mois", days: 365 },
-  { key: "tout", label: "Depuis le début", days: null },
+  { key: "30j", days: 30 },
+  { key: "90j", days: 90 },
+  { key: "12m", days: 365 },
+  { key: "tout", days: null },
 ] as const;
 
 export type PeriodPresetKey = (typeof PERIOD_PRESETS)[number]["key"];

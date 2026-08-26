@@ -25,6 +25,7 @@ import {
   formatEuros,
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 /**
  * La page la plus soignée du produit : seul écran vu par quelqu'un
@@ -49,25 +50,21 @@ import { cn } from "@/lib/utils";
  */
 const STATUS_BANNER: Record<
   PublicShareStatus,
-  { label: string; className: string; icon: ReactNode }
+  { className: string; icon: ReactNode }
 > = {
   pending: {
-    label: "En attente de votre réponse",
     className: "border-warning/40 bg-warning/10",
     icon: <Clock className="size-4 shrink-0 text-warning" />,
   },
   accepted: {
-    label: "Vous avez accepté ce partage",
     className: "border-success/40 bg-success/10",
     icon: <CheckCircle2 className="size-4 shrink-0 text-success" />,
   },
   declined: {
-    label: "Vous avez refusé ce partage",
     className: "border-border bg-muted",
     icon: <XCircle className="size-4 shrink-0 text-muted-foreground" />,
   },
   revoked: {
-    label: "Ce partage a été révoqué",
     className: "border-border bg-muted",
     icon: <Ban className="size-4 shrink-0 text-muted-foreground" />,
   },
@@ -78,26 +75,18 @@ const STATUS_BANNER: Record<
  * `rate_limited`…) — jamais affichés tels quels : aucun jargon interne sur
  * cette page. Repli générique pour tout code non prévu ici.
  */
-const ACTION_ERROR_MESSAGES: Record<string, string> = {
-  // Mêmes messages, mêmes deux catégories que la page d'erreur d'entrée
-  // (src/app/partage/[token]/page.tsx) : jamais de nom, jamais de détail
-  // qui distinguerait plus finement une raison d'une autre.
-  not_found: "Ce lien n'est plus valide.",
-  revoked: "Ce lien n'est plus valable. Contactez directement la personne qui vous l'a envoyé.",
-  expired: "Ce lien n'est plus valable. Contactez directement la personne qui vous l'a envoyé.",
-  already_resolved: "Vous avez déjà répondu à ce partage.",
-  rate_limited: "Trop de tentatives — réessayez dans une minute.",
-  invalid_action: "Une erreur est survenue.",
-};
+/** Les codes que la route publique renvoie et qui ont une phrase (`shares.partnerShareView.errors.<code>`) ; tout autre code reçoit la phrase générique. */
+const ACTION_ERROR_CODES = ["not_found", "revoked", "expired", "already_resolved", "rate_limited", "invalid_action", "network"] as const;
+type ActionErrorCode = (typeof ACTION_ERROR_CODES)[number];
 
-function actionErrorMessage(code: string): string {
-  return ACTION_ERROR_MESSAGES[code] ?? "Une erreur est survenue.";
+function actionErrorCode(code: string): ActionErrorCode {
+  return (ACTION_ERROR_CODES as readonly string[]).includes(code) ? (code as ActionErrorCode) : "invalid_action";
 }
 
 async function callAction(
   token: string,
   action: PublicShareAction
-): Promise<{ ok: true; view: PublicShareView } | { ok: false; error: string }> {
+): Promise<{ ok: true; view: PublicShareView } | { ok: false; code: ActionErrorCode }> {
   try {
     const res = await fetch(`/api/partage/${encodeURIComponent(token)}`, {
       method: "POST",
@@ -107,11 +96,11 @@ async function callAction(
     const data = await res.json();
     if (!res.ok) {
       const code = typeof data?.error === "string" ? data.error : "";
-      return { ok: false, error: actionErrorMessage(code) };
+      return { ok: false, code: actionErrorCode(code) };
     }
     return { ok: true, view: data.share as PublicShareView };
   } catch {
-    return { ok: false, error: "Connexion impossible. Réessayez." };
+    return { ok: false, code: "network" };
   }
 }
 
@@ -130,6 +119,7 @@ export function PartnerShareView({
    */
   preview?: boolean;
 }) {
+  const t = useTranslations("shares.partnerShareView");
   const [committedView, setCommittedView] = useState(initialView);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,7 +140,7 @@ export function PartnerShareView({
     const result = await callAction(token, action);
     setPending(false);
     if (!result.ok) {
-      setError(result.error);
+      setError(t(`errors.${result.code}`));
       return;
     }
     setCommittedView(result.view);
@@ -175,7 +165,7 @@ export function PartnerShareView({
     >
       {preview && (
         <div className="rounded-md border border-dashed px-3 py-1.5 text-center text-xs font-medium text-muted-foreground">
-          Aperçu — ce que le partenaire verra
+          {t("apercu_ce_que_le_partenaire_verra")}
         </div>
       )}
 
@@ -201,7 +191,7 @@ export function PartnerShareView({
         )}
       </div>
 
-      <h1 className="text-xl font-semibold">Bonjour {firstNameOf(view.partnerName)},</h1>
+      <h1 className="text-xl font-semibold">{t("bonjour", { firstNameOf: firstNameOf(view.partnerName) })}</h1>
 
       {/* Niveau 1 — statut du partage, seul bandeau de cette taille sur la page */}
       <div
@@ -209,26 +199,25 @@ export function PartnerShareView({
       >
         {banner.icon}
         <span>
-          {banner.label}
+          {t(`status.${view.status}`)}
           {view.status === "accepted" && view.respondedAt && (
             <span className="font-normal text-muted-foreground">
               {" "}
-              — le {formatDate(view.respondedAt)}
+              {t("le", { formatDate: formatDate(view.respondedAt) })}
             </span>
           )}
         </span>
       </div>
 
       {isPending && view.expiresAt && (
-        <p className="text-sm text-warning">À confirmer avant le {formatDate(view.expiresAt)}.</p>
+        <p className="text-sm text-warning">{t("a_confirmer_avant_le", { formatDate: formatDate(view.expiresAt) })}</p>
       )}
 
       {/* L'affaire */}
       <div className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold">{view.deal.title}</h2>
         <p className="text-sm text-muted-foreground">
-          {view.deal.typeLabel} · Client : {view.deal.clientName}
-          {view.deal.estimatedAmount && ` · ≈ ${formatEuros(view.deal.estimatedAmount)}`}
+          {t("client", { typeLabel: view.deal.typeLabel, clientName: view.deal.clientName, n: (view.deal.estimatedAmount && ` · ≈ ${formatEuros(view.deal.estimatedAmount)}`) ?? "" })}
         </p>
         {view.deal.description && <p className="text-sm">{view.deal.description}</p>}
       </div>
@@ -237,12 +226,12 @@ export function PartnerShareView({
           affichées de façon permanente une fois acceptées (avec la date qui fait foi). */}
       {(view.proposedTerms || view.message) && (
         <div className="flex flex-col gap-2 rounded-lg border p-4">
-          <h3 className="text-sm font-semibold">Conditions proposées</h3>
+          <h3 className="text-sm font-semibold">{t("conditions_proposees")}</h3>
           {view.proposedTerms && <p className="text-sm">{view.proposedTerms}</p>}
           {view.message && <p className="text-sm text-muted-foreground">{view.message}</p>}
           {view.status === "accepted" && view.respondedAt && (
             <p className="text-xs text-muted-foreground">
-              Acceptées le {formatDate(view.respondedAt)} — cette page fait foi en cas de désaccord.
+              {t("acceptees_le_cette_page_fait_foi_6457", { formatDate: formatDate(view.respondedAt) })}
             </p>
           )}
         </div>
@@ -258,7 +247,7 @@ export function PartnerShareView({
             onClick={() => setShowAcceptConfirm(true)}
             disabled={pending}
           >
-            Accepter
+            {t("accepter")}
           </Button>
           <Button
             variant="outline"
@@ -266,7 +255,7 @@ export function PartnerShareView({
             onClick={() => setShowDeclineForm(true)}
             disabled={pending}
           >
-            Refuser
+            {t("refuser")}
           </Button>
         </div>
       )}
@@ -274,9 +263,9 @@ export function PartnerShareView({
       {/* Confirmation intermédiaire — un clic accidentel ne doit jamais engager une commission. */}
       {showAcceptConfirm && (
         <div className="flex flex-col gap-3 rounded-lg border p-4">
-          <p className="text-sm font-medium">Confirmez votre acceptation</p>
+          <p className="text-sm font-medium">{t("confirmez_votre_acceptation")}</p>
           {view.proposedTerms && (
-            <p className="text-sm text-muted-foreground">Conditions : {view.proposedTerms}</p>
+            <p className="text-sm text-muted-foreground">{t("conditions", { proposedTerms: view.proposedTerms })}</p>
           )}
           <div className="flex gap-3">
             <Button
@@ -284,10 +273,10 @@ export function PartnerShareView({
               onClick={() => run({ type: "accept" })}
               disabled={pending}
             >
-              {pending ? "…" : "Confirmer l'acceptation"}
+              {pending ? "…" : t("confirmer_l_acceptation")}
             </Button>
             <Button variant="ghost" onClick={() => setShowAcceptConfirm(false)} disabled={pending}>
-              Annuler
+              {t("annuler")}
             </Button>
           </div>
         </div>
@@ -295,11 +284,11 @@ export function PartnerShareView({
 
       {showDeclineForm && (
         <div className="flex flex-col gap-3 rounded-lg border p-4">
-          <p className="text-sm font-medium">Confirmez votre refus</p>
+          <p className="text-sm font-medium">{t("confirmez_votre_refus")}</p>
           <Textarea
             value={declineReason}
             onChange={(e) => setDeclineReason(e.target.value)}
-            placeholder="Motif (facultatif)"
+            placeholder={t("motif_facultatif")}
             className="min-h-16"
           />
           <div className="flex gap-3">
@@ -309,10 +298,10 @@ export function PartnerShareView({
               onClick={() => run({ type: "decline", reason: declineReason || undefined })}
               disabled={pending}
             >
-              {pending ? "…" : "Confirmer le refus"}
+              {pending ? "…" : t("confirmer_le_refus")}
             </Button>
             <Button variant="ghost" onClick={() => setShowDeclineForm(false)} disabled={pending}>
-              Annuler
+              {t("annuler")}
             </Button>
           </div>
         </div>
@@ -320,7 +309,7 @@ export function PartnerShareView({
 
       {/* Niveau 2 — statut de l'affaire : un contrôle discret, pas un badge, actif seulement après acceptation. */}
       <div className="flex items-center gap-2 border-t pt-4 text-sm">
-        <span className="text-muted-foreground">Statut de l&apos;affaire :</span>
+        <span className="text-muted-foreground">{t("statut_de_l_affaire")}</span>
         {view.status === "accepted" ? (
           <Select
             value={view.currentDealStatus.id}
@@ -349,40 +338,39 @@ export function PartnerShareView({
       {/* Niveau 3 — commission : silencieux si elle n'existe pas encore. */}
       {view.commission && (
         <p className="text-sm text-muted-foreground">
-          Commission {formatCommission(view.commission)} —{" "}
-          {view.commission.state === "prevue"
-            ? "prévue"
+          {t("commission", { formatCommission: formatCommission(view.commission), value: view.commission.state === "prevue"
+            ? t("prevue")
             : view.commission.state === "confirmee"
-              ? "confirmée"
-              : "réglée"}
+              ? t("confirmee")
+              : t("reglee") })}
         </p>
       )}
 
       {/* Échanges */}
       <div className="flex flex-col gap-3 border-t pt-4">
-        <h3 className="text-sm font-semibold">Échanges</h3>
+        <h3 className="text-sm font-semibold">{t("echanges")}</h3>
         <ul className="flex flex-col gap-2">
           {view.events.map((e) => (
             <li key={e.id} className="text-sm">
-              <span className="font-medium">{e.actor === "vous" ? "Vous" : view.organization.name}</span>
+              <span className="font-medium">{e.actor === "vous" ? t("vous") : view.organization.name}</span>
               {e.message && <span> — {e.message}</span>}
               <span className="ml-1 text-xs text-muted-foreground">{formatDateTime(e.createdAt)}</span>
             </li>
           ))}
           {view.events.length === 0 && (
-            <li className="text-sm text-muted-foreground">Aucun échange pour l&apos;instant.</li>
+            <li className="text-sm text-muted-foreground">{t("aucun_echange_pour_l_instant")}</li>
           )}
         </ul>
         {preview ? (
           <p className="text-xs text-muted-foreground">
-            Le partenaire pourra commenter une fois le lien envoyé.
+            {t("le_partenaire_pourra_commenter_une_fois_6de0")}
           </p>
         ) : (
           <div className="flex gap-2">
             <Textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Ajouter un commentaire"
+              placeholder={t("ajouter_un_commentaire")}
               className="min-h-10 flex-1"
             />
             <Button
@@ -390,7 +378,7 @@ export function PartnerShareView({
               onClick={() => run({ type: "comment", message: comment })}
               disabled={pending || !comment.trim()}
             >
-              Envoyer
+              {t("envoyer")}
             </Button>
           </div>
         )}

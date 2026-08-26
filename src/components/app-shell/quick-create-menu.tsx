@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTranslations } from "next-intl";
 
 /**
  * « Nouveau » — les gestes de création depuis n'importe quel écran. Chaque
@@ -18,18 +19,20 @@ import {
  * duplique aucun formulaire.
  */
 export function QuickCreateMenu() {
+  const t = useTranslations("shell.quickCreateMenu");
+  const tn = useTranslations("nav");
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button size="sm" aria-label="Nouveau" />}>
+      <DropdownMenuTrigger render={<Button size="sm" aria-label={t("nouveau")} />}>
         <Plus />
-        <span className="hidden sm:inline">Nouveau</span>
+        <span className="hidden sm:inline">{t("nouveau")}</span>
         <ChevronDown className="opacity-70" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
-        {QUICK_CREATE.map(({ href, label, icon: Icon }) => (
+        {QUICK_CREATE.map(({ href, key, icon: Icon }) => (
           <DropdownMenuItem key={href} render={<Link href={href} />}>
             <Icon />
-            {label}
+            {tn(`quickCreate.${key}`)}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

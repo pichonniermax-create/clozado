@@ -1,3 +1,4 @@
+import type { Messages } from "@/i18n/messages";
 import {
   BookUser,
   Briefcase,
@@ -22,13 +23,15 @@ import {
  * produit, c'est ajouter une ligne ici — la barre latérale, ses sections et
  * ses compteurs suivent. Regroupée par intention, pas par table :
  * « Aujourd'hui » (ce qu'il y a à faire) avant « Dossiers » (la matière),
- * les outils annexes en dernier.
+ * les outils annexes en dernier. Les libellés vivent dans les messages
+ * (`nav.json`, chantier i18n) : ici, leurs CLÉS — typées contre le
+ * français, une clé absente ne compile pas.
  */
 export type NavBadge = "tasksDue" | "followUp";
 
 export type NavEntry = {
   href: string;
-  label: string;
+  key: keyof Messages["nav"]["entries"];
   icon: LucideIcon;
   /** Compteur affiché à droite — calculé par la coquille, absent quand il est nul. */
   badge?: NavBadge;
@@ -39,50 +42,50 @@ export type NavEntry = {
   requiresOrganization?: boolean;
 };
 
-export type NavSection = { label: string; entries: NavEntry[] };
+export type NavSection = { key: keyof Messages["nav"]["sections"]; entries: NavEntry[] };
 
 export const NAVIGATION: NavSection[] = [
   {
-    label: "Aujourd'hui",
+    key: "aujourd_hui",
     entries: [
-      { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-      { href: "/taches", label: "Tâches", icon: ListTodo, badge: "tasksDue", requiresOrganization: true },
-      { href: "/suivi", label: "Suivi", icon: Target, badge: "followUp", requiresOrganization: true },
+      { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
+      { href: "/taches", key: "taches", icon: ListTodo, badge: "tasksDue", requiresOrganization: true },
+      { href: "/suivi", key: "suivi", icon: Target, badge: "followUp", requiresOrganization: true },
     ],
   },
   {
-    label: "Dossiers",
+    key: "dossiers",
     entries: [
-      { href: "/contacts", label: "Contacts", icon: BookUser },
-      { href: "/affaires", label: "Affaires", icon: Briefcase },
-      { href: "/partenaires", label: "Partenaires", icon: Users },
+      { href: "/contacts", key: "contacts", icon: BookUser },
+      { href: "/affaires", key: "affaires", icon: Briefcase },
+      { href: "/partenaires", key: "partenaires", icon: Users },
     ],
   },
   {
-    label: "Analytique",
+    key: "analytique",
     entries: [
-      { href: "/analytique/funnel", label: "Funnel", icon: Funnel, requiresOrganization: true },
-      { href: "/analytique/delais", label: "Délais", icon: Timer, requiresOrganization: true },
-      { href: "/analytique/pertes", label: "Pertes", icon: TrendingDown, requiresOrganization: true },
-      { href: "/analytique/partenaires", label: "Partenariats", icon: Handshake, requiresOrganization: true },
-      { href: "/analytique/origines", label: "Origines", icon: Route, requiresOrganization: true },
+      { href: "/analytique/funnel", key: "analytique_funnel", icon: Funnel, requiresOrganization: true },
+      { href: "/analytique/delais", key: "analytique_delais", icon: Timer, requiresOrganization: true },
+      { href: "/analytique/pertes", key: "analytique_pertes", icon: TrendingDown, requiresOrganization: true },
+      { href: "/analytique/partenaires", key: "analytique_partenaires", icon: Handshake, requiresOrganization: true },
+      { href: "/analytique/origines", key: "analytique_origines", icon: Route, requiresOrganization: true },
     ],
   },
   {
-    label: "Outils",
+    key: "outils",
     entries: [
-      { href: "/cibles", label: "Cibles", icon: UsersRound, requiresOrganization: true },
-      { href: "/veille", label: "Veille", icon: Newspaper, requiresOrganization: true },
-      { href: "/chiffres", label: "Chiffres", icon: Sigma, requiresOrganization: true },
-      { href: "/newsletters", label: "Newsletters", icon: Mail },
+      { href: "/cibles", key: "cibles", icon: UsersRound, requiresOrganization: true },
+      { href: "/veille", key: "veille", icon: Newspaper, requiresOrganization: true },
+      { href: "/chiffres", key: "chiffres", icon: Sigma, requiresOrganization: true },
+      { href: "/newsletters", key: "newsletters", icon: Mail },
     ],
   },
 ];
 
 /** Les gestes de création proposés par le menu « Nouveau » de l'en-tête — chacun ouvre le formulaire déjà déplié. */
-export const QUICK_CREATE: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: "/contacts?nouveau=1", label: "Contact", icon: BookUser },
-  { href: "/affaires?nouveau=1", label: "Affaire", icon: Briefcase },
-  { href: "/taches#nouvelle-tache", label: "Tâche", icon: ListTodo },
-  { href: "/partenaires?nouveau=1", label: "Partenaire", icon: Users },
+export const QUICK_CREATE: { href: string; key: keyof Messages["nav"]["quickCreate"]; icon: LucideIcon }[] = [
+  { href: "/contacts?nouveau=1", key: "contacts", icon: BookUser },
+  { href: "/affaires?nouveau=1", key: "affaires", icon: Briefcase },
+  { href: "/taches#nouvelle-tache", key: "taches", icon: ListTodo },
+  { href: "/partenaires?nouveau=1", key: "partenaires", icon: Users },
 ];

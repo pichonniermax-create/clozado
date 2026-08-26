@@ -26,12 +26,12 @@ import {
   type PartnersReport,
 } from "@/lib/metrics";
 import { requireUser } from "@/lib/session";
+import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
+import type { TranslatorOf } from "@/i18n/translator";
 
 const BASE_PATH = "/analytique/partenaires";
 
-function plural(n: number, singular: string, pluralForm = `${singular}s`) {
-  return `${n} ${n > 1 ? pluralForm : singular}`;
-}
 
 function DefinitionLink({ id, children }: { id: keyof typeof METRICS; children: ReactNode }) {
   return (
@@ -45,19 +45,17 @@ const MASKED = <span className="text-muted-foreground">—</span>;
 
 /** Médiane et moyenne côte à côte, ou le tiret avec ce qui manque — la même règle que le tableau des délais, en une cellule. */
 function DelayCell({ stat }: { stat: DurationStat }) {
+  const t = useTranslations("analytics.partenaires");
   if (stat.hidden || stat.medianDays === null || stat.meanDays === null) {
     return (
-      <span className="text-muted-foreground" title={stat.n === 0 ? "aucune réponse" : `masqué : il manque ${stat.missing} réponse${stat.missing > 1 ? "s" : ""}`}>
+      <span className="text-muted-foreground" title={stat.n === 0 ? t("aucune_reponse") : t("masque_il_manque_reponse_reponses", { missing: stat.missing })}>
         —{stat.n > 0 && <span className="block text-xs">{stat.n}/{MIN_OBSERVATIONS}</span>}
       </span>
     );
   }
   return (
     <>
-      <span className="block whitespace-nowrap">méd. {formatDuration(stat.medianDays)}</span>
-      <span className="block whitespace-nowrap text-xs text-muted-foreground">
-        moy. {formatDuration(stat.meanDays)} · n = {stat.n}
-      </span>
+      {t.rich("med_moy_n", { formatDuration: formatDuration(stat.medianDays), formatDuration2: formatDuration(stat.meanDays), n: stat.n, span: (chunks) => <span className="block whitespace-nowrap">{chunks}</span>, span2: (chunks) => <span className="block whitespace-nowrap text-xs text-muted-foreground">{chunks}</span> })}
     </>
   );
 }
@@ -68,7 +66,8 @@ function DelayCell({ stat }: { stat: DurationStat }) {
  * aucune commission ne porte de montant : jamais 0 € pour dire « inconnu ».
  */
 function MoneyCell({ money, showCount = true }: { money: MoneyCount; showCount?: boolean }) {
-  const parts = [showCount && money.n > 0 ? plural(money.n, "commission") : null, money.withoutAmount > 0 ? `${money.withoutAmount} sans montant` : null].filter(Boolean);
+  const t = useTranslations("analytics.partenaires");
+  const parts = [showCount && money.n > 0 ? t("commission_commissions", { n: money.n }) : null, money.withoutAmount > 0 ? `${money.withoutAmount} sans montant` : null].filter(Boolean);
   return (
     <>
       {money.n === 0 || money.withoutAmount === money.n ? MASKED : formatEuros(money.amount)}
@@ -78,12 +77,12 @@ function MoneyCell({ money, showCount = true }: { money: MoneyCount; showCount?:
 }
 
 /** « pour 600 € », « pour 600 € (1 sans montant) », ou « au montant inconnu » quand aucune ne porte de montant — la même règle que les cellules. */
-function forAmount(money: MoneyCount): ReactNode {
-  if (money.withoutAmount === money.n) return "au montant inconnu";
+function forAmount(money: MoneyCount, t: TranslatorOf<"analytics.partenaires">): ReactNode {
+  if (money.withoutAmount === money.n) return t("au_montant_inconnu");
   return (
     <>
-      pour <span className="tabular-nums">{formatEuros(money.amount)}</span>
-      {money.withoutAmount > 0 && <span className="text-muted-foreground"> ({money.withoutAmount} sans montant)</span>}
+      {t.rich("pour", { formatEuros: (formatEuros(money.amount)) ?? "", span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
+      {money.withoutAmount > 0 && <span className="text-muted-foreground"> {t("sans_montant", { withoutAmount: money.withoutAmount })}</span>}
     </>
   );
 }
@@ -96,41 +95,37 @@ const th = (label: ReactNode, align: "left" | "right" = "right") => (
 const td = (content: ReactNode) => <td className="px-3 py-3 text-right align-top tabular-nums">{content}</td>;
 
 function NotEnoughData({ report, filtered }: { report: PartnersReport; filtered: boolean }) {
+  const t = useTranslations("analytics.partenaires");
+  const tm = useTranslations("metrics");
   return (
     <EmptyState
       icon={<Handshake />}
-      title={filtered ? "Aucun partage sur cette sélection" : "Aucun partage pour l'instant"}
+      title={filtered ? t("aucun_partage_sur_cette_selection") : t("aucun_partage_pour_l_instant")}
       action={
         filtered ? (
           <Link href={BASE_PATH} className={buttonVariants({ variant: "outline" })}>
-            Retirer les filtres
+            {t("retirer_les_filtres")}
           </Link>
         ) : (
           <>
-            <Link href="/partenaires" className={buttonVariants({ variant: "outline" })}>
-              Voir les partenaires
-            </Link>
-            <Link href="/affaires" className={buttonVariants({ variant: "ghost" })}>
-              Ouvrir le pipeline
-            </Link>
+            {t.rich("voir_les_partenaires_ouvrir_le_pipeline", { link: (chunks) => <Link href="/partenaires" className={buttonVariants({ variant: "outline" })}>{chunks}</Link>, link2: (chunks) => <Link href="/affaires" className={buttonVariants({ variant: "ghost" })}>{chunks}</Link> })}
           </>
         )
       }
     >
       {filtered
-        ? "Aucun partage envoyé à cette date, pour ce conseiller, ce type, ce pipeline ou cette origine — élargis la période ou retire un filtre."
-        : "Tout part d'un partage : depuis la fiche d'une affaire, un lien à ton nom envoyé à un confrère, avec la commission fixée à l'envoi. Sa réponse, son délai, l'issue de l'affaire et la commission se mesurent ensuite ici."}
+        ? t("aucun_partage_envoye_a_cette_date_c42d")
+        : t("tout_part_d_un_partage_depuis_6a68")}
       <span className="mt-3 block text-left">
         <span className="flex flex-col gap-1.5 text-xs">
           <span className="text-foreground">
-            {METRICS.partner_shares.label} — <span className="tabular-nums">{report.totals.sent}</span> ({report.partners.length} partenaire
-            {report.partners.length > 1 ? "s" : ""})
+            {t.rich("partenaire_partenaires", { label: tm("definitions.partner_shares.label"), sent: report.totals.sent, count: report.partners.length, span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
           </span>
-          {!filtered && <span>{METRICS.partner_shares.howToFeed}</span>}
+          {!filtered && <span>{tm("definitions.partner_shares.howToFeed")}</span>}
           <span className="text-foreground">
-            Commissions, tous états — <span className="tabular-nums">{report.commissions.states.reduce((s, x) => s + x.n, 0)}</span>
+            {t.rich("commissions_tous_etats", { reduce: report.commissions.states.reduce((s, x) => s + x.n, 0), span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
           </span>
-          {!filtered && <span>{METRICS.commissions_outstanding.howToFeed}</span>}
+          {!filtered && <span>{tm("definitions.commissions_outstanding.howToFeed")}</span>}
         </span>
       </span>
     </EmptyState>
@@ -138,13 +133,15 @@ function NotEnoughData({ report, filtered }: { report: PartnersReport; filtered:
 }
 
 export default async function PartnersAnalyticsPage({ searchParams }: { searchParams: Promise<MetricSearchParams> }) {
+  const t = await getTranslations("analytics.partenaires");
+  const tm = await getTranslations("metrics");
   const user = await requireUser();
   const raw = await searchParams;
 
   const header = (
     <PageHeader
-      title="Partenaires et commissions"
-      description="Ce que chaque confrère fait de tes partages — acceptation, délai de réponse, transformation, commissions — et l'encours de commissions à aujourd'hui."
+      title={t("partenaires_et_commissions")}
+      description={t("ce_que_chaque_confrere_fait_de_c359")}
     />
   );
 
@@ -152,9 +149,8 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
     return (
       <>
         {header}
-        <EmptyState title="Tu es en vue globale">
-          Choisis une organisation dans le bandeau super admin en haut de l&apos;écran pour voir ses partenaires — un agrégat ne
-          traverse jamais la frontière entre deux organisations.
+        <EmptyState title={t("tu_es_en_vue_globale")}>
+          {t("choisis_une_organisation_dans_le_bandeau_0b8a")}
         </EmptyState>
       </>
     );
@@ -166,7 +162,7 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
     listDealTypes(user),
     listOrgUsers(user),
     listOrigins(user),
-    partnersReport(user, parsed.filters),
+    partnersReport(user, parsed.filters, tm),
   ]);
   const hasData = partnersHasAnyData(report);
   const { totals, commissions } = report;
@@ -182,39 +178,38 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
         <>
           <section className="flex flex-col gap-3">
             <h2 className="text-sm font-semibold">
-              <DefinitionLink id="partner_shares">Par partenaire</DefinitionLink>
+              <DefinitionLink id="partner_shares">{t("par_partenaire")}</DefinitionLink>
             </h2>
             <p className="-mt-1 text-xs text-muted-foreground text-pretty">
-              Les partages envoyés {periodPhrase(parsed)}, suivis jusqu&apos;à aujourd&apos;hui — un lien renvoyé est le même partage. Le nom
-              ouvre la fiche du partenaire. Un taux « — » est masqué faute d&apos;observations.
+              {t("les_partages_envoyes_suivis_jusqu_a_4cbd", { periodPhrase: periodPhrase(parsed, tm) })}
             </p>
             {report.partners.length === 0 ? (
               <EmptyState
-                title="Aucun partenaire"
+                title={t("aucun_partenaire")}
                 action={
                   <Link href="/partenaires?nouveau=1" className={buttonVariants({ variant: "outline" })}>
-                    Ajouter un partenaire
+                    {t("ajouter_un_partenaire")}
                   </Link>
                 }
               >
-                Les partages se mesurent par confrère : crée d&apos;abord sa fiche.
+                {t("les_partages_se_mesurent_par_confrere_eb43")}
               </EmptyState>
             ) : (
               <div className="overflow-x-auto rounded-xl border border-border bg-card">
                 <table className="w-full min-w-[72rem] text-sm">
                   <thead>
                     <tr className="border-b border-border text-xs text-muted-foreground">
-                      {th("Partenaire", "left")}
-                      {th("Partages")}
-                      {th("Acceptés")}
-                      {th("Refusés")}
-                      {th("Sans réponse")}
-                      {th(<DefinitionLink id="partner_acceptance_rate">Acceptation</DefinitionLink>)}
-                      {th(<DefinitionLink id="partner_response_delay">Délai de réponse</DefinitionLink>)}
-                      {th("Gagnées")}
-                      {th(<DefinitionLink id="partner_transformation_rate">Transformation</DefinitionLink>)}
-                      {th(<DefinitionLink id="partner_commissions">Commissions acquises</DefinitionLink>)}
-                      {th("Commissions prévues")}
+                      {th(t("partenaire"), "left")}
+                      {th(t("partages"))}
+                      {th(t("acceptes"))}
+                      {th(t("refuses"))}
+                      {th(t("sans_reponse"))}
+                      {th(<DefinitionLink id="partner_acceptance_rate">{t("acceptation")}</DefinitionLink>)}
+                      {th(<DefinitionLink id="partner_response_delay">{t("delai_de_reponse")}</DefinitionLink>)}
+                      {th(t("gagnees"))}
+                      {th(<DefinitionLink id="partner_transformation_rate">{t("transformation")}</DefinitionLink>)}
+                      {th(<DefinitionLink id="partner_commissions">{t("commissions_acquises")}</DefinitionLink>)}
+                      {th(t("commissions_prevues"))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -257,7 +252,7 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
                   <tfoot>
                     <tr className="border-t border-border bg-muted/40 font-medium">
                       <th scope="row" className="px-3 py-3 text-left align-top">
-                        Ensemble
+                        {t("ensemble")}
                       </th>
                       {td(totals.sent)}
                       {td(totals.accepted)}
@@ -278,23 +273,18 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
 
           <section className="flex flex-col gap-3">
             <h2 className="text-sm font-semibold">
-              <DefinitionLink id="commissions_outstanding">Encours de commissions, à aujourd&apos;hui</DefinitionLink>
+              <DefinitionLink id="commissions_outstanding">{t("encours_de_commissions_a_aujourd_hui")}</DefinitionLink>
             </h2>
             <p className="-mt-1 text-xs text-muted-foreground text-pretty">
-              Un état, pas une période : la période ne s&apos;y applique pas (conseiller, type, pipeline et origine, si). Le règlement se déclare
-              depuis la pile « commissions à encaisser » du{" "}
-              <Link href="/suivi" className="underline underline-offset-2 hover:text-foreground">
-                suivi
-              </Link>
-              .
+              {t.rich("un_etat_pas_une_periode_la_12b8", { link: (chunks) => <Link href="/suivi" className="underline underline-offset-2 hover:text-foreground">{chunks}</Link> })}
             </p>
             <div className="overflow-x-auto rounded-xl border border-border bg-card">
               <table className="w-full min-w-[32rem] text-sm">
                 <thead>
                   <tr className="border-b border-border text-xs text-muted-foreground">
-                    {th("État", "left")}
-                    {th("Commissions")}
-                    {th("Montant")}
+                    {th(t("etat"), "left")}
+                    {th(t("commissions"))}
+                    {th(t("montant"))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -314,21 +304,16 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
 
           <section className="flex flex-col gap-3">
             <h2 className="text-sm font-semibold">
-              <DefinitionLink id="commissions_aging">Vieillissement des commissions confirmées non réglées</DefinitionLink>
+              <DefinitionLink id="commissions_aging">{t("vieillissement_des_commissions_confirmees_non_reglees")}</DefinitionLink>
             </h2>
             <p className="-mt-1 text-xs text-muted-foreground text-pretty">
-              Depuis la date de confirmation observée.{" "}
-              <span className="tabular-nums">{plural(commissions.overdue.n, "commission dépasse", "commissions dépassent")}</span> le seuil de
-              relance de l&apos;organisation ({formatDays(commissions.overdue.thresholdDays)})
-              {commissions.overdue.n > 0 && <>, {forAmount(commissions.overdue)}</>}
+              {t.rich("depuis_la_date_de_confirmation_observee_703b", { n: commissions.overdue.n, formatDays: formatDays(commissions.overdue.thresholdDays), span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
+              {commissions.overdue.n > 0 && <>, {forAmount(commissions.overdue, t)}</>}
               .
               {commissions.unknownConfirmedAt.n > 0 && (
                 <>
-                  {" "}
-                  <span className="tabular-nums">{plural(commissions.unknownConfirmedAt.n, "confirmée")}</span> à la date inconnue,{" "}
-                  {forAmount(commissions.unknownConfirmedAt)} — écartée
-                  {commissions.unknownConfirmedAt.n > 1 ? "s" : ""} du vieillissement, jamais datée{commissions.unknownConfirmedAt.n > 1 ? "s" : ""} par une
-                  valeur plausible.
+                  {t.rich("confirmee_confirmees_a_la_date_inconnue", { n: commissions.unknownConfirmedAt.n, span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
+                  {forAmount(commissions.unknownConfirmedAt, t)} {t("ecartee_ecartees_du_vieillissement_jamais_datee_ca24", { n: commissions.unknownConfirmedAt.n })}
                 </>
               )}
             </p>
@@ -336,9 +321,9 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
               <table className="w-full min-w-[32rem] text-sm">
                 <thead>
                   <tr className="border-b border-border text-xs text-muted-foreground">
-                    {th("Ancienneté", "left")}
-                    {th("Commissions")}
-                    {th("Montant")}
+                    {th(t("anciennete"), "left")}
+                    {th(t("commissions"))}
+                    {th(t("montant"))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -361,16 +346,7 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
       <MetricDefinitions metrics={metricsOfFamily("partners")} />
 
       <p className="text-xs text-muted-foreground text-pretty">
-        Un taux calculé sur moins de {MIN_OBSERVATIONS} observations est masqué ; nombres et montants s&apos;affichent toujours. Les délais de
-        réponse bornés sur la date de réponse se lisent dans{" "}
-        <Link href="/analytique/delais" className="underline underline-offset-2 hover:text-foreground">
-          Analytique → Délais
-        </Link>
-        ; les seuils de relance se règlent dans{" "}
-        <Link href="/settings" className="underline underline-offset-2 hover:text-foreground">
-          Marque &amp; réglages
-        </Link>
-        .
+        {t.rich("un_taux_calcule_sur_moins_de_e7e1", { minObservations: MIN_OBSERVATIONS, link: (chunks) => <Link href="/analytique/delais" className="underline underline-offset-2 hover:text-foreground">{chunks}</Link>, link2: (chunks) => <Link href="/settings" className="underline underline-offset-2 hover:text-foreground">{chunks}</Link> })}
       </p>
     </>
   );

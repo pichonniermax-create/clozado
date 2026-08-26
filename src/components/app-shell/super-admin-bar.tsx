@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 import { setActiveOrganizationAction } from "@/lib/admin/actions";
+import { useTranslations } from "next-intl";
 
 type OrgOption = { id: string; name: string; slug: string };
 
@@ -22,6 +23,7 @@ export function SuperAdminBar({
   organizations: OrgOption[];
   activeOrgId: string | null;
 }) {
+  const t = useTranslations("shell.superAdminBar");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const known = activeOrgId && organizations.some((o) => o.id === activeOrgId);
@@ -38,19 +40,19 @@ export function SuperAdminBar({
       <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-sm md:px-8">
         <span className="flex items-center gap-1.5 font-semibold">
           <ShieldAlert className="size-4" />
-          Super admin
+          {t("super_admin")}
         </span>
         <span className="text-muted-foreground">
-          {known ? "Tu travailles dans :" : "Vue globale — choisis une organisation pour agir :"}
+          {known ? t("tu_travailles_dans") : t("vue_globale_choisis_une_organisation_pour_d974")}
         </span>
         <select
           value={known ? activeOrgId! : ""}
           onChange={(e) => choose(e.target.value)}
           disabled={pending}
-          aria-label="Organisation active"
+          aria-label={t("organisation_active")}
           className="h-7 rounded-lg border border-warning/50 bg-background px-2 text-sm font-medium"
         >
-          <option value="">Vue globale (aucune organisation)</option>
+          <option value="">{t("vue_globale_aucune_organisation")}</option>
           {organizations.map((o) => (
             <option key={o.id} value={o.id}>
               {o.name}
@@ -59,10 +61,10 @@ export function SuperAdminBar({
         </select>
         {activeOrgId && !known && (
           <span className="text-xs text-destructive">
-            L&apos;organisation mémorisée n&apos;existe plus — re-choisis dans la liste.
+            {t("l_organisation_memorisee_n_existe_plus_c1ce")}
           </span>
         )}
-        {pending && <span className="text-xs text-muted-foreground">Changement…</span>}
+        {pending && <span className="text-xs text-muted-foreground">{t("changement")}</span>}
       </div>
     </div>
   );

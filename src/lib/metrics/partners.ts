@@ -4,6 +4,7 @@ import type { OrgScopeUser } from "@/lib/session";
 import { shareChainsCte } from "./durations";
 import { dealConditions, organizationOf, periodCondition, type MetricFilters } from "./filters";
 import { finishRate, finishStat, type DurationStat, type RateStat } from "./types";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /**
  * La famille « partenaires et commissions » — le calcul, en SQL, de
@@ -87,25 +88,15 @@ export type PartnersReport = {
   };
 };
 
-const STATE_LABELS: Record<CommissionStateKey, string> = {
-  prevue: "Prévues (partage en attente ou accepté)",
-  confirmee: "Confirmées, non réglées",
-  reglee: "Réglées",
-  caduque: "Prévues devenues caduques (partage refusé, révoqué, expiré ou remplacé)",
-};
-
-const AGING_BUCKETS: { key: string; label: string }[] = [
-  { key: "0-30", label: "Confirmée depuis 30 jours ou moins" },
-  { key: "31-60", label: "Depuis 31 à 60 jours" },
-  { key: "61-90", label: "Depuis 61 à 90 jours" },
-  { key: "90+", label: "Depuis plus de 90 jours" },
-];
+/** Les états et les tranches d'âge ; leurs libellés sont `metrics.commissionStates.*` et `metrics.aging.*` dans les messages. */
+const STATE_KEYS: readonly CommissionStateKey[] = ["prevue", "confirmee", "reglee", "caduque"];
+const AGING_KEYS = ["0-30", "31-60", "61-90", "90+"] as const;
 
 function money(r: Row | undefined): MoneyCount {
   return { n: num(r?.n), amount: num(r?.amount), withoutAmount: num(r?.without_amount) };
 }
 
-export async function partnersReport(user: OrgScopeUser, filters: MetricFilters = {}): Promise<PartnersReport> {
+export async function partnersReport(user: OrgScopeUser, filters: MetricFilters = {}, t: TranslatorOf<"metrics">): Promise<PartnersReport> {
   const org = organizationOf(user);
   const responded = sql`sc.issue IN ('accepted', 'declined') AND sc.responded_at IS NOT NULL`;
   const alive = sql`sc.issue IN ('pending', 'accepted')`;
@@ -245,12 +236,12 @@ export async function partnersReport(user: OrgScopeUser, filters: MetricFilters 
       planned: sumMoney((p) => p.planned),
     },
     commissions: {
-      states: (Object.keys(STATE_LABELS) as CommissionStateKey[]).map((key) => ({
+      states: STATE_KEYS.map((key) => ({
         key,
-        label: STATE_LABELS[key],
+        label: t(`commissionStates.${key}`),
         ...money(stateRows.find((r) => r.key === key)),
       })),
-      aging: AGING_BUCKETS.map((b) => ({ ...b, ...money(agingRows.find((r) => r.key === b.key)) })),
+      aging: AGING_KEYS.map((key) => ({ key, label: t(`aging.${key}`), ...money(agingRows.find((r) => r.key === key)) })),
       unknownConfirmedAt: money(agingRows.find((r) => r.key === "inconnue")),
       overdue: { ...money(overdueRow), thresholdDays: num(overdueRow?.threshold_days) },
     },

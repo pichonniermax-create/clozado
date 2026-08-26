@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
+import { PRODUCT_NAME } from "@/lib/brand";
 
 /**
  * La marque du PRODUIT — le carré « C » et le mot Clozado. Une seule
@@ -29,10 +30,10 @@ export function BrandMark({
         aria-hidden
         className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-product text-xs font-bold text-product-foreground"
       >
-        C
+        {PRODUCT_NAME.charAt(0)}
       </span>
       <span className={cn("font-semibold tracking-tight", size === "lg" ? "text-lg" : "text-sm")}>
-        Clozado
+        {PRODUCT_NAME}
       </span>
     </>
   );

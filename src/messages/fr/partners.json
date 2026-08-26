@@ -1,0 +1,45 @@
+{
+  "detail": {
+    "affaires_partagees": "Affaires partagées",
+    "aucune_affaire_partagee_avec_ce_partenaire": "Aucune affaire partagée avec ce partenaire",
+    "email": "Email",
+    "enregistrer": "Enregistrer",
+    "envoyee_le": "Envoyée le {formatDate}",
+    "fiche": "Fiche",
+    "inactif": "Inactif",
+    "le_partage_se_fait_depuis_la_143b": "Le partage se fait depuis la fiche d’une affaire : un lien à ton nom, une réponse en un clic — l’historique apparaîtra ici.",
+    "metier": "Métier",
+    "nom": "Nom",
+    "notes": "Notes",
+    "partenaire_actif": "Partenaire actif",
+    "partenaires": "Partenaires",
+    "societe": "Société",
+    "telephone": "Téléphone",
+    "voir_les_affaires": "Voir les affaires"
+  },
+  "detailNotFound": {
+    "ce_partenaire_n_existe_pas": "Ce partenaire n’existe pas.",
+    "le_lien_est_peut_etre_perime_4d7c": "Le lien est peut-être périmé, ou la fiche appartient à un autre espace.",
+    "retour_aux_partenaires": "Retour aux partenaires"
+  },
+  "list": {
+    "ajouter_le_partenaire": "Ajouter le partenaire",
+    "ajouter_un_partenaire": "Ajouter un partenaire",
+    "aucun_partenaire_pour_l_instant": "Aucun partenaire pour l’instant",
+    "camille_rousseau": "Camille Rousseau",
+    "cgp_courtier_credit": "CGP, courtier crédit…",
+    "email": "Email",
+    "inactif": "Inactif",
+    "inactif_inactifs": "{count} {count, plural, one {inactif} other {inactifs}}",
+    "les_confreres_vers_qui_tu_partages_12b6": "Les confrères vers qui tu partages des affaires : ils reçoivent un lien à ton nom et répondent en un clic, sans compte à créer de leur côté.",
+    "les_confreres_vers_qui_tu_partages_8084": "Les confrères vers qui tu partages des affaires — ce ne sont pas des comptes du produit, ils n’ont rien à installer.",
+    "metier": "Métier",
+    "nom": "Nom",
+    "notes": "Notes",
+    "partenaire_partenaires_actif_actifs": "{count} {count, plural, one {partenaire} other {partenaires}} {count, plural, one {actif} other {actifs}}",
+    "partenaires": "Partenaires",
+    "rousseau_patrimoine": "Rousseau Patrimoine",
+    "societe": "Société",
+    "telephone": "Téléphone"
+  }
+}

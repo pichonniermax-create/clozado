@@ -4,6 +4,7 @@ import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 /**
  * Le panneau latéral (« sheet ») : un tiroir qui glisse depuis le bord
@@ -28,6 +29,7 @@ function SheetClose(props: DrawerPrimitive.Close.Props) {
 }
 
 function SheetContent({ className, children, ...props }: DrawerPrimitive.Popup.Props) {
+  const t = useTranslations("ui.sheet");
   return (
     <DrawerPrimitive.Portal>
       <DrawerPrimitive.Backdrop
@@ -49,7 +51,7 @@ function SheetContent({ className, children, ...props }: DrawerPrimitive.Popup.P
             {children}
           </DrawerPrimitive.Content>
           <DrawerPrimitive.Close
-            aria-label="Fermer"
+            aria-label={t("fermer")}
             className="absolute top-3 right-3 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             <X className="size-4" />

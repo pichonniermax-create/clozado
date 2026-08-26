@@ -4,17 +4,18 @@ import { TargetForm } from "@/components/targets/target-form";
 import { listSignatories, loadCriteriaOptions } from "@/db/queries/mail-targets";
 import { requireUser } from "@/lib/session";
 import { createTargetAction } from "@/lib/targets/actions";
+import { getTranslations } from "next-intl/server";
 
 export default async function NewTargetPage() {
+  const t = await getTranslations("targets.new");
   const user = await requireUser();
 
   if (!user.organizationId) {
     return (
       <>
-        <PageHeader title="Nouvelle cible" backTo={{ href: "/cibles", label: "Cibles" }} />
+        <PageHeader title={t("nouvelle_cible")} backTo={{ href: "/cibles", label: t("cibles") }} />
         <EmptyState>
-          Tu es en vue globale : choisis une organisation dans le bandeau super admin en haut de l&apos;écran avant de
-          créer une cible.
+          {t("tu_es_en_vue_globale_choisis_de39")}
         </EmptyState>
       </>
     );
@@ -28,11 +29,11 @@ export default async function NewTargetPage() {
   return (
     <>
       <PageHeader
-        title="Nouvelle cible"
-        description="Qui reçoit, et qui est cette personne. Le nombre de contacts se recalcule pendant que tu choisis les critères."
-        backTo={{ href: "/cibles", label: "Cibles" }}
+        title={t("nouvelle_cible")}
+        description={t("qui_recoit_et_qui_est_cette_1764")}
+        backTo={{ href: "/cibles", label: t("cibles") }}
       />
-      <TargetForm action={createTargetAction} options={options} signatories={signatories} submitLabel="Créer la cible" />
+      <TargetForm action={createTargetAction} options={options} signatories={signatories} submitLabel={t("creer_la_cible")} />
     </>
   );
 }

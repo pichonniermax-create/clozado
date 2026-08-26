@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { lossReasons } from "@/db/schema";
 import { assertOrgAccess, orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
+import { AppError } from "@/lib/errors";
 
 /** Motifs de perte de l'organisation, dans leur ordre d'affichage. */
 export async function listLossReasons(user: OrgScopeUser) {
@@ -13,12 +14,10 @@ export async function listLossReasons(user: OrgScopeUser) {
 
 export async function createLossReason(user: OrgScopeUser, label: string) {
   if (!user.organizationId) {
-    throw new Error(
-      "Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l'écran avant de créer un motif de perte."
-    );
+    throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_643f");
   }
   const trimmed = label.trim();
-  if (!trimmed) throw new Error("Le libellé du motif est obligatoire.");
+  if (!trimmed) throw new AppError("le_libelle_du_motif_est_obligatoire");
   const [reason] = await db
     .insert(lossReasons)
     .values({ organizationId: user.organizationId, label: trimmed })
@@ -38,8 +37,6 @@ export async function deleteLossReason(user: OrgScopeUser, id: string) {
   try {
     await db.delete(lossReasons).where(eq(lossReasons.id, id));
   } catch {
-    throw new Error(
-      "Ce motif est utilisé par au moins une affaire : il ne peut plus être supprimé. Renomme-le si son libellé ne convient plus."
-    );
+    throw new AppError("ce_motif_est_utilise_par_au_moins_f119");
   }
 }

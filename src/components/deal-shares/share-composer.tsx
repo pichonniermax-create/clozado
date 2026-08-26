@@ -26,6 +26,7 @@ import type { PublicShareView } from "@/db/queries/deal-shares-public";
 import { createDealShareAction } from "@/lib/deals/actions";
 import { formatCommission } from "@/lib/format";
 import type { RenderBrand } from "@/lib/newsletter/render-email";
+import { useTranslations } from "next-intl";
 
 type PartnerOption = {
   id: string;
@@ -86,6 +87,7 @@ export function ShareComposer({
   availableStatuses,
   partners,
 }: Props) {
+  const t = useTranslations("shares.shareComposer");
   const router = useRouter();
 
   const [phase, setPhase] = useState<"compose" | "confirm" | "sending" | "done">("compose");
@@ -132,7 +134,7 @@ export function ShareComposer({
     status: "pending",
     organization: { name: organizationName },
     issuedByName,
-    partnerName: selectedPartner?.name ?? "Votre partenaire",
+    partnerName: selectedPartner?.name ?? t("votre_partenaire"),
     deal,
     proposedTerms: proposedTerms || null,
     message: message || null,
@@ -164,7 +166,7 @@ export function ShareComposer({
       setSentToken(token);
       setPhase("done");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "L'envoi a échoué de notre côté — rien n'a été créé, réessaie.");
+      setError(err instanceof Error ? err.message : t("l_envoi_a_echoue_de_notre_2adc"));
       setPhase("confirm");
     }
   }
@@ -186,17 +188,15 @@ export function ShareComposer({
     return (
       <Card className="border-warning/40 bg-warning/5">
         <CardHeader>
-          <CardTitle>Lien créé — à copier maintenant</CardTitle>
+          <CardTitle>{t("lien_cree_a_copier_maintenant")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <p className="text-sm font-medium">
-            Ce lien ne sera plus jamais réaffiché. Copie-le maintenant et transmets-le à{" "}
-            {selectedPartner?.name}. Si tu le perds, il faudra renvoyer le partage — ce qui
-            annulera celui-ci et en créera un nouveau.
+            {t("ce_lien_ne_sera_plus_jamais_4980", { name: (selectedPartner?.name) ?? "" })}
           </p>
           <Input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
           <div className="flex gap-2">
-            <Button onClick={copyToken}>{copied ? "Copié !" : "Copier le lien"}</Button>
+            <Button onClick={copyToken}>{copied ? t("copie") : t("copier_le_lien")}</Button>
             <Button
               variant="outline"
               onClick={() => {
@@ -211,7 +211,7 @@ export function ShareComposer({
                 setFixedAmount("");
               }}
             >
-              J&apos;ai copié le lien — Terminé
+              {t("j_ai_copie_le_lien_termine")}
             </Button>
           </div>
         </CardContent>
@@ -224,10 +224,10 @@ export function ShareComposer({
       <div className="flex flex-col gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Partager cette affaire</CardTitle>
+            <CardTitle>{t("partager_cette_affaire")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <Field label="Partenaire" htmlFor="partnerId">
+            <Field label={t("partenaire")} htmlFor="partnerId">
               <Select
                 value={partnerId}
                 onValueChange={(v) => setPartnerId(String(v))}
@@ -239,7 +239,7 @@ export function ShareComposer({
                 }))}
               >
                 <SelectTrigger id="partnerId" className="w-full">
-                  <SelectValue placeholder="Choisir un partenaire" />
+                  <SelectValue placeholder={t("choisir_un_partenaire")} />
                 </SelectTrigger>
                 <SelectContent>
                   {partners.map((p) => (
@@ -252,22 +252,22 @@ export function ShareComposer({
               </Select>
               {partners.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                  Aucun partenaire actif. Ajoutez-en un depuis l&apos;écran Partenaires.
+                  {t("aucun_partenaire_actif_ajoutez_en_un_de95")}
                 </p>
               )}
             </Field>
 
-            <Field label="Conditions proposées" htmlFor="proposedTerms">
+            <Field label={t("conditions_proposees")} htmlFor="proposedTerms">
               <Textarea
                 id="proposedTerms"
                 value={proposedTerms}
                 onChange={(e) => setProposedTerms(e.target.value)}
-                placeholder="Ex : commission versée à l'acte, sous réserve de signature."
+                placeholder={t("ex_commission_versee_a_l_acte_ddd2")}
                 className="min-h-16"
               />
             </Field>
 
-            <Field label="Message au partenaire" htmlFor="message">
+            <Field label={t("message_au_partenaire")} htmlFor="message">
               <Textarea
                 id="message"
                 value={message}
@@ -277,9 +277,9 @@ export function ShareComposer({
             </Field>
 
             <Field
-              label="Le lien cesse de fonctionner le"
+              label={t("le_lien_cesse_de_fonctionner_le")}
               htmlFor="expiresAt"
-              hint="Facultatif. Sans date, le lien reste valable tant que tu ne le révoques pas."
+              hint={t("facultatif_sans_date_le_lien_reste_98db")}
             >
               <Input
                 id="expiresAt"
@@ -294,10 +294,9 @@ export function ShareComposer({
 
         <Card>
           <CardHeader>
-            <CardTitle>Commission</CardTitle>
+            <CardTitle>{t("commission")}</CardTitle>
             <CardDescription>
-              La fixer maintenant, c&apos;est ce qui t&apos;engage vis-à-vis du confrère — plutôt
-              que de la laisser en texte libre à interpréter plus tard.
+              {t("la_fixer_maintenant_c_est_ce_9dcd")}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -313,10 +312,7 @@ export function ShareComposer({
                 className="mt-0.5"
               />
               <span>
-                Fixer une commission pour ce partage
-                <span className="block text-xs text-muted-foreground">
-                  Décoche si elle sera négociée plus tard.
-                </span>
+                {t.rich("fixer_une_commission_pour_ce_partage_2a94", { span: (chunks) => <span className="block text-xs text-muted-foreground">{chunks}</span> })}
               </span>
             </label>
 
@@ -324,28 +320,28 @@ export function ShareComposer({
               <>
             {/* « Base » désignait à la fois le MODE de calcul et le MONTANT
                 de référence, sur le même écran. Deux libellés distincts. */}
-            <Field label="Comment la calculer" htmlFor="basis">
+            <Field label={t("comment_la_calculer")} htmlFor="basis">
               <Select
                 value={basis}
                 onValueChange={(v) => setBasis(v as CommissionBasis)}
                 items={[
-                  { label: "Pourcentage", value: "percentage" },
-                  { label: "Montant fixe", value: "fixed" },
+                  { label: t("pourcentage"), value: "percentage" },
+                  { label: t("montant_fixe"), value: "fixed" },
                 ]}
               >
                 <SelectTrigger id="basis" className="w-48">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="percentage">Pourcentage</SelectItem>
-                  <SelectItem value="fixed">Montant fixe</SelectItem>
+                  <SelectItem value="percentage">{t("pourcentage")}</SelectItem>
+                  <SelectItem value="fixed">{t("montant_fixe")}</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
 
             {basis === "percentage" ? (
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Taux (%)" htmlFor="rate">
+                <Field label={t("taux")} htmlFor="rate">
                   <Input
                     id="rate"
                     type="number"
@@ -355,7 +351,7 @@ export function ShareComposer({
                     onChange={(e) => setRate(e.target.value)}
                   />
                 </Field>
-                <Field label="Montant de référence (€)" htmlFor="baseAmount">
+                <Field label={t("montant_de_reference")} htmlFor="baseAmount">
                   <Input
                     id="baseAmount"
                     type="number"
@@ -366,7 +362,7 @@ export function ShareComposer({
                 </Field>
               </div>
             ) : (
-              <Field label="Montant (€)" htmlFor="fixedAmount">
+              <Field label={t("montant")} htmlFor="fixedAmount">
                 <Input
                   id="fixedAmount"
                   type="number"
@@ -383,8 +379,7 @@ export function ShareComposer({
                 <span className="font-medium">{formatCommission(draftCommission)}</span>
               ) : (
                 <span className="text-muted-foreground">
-                  Renseigne {basis === "percentage" ? "le taux et le montant de référence" : "le montant"} pour voir
-                  le calcul.
+                  {t("renseigne_pour_voir_le_calcul", { value: basis === "percentage" ? t("le_taux_et_le_montant_de_fa0e") : t("le_montant") })}
                 </span>
               )}
             </div>
@@ -398,16 +393,16 @@ export function ShareComposer({
         {phase === "compose" && (
           <div className="flex flex-col gap-2">
             <Button className="w-fit" disabled={!canSubmit} onClick={() => setPhase("confirm")}>
-              Envoyer le partage
+              {t("envoyer_le_partage")}
             </Button>
             {/* Un bouton grisé doit toujours dire ce qui lui manque. */}
             {!canSubmit && (
               <p className="text-xs text-muted-foreground">
                 {!partnerId
-                  ? "Choisis d'abord un partenaire."
+                  ? t("choisis_d_abord_un_partenaire")
                   : basis === "percentage"
-                    ? "Renseigne le taux et le montant de référence, ou décoche « Fixer une commission »."
-                    : "Renseigne le montant de la commission, ou décoche « Fixer une commission »."}
+                    ? t("renseigne_le_taux_et_le_montant_ddd6")
+                    : t("renseigne_le_montant_de_la_commission_a84e")}
               </p>
             )}
           </div>
@@ -416,31 +411,30 @@ export function ShareComposer({
         {(phase === "confirm" || phase === "sending") && (
           <Card className="border-primary">
             <CardHeader>
-              <CardTitle>Confirme l&apos;envoi</CardTitle>
+              <CardTitle>{t("confirme_l_envoi")}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               <p className="text-sm">
-                Tu partages <span className="font-medium">{deal.title}</span> avec{" "}
-                <span className="font-medium">{selectedPartner?.name}</span>.
+                {t.rich("tu_partages_avec", { title: deal.title, name: (selectedPartner?.name) ?? "", span: (chunks) => <span className="font-medium">{chunks}</span>, span2: (chunks) => <span className="font-medium">{chunks}</span> })}
               </p>
               {draftCommission && (
                 <p className="text-sm">
-                  Commission : <Badge variant="secondary">{formatCommission(draftCommission)}</Badge>
+                  {t("commission_4315")} <Badge variant="secondary">{formatCommission(draftCommission)}</Badge>
                 </p>
               )}
               {proposedTerms && (
-                <p className="text-sm text-muted-foreground">Conditions : {proposedTerms}</p>
+                <p className="text-sm text-muted-foreground">{t("conditions", { proposedTerms })}</p>
               )}
               <div className="flex gap-3">
                 <Button onClick={send} disabled={phase === "sending"}>
-                  {phase === "sending" ? "Envoi..." : "Confirmer et générer le lien"}
+                  {phase === "sending" ? t("envoi") : t("confirmer_et_generer_le_lien")}
                 </Button>
                 <Button
                   variant="ghost"
                   onClick={() => setPhase("compose")}
                   disabled={phase === "sending"}
                 >
-                  Modifier
+                  {t("modifier")}
                 </Button>
               </div>
             </CardContent>
@@ -451,7 +445,7 @@ export function ShareComposer({
       <div className="lg:sticky lg:top-6 lg:self-start">
         <Card>
           <CardHeader>
-            <CardTitle>Aperçu</CardTitle>
+            <CardTitle>{t("apercu")}</CardTitle>
           </CardHeader>
           <CardContent className="max-h-[80vh] overflow-y-auto rounded-md border">
             <PartnerShareView token="" initialView={draftView} preview />

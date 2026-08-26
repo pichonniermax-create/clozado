@@ -1,0 +1,123 @@
+{
+  "actions": {
+    "indicateur_indicateurs_relu_relus_aupres_de_2c94": "{read} {read, plural, one {indicateur} other {indicateurs}} {read, plural, one {relu} other {relus}} auprès de {read, plural, one {sa source} other {leurs sources}}.",
+    "indicateur_indicateurs_suivi_suivis_lu_lus_ede8": "{added} {added, plural, one {indicateur} other {indicateurs}} {added, plural, one {suivi} other {suivis}}, {added, plural, one {lu} other {lus}} et {added, plural, one {copié} other {copiés}} dans les chiffres vérifiés.",
+    "tous_les_indicateurs_de_ton_metier_dde4": "Tous les indicateurs de ton métier sont déjà suivis."
+  },
+  "indicators": {
+    "bce_facilite_depot": {
+      "label": "Taux de la facilité de dépôt (BCE)",
+      "description": "Le taux directeur de référence de la zone euro : ce que la BCE verse aux banques sur leurs dépôts. La date est celle de la dernière décision.",
+      "sourceName": "Banque centrale européenne"
+    },
+    "bce_refinancement": {
+      "label": "Taux des opérations principales de refinancement (BCE)",
+      "description": "Le taux auquel les banques se refinancent à une semaine auprès de la BCE. La date est celle de la dernière décision.",
+      "sourceName": "Banque centrale européenne"
+    },
+    "estr": {
+      "label": "€STR (taux à court terme de l’euro)",
+      "description": "Le taux au jour le jour du marché interbancaire en euros, publié chaque matin par la BCE.",
+      "sourceName": "Banque centrale européenne"
+    },
+    "fr_inflation_ipc": {
+      "label": "Inflation en France (IPC, sur un an)",
+      "description": "La hausse des prix à la consommation sur douze mois, ensemble des ménages, France — l’indice de référence de l’INSEE (base 2025).",
+      "sourceName": "INSEE"
+    },
+    "fr_irl": {
+      "label": "Indice de référence des loyers (IRL)",
+      "description": "L’indice trimestriel qui plafonne la révision annuelle des loyers d’habitation.",
+      "sourceName": "INSEE"
+    },
+    "fr_irl_variation": {
+      "label": "Variation annuelle de l’IRL",
+      "description": "La hausse maximale d’un loyer d’habitation révisé ce trimestre, en pourcentage sur un an.",
+      "sourceName": "INSEE"
+    },
+    "fr_prix_logements_anciens": {
+      "label": "Prix des logements anciens (indice Notaires-INSEE, France métropolitaine)",
+      "description": "L’indice trimestriel des prix des logements anciens, ensemble, corrigé des variations saisonnières, base 100 en 2015.",
+      "sourceName": "INSEE (Notaires-INSEE)"
+    },
+    "fr_taux_long_terme": {
+      "label": "Taux long terme France (10 ans, moyenne mensuelle)",
+      "description": "Le rendement moyen mensuel des obligations d’État françaises à 10 ans, tel que la BCE le publie pour la convergence.",
+      "sourceName": "Banque centrale européenne"
+    },
+    "fr_tec10": {
+      "label": "OAT 10 ans (TEC 10)",
+      "description": "Le taux de l’échéance constante à 10 ans des emprunts d’État français — la référence des taux longs, publiée chaque jour ouvré.",
+      "sourceName": "Banque de France (Webstat)"
+    },
+    "fr_tem_immo_20ans": {
+      "label": "Taux effectif moyen — prêts immobiliers à taux fixe de 20 ans et plus",
+      "description": "Le taux annuel effectif global moyen des prêts immobiliers de 20 ans et plus accordés aux particuliers au cours du trimestre précédent.",
+      "sourceName": "Banque de France (Webstat)"
+    },
+    "fr_usure_immo_10_20ans": {
+      "label": "Taux d’usure — prêts immobiliers à taux fixe de 10 à moins de 20 ans",
+      "description": "Le taux annuel effectif global maximal auquel un prêt immobilier de 10 à moins de 20 ans peut être accordé ce trimestre.",
+      "sourceName": "Banque de France (Webstat)"
+    },
+    "fr_usure_immo_20ans": {
+      "label": "Taux d’usure — prêts immobiliers à taux fixe de 20 ans et plus",
+      "description": "Le taux annuel effectif global maximal auquel un prêt immobilier de 20 ans et plus peut être accordé ce trimestre.",
+      "sourceName": "Banque de France (Webstat)"
+    },
+    "ze_inflation_ipch": {
+      "label": "Inflation dans la zone euro (IPCH, sur un an)",
+      "description": "La hausse des prix à la consommation harmonisée sur douze mois dans la zone euro, celle que suit la BCE.",
+      "sourceName": "Eurostat"
+    }
+  },
+  "page": {
+    "a_completer": "· {incomplete} à compléter",
+    "a_completer_b061": "À compléter",
+    "ajouter_le_chiffre": "Ajouter le chiffre",
+    "ajouter_un_chiffre": "Ajouter un chiffre",
+    "aucun_indicateur_suivi_pour_l_instant": "Aucun indicateur suivi pour l’instant",
+    "aucun_pack_metier_n_est_choisi_757c": "Aucun pack métier n’est choisi : ce sont les indicateurs « Tout métier ». <link>Choisir mon métier</link>.",
+    "autres_indicateurs_disponibles": "Autres indicateurs disponibles ({n})",
+    "cabinet_dupont_bilan_2025": "Cabinet Dupont — bilan 2025",
+    "chaque_indicateur_suivi_est_copie_dans_659c": "Chaque indicateur suivi est copié dans les chiffres vérifiés avec sa période et sa source, mis à jour par la collecte — jamais à la main. Une source muette laisse la dernière valeur affichée, avec sa date.",
+    "chiffre_chiffres_de_l_organisation": "{count} {count, plural, one {chiffre} other {chiffres}} de l’organisation",
+    "chiffres_verifies": "Chiffres vérifiés",
+    "completer": "Compléter",
+    "date_manquante": "date manquante",
+    "date_ou_periode_telle_qu_on_affe": "Date ou période, telle qu’on la cite",
+    "dossiers_finances_en_2025": "Dossiers financés en 2025",
+    "enregistrer_le_chiffre": "Enregistrer le chiffre",
+    "exactement_comme_elle_doit_apparaitre_910_b9bb": "Exactement comme elle doit apparaître : « 910 », « 95 % », « 680 M€ ».",
+    "https": "https://…",
+    "indicateur_indicateurs_de_marche_suivi_suivis": "{count} {count, plural, one {indicateur} other {indicateurs}} de marché {count, plural, one {suivi} other {suivis}}",
+    "libelle": "Libellé",
+    "lien_de_la_source_facultatif": "Lien de la source (facultatif)",
+    "lu": "· lu {formatRelativeTime}",
+    "modifie_le": "· modifié le {formatDate}",
+    "modifier": "Modifier",
+    "n_2025_juin_2026_au_30_juin_60fc": "« 2025 », « juin 2026 », « au 30 juin 2026 »…",
+    "ne_plus_suivre": "Ne plus suivre",
+    "pas_encore_lu_a_la_prochaine_a1d1": "Pas encore lu — à la prochaine collecte.",
+    "premier_jour_de_la_periode_pour_9b63": "Premier jour de la période (pour trier, facultatif)",
+    "qui_publie_ce_chiffre_ton_cabinet_be41": "Qui publie ce chiffre — ton cabinet pour une donnée interne.",
+    "relire_les_indicateurs": "Relire les indicateurs",
+    "source": "Source",
+    "source_manquante": "source manquante",
+    "source_muette_aucune_valeur_encore_lue": "Source muette ({lastError}) — aucune valeur encore lue.",
+    "source_muette_depuis_derniere_valeur_conservee": "· source muette depuis ({lastError}) : dernière valeur conservée",
+    "suivre": "Suivre",
+    "suivre_les_indicateurs_du_metier": "Suivre les {count} indicateurs du métier « {label} »",
+    "supprimer": "Supprimer",
+    "taux_directeurs_oat_taux_d_usure_0d21": "Taux directeurs, OAT, taux d’usure, inflation, indices des loyers et des prix : des chiffres officiels (BCE, Banque de France, INSEE, Eurostat), lus à la source, datés, et copiés dans tes chiffres vérifiés pour que le composer puisse les citer.",
+    "tes_propres_chiffres_dossiers_finances_clients_673b": "Tes propres chiffres — dossiers financés, clients accompagnés, encours — avec leur source (toi) et la date à laquelle ils étaient vrais. Sans les deux, le composer ne les cite pas.",
+    "ton_metier": "Ton métier",
+    "tu_es_en_vue_globale_choisis_d645": "Tu es en vue globale : choisis une organisation dans le bandeau super admin en haut de l’écran pour voir ses chiffres.",
+    "un_chiffre_sans_source_ou_sans_0ada": "Un chiffre sans source ou sans date est marqué « à compléter » et n’est pas transmis au composer tant qu’il l’est — la règle « aucun chiffre sans sa date et sa source » vaut aussi pour les chiffres internes.",
+    "valeur_telle_qu_elle_se_cite": "Valeur, telle qu’elle se cite",
+    "description": "La source unique des chiffres que le composer a le droit de citer — chacun avec sa source et sa date. Les indicateurs de marché s’y copient tout seuls, datés et sourcés."
+  },
+  "periods": {
+    "quarter": "{quarter, selectordinal, one {#er} other {#e}} trimestre {year}"
+  }
+}

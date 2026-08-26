@@ -16,6 +16,7 @@ import { NextResponse } from "next/server";
  * client. Version du contrat dans chaque charge (`v: 1`) — additif
  * seulement ; une rupture = un autre numéro servi en parallèle.
  */
+// eslint-disable-next-line local/no-visible-text -- du JavaScript servi aux sites des clients, pas un texte d'interface
 const SCRIPT = `(function(){try{
 var s=document.currentScript;if(!s)return;var site=s.getAttribute('data-site');if(!site)return;
 var dOrigin=s.getAttribute('data-origin')||null,dSim=s.getAttribute('data-simulator')||null;

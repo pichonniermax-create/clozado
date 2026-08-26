@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { formatDuration } from "@/lib/format";
 import type { DurationStat } from "@/lib/metrics";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /**
  * LE tableau des durées — la seule façon d'afficher une `DurationStat` dans
@@ -31,6 +33,7 @@ function Cell({ stat, value }: { stat: DurationStat; value: number | null }) {
 }
 
 export function DurationTable({ rows, labelHeader = "Indicateur" }: { rows: DurationRow[]; labelHeader?: string }) {
+  const t = useTranslations("analytics.durationTable");
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full min-w-[32rem] text-sm">
@@ -40,13 +43,13 @@ export function DurationTable({ rows, labelHeader = "Indicateur" }: { rows: Dura
               {labelHeader}
             </th>
             <th scope="col" className="px-4 py-2.5 text-right font-medium">
-              Médiane
+              {t("mediane")}
             </th>
             <th scope="col" className="px-4 py-2.5 text-right font-medium">
-              Moyenne
+              {t("moyenne")}
             </th>
             <th scope="col" className="px-4 py-2.5 text-right font-medium">
-              Observations
+              {t("observations")}
             </th>
           </tr>
         </thead>
@@ -70,9 +73,6 @@ export function DurationTable({ rows, labelHeader = "Indicateur" }: { rows: Dura
   );
 }
 
-function plural(n: number, singular: string, pluralForm: string): string {
-  return `${n} ${n > 1 ? pluralForm : singular}`;
-}
 
 /**
  * Les mentions sous un indicateur, dans un ordre fixe : pourquoi il est
@@ -80,29 +80,19 @@ function plural(n: number, singular: string, pluralForm: string): string {
  * la métrique (un « passage en cours » n'est pas un « lead sans premier
  * contact ») : l'écran les fournit, la règle reste ici.
  */
-export function statNotes(
-  stat: DurationStat,
-  words: {
-    /** Ex. ["passage en cours", "passages en cours"]. */
-    pending?: readonly [string, string];
-    /** Ex. ["passage reconstitué écarté", "passages reconstitués écartés"]. */
-    reconstructed?: readonly [string, string];
-    /** Ex. ["date de confirmation inconnue, écartée", "dates de confirmation inconnues, écartées"]. */
-    unknown?: readonly [string, string];
-  } = {}
-): string | undefined {
+/** Les mentions propres à un indicateur (« 3 passages en cours ») : des phrases déjà accordées, produites par l'écran avec SON traducteur. */
+export type StatNoteWords = {
+  pending?: (n: number) => string;
+  reconstructed?: (n: number) => string;
+  unknown?: (n: number) => string;
+};
+
+export function statNotes(stat: DurationStat, t: TranslatorOf<"analytics.durationTable">, words: StatNoteWords = {}): string | undefined {
   const parts: string[] = [];
   if (stat.unavailable) parts.push(stat.unavailable);
-  else if (stat.hidden) {
-    parts.push(
-      stat.n === 0
-        ? `aucune observation — il en faut ${stat.missing} pour afficher un chiffre`
-        : `masqué : il manque ${plural(stat.missing, "observation", "observations")} pour afficher un chiffre`
-    );
-  }
-  if (stat.pending > 0 && words.pending) parts.push(plural(stat.pending, words.pending[0], words.pending[1]));
-  if (stat.excludedReconstructed > 0 && words.reconstructed)
-    parts.push(plural(stat.excludedReconstructed, words.reconstructed[0], words.reconstructed[1]));
-  if (stat.excludedUnknown > 0 && words.unknown) parts.push(plural(stat.excludedUnknown, words.unknown[0], words.unknown[1]));
+  else if (stat.hidden) parts.push(stat.n === 0 ? t("no_observation", { missing: stat.missing }) : t("masked_missing", { missing: stat.missing }));
+  if (stat.pending > 0 && words.pending) parts.push(words.pending(stat.pending));
+  if (stat.excludedReconstructed > 0 && words.reconstructed) parts.push(words.reconstructed(stat.excludedReconstructed));
+  if (stat.excludedUnknown > 0 && words.unknown) parts.push(words.unknown(stat.excludedUnknown));
   return parts.length ? parts.join(" · ") : undefined;
 }

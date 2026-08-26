@@ -18,6 +18,7 @@ import { listOrganizationAssetMeta } from "@/db/queries/organization-assets";
 import { assetUrlsFromMeta } from "@/lib/brand/assets";
 import { hashShareToken } from "@/lib/deal-shares/token";
 import type { RenderBrand } from "@/lib/newsletter/render-email";
+import { AppError } from "@/lib/errors";
 
 /**
  * SEULE EXCEPTION À `orgScope` DE TOUT LE PRODUIT.
@@ -188,16 +189,16 @@ export async function applyPublicShareAction(
       where: eq(dealStatuses.id, action.statusId),
     });
     if (!status || status.organizationId !== share.organizationId) {
-      throw new Error("Statut invalide pour ce partage.");
+      throw new AppError("statut_invalide_pour_ce_partage");
     }
     const deal = await db.query.deals.findFirst({ where: eq(deals.id, share.dealId) });
-    if (!deal) throw new Error("Incohérence interne : affaire introuvable pour un partage valide.");
+    if (!deal) throw new AppError("incoherence_interne_affaire_introuvable_pour_un_partage_6423", undefined, 404);
     // Même pipeline seulement, et JAMAIS une étape gagné/perdu : clore une
     // affaire est un geste de l'organisation, pas d'un tiers via jeton
     // (décision A, docs/module-relationnel.md). Ces étapes ne sont pas
     // proposées par buildView — ce refus couvre une soumission forgée.
     if (status.pipelineId !== deal.pipelineId || status.outcome !== null) {
-      throw new Error("Statut invalide pour ce partage.");
+      throw new AppError("statut_invalide_pour_ce_partage");
     }
     if (deal.statusId !== status.id) {
       await db.batch([
@@ -221,12 +222,12 @@ export async function applyPublicShareAction(
 
   if (action.type === "comment") {
     const message = action.message.trim().slice(0, 2000);
-    if (!message) throw new Error("Commentaire vide.");
+    if (!message) throw new AppError("commentaire_vide");
     await logEvent(share, "commented", message);
   }
 
   const refreshed = await db.query.dealShares.findFirst({ where: eq(dealShares.id, share.id) });
-  if (!refreshed) throw new Error("Incohérence interne : partage disparu pendant l'action.");
+  if (!refreshed) throw new AppError("incoherence_interne_partage_disparu_pendant_l_action", undefined, 404);
   return { ok: true, view: await buildView(refreshed) };
 }
 
@@ -258,7 +259,7 @@ async function checkAccessible(share: DealShareRow): Promise<ResolvedShare | nul
  */
 async function buildView(share: DealShareRow): Promise<PublicShareView> {
   const deal = await db.query.deals.findFirst({ where: eq(deals.id, share.dealId) });
-  if (!deal) throw new Error("Incohérence interne : affaire introuvable pour un partage valide.");
+  if (!deal) throw new AppError("incoherence_interne_affaire_introuvable_pour_un_partage_6423", undefined, 404);
 
   const [type, org, partner, issuer, currentStatus, availableStatuses, commission, events, assetMeta] =
     await Promise.all([
@@ -299,7 +300,7 @@ async function buildView(share: DealShareRow): Promise<PublicShareView> {
     ]);
 
   if (!org || !partner || !currentStatus) {
-    throw new Error("Incohérence interne : organisation, partenaire ou statut introuvable pour un partage valide.");
+    throw new AppError("incoherence_interne_organisation_partenaire_ou_statut_introuvable_5be3", undefined, 404);
   }
   const brandUrls = assetUrlsFromMeta(org.id, assetMeta);
 

@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import { formatRate } from "@/lib/format";
-import { MIN_OBSERVATIONS, type FunnelCount, type RateStat } from "@/lib/metrics";
+import { type FunnelCount, type RateStat } from "@/lib/metrics";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /**
  * LE tableau d'un funnel — la seule façon d'afficher une suite de pas dans
@@ -52,12 +54,12 @@ export function rateText(rate: RateStat | null, compact = false): ReactNode {
   return formatRate(rate.percent);
 }
 
-export function dropText(rate: RateStat | null): ReactNode {
+export function dropText(rate: RateStat | null, t: TranslatorOf<"analytics.funnelSteps">): ReactNode {
   if (!rate || rate.hidden || rate.percent === null) return MASKED;
   if (rate.percent > 100) {
     return (
       <span className="text-muted-foreground">
-        —<span className="block text-xs text-pretty">plus que le pas précédent</span>
+        {t.rich("plus_que_le_pas_precedent", { span: (chunks) => <span className="block text-xs text-pretty">{chunks}</span> })}
       </span>
     );
   }
@@ -69,6 +71,7 @@ export function CountCell({ count }: { count: FunnelCount }) {
 }
 
 export function FunnelSteps({ rows, labelHeader = "Pas" }: { rows: FunnelRow[]; labelHeader?: string }) {
+  const t = useTranslations("analytics.funnelSteps");
   const max = Math.max(1, ...rows.map((r) => (r.count.unavailable ? 0 : r.count.n)));
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-card">
@@ -79,13 +82,13 @@ export function FunnelSteps({ rows, labelHeader = "Pas" }: { rows: FunnelRow[]; 
               {labelHeader}
             </th>
             <th scope="col" className="px-4 py-2.5 text-right font-medium">
-              Nombre
+              {t("nombre")}
             </th>
             <th scope="col" className="px-4 py-2.5 text-right font-medium">
-              Taux de passage
+              {t("taux_de_passage")}
             </th>
             <th scope="col" className="px-4 py-2.5 text-right font-medium">
-              Déperdition
+              {t("deperdition")}
             </th>
           </tr>
         </thead>
@@ -110,7 +113,7 @@ export function FunnelSteps({ rows, labelHeader = "Pas" }: { rows: FunnelRow[]; 
                   <CountCell count={row.count} />
                 </td>
                 <td className="px-4 py-3 text-right align-top tabular-nums">{rateText(row.rate)}</td>
-                <td className="px-4 py-3 text-right align-top tabular-nums">{dropText(row.rate)}</td>
+                <td className="px-4 py-3 text-right align-top tabular-nums">{dropText(row.rate, t)}</td>
               </tr>
             );
           })}
@@ -120,5 +123,3 @@ export function FunnelSteps({ rows, labelHeader = "Pas" }: { rows: FunnelRow[]; 
   );
 }
 
-/** Rappel du seuil, pour les légendes d'écran. */
-export const RATE_THRESHOLD_NOTE = `Un taux calculé sur moins de ${MIN_OBSERVATIONS} observations au pas précédent est masqué ; les nombres, eux, sont toujours affichés.`;

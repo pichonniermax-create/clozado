@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { ListCard } from "@/components/ui/list-card";
-import { TASK_AUTO_RULE_LABELS, TASK_PRIORITY_LABELS, formatRecurrence } from "@/components/tasks/labels";
+import { autoRuleLabel, formatRecurrence, priorityLabel } from "@/components/tasks/labels";
 import { todayAsStoredDate, type TaskRow } from "@/db/queries/tasks";
 import { completeTaskAction, createTaskFromFicheAction } from "@/lib/tasks/actions";
 import { formatDate } from "@/lib/format";
+import { useTranslations } from "next-intl";
 
 /**
  * La section « Tâches » des fiches contact et affaire : les tâches ouvertes
@@ -34,17 +35,19 @@ export function TaskSection({
   /** Message d'erreur remonté par une action (paramètre d'URL `erreur`). */
   erreur?: string;
 }) {
+  const t = useTranslations("tasks.taskSection");
+  const tt = useTranslations("tasks");
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">
-          Tâches{tasks.length > 0 && ` (${tasks.length})`}
+          {t("taches", { n: (tasks.length > 0 && ` (${tasks.length})`) || "" })}
         </h2>
         <Link
           href="/taches"
           className="text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          Toutes les tâches →
+          {t("toutes_les_taches")}
         </Link>
       </div>
 
@@ -64,8 +67,8 @@ export function TaskSection({
                   variant="outline"
                   size="icon-sm"
                   className="rounded-full"
-                  aria-label={`Marquer « ${task.title} » comme faite`}
-                  title="Marquer comme faite"
+                  aria-label={t("marquer_comme_faite", { title: task.title })}
+                  title={t("marquer_comme_faite_bb0d")}
                 >
                   <Check />
                 </Button>
@@ -76,7 +79,7 @@ export function TaskSection({
               </div>
               {task.autoRule && (
                 <Badge variant="secondary" className="shrink-0">
-                  {TASK_AUTO_RULE_LABELS[task.autoRule] ?? task.autoRule}
+                  {autoRuleLabel(task.autoRule, tt)}
                 </Badge>
               )}
             </li>
@@ -91,13 +94,13 @@ export function TaskSection({
         <Input
           name="title"
           required
-          placeholder="Nouvelle tâche pour cette fiche…"
-          aria-label="Titre de la nouvelle tâche"
+          placeholder={t("nouvelle_tache_pour_cette_fiche")}
+          aria-label={t("titre_de_la_nouvelle_tache")}
           className="min-w-48 flex-1"
         />
-        <Input name="dueDate" type="date" aria-label="Échéance" className="w-fit" />
+        <Input name="dueDate" type="date" aria-label={t("echeance")} className="w-fit" />
         <Button type="submit" variant="outline">
-          Ajouter
+          {t("ajouter")}
         </Button>
       </form>
     </section>
@@ -119,6 +122,8 @@ export function TaskMetaLine({
   hideContactId?: string;
   hideDealId?: string;
 }) {
+  const t = useTranslations("tasks.taskSection");
+  const tt = useTranslations("tasks");
   const overdue = task.status === "open" && task.dueAt !== null && task.dueAt < todayAsStoredDate();
   const showDeal = task.dealId && task.dealTitle && task.dealId !== hideDealId;
   const showContact = task.contactId && task.contactName && task.contactId !== hideContactId;
@@ -127,39 +132,29 @@ export function TaskMetaLine({
     <span className="flex flex-wrap items-center gap-x-1.5 text-xs tabular-nums text-muted-foreground">
       {task.dueAt ? (
         <span className={overdue ? "font-medium text-destructive" : undefined}>
-          {overdue ? "En retard — échéance le " : "Échéance le "}
+          {overdue ? t("en_retard_echeance_le") : t("echeance_le")}
           {formatDate(task.dueAt)}
         </span>
       ) : (
-        <span>Sans échéance</span>
+        <span>{t("sans_echeance")}</span>
       )}
       {task.priority !== "normal" && (
-        <span>· priorité {(TASK_PRIORITY_LABELS[task.priority] ?? task.priority).toLowerCase()}</span>
+        <span>{t("priorite", { toLowerCase: priorityLabel(task.priority, tt).toLowerCase() })}</span>
       )}
       {task.recurUnit && task.recurEvery && (
-        <span>· {formatRecurrence(task.recurUnit, task.recurEvery).toLowerCase()}</span>
+        <span>· {formatRecurrence(task.recurUnit, task.recurEvery, tt).toLowerCase()}</span>
       )}
       {task.assigneeLabel && <span>· {task.assigneeLabel}</span>}
       {showDeal && (
         <span>
-          {"· affaire "}
-          <Link
-            href={`/affaires/${task.dealId}`}
-            className="font-medium text-foreground underline underline-offset-2"
-          >
-            {task.dealTitle}
-          </Link>
+          {t.rich("affaire", { dealTitle: (task.dealTitle) ?? "", link: (chunks) => <Link href={`/affaires/${task.dealId}`}
+            className="font-medium text-foreground underline underline-offset-2">{chunks}</Link> })}
         </span>
       )}
       {showContact && (
         <span>
-          {"· contact "}
-          <Link
-            href={`/contacts/${task.contactId}`}
-            className="font-medium text-foreground underline underline-offset-2"
-          >
-            {task.contactName}
-          </Link>
+          {t.rich("contact", { contactName: (task.contactName) ?? "", link: (chunks) => <Link href={`/contacts/${task.contactId}`}
+            className="font-medium text-foreground underline underline-offset-2">{chunks}</Link> })}
         </span>
       )}
     </span>

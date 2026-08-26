@@ -6,6 +6,7 @@ import { signIn } from "@/auth";
 import { createOrganizationWithAdmin } from "@/db/queries/signup";
 import { isPlausibleEmail } from "@/lib/email/address";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Les deux seules actions déclenchables par un anonyme. Elles écrivent en
@@ -15,8 +16,6 @@ import { checkRateLimit } from "@/lib/rate-limit";
 
 export type AuthFormState = { error: string | null };
 
-const GENERIC_ERROR = "Une erreur est survenue. Réessaie dans un instant.";
-const RATE_LIMITED = "Trop de tentatives. Réessaie dans une minute.";
 
 /** Même lecture d'IP que la route publique par jeton (voir /api/partage/[token]). */
 async function ipKey(prefix: string): Promise<string> {
@@ -30,12 +29,13 @@ export async function signInAction(
   _prev: AuthFormState,
   formData: FormData
 ): Promise<AuthFormState> {
+  const t = await getTranslations("auth.actions");
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   if (!isPlausibleEmail(email)) {
-    return { error: "Cette adresse email ne semble pas valide." };
+    return { error: t("cette_adresse_email_ne_semble_pas_da6f") };
   }
   if (!checkRateLimit(await ipKey("signin"), { limit: 10, windowMs: 60_000 })) {
-    return { error: RATE_LIMITED };
+    return { error: t("rate_limited") };
   }
 
   return sendMagicLink(email);
@@ -51,13 +51,14 @@ export async function signInAction(
  * d'erreur brute, juste après avoir créé l'espace de la personne.
  */
 async function sendMagicLink(email: string): Promise<AuthFormState> {
+  const t = await getTranslations("auth.actions");
   try {
     await signIn("nodemailer", { email, redirectTo: "/dashboard" });
   } catch (error) {
     if (error instanceof AuthError) {
       return {
         error:
-          "Impossible d'envoyer le lien à cette adresse pour le moment. Vérifie-la, puis réessaie.",
+          t("impossible_d_envoyer_le_lien_a_58cc"),
       };
     }
     throw error;
@@ -69,21 +70,22 @@ export async function signUpAction(
   _prev: AuthFormState,
   formData: FormData
 ): Promise<AuthFormState> {
+  const t = await getTranslations("auth.actions");
   const organizationName = String(formData.get("organizationName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
 
   if (organizationName.length < 2) {
-    return { error: "Indique le nom de ton cabinet ou de ta société." };
+    return { error: t("indique_le_nom_de_ton_cabinet_8c02") };
   }
   if (organizationName.length > 120) {
-    return { error: "Ce nom est trop long (120 caractères maximum)." };
+    return { error: t("ce_nom_est_trop_long_120_d600") };
   }
   if (!isPlausibleEmail(email)) {
-    return { error: "Cette adresse email ne semble pas valide." };
+    return { error: t("cette_adresse_email_ne_semble_pas_da6f") };
   }
   // Plus strict que la connexion : chaque inscription crée une organisation.
   if (!checkRateLimit(await ipKey("signup"), { limit: 3, windowMs: 60_000 })) {
-    return { error: RATE_LIMITED };
+    return { error: t("rate_limited") };
   }
 
   try {
@@ -96,7 +98,7 @@ export async function signUpAction(
   } catch {
     // Course sur le slug ou sur l'email : on ne détaille pas, et surtout on
     // ne laisse pas fuiter qu'une organisation homonyme existe déjà.
-    return { error: GENERIC_ERROR };
+    return { error: t("generic_error") };
   }
 
   return sendMagicLink(email);

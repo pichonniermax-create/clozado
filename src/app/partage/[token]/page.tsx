@@ -4,6 +4,7 @@ import { BrandStyle } from "@/components/brand/brand-style";
 import { PartnerShareView } from "@/components/deal-shares/partner-share-view";
 import { resolvePublicShare } from "@/db/queries/deal-shares-public";
 import { deriveBrandTokens } from "@/lib/brand/derive";
+import { useTranslations } from "next-intl";
 
 /**
  * Page publique, sans compte — accès par jeton uniquement. Ne jamais
@@ -77,10 +78,11 @@ export default async function PartnerSharePage({
  *   valable" en testant des variantes en masse.
  */
 function ErrorState({ reason }: { reason: string }) {
+  const t = useTranslations("shares.public");
   const message =
     reason === "revoked" || reason === "expired"
-      ? "Ce lien n'est plus valable. Contactez directement la personne qui vous l'a envoyé pour en obtenir un nouveau."
-      : "Ce lien n'est pas valide. Vérifiez que vous l'avez copié en entier, ou contactez la personne qui vous l'a envoyé.";
+      ? t("ce_lien_n_est_plus_valable_ef02")
+      : t("ce_lien_n_est_pas_valide_a29e");
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-3 p-8 text-center">

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { ListCard } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Textarea } from "@/components/ui/textarea";
-import { TASK_AUTO_RULE_LABELS, TASK_PRIORITY_LABELS } from "@/components/tasks/labels";
+import { autoRuleLabel, TASK_PRIORITIES } from "@/components/tasks/labels";
 import { TaskMetaLine } from "@/components/tasks/task-section";
 import { listOrgUsers } from "@/db/queries/contacts";
 import {
@@ -31,6 +31,8 @@ import {
 import { formatDateTime } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 
 type Params = {
   conseiller?: string;
@@ -41,6 +43,7 @@ type Params = {
 type OrgUser = { id: string; name: string | null; email: string | null };
 
 export default async function TasksPage({ searchParams }: { searchParams: Promise<Params> }) {
+  const t = await getTranslations("tasks.page");
   const user = await requireUser();
   const params = await searchParams;
 
@@ -48,12 +51,11 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
     return (
       <>
         <PageHeader
-          title="Tâches"
-          description="Ce qu'il y a à faire — saisi à la main ou généré depuis le suivi des partages."
+          title={t("taches")}
+          description={t("ce_qu_il_y_a_a_2dc7")}
         />
         <EmptyState>
-          Tu es en vue globale : choisis une organisation dans le bandeau super admin en haut de
-          l&apos;écran pour voir ses tâches.
+          {t("tu_es_en_vue_globale_choisis_3e1f")}
         </EmptyState>
       </>
     );
@@ -88,8 +90,8 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader
-        title="Tâches"
-        description="Ce qu'il y a à faire, trié par échéance. Les relances du PRM arrivent ici toutes seules : partage sans réponse, affaire sans suite, commission non réglée — les achever vaut « traité »."
+        title={t("taches")}
+        description={t("ce_qu_il_y_a_a_a973")}
       />
 
       {params.erreur && (
@@ -100,7 +102,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
 
       {orgUsers.length > 1 && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <FilterPill href="/taches" label="Tout le monde" active={!params.conseiller} />
+          <FilterPill href="/taches" label={t("tout_le_monde")} active={!params.conseiller} />
           {orgUsers.map((u) => (
             <FilterPill
               key={u.id}
@@ -114,38 +116,38 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
 
       <Card id="nouvelle-tache">
         <CardHeader>
-          <CardTitle>Nouvelle tâche</CardTitle>
+          <CardTitle>{t("nouvelle_tache")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form action={createTaskFromBoardAction.bind(null, { backTo })} className="flex flex-col gap-4">
-            <Field label="Titre" htmlFor="new-title">
+            <Field label={t("titre")} htmlFor="new-title">
               <Input
                 id="new-title"
                 name="title"
                 required
-                placeholder="Rappeler le notaire, préparer le dossier…"
+                placeholder={t("rappeler_le_notaire_preparer_le_dossier")}
               />
             </Field>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Échéance" htmlFor="new-dueDate">
+              <Field label={t("echeance")} htmlFor="new-dueDate">
                 <Input id="new-dueDate" name="dueDate" type="date" />
               </Field>
-              <Field label="Priorité" htmlFor="new-priority">
+              <Field label={t("priorite")} htmlFor="new-priority">
                 <PrioritySelect id="new-priority" defaultValue="normal" />
               </Field>
-              <Field label="Responsable" htmlFor="new-assignee">
+              <Field label={t("responsable")} htmlFor="new-assignee">
                 <AssigneeSelect id="new-assignee" orgUsers={orgUsers} defaultValue={user.id} />
               </Field>
               <Field
-                label="Récurrence"
+                label={t("recurrence")}
                 htmlFor="new-recurUnit"
-                hint="À l'achèvement, l'occurrence suivante se crée toute seule. Exige une échéance."
+                hint={t("a_l_achevement_l_occurrence_suivante_b9b7")}
               >
                 <RecurrenceFields idPrefix="new" />
               </Field>
             </div>
             <Button type="submit" className="w-fit">
-              Créer la tâche
+              {t("creer_la_tache")}
             </Button>
           </form>
         </CardContent>
@@ -153,37 +155,36 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
 
       {openCount === 0 ? (
         <EmptyState
-          title={`Rien à faire pour l'instant${params.conseiller ? " pour ce conseiller" : ""}`}
+          title={t("rien_a_faire_pour_l_instant", { value: params.conseiller ? t("pour_ce_conseiller") : "" })}
           action={
             <a href="#nouvelle-tache" className={buttonVariants({ variant: "outline" })}>
-              Créer une tâche
+              {t("creer_une_tache")}
             </a>
           }
         >
-          Les tâches se créent ci-dessus, ou naissent toutes seules des relances du PRM : partage
-          sans réponse, affaire sans suite, commission non réglée.
+          {t("les_taches_se_creent_ci_dessus_0d28")}
         </EmptyState>
       ) : (
         <>
-          <TaskPile label="En retard" tasks={board.overdue} total={board.counts.overdue} tone="destructive" {...{ backTo, orgUsers }} />
-          <TaskPile label="Aujourd'hui" tasks={board.today} total={board.counts.today} {...{ backTo, orgUsers }} />
-          <TaskPile label="À venir" tasks={board.upcoming} total={board.counts.upcoming} {...{ backTo, orgUsers }} />
-          <TaskPile label="Sans échéance" tasks={board.noDue} total={board.counts.noDue} {...{ backTo, orgUsers }} />
+          <TaskPile label={t("en_retard")} tasks={board.overdue} total={board.counts.overdue} tone="destructive" {...{ backTo, orgUsers }} />
+          <TaskPile label={t("aujourd_hui")} tasks={board.today} total={board.counts.today} {...{ backTo, orgUsers }} />
+          <TaskPile label={t("a_venir")} tasks={board.upcoming} total={board.counts.upcoming} {...{ backTo, orgUsers }} />
+          <TaskPile label={t("sans_echeance")} tasks={board.noDue} total={board.counts.noDue} {...{ backTo, orgUsers }} />
           {board.pageCount > 1 && (
-            <nav className="flex items-center justify-between text-sm" aria-label="Pages de tâches">
+            <nav className="flex items-center justify-between text-sm" aria-label={t("pages_de_taches")}>
               {board.page > 1 ? (
                 <Link href={pageHref(board.page - 1)} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-                  ← Plus urgentes
+                  {t("plus_urgentes")}
                 </Link>
               ) : (
                 <span />
               )}
               <span className="tabular-nums text-muted-foreground">
-                Page {board.page} sur {board.pageCount} · {TASKS_PAGE_SIZE} par page, les plus urgentes d&apos;abord
+                {t("page_sur_par_page_les_plus_d00e", { page: board.page, pageCount: board.pageCount, tasksPageSize: TASKS_PAGE_SIZE })}
               </span>
               {board.page < board.pageCount ? (
                 <Link href={pageHref(board.page + 1)} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-                  Suivantes →
+                  {t("suivantes")}
                 </Link>
               ) : (
                 <span />
@@ -194,7 +195,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
       )}
 
       {board.done.length > 0 && (
-        <DetailsCard variant="archive" summary={`Achevées récemment (${board.done.length})`} flush>
+        <DetailsCard variant="archive" summary={t("achevees_recemment", { count: board.done.length })} flush>
           <ul className="divide-y divide-border">
             {board.done.map((task) => (
               <li key={task.id} className="flex items-center gap-3 px-4 py-2.5">
@@ -205,15 +206,14 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
                   </span>
                   {task.completedAt && (
                     <span className="text-xs tabular-nums text-muted-foreground">
-                      Achevée le {formatDateTime(task.completedAt)}
-                      {task.assigneeLabel && ` · ${task.assigneeLabel}`}
+                      {t("achevee_le", { formatDateTime: formatDateTime(task.completedAt), n: (task.assigneeLabel && ` · ${task.assigneeLabel}`) ?? "" })}
                     </span>
                   )}
                 </div>
                 <form action={reopenTaskAction.bind(null, { taskId: task.id, backTo })}>
-                  <Button type="submit" variant="ghost" size="sm" title="Rouvrir cette tâche">
+                  <Button type="submit" variant="ghost" size="sm" title={t("rouvrir_cette_tache")}>
                     <RotateCcw />
-                    Rouvrir
+                    {t("rouvrir")}
                   </Button>
                 </form>
               </li>
@@ -259,13 +259,14 @@ function TaskPile({
   backTo: string;
   orgUsers: OrgUser[];
 }) {
+  const t = useTranslations("tasks.page");
   if (tasks.length === 0) return null;
   return (
     <section className="flex flex-col gap-3">
       <h2 className={cn("text-sm font-semibold", tone === "destructive" && "text-destructive")}>
         {label} ({total})
         {tasks.length < total && (
-          <span className="font-normal text-muted-foreground"> · {tasks.length} sur cette page</span>
+          <span className="font-normal text-muted-foreground"> {t("sur_cette_page", { count: tasks.length })}</span>
         )}
       </h2>
       <ListCard>
@@ -286,6 +287,8 @@ function TaskItem({
   backTo: string;
   orgUsers: OrgUser[];
 }) {
+  const t = useTranslations("tasks.page");
+  const tt = useTranslations("tasks");
   return (
     <li className="flex flex-col px-4 py-3">
       <div className="flex items-center gap-3">
@@ -295,8 +298,8 @@ function TaskItem({
             variant="outline"
             size="icon-sm"
             className="rounded-full"
-            aria-label={`Marquer « ${task.title} » comme faite`}
-            title="Marquer comme faite"
+            aria-label={t("marquer_comme_faite", { title: task.title })}
+            title={t("marquer_comme_faite_bb0d")}
           >
             <Check />
           </Button>
@@ -307,15 +310,14 @@ function TaskItem({
         </div>
         {task.autoRule && (
           <Badge variant="secondary" className="shrink-0">
-            {TASK_AUTO_RULE_LABELS[task.autoRule] ?? task.autoRule}
+            {autoRuleLabel(task.autoRule, tt)}
           </Badge>
         )}
       </div>
 
       <details className="group mt-1 pl-10">
         <summary className="w-fit cursor-pointer list-none text-xs text-muted-foreground transition-colors hover:text-foreground">
-          <span className="group-open:hidden">Modifier…</span>
-          <span className="hidden group-open:inline">Refermer</span>
+          {t.rich("modifier_refermer", { span: (chunks) => <span className="group-open:hidden">{chunks}</span>, span2: (chunks) => <span className="hidden group-open:inline">{chunks}</span> })}
         </summary>
         <div className="mt-3 flex flex-col gap-4 rounded-lg border border-border bg-muted/30 p-4">
           {task.notes && task.autoRule && (
@@ -325,11 +327,11 @@ function TaskItem({
             action={updateTaskAction.bind(null, { taskId: task.id, backTo })}
             className="flex flex-col gap-3"
           >
-            <Field label="Titre" htmlFor={`title-${task.id}`}>
+            <Field label={t("titre")} htmlFor={`title-${task.id}`}>
               <Input id={`title-${task.id}`} name="title" defaultValue={task.title} required />
             </Field>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Échéance" htmlFor={`dueDate-${task.id}`}>
+              <Field label={t("echeance")} htmlFor={`dueDate-${task.id}`}>
                 <Input
                   id={`dueDate-${task.id}`}
                   name="dueDate"
@@ -337,17 +339,17 @@ function TaskItem({
                   defaultValue={dueDateInputValue(task.dueAt)}
                 />
               </Field>
-              <Field label="Priorité" htmlFor={`priority-${task.id}`}>
+              <Field label={t("priorite")} htmlFor={`priority-${task.id}`}>
                 <PrioritySelect id={`priority-${task.id}`} defaultValue={task.priority} />
               </Field>
-              <Field label="Responsable" htmlFor={`assignee-${task.id}`}>
+              <Field label={t("responsable")} htmlFor={`assignee-${task.id}`}>
                 <AssigneeSelect
                   id={`assignee-${task.id}`}
                   orgUsers={orgUsers}
                   defaultValue={task.assigneeId ?? ""}
                 />
               </Field>
-              <Field label="Récurrence" htmlFor={`recurUnit-${task.id}`}>
+              <Field label={t("recurrence")} htmlFor={`recurUnit-${task.id}`}>
                 <RecurrenceFields
                   idPrefix={task.id}
                   defaultUnit={task.recurUnit ?? ""}
@@ -356,7 +358,7 @@ function TaskItem({
               </Field>
             </div>
             {!task.autoRule && (
-              <Field label="Notes" htmlFor={`notes-${task.id}`}>
+              <Field label={t("notes")} htmlFor={`notes-${task.id}`}>
                 <Textarea
                   id={`notes-${task.id}`}
                   name="notes"
@@ -367,7 +369,7 @@ function TaskItem({
             )}
             {task.autoRule && <input type="hidden" name="notes" value={task.notes ?? ""} />}
             <Button type="submit" variant="outline" size="sm" className="w-fit">
-              Enregistrer
+              {t("enregistrer")}
             </Button>
           </form>
           {!task.autoRule && (
@@ -376,7 +378,7 @@ function TaskItem({
               className="border-t border-border pt-3"
             >
               <Button type="submit" variant="ghost" size="sm" className="text-destructive">
-                Supprimer cette tâche
+                {t("supprimer_cette_tache")}
               </Button>
             </form>
           )}
@@ -387,6 +389,7 @@ function TaskItem({
 }
 
 function PrioritySelect({ id, defaultValue }: { id: string; defaultValue: string }) {
+  const tt = useTranslations("tasks");
   return (
     <select
       id={id}
@@ -394,9 +397,9 @@ function PrioritySelect({ id, defaultValue }: { id: string; defaultValue: string
       defaultValue={defaultValue}
       className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
     >
-      {Object.entries(TASK_PRIORITY_LABELS).map(([value, label]) => (
+      {TASK_PRIORITIES.map((value) => (
         <option key={value} value={value}>
-          {label}
+          {tt(`priorities.${value}`)}
         </option>
       ))}
     </select>
@@ -412,6 +415,7 @@ function AssigneeSelect({
   orgUsers: OrgUser[];
   defaultValue: string;
 }) {
+  const t = useTranslations("tasks.page");
   return (
     <select
       id={id}
@@ -419,7 +423,7 @@ function AssigneeSelect({
       defaultValue={defaultValue}
       className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
     >
-      <option value="">Personne</option>
+      <option value="">{t("personne")}</option>
       {orgUsers.map((u) => (
         <option key={u.id} value={u.id}>
           {u.name || u.email}
@@ -439,9 +443,10 @@ function RecurrenceFields({
   defaultUnit?: string;
   defaultEvery?: number;
 }) {
+  const t = useTranslations("tasks.page");
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-muted-foreground">tous les</span>
+      <span className="text-xs text-muted-foreground">{t("tous_les")}</span>
       <Input
         id={`${idPrefix}-recurEvery`}
         name="recurEvery"
@@ -449,21 +454,21 @@ function RecurrenceFields({
         min={1}
         step={1}
         defaultValue={defaultEvery}
-        aria-label="Pas de récurrence (toutes les N unités)"
+        aria-label={t("pas_de_recurrence_toutes_les_n_a5aa")}
         className="w-14"
       />
       <select
         id={`${idPrefix}-recurUnit`}
         name="recurUnit"
         defaultValue={defaultUnit}
-        aria-label="Unité de récurrence"
+        aria-label={t("unite_de_recurrence")}
         className="h-8 flex-1 rounded-lg border border-input bg-transparent px-2.5 text-sm"
       >
-        <option value="">— jamais</option>
-        <option value="day">jours</option>
-        <option value="week">semaines</option>
-        <option value="month">mois</option>
-        <option value="year">ans</option>
+        <option value="">{t("jamais")}</option>
+        <option value="day">{t("jours")}</option>
+        <option value="week">{t("semaines")}</option>
+        <option value="month">{t("mois")}</option>
+        <option value="year">{t("ans")}</option>
       </select>
     </div>
   );

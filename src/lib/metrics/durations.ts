@@ -11,6 +11,7 @@ import {
   type MetricFilters,
 } from "./filters";
 import { finishStat, unavailableStat, type DurationStat } from "./types";
+import type { TranslatorOf } from "@/i18n/translator";
 
 /**
  * La famille « délais et durées » — le calcul, en SQL, des métriques
@@ -247,10 +248,10 @@ export async function commissionSettlementDelay(user: OrgScopeUser, filters: Met
  * écartées (leurs interactions le sont aussi). Type et pipeline sont sans
  * objet ; le filtre « sans lead » ne laisse rien à mesurer.
  */
-export async function leadToFirstContactDelay(user: OrgScopeUser, filters: MetricFilters = {}): Promise<DurationStat> {
+export async function leadToFirstContactDelay(user: OrgScopeUser, filters: MetricFilters = {}, t: TranslatorOf<"metrics">): Promise<DurationStat> {
   const org = organizationOf(user);
   if (filters.originId === ORIGIN_UNKNOWN) {
-    return unavailableStat("Sans objet avec ce filtre : il retient les affaires sans lead, et ce délai part d'un lead.");
+    return unavailableStat(t("reasons.lead_filter_delay"));
   }
   const closed = sql`k.contacted_at IS NOT NULL AND ${periodCondition(sql`k.contacted_at`, filters)}`;
   const [r] = await rows(sql`
