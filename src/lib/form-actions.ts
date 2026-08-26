@@ -6,8 +6,12 @@
  */
 
 export function withError(backTo: string, message: string, param = "erreur"): string {
-  const separator = backTo.includes("?") ? "&" : "?";
-  return `${backTo}${separator}${param}=${encodeURIComponent(message)}`;
+  // Le paramètre se place AVANT l'ancre : « /veille#sources?info=… » mettrait
+  // la question dans le fragment, que le serveur ne voit jamais — vu au
+  // navigateur sur la veille (message d'ajout d'une source jamais affiché).
+  const [path, hash] = backTo.split("#", 2);
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}${param}=${encodeURIComponent(message)}${hash ? `#${hash}` : ""}`;
 }
 
 export function errorMessage(error: unknown): string {

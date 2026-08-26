@@ -1,17 +1,19 @@
-import { asc, eq, sql, type SQL } from "drizzle-orm";
+import { and, asc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import {
   contacts,
   mailTargets,
   newsletterRecipients,
   newsletters,
+  newsletterSources,
   organizations,
   signatories,
-  verifiedFigures,
+  watchItems,
 } from "@/db/schema";
 import { assertOrgAccess } from "@/db/scope";
 import { parseCriteria, type SegmentCriteria } from "@/lib/targets/criteria";
 import { describeTarget, loadCriteriaOptions, memberCondition } from "./mail-targets";
+import { listCitableFigures } from "./market";
 import type { RenderBrand, RenderSignatory } from "@/lib/newsletter/render-email";
 import type {
   OrganizationProfile,
@@ -72,10 +74,10 @@ export async function getDesignContext(
 ): Promise<DesignContext> {
   const { target, org, signatory } = await resolveTargetContext(user, targetId);
 
-  const figures = await db.query.verifiedFigures.findMany({
-    where: eq(verifiedFigures.organizationId, org.id),
-    orderBy: asc(verifiedFigures.position),
-  });
+  // Seuls les chiffres COMPLETS (source ET date) partent au modèle : la
+  // règle « aucun chiffre sans sa date et sa source » s'applique aussi aux
+  // chiffres internes ; l'écran des chiffres montre ceux qui manquent.
+  const figures = await listCitableFigures(org.id);
 
   return {
     organization: {
@@ -91,7 +93,7 @@ export async function getDesignContext(
       editorialVoice: target.editorialVoice,
     },
     signatory: signatory ? { name: signatory.name, jobTitle: signatory.jobTitle } : null,
-    verifiedFigures: figures.map((f) => ({ label: f.label, value: f.value })),
+    verifiedFigures: figures.map((f) => ({ label: f.label, value: f.value, sourceName: f.sourceName ?? "", asOf: f.asOf ?? "" })),
   };
 }
 
@@ -272,4 +274,61 @@ export async function updateNewsletterTopics(user: OrgScopeUser, id: string, top
     .update(newsletters)
     .set({ topics: normalizeTopics(topics), updatedAt: new Date() })
     .where(eq(newsletters.id, id));
+}
+
+// ---------------------------------------------------------------------------
+// La matière d'une newsletter (chantier ciblage et contenu, étape 4)
+// ---------------------------------------------------------------------------
+
+/**
+ * Rattache des articles du panier à une newsletter (`newsletter_sources`) —
+ * idempotent. C'est ce lien qui signale « déjà utilisé » dans la veille et
+ * qui permettra (étape 6) de citer chaque source avec son lien. Les FK
+ * composites refusent un article d'une autre organisation ; le code le
+ * vérifie avant, pour un message lisible.
+ */
+export async function attachNewsletterSources(user: OrgScopeUser, newsletterId: string, itemIds: string[]): Promise<number> {
+  const unique = Array.from(new Set(itemIds));
+  if (unique.length === 0) return 0;
+  const newsletter = await getNewsletterOrThrow(user, newsletterId);
+  const items = await db
+    .select({ id: watchItems.id })
+    .from(watchItems)
+    .where(and(eq(watchItems.organizationId, newsletter.organizationId), inArray(watchItems.id, unique)));
+  if (items.length === 0) return 0;
+  const inserted = await db
+    .insert(newsletterSources)
+    .values(items.map((i) => ({ organizationId: newsletter.organizationId, newsletterId, itemId: i.id })))
+    .onConflictDoNothing()
+    .returning({ itemId: newsletterSources.itemId });
+  return inserted.length;
+}
+
+export type NewsletterSourceRow = {
+  id: string;
+  title: string;
+  url: string;
+  publisher: string;
+  publishedAt: Date | null;
+  country: string | null;
+  summary: string | null;
+};
+
+/** Les articles rattachés à une newsletter, pour le panneau « Matière » de l'éditeur. */
+export async function listNewsletterSources(user: OrgScopeUser, newsletterId: string): Promise<NewsletterSourceRow[]> {
+  const newsletter = await getNewsletterOrThrow(user, newsletterId);
+  return db
+    .select({
+      id: watchItems.id,
+      title: watchItems.title,
+      url: watchItems.url,
+      publisher: watchItems.publisher,
+      publishedAt: watchItems.publishedAt,
+      country: watchItems.country,
+      summary: watchItems.summary,
+    })
+    .from(newsletterSources)
+    .innerJoin(watchItems, and(eq(watchItems.id, newsletterSources.itemId), eq(watchItems.organizationId, newsletterSources.organizationId)))
+    .where(and(eq(newsletterSources.newsletterId, newsletter.id), eq(newsletterSources.organizationId, newsletter.organizationId)))
+    .orderBy(asc(newsletterSources.addedAt));
 }

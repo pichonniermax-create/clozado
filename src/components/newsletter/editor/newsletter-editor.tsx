@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Sparkles, Trash2, TriangleAlert, Undo2 } from "lucide-react";
+import { ChevronRight, Plus, Sparkles, Trash2, TriangleAlert, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,12 +60,27 @@ function reviewMessage(issue: ReviewIssue): string {
   }
 }
 
+/** Un article du panier dont la newsletter part : ce qu'on en montre (jamais son texte — il n'existe pas en base). */
+export type EditorSource = {
+  id: string;
+  title: string;
+  url: string;
+  publisher: string;
+  /** ISO, ou null quand la source ne date pas l'article. */
+  publishedAt: string | null;
+  summary: string | null;
+};
+
 export type NewsletterEditorProps = {
   targets: EditorTarget[];
   brand: RenderBrand;
   signatory: RenderSignatory;
   /** La cible présélectionnée pour un nouvel email (« Écrire une newsletter pour cette cible »). */
   initialTargetId?: string;
+  /** Le brief prérempli d'un nouvel email (« écrire à partir de ça » depuis le panier). */
+  initialBrief?: string;
+  /** La matière : les articles rattachés (nouvel email depuis le panier, ou email déjà enregistré). */
+  sources?: EditorSource[];
   initial?: {
     id: string;
     title: string;
@@ -87,13 +102,13 @@ export type NewsletterEditorProps = {
  * d'affichage à tenir synchronisé, et sans aller-retour réseau : ce qu'on
  * voit se met à jour à la frappe.
  */
-export function NewsletterEditor({ targets, brand, signatory, initialTargetId, initial }: NewsletterEditorProps) {
+export function NewsletterEditor({ targets, brand, signatory, initialTargetId, initialBrief, sources = [], initial }: NewsletterEditorProps) {
   const [newsletterId, setNewsletterId] = useState(initial?.id);
   const [targetId, setTargetId] = useState(initial?.targetId ?? initialTargetId ?? targets[0]?.id ?? "");
   const [subject, setSubject] = useState(initial?.subject ?? "");
   const [preheader, setPreheader] = useState(initial?.preheader ?? "");
   const [blocks, setBlocks] = useState<AnyBlock[]>(initial?.blocks ?? []);
-  const [brief, setBrief] = useState(initial?.brief ?? "");
+  const [brief, setBrief] = useState(initial?.brief ?? initialBrief ?? "");
 
   /**
    * La sélection est ancrée sur un BLOC, pas sur une unité : les index
@@ -287,6 +302,8 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
       preheader,
       brief: brief.trim() || undefined,
       blocks,
+      // La matière est rattachée à la première écriture (idempotent ensuite).
+      sourceItemIds: sources.length ? sources.map((s) => s.id) : undefined,
     });
     if (!newsletterId) {
       setNewsletterId(id);
@@ -294,7 +311,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
       // ferait perdre ce qui n'est pas encore parti.
       window.history.replaceState(null, "", `/newsletters/${id}`);
     }
-  }, [newsletterId, targetId, subject, preheader, brief, blocks, initial?.title]);
+  }, [newsletterId, targetId, subject, preheader, brief, blocks, initial?.title, sources]);
 
   // Rien n'est écrit tant que le document est vide : ouvrir puis quitter
   // l'écran ne doit pas semer un brouillon fantôme dans la liste.
@@ -351,6 +368,32 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
 
       {/* À combien de personnes réelles on s'adresse, et ce qu'elles ont déjà reçu — l'anti-répétition. */}
       <TargetInsight targetId={targetId} />
+
+      {/* La matière : les articles du panier dont l'email part — titres,
+          éditeurs, dates, liens et NOS résumés. Jamais le texte des
+          articles : il n'existe pas en base. */}
+      {sources.length > 0 && (
+        <details className="group rounded-xl border border-border bg-card" open>
+          <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium">
+            <ChevronRight className="size-4 transition-transform group-open:rotate-90" />
+            Matière : {sources.length} article{sources.length > 1 ? "s" : ""} mis de côté — chaque source utilisée sera citée avec son lien
+          </summary>
+          <ul className="flex flex-col gap-3 border-t border-border p-4">
+            {sources.map((s) => (
+              <li key={s.id} className="flex flex-col gap-0.5 text-sm">
+                <a href={s.url} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline">
+                  {s.title}
+                </a>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {s.publisher}
+                  {s.publishedAt ? ` · ${formatDate(s.publishedAt)}` : ""}
+                </span>
+                {s.summary && <p className="text-xs text-muted-foreground text-pretty">{s.summary}</p>}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
 
       {error && (
         <p role="alert" className="text-sm text-destructive">

@@ -6,7 +6,9 @@ import {
   LayoutDashboard,
   ListTodo,
   Mail,
+  Newspaper,
   Route,
+  Sigma,
   Target,
   Timer,
   TrendingDown,
@@ -70,6 +72,8 @@ export const NAVIGATION: NavSection[] = [
     label: "Outils",
     entries: [
       { href: "/cibles", label: "Cibles", icon: UsersRound, requiresOrganization: true },
+      { href: "/veille", label: "Veille", icon: Newspaper, requiresOrganization: true },
+      { href: "/chiffres", label: "Chiffres", icon: Sigma, requiresOrganization: true },
       { href: "/newsletters", label: "Newsletters", icon: Mail },
     ],
   },

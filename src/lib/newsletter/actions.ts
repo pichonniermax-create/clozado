@@ -6,7 +6,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { mailTargets, newsletterBlocks, newsletters } from "@/db/schema";
 import { parseLocalDateTime } from "@/db/queries/activities";
-import { markNewsletterSent, unmarkNewsletterSent, updateNewsletterTopics } from "@/db/queries/newsletters";
+import { attachNewsletterSources, markNewsletterSent, unmarkNewsletterSent, updateNewsletterTopics } from "@/db/queries/newsletters";
 import { assertOrgAccess, orgScope } from "@/db/scope";
 import { SEND_ERROR_PARAM } from "@/components/newsletter/labels";
 import { errorMessage, withError } from "@/lib/form-actions";
@@ -44,6 +44,8 @@ const saveInputSchema = NEWSLETTER_DRAFT_SCHEMA.extend({
   title: z.string().min(1),
   /** Brief saisi, réutilisé par "Rédiger l'email" — vide si la newsletter n'en a pas. */
   brief: z.string().trim().optional(),
+  /** Les articles du panier dont la newsletter part (« écrire à partir de ça ») — rattachés à l'enregistrement, idempotent. */
+  sourceItemIds: z.array(z.uuid()).max(50).optional(),
 });
 
 export type SaveNewsletterInput = z.infer<typeof saveInputSchema>;
@@ -105,6 +107,13 @@ export async function saveNewsletter(input: SaveNewsletterInput) {
     const { type, ...payload } = block;
     return { newsletterId: newsletterId!, type, position, payload };
   });
+
+  // La matière : le lien newsletter ↔ article signale « déjà utilisé » dans
+  // la veille et permettra de citer chaque source (étape 6). Vérifié par
+  // `attachNewsletterSources` (même organisation), refusé par la base sinon.
+  if (parsed.sourceItemIds?.length) {
+    await attachNewsletterSources(user, newsletterId, parsed.sourceItemIds);
+  }
 
   // Un brouillon peut légitimement n'avoir aucun bloc (email à peine créé,
   // ou dont on vient de tout supprimer) : dans ce cas il n'y a que la

@@ -4,7 +4,7 @@ import { NewsletterEditor } from "@/components/newsletter/editor/newsletter-edit
 import { SEND_ERROR_PARAM } from "@/components/newsletter/labels";
 import { SendStatusCard } from "@/components/newsletter/send-status-card";
 import { countMembersByTarget, getMailTarget, listMailTargets } from "@/db/queries/mail-targets";
-import { getRenderContext } from "@/db/queries/newsletters";
+import { getRenderContext, listNewsletterSources } from "@/db/queries/newsletters";
 import { loadNewsletter } from "@/lib/newsletter/actions";
 import { requireUser } from "@/lib/session";
 
@@ -19,9 +19,10 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
     notFound();
   }
 
-  const [targets, context] = await Promise.all([
+  const [targets, context, sources] = await Promise.all([
     listMailTargets(user),
     getRenderContext(user, data.newsletter.targetId),
+    listNewsletterSources(user, data.newsletter.id),
   ]);
 
   // Une newsletter peut viser une cible désactivée depuis : elle reste
@@ -47,6 +48,7 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
         }))}
         brand={context.brand}
         signatory={context.signatory}
+        sources={sources.map((s) => ({ ...s, publishedAt: s.publishedAt?.toISOString() ?? null }))}
         initial={{
           id: data.newsletter.id,
           targetId: data.newsletter.targetId,

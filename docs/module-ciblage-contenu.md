@@ -698,6 +698,245 @@ Le prompt de génération n'est pas modifié : seule la facette « ton »
 facettes et la matière du panier est l'étape 6. Les chiffres vérifiés
 « à compléter » (source, date) et leurs écrans sont l'étape 4.
 
+## Étape 4 — la veille thématique, les indicateurs de marché, le panier
+
+### Ce qui est construit
+
+- **`/veille`** : l'état de la collecte (« dernière collecte il y a 3 h :
+  25 nouveaux articles, 6 résumés, 2 sources lues » / « collecte en cours —
+  la page se met à jour d'elle-même », `RefreshWhileRunning`), le bouton
+  « Actualiser maintenant », le **panier** (partagé par l'organisation, en
+  tête quand il n'est pas vide, avec le choix de la cible et « Écrire une
+  newsletter à partir de ça »), les **articles par sujet** (titre lié à la
+  page d'origine, éditeur, pays, date — ou « date inconnue », jamais une
+  date plausible —, flux/recherche, le résumé ORIGINAL ou son état :
+  « en attente », « refusé : la formulation reprenait l'article — rien n'a
+  été conservé », « impossible : réponse 403 », avec « Résumer à nouveau »),
+  « Mettre de côté » / « Retirer du panier » / « Écarter », les badges
+  « Déjà utilisé » / « Déjà envoyé », les **sujets** (libellé, termes de
+  recherche un par ligne, langues fr/en ; modifier, désactiver, réactiver),
+  les **sources** (site, flux déclaré ou découvert, pays, langue, sujet
+  rattaché, et la SANTÉ : « lue il y a 2 h », « injoignable depuis le …
+  (cause) — nouvel essai dans 6 h » + Réessayer, « en sommeil » + Réveiller),
+  les propositions du métier (« Suivre la veille du métier « Courtier en
+  crédit » (5 sujets, 3 sources, 8 indicateurs) »), le journal des cinq
+  dernières collectes. Trois états (`loading.tsx`, `error.tsx`, vide).
+- **`/chiffres`** : les **indicateurs de marché suivis** en tuiles (valeur
+  telle que publiée en français, « depuis le 17 juin 2026 » / « au 6 août
+  2026 » / « 3e trimestre 2026 », source liée, « lu il y a 11 min », « source
+  muette (cause) : dernière valeur conservée », Ne plus suivre), les autres
+  indicateurs du catalogue (ceux du métier d'abord), « Relire les
+  indicateurs », et les **chiffres de l'organisation** : libellé, valeur
+  telle qu'elle se cite, source, lien, date ou période, premier jour (pour
+  trier) ; badge « À compléter » quand la source ou la date manque — et
+  **le composer ne reçoit que les chiffres complets** (`listCitableFigures`,
+  lue par `getDesignContext` ; le prompt les liste « valeur (source, date) »).
+  Un chiffre venu d'un indicateur ne se modifie ni ne se supprime à la main
+  (on cesse de suivre l'indicateur). Trois états.
+- **Entrées « Veille » et « Chiffres »** dans la navigation (Outils).
+- **La collecte** (`src/lib/watch/refresh.ts`) : UN chemin de code
+  (`executeWatchRun`), trois déclencheurs — à la visite de `/veille` quand la
+  dernière collecte terminée a plus de 24 h (`after()` : la ligne de
+  collecte existe dès le rendu, l'exécution suit la réponse), le bouton
+  (une par dix minutes), le cron quotidien (`vercel.json` → `/api/cron/veille`
+  à 05 h 30 UTC, protégé par `CRON_SECRET`, indicateurs du catalogue puis
+  organisations périmées dans la durée de la fonction). Verrou EN BASE :
+  une collecte commencée il y a moins de cinq minutes et non finie bloque un
+  second départ (`INSERT … WHERE NOT EXISTS`, un seul ordre) ; une ligne
+  jamais finie est close « interrompue » au départ suivant. Budget 120 s
+  (`maxDuration` 180 s sur la page) ; ordre : indicateurs (lus au plus une
+  fois par 20 h, partagés), flux dus (quatre à la fois, 10 s chacun,
+  `Promise.allSettled` par construction du pool), puis deux recherches web
+  et jusqu'à douze résumés tant qu'il reste du temps ; le reste attend la
+  collecte suivante — chaque étape écrit son résultat dès qu'elle l'a.
+- **Les flux** (`feeds.ts`, `fast-xml-parser`) : RSS 2.0, Atom, RSS 1.0 ;
+  seuls le titre, le lien et la date sont lus — `FeedEntry` n'a pas de
+  champ pour la description. Découverte depuis la page d'accueil
+  (`<link rel="alternate">`, puis `/feed/`, `/rss`, `/feed.xml`… ; les flux
+  de commentaires écartés) au moment où la source est ajoutée. Dates RFC
+  2822, ISO, ou « 2026-08-25 16:43:06 » lues à l'heure de Paris. Entrées de
+  plus de 60 jours non collectées (la veille n'est pas une archive).
+- **L'URL canonique** (`url.ts`) : hôte en minuscules, sans fragment ni
+  identifiants, sans `utm_*`/`fbclid`/`xtor`/… , paramètres restants triés,
+  barre finale et port par défaut retirés ; `url_hash` SHA-256 unique par
+  organisation (`ON CONFLICT DO NOTHING`) — un article vu par deux sources
+  compte une fois. Le pays d'un résultat de recherche vient du modèle ou du
+  domaine national (`.fr` → FR, `.uk` → GB), sinon null.
+- **Les recherches web** (`AnthropicProvider.searchArticles`) : l'outil
+  serveur `web_search` — la **variante de base `web_search_20250305`**, à
+  dessein : celle à filtrage dynamique fait transiter les résultats par une
+  exécution de code (40 s, résultats retravaillés), là où celle-ci répond en
+  6 à 8 s avec la liste brute du moteur ; une requête par appel, orientée
+  pays (FR ou GB selon la langue), restreinte au domaine pour une source
+  sans flux. Le modèle décrit les résultats par `emit_articles` (titre,
+  date si explicite, langue, pays) mais **seules les URL réellement
+  renvoyées par le moteur sont gardées** (liste blanche par URL canonique).
+  La requête porte le mois courant (« taux crédit immobilier août 2026ᐧ») :
+  sans lui, le moteur rend des pages de fond de l'an dernier, écartées
+  ensuite par la borne des 60 jours (vu à la première collecte réelle : 25
+  articles par flux, 0 par recherche). Rotation : les recherches possibles
+  (sujet × langue, plus les sources sans flux rattachées à un sujet) sont
+  parcourues à partir d'un index qui avance à chaque collecte
+  (`count(watch_runs)`), deux par collecte — cinq sujets sont tous
+  cherchés en trois collectes, sans colonne d'état.
+- **Les résumés** (`AnthropicProvider.summarizeArticle`, Sonnet 5) : la
+  page est lue par la veille (`extract.ts` : scripts, styles, menus,
+  en-têtes, pieds, formulaires retirés ; `<article>` le plus long, sinon
+  `<main>`, sinon `<body>` ; 30 000 caractères au plus ; titre, date et
+  langue déclarés par la page) et le texte est transmis au modèle avec
+  l'outil `emit_summary` FORCÉ ; quand le site refuse notre lecture
+  (economie.gouv.fr répond 403 à tout agent, même navigateur), le
+  fournisseur lit la page lui-même (`web_fetch_20250910`, variante de base
+  dont le résultat contient le document lu, 12 000 jetons au plus). Dans les
+  deux cas le texte d'origine revient avec le résumé pour le **contrôle
+  déterministe** (`originality.ts` : aucune suite de douze mots normalisés
+  — minuscules, sans accents, sans ponctuation — du résumé dans
+  l'original), puis est oublié : `saveSummaryResult` ne reçoit que le
+  résumé. Refus → `summary_state = refused`, rien de stocké, « Résumer à
+  nouveau » possible. Le résumé classe l'article dans les sujets de
+  l'organisation (libellé exact, seulement s'il en traite principalement),
+  note l'angle, la langue, et la date seulement si elle est écrite dans le
+  texte. `readable = false` (menu, accueil, page vide) → `failed`.
+- **Les indicateurs de marché** (`indicators.ts`, treize entrées en
+  données : BCE facilité de dépôt et refinancement, €STR, OAT 10 ans
+  (TEC 10), taux long terme France, taux d'usure 20 ans et plus / 10 à 20
+  ans, taux effectif moyen 20 ans et plus, inflation France (IPC base 2025),
+  inflation zone euro (IPCH), IRL et sa variation, prix des logements
+  anciens Notaires-INSEE) et leurs **lecteurs déterministes**
+  (`market-readers.ts`, aucune IA) : BCE Data Portal en CSV, Eurostat en
+  JSON-stat (la dernière période qui porte une valeur), INSEE BDM en SDMX-ML,
+  Banque de France Webstat par les MÉTADONNÉES du catalogue Opendatasoft —
+  le portail n'expose aucun enregistrement public, mais chaque série y
+  porte sa dernière période et ses deux dernières valeurs, la dernière
+  d'abord (vérifié : facilité de dépôt fin février 2023 = « 2.5000,2.0000 »,
+  2,50 % après 2,00 %). Séries identifiées par appel réel le 2026-08-26 —
+  l'IPC base 2015 et le jeu Eurostat `prc_hicp_manr` sont arrêtés depuis
+  2025, leurs remplaçants sont dans le catalogue. Observations partagées
+  (`market_observations`, clé indicateur + période), santé par indicateur
+  (une API muette laisse la dernière valeur affichée avec sa date), copie
+  datée et sourcée dans `verified_figures` (`indicator_key`, « 2,25 % »,
+  « Banque centrale européenne », « 17 juin 2026 », premier jour pour trier)
+  à chaque lecture — jamais à la main.
+- **Le métier fournit la veille par défaut** (`src/lib/watch/templates.ts`,
+  rattaché aux packs) : sujets avec termes et langues (courtier : crédit
+  immobilier, taux d'usure et conditions d'emprunt, marché immobilier,
+  assurance emprunteur, aides à l'achat ; CGP : assurance-vie et placements,
+  SCPI, fiscalité du patrimoine, retraite, marchés financiers fr + en ;
+  assurance ; tout métier), sources publiques dont le flux a été vérifié par
+  appel réel (Ministère de l'Économie, AMF épargnants et communiqués, BCE
+  communiqués (EN, « Union européenne »), Bank of England (EN, GB) ; ANIL
+  sans flux, cherchée par domaine sur « Crédit immobilier »), indicateurs par
+  métier. `createPackWatchDefaults` est idempotent (sujet par libellé, source
+  par site, indicateur par clé).
+- **Le panier → le composer** : « Écrire une newsletter à partir de ça »
+  (cible choisie dans le panier) ouvre `/newsletters/new?cible=…&panier=1` :
+  le panneau « Matière : N articles mis de côté — chaque source utilisée
+  sera citée avec son lien » (titres, éditeurs, dates, liens, NOS résumés),
+  le brief prérempli (`buildBasketBrief`), et au premier enregistrement les
+  articles sont rattachés (`newsletter_sources`, idempotent, FK composites)
+  — la veille dit alors « Déjà utilisé », puis « Déjà envoyé » quand la
+  newsletter est marquée envoyée ; un email déjà enregistré montre sa
+  matière au rechargement.
+- Un bug de plomberie trouvé au navigateur, corrigé pour tous :
+  `withError` plaçait le paramètre APRÈS l'ancre (`/veille#sources?info=…`),
+  que le serveur ne voit jamais — les messages des actions avec ancre
+  n'arrivaient pas.
+
+### Décisions réversibles
+
+- Résumés et recherches : Sonnet 5 (`ANTHROPIC_WATCH_MODEL` pour changer),
+  effort « medium » pour les résumés, « low » pour les recherches.
+- Budget 120 s par collecte, deux recherches et douze résumés au plus,
+  quatre flux à la fois, 10 s par source, 60 jours de fenêtre, verrou cinq
+  minutes, bouton dix minutes, indicateurs relus au plus une fois par 20 h
+  (le cron du matin les trouve donc périmés), sommeil après trente jours
+  sans succès, recul 1 h / 6 h / 24 h.
+- Le panier est celui de l'organisation (partagé par l'équipe), avec qui a
+  mis de côté ; « écarter » masque sans supprimer.
+- Un article de recherche sans date explicite reste « date inconnue »
+  (l'âge relatif du moteur — « 3 weeks ago » — n'est pas une date) ; un
+  article sans sujet est classé par les thèmes du résumé.
+- La requête datée du mois courant ; le pays « GB » pour une recherche en
+  anglais ; « EU » (Union européenne) comme pays d'une institution européenne.
+- Le texte de la source sans flux : « cherchée par domaine, à condition
+  d'être rattachée à un sujet ».
+
+### Ce que cette étape ne fait pas
+
+- Les concurrents nommés et l'écart de contenu (étape 5) : le schéma les
+  porte (`kind = competitor`), l'écran les mentionne, aucun n'est créé.
+- Le prompt de génération n'est pas composé depuis les articles rattachés
+  ni depuis les six facettes de l'identité ; la revue ne vérifie pas encore
+  les citations ni les formulations reprises (étape 6). Aujourd'hui la
+  matière arrive par le brief prérempli.
+- Le taux du Livret A n'est pas au catalogue : introuvable dans le
+  catalogue Webstat par son titre (seuls des encours et flux de livrets y
+  sont) — à ajouter si une source officielle sans clé est trouvée.
+- Les indices Notaires-INSEE n'ont pas de série « variation annuelle »
+  pour l'ensemble France métropolitaine : l'indice (127,4, base 100 en
+  2015) est publié tel quel.
+- Deux visites strictement simultanées peuvent démarrer deux collectes (le
+  `WHERE NOT EXISTS` n'est pas un verrou d'unicité) ; un index partiel
+  unique sur `watch_runs (organization_id) WHERE finished_at IS NULL` le
+  rendrait impossible — schéma, donc à ta décision. De même une colonne
+  `watch_topics.last_searched_at` remplacerait la rotation par compteur.
+
+### Preuves
+
+- **À blanc** (`scripts/_tmp-veille-proof.ts`, supprimé) : deux
+  organisations jetables `_veille-a` (courtier) et `_veille-b` (CGP), 50
+  contrôles par les mêmes fonctions que les écrans — cinq sujets, trois ou
+  cinq sources, huit ou sept indicateurs, différents, **sans code
+  spécifique**, instanciation idempotente ; verrou (seconde collecte
+  refusée), délai du bouton, visite sans délai ; **une collecte réelle :
+  112 s, 2 sources lues, 25 articles nouveaux, 6 résumés, 2 recherches, 8
+  indicateurs lus** ; résumés de 70 à 98 mots, aucun ne reprend le titre ;
+  **aucun contenu d'article stocké — la liste des colonnes de `watch_items`
+  (id, organization_id, source_id, topic_id, title, url, url_hash,
+  publisher, published_at, country, lang, summary, summary_state,
+  summary_model, themes, angle, discovered_via, discovered_at, dismissed_at,
+  created_at, updated_at) et une ligne réelle** (« Restauration : qu'est-ce
+  que la mention « fait maison » ? », economie.gouv.fr, 26 août 2026, FR,
+  fr, un résumé de trois phrases, thèmes, angle « pédagogique ») ; huit
+  chiffres vérifiés avec source, lien et date (« 2,25 % (Banque centrale
+  européenne, 17 juin 2026) », « 5,19 % (Banque de France (Webstat), 3e
+  trimestre 2026) »…), un chiffre sans source **pas citable** puis citable
+  une fois complété, un chiffre d'indicateur refusé à la main, « ne plus
+  suivre » retire la copie, resynchronisation idempotente ; panier,
+  rattachement à une newsletter (idempotent), « déjà utilisé » puis « déjà
+  envoyé », le contexte IA ne reçoit que des chiffres complets ; **B ne
+  voit rien de A, ne peut rien mettre de côté (code, puis FK composite
+  23503)** ; écarter/restaurer, résumer à nouveau ; santé d'une source
+  muette (cause lisible, recul 1 h puis 6 h, sommeil après trente jours) ;
+  destruction à zéro reliquat (les observations partagées restent, par
+  construction).
+- **Au navigateur** (`scripts/_tmp-browser.ts`, supprimé ; build de
+  production, session forgée, organisation jetable `_veille-nav`) : 39
+  étapes, zéro erreur console, zéro `pageerror`, zéro 5xx — état vide →
+  « Suivre la veille du métier » → « collecte en cours » → collecte
+  terminée avec 32 articles et 12 résumés visibles, pays affiché ; panier
+  (1 puis 2) ; `/chiffres` : 8 tuiles, « 2,25 % depuis le 17 juin 2026 »,
+  chiffre sans source « À compléter » puis complété, désabonnement ;
+  cibles du métier ; « Écrire une newsletter à partir de ça » → panneau
+  « Matière : 2 articles », brief prérempli, brouillon enregistré, matière
+  conservée au rechargement, « Déjà utilisé » sur les deux articles ;
+  source ajoutée à la main avec flux découvert (wordpress.org/news →
+  /news/feed/), sujet ajouté, doublon refusé avec message lisible, article
+  écarté, délai du bouton. Captures relues.
+- Critères d'acceptation couverts ici : **aucun contenu d'article stocké**
+  (schéma + ligne réelle), **aucun chiffre affiché sans sa date et sa
+  source** (indicateurs copiés datés et sourcés ; chiffres internes « à
+  compléter » non cités), deux organisations, sources différentes sans code
+  spécifique. Restent : l'email qui cite ses sources (étape 6).
+
+### Coût mesuré
+
+Une collecte complète ≈ 2 recherches (0,02 $) + jusqu'à 12 résumés
+(≈ 8 000 jetons lus, 200 écrits, Sonnet 5 : ≈ 0,02 $ l'article) ≈ 0,25 $ au
+plus ; une organisation active dont la veille tourne chaque jour :
+≈ 5 à 8 $ par mois, zéro pour les autres — dans l'ordre de grandeur annoncé
+à l'étape 1. Flux et APIs officielles : gratuits.
+
 ## Avancement
 
 - **Étape 1 — exploration et conception** : `5cdf435`. STOP.
@@ -707,5 +946,9 @@ facettes et la matière du panier est l'étape 6. Les chiffres vérifiés
   catalogue), puis committée et poussée : `7137a28`. STOP.
 - **Étape 3 — cibles** : segments vivants, identité éditoriale, écrans,
   composer, « marquée envoyée », fiche contact — prouvée à blanc (26
-  contrôles) et au navigateur (33 étapes), mesurée sur 5 000 contacts.
-  STOP.
+  contrôles) et au navigateur (33 étapes), mesurée sur 5 000 contacts :
+  `38f6556`. STOP.
+- **Étape 4 — veille thématique, indicateurs de marché, panier** : `/veille`,
+  `/chiffres`, la collecte à trois déclencheurs, treize indicateurs lus à
+  la source, le panier branché sur le composer — prouvée à blanc (50
+  contrôles, une collecte réelle) et au navigateur (39 étapes). STOP.

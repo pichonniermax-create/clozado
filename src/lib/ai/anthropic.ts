@@ -4,7 +4,18 @@ import {
   NEWSLETTER_OUTPUT_SCHEMA,
   type NewsletterOutput,
 } from "@/lib/newsletter/blocks";
-import { AITruncatedError, type AIProvider, type DesignNewsletterInput } from "./types";
+import { canonicalUrl, hostOf } from "@/lib/watch/url";
+import {
+  AITruncatedError,
+  type AIProvider,
+  type ArticleSummary,
+  type DesignNewsletterInput,
+  type SearchArticlesInput,
+  type SearchArticlesResult,
+  type SearchedArticle,
+  type SummarizeArticleInput,
+} from "./types";
+import { ARTICLES_OUTPUT_SCHEMA, buildEmitArticlesTool, buildEmitSummaryTool, SUMMARY_OUTPUT_SCHEMA } from "./watch-tools";
 
 /**
  * Implémentation Anthropic de `AIProvider`. Tout le prompt système est
@@ -30,6 +41,153 @@ export class AnthropicProvider implements AIProvider {
     onProgress: (accumulatedJson: string) => void
   ): Promise<NewsletterOutput> {
     return this.run(input, onProgress);
+  }
+
+  /**
+   * Le résumé ORIGINAL d'un article (veille). Deux chemins, un seul
+   * contrat : quand la veille a pu lire la page (`input.text`), le texte est
+   * transmis au modèle et l'outil `emit_summary` est FORCÉ ; sinon le
+   * fournisseur lit la page lui-même (`web_fetch`, variante de base, dont
+   * le résultat contient le document lu — nécessaire au contrôle des douze
+   * mots). Dans les deux cas le texte d'origine est rendu à l'appelant
+   * avec le résumé, pour ce contrôle, et n'est jamais stocké.
+   */
+  async summarizeArticle(input: SummarizeArticleInput): Promise<ArticleSummary> {
+    const model = watchModel();
+    const tool = buildEmitSummaryTool() as unknown as Anthropic.Tool;
+    const system: Anthropic.TextBlockParam[] = [
+      { type: "text", text: buildSummarySystemPrompt(input.topics), cache_control: { type: "ephemeral" } },
+    ];
+
+    if (input.text !== undefined) {
+      const message = await this.client.messages.create({
+        model,
+        max_tokens: 1024,
+        output_config: { effort: "medium" },
+        system,
+        tools: [tool],
+        tool_choice: { type: "tool", name: tool.name },
+        messages: [{ role: "user", content: buildSummaryUserMessage(input, input.text) }],
+      });
+      return finishSummary(message, tool.name, input.text, model);
+    }
+
+    const host = hostOf(input.url);
+    const fetchTool: Anthropic.WebFetchTool20250910 = {
+      type: "web_fetch_20250910",
+      name: "web_fetch",
+      max_uses: 1,
+      max_content_tokens: 12_000,
+      ...(host ? { allowed_domains: [host] } : {}),
+    };
+    const message = await this.client.messages.create({
+      model,
+      max_tokens: 1024,
+      output_config: { effort: "medium" },
+      system,
+      tools: [fetchTool, tool],
+      messages: [
+        {
+          role: "user",
+          content: `Lis la page ${input.url} avec l'outil web_fetch (éditeur annoncé : ${input.publisher} ; titre annoncé : « ${input.title} »), puis appelle emit_summary. Si la page n'a pas pu être lue, appelle emit_summary avec readable=false et un résumé vide. N'écris aucun texte en dehors des outils.`,
+        },
+      ],
+    });
+    const fetched = message.content.find(
+      (block): block is Anthropic.WebFetchToolResultBlock => block.type === "web_fetch_tool_result"
+    );
+    if (!fetched) throw new Error("la page n'a pas été lue par le fournisseur");
+    if (fetched.content.type === "web_fetch_tool_result_error") {
+      throw new Error(`page inaccessible (${readableFetchError(fetched.content.error_code)})`);
+    }
+    const source = fetched.content.content.source;
+    const original = source.type === "text" ? source.data : "";
+    if (!original.trim()) throw new Error("contenu non lisible (document non textuel)");
+    return finishSummary(message, tool.name, original, model);
+  }
+
+  /**
+   * Une recherche web BORNÉE (un sujet, une langue, un pays, des domaines,
+   * une seule requête) : le modèle trie et décrit les résultats par
+   * `emit_articles`, mais seules les URL que le moteur a réellement
+   * renvoyées (`web_search_tool_result`) sont rendues — jamais une adresse
+   * écrite de mémoire par le modèle.
+   */
+  async searchArticles(input: SearchArticlesInput): Promise<SearchArticlesResult> {
+    const model = watchModel();
+    const tool = buildEmitArticlesTool() as unknown as Anthropic.Tool;
+    // La variante de base de l'outil, à dessein : celle à filtrage dynamique
+    // (`web_search_20260209`) fait transiter les résultats par une exécution
+    // de code côté serveur — 40 s et des résultats retravaillés, là où
+    // celle-ci répond en 6 à 8 s avec la liste brute du moteur, qui est
+    // exactement ce que la liste blanche ci-dessous doit lire.
+    const searchTool: Anthropic.WebSearchTool20250305 = {
+      type: "web_search_20250305",
+      name: "web_search",
+      max_uses: 1,
+      user_location: { type: "approximate", country: input.country, timezone: "Europe/Paris" },
+      ...(input.allowedDomains?.length ? { allowed_domains: input.allowedDomains } : {}),
+    };
+    const messages: Anthropic.MessageParam[] = [{ role: "user", content: buildSearchUserMessage(input) }];
+    let message = await this.client.messages.create({
+      model,
+      max_tokens: 2048,
+      output_config: { effort: "low" },
+      tools: [searchTool, tool],
+      messages,
+    });
+    // Un tour serveur peut être mis en pause (`pause_turn`) : on le reprend une fois.
+    if (message.stop_reason === "pause_turn") {
+      messages.push({ role: "assistant", content: message.content });
+      message = await this.client.messages.create({
+        model,
+        max_tokens: 2048,
+        output_config: { effort: "low" },
+        tools: [searchTool, tool],
+        messages,
+      });
+    }
+    if (message.stop_reason === "max_tokens") throw new AITruncatedError();
+
+    const found = new Map<string, { url: string; title: string; pageAge: string | null }>();
+    for (const block of message.content) {
+      if (block.type !== "web_search_tool_result" || !Array.isArray(block.content)) continue;
+      for (const result of block.content) {
+        const canonical = canonicalUrl(result.url);
+        if (canonical && !found.has(canonical)) found.set(canonical, { url: result.url, title: result.title, pageAge: result.page_age });
+      }
+    }
+    const searches = message.usage.server_tool_use?.web_search_requests ?? 0;
+
+    const toolUse = message.content.find(
+      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use" && block.name === tool.name
+    );
+    const articles: SearchedArticle[] = [];
+    const seen = new Set<string>();
+    if (toolUse) {
+      const emitted = ARTICLES_OUTPUT_SCHEMA.parse(toolUse.input).articles;
+      for (const article of emitted) {
+        const canonical = canonicalUrl(article.url);
+        if (!canonical || seen.has(canonical)) continue;
+        const hit = found.get(canonical);
+        if (!hit) continue;
+        seen.add(canonical);
+        articles.push({
+          url: hit.url,
+          title: article.title.trim() || hit.title,
+          publishedAt: article.publishedAt,
+          pageAge: hit.pageAge,
+          lang: article.lang?.toLowerCase() ?? null,
+          country: article.country?.toUpperCase() ?? null,
+        });
+      }
+    } else {
+      // Le modèle n'a pas rendu l'outil : les résultats bruts du moteur, sans description.
+      for (const hit of found.values()) {
+        articles.push({ url: hit.url, title: hit.title, publishedAt: null, pageAge: hit.pageAge, lang: input.lang, country: null });
+      }
+    }
+    return { articles: articles.slice(0, input.maxResults), searches, model };
   }
 
   /**
@@ -125,8 +283,10 @@ export class AnthropicProvider implements AIProvider {
 function buildSystemPrompt(input: DesignNewsletterInput): string {
   const { organization, verifiedFigures } = input;
 
+  // Chaque chiffre transmis porte sa source et sa date (chantier « ciblage
+  // et contenu ») : ce qui n'en a pas n'arrive pas jusqu'ici.
   const figuresList = verifiedFigures.length
-    ? verifiedFigures.map((f) => `${f.label} : ${f.value}`).join(" · ")
+    ? verifiedFigures.map((f) => `${f.label} : ${f.value} (${f.sourceName}, ${f.asOf})`).join(" · ")
     : "(aucun chiffre vérifié enregistré pour cette organisation)";
 
   const toneBlock = organization.toneOfVoice
@@ -144,7 +304,7 @@ function buildSystemPrompt(input: DesignNewsletterInput): string {
 ${toneBlock}${guidelinesBlock}
 
 CHIFFRES (RÈGLE ABSOLUE) : n'invente JAMAIS un chiffre, un prix, un taux, un délai ni un montant. Par ordre de priorité :
-1) CHIFFRES VÉRIFIÉS DE L'ORGANISATION, utilisables tels quels : ${figuresList}.
+1) CHIFFRES VÉRIFIÉS DE L'ORGANISATION, utilisables tels quels, chacun avec sa source et sa date entre parenthèses — cite-les « valeur (source, date) » : ${figuresList}.
 2) DONNÉES RÉELLES SOURCÉES éventuellement fournies dans le message utilisateur : utilise-les en priorité dans les blocs chiffre_cle, TOUJOURS citées au format « valeur (source, date) ». Jamais sans leur date.
 3) TOUT AUTRE chiffre (prix, délai, taux, apport…) → un PLACEHOLDER entre crochets : [apport %], [délai], [prix m²]. Un chiffre sans source vérifiée ou fournie = crochet, sans exception.
 
@@ -196,4 +356,83 @@ function buildUserMessage(input: DesignNewsletterInput): string {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+
+// ---------------------------------------------------------------------------
+// La veille : résumé original et recherche bornée
+// ---------------------------------------------------------------------------
+
+/** Le modèle des résumés et des recherches — Sonnet 5 (décision de l'étape 1), surchargeable comme celui du composer. */
+function watchModel(): string {
+  return process.env.ANTHROPIC_WATCH_MODEL || process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+}
+
+function readableFetchError(code: Anthropic.WebFetchToolResultErrorCode): string {
+  switch (code) {
+    case "url_not_accessible":
+      return "page inaccessible";
+    case "url_not_allowed":
+      return "domaine non autorisé";
+    case "unsupported_content_type":
+      return "format non pris en charge";
+    case "too_many_requests":
+      return "trop de requêtes";
+    case "max_uses_exceeded":
+      return "limite d'appels atteinte";
+    case "url_too_long":
+      return "adresse trop longue";
+    default:
+      return code;
+  }
+}
+
+function buildSummarySystemPrompt(topics: string[]): string {
+  const topicList = topics.length ? topics.map((t) => `« ${t} »`).join(", ") : "(aucun sujet déclaré : des thèmes libres)";
+  return `Tu es le documentaliste d'un cabinet de conseil (crédit, patrimoine, assurance). On te donne le texte d'une page lue à l'instant. Ta réponse passe UNIQUEMENT par l'outil emit_summary.
+
+RÈGLE ABSOLUE — DROIT D'AUTEUR : le résumé est écrit avec TES mots. Aucune phrase, aucune expression, aucune suite de plus de six mots ne doit être reprise du texte : reformule entièrement, change la structure des phrases, ne recopie ni le titre ni le chapeau. Un contrôle automatique refuse tout résumé qui reprend douze mots consécutifs de l'original.
+
+LE RÉSUMÉ : deux ou trois phrases (60 à 90 mots), en français quelle que soit la langue du texte. Il dit ce que l'article apporte — le fait, la mesure, la décision, le chiffre clé, et ce que ça change pour un particulier ou un professionnel — sans le commenter ni le juger. Un chiffre n'y figure que s'il est dans le texte, tel quel, avec ce à quoi il se rapporte.
+
+LES THÈMES : parmi les sujets de l'organisation, ceux dont l'article traite PRINCIPALEMENT (reprends le libellé EXACT) — jamais un sujet seulement effleuré ; sinon un ou deux thèmes libres de deux à quatre mots. L'ANGLE : en quelques mots, comment l'article traite son sujet (pédagogique, alerte, analyse chiffrée, annonce officielle, prise de position…).
+
+LA LANGUE : le code ISO 639-1 du texte (« fr », « en »). LA DATE : AAAA-MM-JJ seulement si la date de publication est écrite dans le texte ; sinon null — jamais une date déduite ou plausible.
+
+readable = false (et résumé vide) si le texte n'est pas un article lisible : page d'accueil, menu, liste de liens, message d'erreur, page vide ou réservée aux abonnés.
+
+SUJETS DE L'ORGANISATION : ${topicList}.`;
+}
+
+function buildSummaryUserMessage(input: SummarizeArticleInput, text: string): string {
+  return `Éditeur : ${input.publisher}. Titre annoncé : « ${input.title} ». Adresse : ${input.url}.
+
+<texte>
+${text}
+</texte>`;
+}
+
+function buildSearchUserMessage(input: SearchArticlesInput): string {
+  const language = input.lang === "en" ? "anglais" : "français";
+  const domains = input.allowedDomains?.length ? ` Recherche uniquement sur : ${input.allowedDomains.join(", ")}.` : "";
+  return `Fais UNE recherche web (outil web_search) sur : « ${input.query} », en ${language}, pour trouver des articles, actualités ou analyses publiés récemment (moins de soixante jours).${domains} Puis appelle emit_articles avec les résultats pertinents (${input.maxResults} au plus) : l'URL EXACTE du résultat telle qu'elle apparaît, son titre, sa date de publication (AAAA-MM-JJ) seulement si elle est explicite sinon null, sa langue (code ISO 639-1), le pays de l'éditeur (code ISO 3166-1 alpha-2) si tu le sais sinon null. Écarte les simulateurs, comparateurs, pages d'offres commerciales, pages d'accueil et pages de catégorie. Si rien n'est pertinent, appelle emit_articles avec une liste vide. N'écris aucun texte en dehors des outils.`;
+}
+
+function finishSummary(message: Anthropic.Message, toolName: string, originalText: string, model: string): ArticleSummary {
+  if (message.stop_reason === "max_tokens") throw new AITruncatedError();
+  const toolUse = message.content.find(
+    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use" && block.name === toolName
+  );
+  if (!toolUse) throw new Error("le modèle n'a pas rendu de résumé");
+  const output = SUMMARY_OUTPUT_SCHEMA.parse(toolUse.input);
+  return {
+    readable: output.readable,
+    summary: output.summary.trim(),
+    themes: output.themes.map((t) => t.trim()).filter(Boolean),
+    angle: output.angle?.trim() || null,
+    lang: output.lang?.trim().toLowerCase().slice(0, 2) || null,
+    publishedAt: output.publishedAt && /^\d{4}-\d{2}-\d{2}$/.test(output.publishedAt) ? output.publishedAt : null,
+    originalText,
+    model,
+  };
 }

@@ -8,6 +8,14 @@ import type { NewsletterOutput } from "@/lib/newsletter/blocks";
 export interface AIProvider {
   designNewsletter(input: DesignNewsletterInput): Promise<NewsletterOutput>;
   /**
+   * La veille (chantier « ciblage et contenu ») : un résumé ORIGINAL d'un
+   * article lu à l'instant — le texte d'origine est rendu avec le résumé
+   * pour le contrôle déterministe d'originalité, et n'est jamais stocké.
+   */
+  summarizeArticle(input: SummarizeArticleInput): Promise<ArticleSummary>;
+  /** Une recherche web bornée (un sujet, une langue, un pays, des domaines) : seules les URL réellement renvoyées par le moteur sont rendues. */
+  searchArticles(input: SearchArticlesInput): Promise<SearchArticlesResult>;
+  /**
    * Même génération, mais en rendant compte de son avancement : `onProgress`
    * est appelé à chaque fois qu'un morceau supplémentaire du JSON d'outil
    * est arrivé, avec le texte accumulé depuis le début.
@@ -50,10 +58,73 @@ export type SignatoryProfile = {
   jobTitle: string | null;
 } | null;
 
-/** Un chiffre vérifié de l'organisation (`verified_figures`), citable tel quel sans placeholder. */
+/**
+ * Un chiffre vérifié de l'organisation (`verified_figures`), citable tel
+ * quel sans placeholder — TOUJOURS avec sa source et sa date (chantier
+ * « ciblage et contenu ») : un chiffre qui n'a ni l'une ni l'autre n'est
+ * pas transmis au modèle.
+ */
 export type VerifiedFigureProfile = {
   label: string;
   value: string;
+  sourceName: string;
+  asOf: string;
+};
+
+// ---------------------------------------------------------------------------
+// La veille : résumé original et recherche bornée
+// ---------------------------------------------------------------------------
+
+export type SummarizeArticleInput = {
+  url: string;
+  title: string;
+  publisher: string;
+  /** Le texte lu à l'instant par la veille (jamais stocké). Absent : le fournisseur lit la page lui-même. */
+  text?: string;
+  /** Les sujets déclarés de l'organisation, pour classer l'article. */
+  topics: string[];
+};
+
+export type ArticleSummary = {
+  /** false : la page n'était pas un article lisible (menu, accueil, page vide) — rien à résumer. */
+  readable: boolean;
+  summary: string;
+  themes: string[];
+  angle: string | null;
+  lang: string | null;
+  /** AAAA-MM-JJ si la date est écrite dans le texte, sinon null — jamais une date déduite. */
+  publishedAt: string | null;
+  /** Le texte d'origine sur lequel le résumé a été écrit — pour le contrôle des douze mots ; jamais stocké. */
+  originalText: string;
+  model: string;
+};
+
+export type SearchArticlesInput = {
+  query: string;
+  lang: "fr" | "en";
+  /** Le pays qui oriente la recherche (ISO 3166-1 alpha-2). */
+  country: string;
+  /** Restreint la recherche à ces domaines (une source déclarée sans flux). */
+  allowedDomains?: string[];
+  maxResults: number;
+};
+
+export type SearchedArticle = {
+  url: string;
+  title: string;
+  /** AAAA-MM-JJ quand la date est explicite, sinon null. */
+  publishedAt: string | null;
+  /** L'âge de la page tel que le moteur le donne (« July 24, 2026 », « 3 weeks ago ») — lu par du code, jamais stocké tel quel. */
+  pageAge: string | null;
+  lang: string | null;
+  country: string | null;
+};
+
+export type SearchArticlesResult = {
+  articles: SearchedArticle[];
+  /** Le nombre de recherches facturées par le fournisseur. */
+  searches: number;
+  model: string;
 };
 
 export type DesignNewsletterInput = {

@@ -7,6 +7,7 @@ import {
   GENERIQUE_TARGETS,
   type TargetTemplate,
 } from "@/lib/targets/templates";
+import { ASSURANCE_WATCH, CGP_WATCH, COURTIER_CREDIT_WATCH, GENERIQUE_WATCH, type WatchDefaults } from "@/lib/watch/templates";
 
 /**
  * LES PACKS MÉTIER — des données, pas des conditions dans le code : un pack
@@ -20,9 +21,10 @@ import {
  * suit ses volumes et ses délais.
  *
  * Depuis le chantier « ciblage et contenu », un pack porte aussi les
- * CIBLES PAR DÉFAUT de son métier (src/lib/targets/templates.ts) :
- * instanciées en lignes de l'organisation à sa demande, puis modifiables —
- * jamais lues depuis le code par les écrans.
+ * CIBLES PAR DÉFAUT de son métier (src/lib/targets/templates.ts) et sa
+ * VEILLE PAR DÉFAUT — sujets, sources publiques, indicateurs de marché
+ * (src/lib/watch/templates.ts) : instanciés en lignes de l'organisation à
+ * sa demande, puis modifiables — jamais lus depuis le code par les écrans.
  */
 
 /** Les indicateurs qu'un tableau de bord sait afficher en tuile — un scalaire par indicateur, calculé par `dashboardIndicators`. */
@@ -57,6 +59,8 @@ export type BusinessPack = {
   indicators: readonly DashboardIndicatorId[];
   /** Les cibles de newsletter proposées à ce métier, dans l'ordre de création. */
   targets: readonly TargetTemplate[];
+  /** Les sujets, sources et indicateurs de marché proposés à ce métier. */
+  watch: WatchDefaults;
 };
 
 export const BUSINESS_PACKS = {
@@ -77,6 +81,7 @@ export const BUSINESS_PACKS = {
       "partner_commissions",
     ],
     targets: COURTIER_CREDIT_TARGETS,
+    watch: COURTIER_CREDIT_WATCH,
   },
   cgp: {
     key: "cgp",
@@ -95,6 +100,7 @@ export const BUSINESS_PACKS = {
       "lead_to_first_contact",
     ],
     targets: CGP_TARGETS,
+    watch: CGP_WATCH,
   },
   assurance: {
     key: "assurance",
@@ -113,6 +119,7 @@ export const BUSINESS_PACKS = {
       "partner_commissions",
     ],
     targets: ASSURANCE_TARGETS,
+    watch: ASSURANCE_WATCH,
   },
   generique: {
     key: "generique",
@@ -130,6 +137,7 @@ export const BUSINESS_PACKS = {
       "partner_commissions",
     ],
     targets: GENERIQUE_TARGETS,
+    watch: GENERIQUE_WATCH,
   },
 } as const satisfies Record<string, BusinessPack>;
 
