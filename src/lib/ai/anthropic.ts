@@ -9,13 +9,22 @@ import {
   AITruncatedError,
   type AIProvider,
   type ArticleSummary,
+  type ClassifyTitlesInput,
+  type ClassifyTitlesResult,
   type DesignNewsletterInput,
   type SearchArticlesInput,
   type SearchArticlesResult,
   type SearchedArticle,
   type SummarizeArticleInput,
 } from "./types";
-import { ARTICLES_OUTPUT_SCHEMA, buildEmitArticlesTool, buildEmitSummaryTool, SUMMARY_OUTPUT_SCHEMA } from "./watch-tools";
+import {
+  ARTICLES_OUTPUT_SCHEMA,
+  buildEmitArticlesTool,
+  buildEmitClassificationTool,
+  buildEmitSummaryTool,
+  CLASSIFICATION_OUTPUT_SCHEMA,
+  SUMMARY_OUTPUT_SCHEMA,
+} from "./watch-tools";
 
 /**
  * Implémentation Anthropic de `AIProvider`. Tout le prompt système est
@@ -188,6 +197,45 @@ export class AnthropicProvider implements AIProvider {
       }
     }
     return { articles: articles.slice(0, input.maxResults), searches, model };
+  }
+
+  /**
+   * La classification des TITRES d'un concurrent (veille concurrentielle,
+   * étape 5) : un lot de titres publics, l'outil `emit_classification`
+   * FORCÉ, une entrée par identifiant. Le modèle n'a ni le texte ni un
+   * résumé — il n'y a rien à reproduire — et le sujet qu'il rend est
+   * tenu à un vocabulaire partagé (les sujets suivis, puis ceux déjà
+   * donnés) pour que l'écart de contenu groupe ce qui va ensemble. Seules
+   * les entrées dont l'identifiant a été donné sont rendues.
+   */
+  async classifyTitles(input: ClassifyTitlesInput): Promise<ClassifyTitlesResult> {
+    const model = watchModel();
+    const tool = buildEmitClassificationTool() as unknown as Anthropic.Tool;
+    const message = await this.client.messages.create({
+      model,
+      max_tokens: 4096,
+      output_config: { effort: "low" },
+      system: [{ type: "text", text: buildClassificationSystemPrompt(input), cache_control: { type: "ephemeral" } }],
+      tools: [tool],
+      tool_choice: { type: "tool", name: tool.name },
+      messages: [{ role: "user", content: buildClassificationUserMessage(input) }],
+    });
+    if (message.stop_reason === "max_tokens") throw new AITruncatedError();
+    const toolUse = message.content.find(
+      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use" && block.name === tool.name
+    );
+    if (!toolUse) throw new Error("le modèle n'a pas rendu de classification");
+    const output = CLASSIFICATION_OUTPUT_SCHEMA.parse(toolUse.input);
+    const ids = new Set(input.items.map((item) => item.id));
+    const seen = new Set<string>();
+    const items: ClassifyTitlesResult["items"] = [];
+    for (const entry of output.items) {
+      if (!ids.has(entry.id) || seen.has(entry.id)) continue;
+      seen.add(entry.id);
+      const subject = entry.subject?.trim().replace(/\s+/g, " ").slice(0, 80) || null;
+      items.push({ id: entry.id, subject, angle: entry.angle });
+    }
+    return { items, model };
   }
 
   /**
@@ -435,4 +483,29 @@ function finishSummary(message: Anthropic.Message, toolName: string, originalTex
     originalText,
     model,
   };
+}
+
+function buildClassificationSystemPrompt(input: ClassifyTitlesInput): string {
+  const language = input.lang === "en" ? "anglais" : "français";
+  const topics = input.topics.length ? input.topics.map((t) => `« ${t} »`).join(", ") : "(aucun)";
+  const known = input.knownSubjects.length ? input.knownSubjects.map((t) => `« ${t} »`).join(", ") : "(aucun pour l'instant)";
+  return `Tu es le documentaliste d'un cabinet de conseil (crédit, patrimoine, assurance). On te donne les TITRES d'articles publiés par des concurrents du cabinet — rien d'autre : ni le texte, ni un résumé. Ta réponse passe UNIQUEMENT par l'outil emit_classification, avec UNE entrée par identifiant, dans l'ordre donné.
+
+Pour chaque titre, le SUJET principal et l'ANGLE.
+
+LE SUJET, dans cet ordre :
+1) si l'article traite principalement d'un SUJET SUIVI par le cabinet, reprends son libellé EXACTEMENT (à la lettre) ;
+2) sinon, si un SUJET DÉJÀ RENCONTRÉ convient, reprends-le EXACTEMENT — un même sujet doit toujours s'écrire de la même façon, c'est ce qui permet de compter ;
+3) sinon, un sujet nouveau : deux à quatre mots, en ${language}, au singulier, sans article ni verbe, générique — le thème dont l'article traite (« rachat de crédit », « assurance emprunteur », « investissement locatif »), jamais le titre reformulé, jamais un détail (une ville, une banque, un pourcentage, une date).
+subject = null si le titre n'annonce pas un article : page d'accueil, rubrique, page « qui sommes-nous », mention légale, offre d'emploi, formulaire.
+
+L'ANGLE, une seule valeur : guide (pédagogie, mode d'emploi, conseils pratiques), news (actualité, annonce, nouveauté réglementaire), figures (analyse chiffrée, baromètre, taux, statistiques), alert (mise en garde, arnaque, risque, erreur à éviter), comparison (comparatif, classement, meilleur choix), opinion (prise de position, tribune, avis), promotion (offre commerciale, autopromotion, événement du cabinet), testimonial (témoignage, cas client, retour d'expérience), other (rien de tout ça, ou pas un article).
+
+SUJETS SUIVIS PAR LE CABINET : ${topics}.
+SUJETS DÉJÀ RENCONTRÉS : ${known}.`;
+}
+
+function buildClassificationUserMessage(input: ClassifyTitlesInput): string {
+  const lines = input.items.map((item) => `${item.id} — « ${item.title} » (${item.publisher})`);
+  return `Titres à classer (${input.items.length}) :\n${lines.join("\n")}\n\nAppelle emit_classification avec une entrée par identifiant. N'écris aucun texte en dehors de l'outil.`;
 }

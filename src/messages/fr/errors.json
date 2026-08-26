@@ -73,6 +73,7 @@
   "l_adresse_du_flux_est_illisible": "L’adresse du flux est illisible.",
   "l_adresse_du_site_est_illisible": "L’adresse du site est illisible.",
   "l_analytique_se_calcule_pour_une_organisation_32f8": "L’analytique se calcule pour une organisation précise. Choisis une organisation dans le bandeau super admin en haut de l’écran.",
+  "l_article_d_un_concurrent_ne_se_ba6e": "L’article d’un concurrent ne se met pas de côté : l’écart de contenu dit le sujet, la newsletter s’écrit depuis tes sources.",
   "l_export_du_tableau_de_bord_a_351c": "L’export du tableau de bord a besoin du pack métier de l’organisation.",
   "l_icone_n_a_pas_pu_etre_a8bc": "L’icône n’a pas pu être dérivée.",
   "l_image_depasse_ko_une_fois_redimensionnee_f84f": "L’image dépasse {round} ko une fois redimensionnée — choisis une image plus simple.",

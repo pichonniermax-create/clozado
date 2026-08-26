@@ -1,6 +1,6 @@
 import { use } from "react";
 import Link from "next/link";
-import { ExternalLink, RefreshCw, ShoppingBasket, Sparkles } from "lucide-react";
+import { ExternalLink, Radar, RefreshCw, ShoppingBasket, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DetailsCard } from "@/components/ui/details-card";
@@ -23,7 +23,6 @@ import {
   listWatchSources,
   listWatchTopics,
   missingPackWatch,
-  sourceDueAt,
   type WatchItemRow,
 } from "@/db/queries/watch";
 import type { WatchRun, WatchSource, WatchTopic } from "@/db/schema";
@@ -48,20 +47,18 @@ import {
   updateTopicAction,
   writeFromBasketAction,
 } from "@/lib/watch/actions";
+import { SOURCE_COUNTRY_CODES } from "@/lib/watch/countries";
+import { sourceHealth } from "@/lib/watch/health";
 import { scheduleWatchRefresh } from "@/lib/watch/schedule";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import type { TranslatorOf } from "@/i18n/translator";
-import type { Formats } from "@/lib/format";
 
 /** La collecte lancée à la visite s'exécute après la réponse : la fonction reste en vie le temps de son budget (120 s) et d'une marge. */
 export const maxDuration = 180;
 
 
 const SELECT_CLASS = "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm";
-
-/** Les pays proposés pour une source ; leurs noms sont `watch.page.countries.<code>` (« unknown » pour un pays inconnu). */
-const COUNTRY_CODES = ["", "FR", "BE", "CH", "LU", "EU", "GB", "US", "DE", "ES", "IT"] as const;
 
 export default async function WatchPage({
   searchParams,
@@ -90,7 +87,8 @@ export default async function WatchPage({
   const [org, topics, sources, items, basket, latestFinished, alreadyRunning, runs, followedKeys, targets] = await Promise.all([
     getOwnOrganization(user),
     listWatchTopics(organizationId, { includeArchived: true }),
-    listWatchSources(organizationId, { includeArchived: true }),
+    // Les sources thématiques seulement : les concurrents ont leur écran (/concurrents), leurs articles ne sont pas de la matière.
+    listWatchSources(organizationId, { kind: "source", includeArchived: true }),
     listWatchItems(user, { limit: 200 }),
     listBasket(user),
     getLatestFinishedRun(organizationId),
@@ -137,12 +135,18 @@ export default async function WatchPage({
         title={tr("veille")}
         description={tr("description")}
         actions={
-          <form action={refreshWatchAction}>
-            <Button type="submit" variant="outline" disabled={!hasSetup || Boolean(running)}>
-              <RefreshCw />
-              {running ? tr("collecte_en_cours") : tr("actualiser_maintenant")}
-            </Button>
-          </form>
+          <>
+            <Link href="/concurrents" className={buttonVariants({ variant: "ghost" })}>
+              <Radar />
+              {tr("concurrents")}
+            </Link>
+            <form action={refreshWatchAction}>
+              <Button type="submit" variant="outline" disabled={!hasSetup || Boolean(running)}>
+                <RefreshCw />
+                {running ? tr("collecte_en_cours") : tr("actualiser_maintenant")}
+              </Button>
+            </form>
+          </>
         }
       />
 
@@ -251,7 +255,7 @@ export default async function WatchPage({
                 <span className="text-xs tabular-nums text-muted-foreground">
                   {run.finishedAt
                     ? tr("nouveau_nouveaux_resume_resumes_source_sources_44fe", { itemsNew: run.itemsNew, itemsSummarized: run.itemsSummarized, sourcesOk: run.sourcesOk, value: run.sourcesFailed ? tr("en_echec", { sourcesFailed: run.sourcesFailed }) : "" })
-                    : "démarrée " + fmt.relative(run.startedAt)}
+                    : tr("demarree", { formatRelativeTime: fmt.relative(run.startedAt) })}
                   {run.error ? ` — ${run.error}` : ""}
                 </span>
               </li>
@@ -387,8 +391,8 @@ function ArticleRow({ item }: { item: WatchItemRow }) {
   const meta = [
     item.publisher,
     fmt.country(item.country),
-    item.publishedAt ? fmt.date(item.publishedAt) : "date inconnue",
-    item.discoveredVia === "feed" ? "flux" : "recherche",
+    item.publishedAt ? fmt.date(item.publishedAt) : t("date_inconnue"),
+    item.discoveredVia === "feed" ? t("flux") : t("recherche"),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -547,22 +551,6 @@ function TopicsSection({ topics, archived, defaultOpen }: { topics: WatchTopic[]
   );
 }
 
-function sourceHealth(source: WatchSource, t: TranslatorOf<"watch.page">, fmt: Formats): { text: string; tone: "ok" | "warning" | "asleep" | "never" } {
-  if (source.asleepAt) {
-    return { text: t("en_sommeil_depuis_le_trente_jours_f5f9", { formatDate: fmt.date(source.asleepAt), n: source.lastError ?? t("cause_inconnue") }), tone: "asleep" };
-  }
-  if (source.lastError) {
-    const since = source.lastOkAt ?? source.createdAt;
-    const due = sourceDueAt(source);
-    return {
-      text: t("injoignable_depuis_le", { formatDate: fmt.date(since), lastError: source.lastError, value: due ? t("nouvel_essai", { replace: fmt.relative(due) }) : "" }),
-      tone: "warning",
-    };
-  }
-  if (source.lastOkAt) return { text: t("lue", { formatRelativeTime: fmt.relative(source.lastOkAt) }), tone: "ok" };
-  return { text: t("pas_encore_lue"), tone: "never" };
-}
-
 function SourcesSection({ sources, archived, topics }: { sources: WatchSource[]; archived: WatchSource[]; topics: WatchTopic[] }) {
   const tr = useTranslations("watch.page");
   const fmt = use(getFormats());
@@ -585,15 +573,14 @@ function SourcesSection({ sources, archived, topics }: { sources: WatchSource[];
                       <a href={source.siteUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
                         {source.label}
                       </a>
-                      {source.kind === "competitor" && <Badge variant="secondary">{tr("concurrent")}</Badge>}
                       {!source.feedUrl && <Badge variant="outline">{tr("sans_flux_cherchee_par_domaine")}</Badge>}
                     </span>
                     <span className="truncate text-xs tabular-nums text-muted-foreground">
                       {[
                         fmt.country(source.country),
                         source.lang === "en" ? tr("anglais") : source.lang === "fr" ? tr("francais") : null,
-                        topic ? `sujet : ${topic}` : null,
-                        source.feedUrl ? `flux : ${source.feedUrl}` : null,
+                        topic ? tr("sujet_label", { label: topic }) : null,
+                        source.feedUrl ? tr("flux_label", { url: source.feedUrl }) : null,
                       ]
                         .filter(Boolean)
                         .join(" · ")}
@@ -647,7 +634,7 @@ function SourcesSection({ sources, archived, topics }: { sources: WatchSource[];
             </Field>
             <Field label={tr("pays")} htmlFor="source-country">
               <select id="source-country" name="country" className={SELECT_CLASS} defaultValue="FR">
-                {COUNTRY_CODES.map((code) => (
+                {SOURCE_COUNTRY_CODES.map((code) => (
                   <option key={code} value={code}>
                     {tr(`countries.${code || "unknown"}`)}
                   </option>
@@ -664,7 +651,7 @@ function SourcesSection({ sources, archived, topics }: { sources: WatchSource[];
           </div>
           <input type="hidden" name="kind" value="source" />
           <p className="text-xs text-muted-foreground">
-            {tr("les_concurrents_nommes_et_l_ecart_847f")}
+            {tr.rich("les_concurrents_nommes_se_declarent_sur_c58a", { link: (chunks) => <Link href="/concurrents" className="underline underline-offset-2">{chunks}</Link> })}
           </p>
           <Button type="submit" className="w-fit">
             {tr("ajouter_la_source")}

@@ -139,7 +139,7 @@
     "la_ligne_grise_sous_l_objet_ec2d": "La ligne grise sous l’objet, dans la boîte de réception",
     "la_redaction_a_echoue": "La rédaction a échoué.",
     "le_de_la_cible": "<link>{n}</link> — le {formatDate}, <span>{n2} %</span> de la cible{n3}",
-    "matiere_article_articles_mis_de_cote_0c6a": "Matière : {count} {count, plural, one {article} other {articles}} mis de côté — chaque source utilisée sera citée avec son lien",
+    "matiere_article_articles_mis_de_cote_0c6a": "Matière : {count} {count, plural, one {article} other {articles}} — chaque source utilisée sera citée avec son lien",
     "modifier": "Modifier : {blockEditorTitle}",
     "objet": "Objet",
     "ou": "ou",

@@ -73,6 +73,7 @@
   "l_adresse_du_flux_est_illisible": "The feed address can’t be read.",
   "l_adresse_du_site_est_illisible": "The site address can’t be read.",
   "l_analytique_se_calcule_pour_une_organisation_32f8": "Analytics are computed for a specific organization. Choose an organization in the super admin bar at the top of the screen.",
+  "l_article_d_un_concurrent_ne_se_ba6e": "A competitor’s article cannot be set aside: the content gap names the topic, the newsletter is written from your sources.",
   "l_export_du_tableau_de_bord_a_351c": "The dashboard export needs the organization’s business pack.",
   "l_icone_n_a_pas_pu_etre_a8bc": "The icon couldn’t be derived.",
   "l_image_depasse_ko_une_fois_redimensionnee_f84f": "The image exceeds {round} KB once resized — choose a simpler image.",

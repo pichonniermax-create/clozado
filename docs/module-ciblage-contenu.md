@@ -938,6 +938,239 @@ plus ; une organisation active dont la veille tourne chaque jour :
 ≈ 5 à 8 $ par mois, zéro pour les autres — dans l'ordre de grandeur annoncé
 à l'étape 1. Flux et APIs officielles : gratuits.
 
+## Étape 5 — la veille concurrentielle et l'écart de contenu
+
+### Ce qui est construit
+
+- **`/concurrents`** (entrée « Concurrents » sous Outils, à côté de la
+  veille) : **l'écart de contenu d'abord** — c'est le produit du cahier :
+  « trois de tes concurrents ont traité le rachat de crédit ce mois-ci, tu
+  ne l'as pas fait ». Chaque ligne dit le sujet, combien de concurrents
+  l'ont traité et lesquels (avec leur nombre d'articles), les angles pris
+  (« guide pratique (3), comparatif »), la date du dernier article ; « Ce
+  qu'ils ont publié (N) » déplie les titres publics avec leur lien ; le
+  bouton **« Écrire sur ce sujet »** (cible choisie en tête de la section)
+  ouvre le composer. Un brouillon qui traite déjà le sujet s'affiche « En
+  préparation dans « … » » ; une newsletter marquée envoyée qui le traite
+  le retire de l'écart (« Sujets que tu as aussi traités (N) », repliés,
+  avec « traité dans « … » le … »). Puis **les concurrents** : nom lié,
+  pays, langue, flux ou « Sans flux — cherché par domaine », la SANTÉ
+  (mêmes phrases que les sources : `src/lib/watch/health.ts`, partagé),
+  **ce qu'ils publient** — « 12 articles ces 30 derniers jours (≈ 3 par
+  semaine) · dernier article le 24 août · sujets : taux immobilier (5),
+  crédit immobilier (3) · angle dominant : guide pratique · 2 à classer à la
+  prochaine collecte » — et « Ce qu'ils ont publié (N sur 60 jours) » ;
+  Réessayer / Réveiller / Désactiver / Réactiver ; le formulaire (site,
+  nom, flux facultatif, pays, langue). Trois états (`loading.tsx`,
+  `error.tsx`, vide avec le formulaire déplié). La visite déclenche la même
+  collecte que la veille quand elle a plus de 24 h ; le bouton « Actualiser
+  maintenant » est le même (même délai de dix minutes).
+- **Un concurrent, c'est une source de nature `competitor`** (schéma de
+  l'étape 2, aucune migration) : même découverte du flux depuis la page
+  d'accueil, même recherche restreinte à son domaine quand il n'a pas de
+  flux — sans sujet : on suit ce qu'il publie, quel qu'en soit le thème
+  (`searchJobs` : requête générique dans sa langue, `watch.search.
+  competitor_terms` + le mois courant). Trois recherches par collecte au
+  lieu de deux, les plus anciennes d'abord (sujets et concurrents
+  confondus). Ajouter un concurrent démarre une collecte tout de suite —
+  ou, si une collecte est en cours, **dès qu'elle finit** (`scheduleWatch
+  Refresh(…, { queue: true })` : `after()` attend la fin, cent secondes au
+  plus, puis démarre) : quatre concurrents ajoutés à la suite sont lus
+  dans la foulée, pas le lendemain ni après le délai du bouton.
+- **Les titres, jamais la page.** Un article de concurrent est **classé
+  depuis son titre public** — sujet et angle — en un appel groupé
+  (`AIProvider.classifyTitles`, outil `emit_classification` forcé,
+  quarante titres par lot, trois lots par collecte au plus, Sonnet 5 en
+  effort « low ») ; sa page n'est jamais lue, il n'est jamais résumé
+  (`listPendingSummaries` l'exclut). Le sujet obéit à un vocabulaire
+  PARTAGÉ : d'abord un sujet suivi de l'organisation (libellé exact),
+  sinon un sujet déjà donné à un autre article de concurrent
+  (`listCompetitorSubjects`, réinjecté dans le prompt), sinon un sujet
+  nouveau de deux à quatre mots dans la langue de l'organisation — pour
+  que l'écart groupe ce qui va ensemble. L'angle vient d'un **registre
+  fermé** de neuf clés (`COMPETITOR_ANGLES` : guide, news, figures, alert,
+  comparison, opinion, promotion, testimonial, other), stocké en clé et
+  traduit à l'écran (`watch.angles.*`). En base : `summary_state = done`
+  vaut « classé », `summary` reste NULL, `themes = [sujet]`, `angle` = la
+  clé, `summary_model` le modèle ; un titre qui n'annonce pas un article
+  (accueil, rubrique) est `failed` et ne revient pas ; un lot non rendu
+  reste « en attente » pour la collecte suivante.
+- **L'écart est calculé, pas généré** (`src/lib/watch/gap.ts`, pur, sans
+  base) : trente jours glissants ; côté concurrents, les articles classés
+  groupés par **sujet normalisé** (`normalizeSubject` : minuscules, sans
+  accents ni ponctuation, mots vides retirés, pluriel simple retiré —
+  « Rachat de crédits » = « Le rachat de crédit ») ; côté « toi »,
+  `listTreatedSubjects` : les sujets déclarés des newsletters marquées
+  envoyées dans la fenêtre (ceux que l'anti-répétition demande au
+  marquage) et les thèmes ou le sujet des articles de veille qu'elles ont
+  rattachés ; les brouillons touchés dans la fenêtre comptent « en
+  préparation ». Un sujet de concurrent et un sujet traité se rapportent
+  (`subjectsMatch`) par clés égales ou par inclusion mot à mot (« crédit
+  immobilier » ⊂ « taux crédit immobilier »), jamais par un mot seul et
+  court. Tri : le plus de concurrents distincts, puis d'articles, puis le
+  plus récent. Chaque ligne se lit dans ses articles — rien à croire sur
+  parole. La fréquence par concurrent (`competitorStats`) vient des mêmes
+  articles.
+- **Les articles de concurrents ne sont pas de la matière.** Ils
+  n'apparaissent pas parmi les articles de `/veille` (`listWatchItems`
+  exclut la nature `competitor`), les concurrents ne figurent pas dans
+  ses sources (elles ont leur écran, la note du formulaire y renvoie), le
+  panier les refuse (`addToBasket` → « L'article d'un concurrent ne se met
+  pas de côté… »). **« Écrire sur ce sujet »** ouvre
+  `/newsletters/new?cible=…&sujet=…` : le composer reçoit un brief
+  (`buildGapBrief`, phrases de `watch.brief.*` dans la langue des contenus
+  de l'organisation) — le sujet, combien de concurrents l'ont traité et
+  lesquels, les angles pris, la règle (« ne reprends rien de ce qu'ils ont
+  écrit — seul le sujet vient d'eux ; cite chaque source ») — et, comme
+  matière, **nos** articles résumés sur ce sujet (`listOwnItemsOnSubject`,
+  rattachés à l'enregistrement comme ceux du panier), ou la consigne
+  d'écrire depuis notre expertise sans chiffre non vérifié. Aucun titre ni
+  lien de concurrent n'y passe — vérifié.
+- Au passage : `sourceHealth` extrait dans `src/lib/watch/health.ts`, les
+  pays proposés dans `src/lib/watch/countries.ts` ; six textes français
+  restés en dur sur `/veille` que le lint ne voyait pas (« date inconnue »,
+  « flux », « recherche », « sujet : », « flux : », « démarrée ») et deux
+  messages d'erreur de collecte dans `refresh.ts` passés en messages
+  fr + en (`watch.page.*`, `watch.run.*`).
+
+### Décisions réversibles
+
+- **Les titres seulement.** Le cahier demande « sujets traités, fréquence,
+  angles », pas des résumés : classer les titres est la lecture la plus
+  stricte de « uniquement du contenu public » et de la règle de droit
+  d'auteur (rien de leur texte n'entre dans le produit, même le temps d'un
+  appel), c'est dix fois moins cher qu'un résumé, et c'est immédiat —
+  l'écart est complet dès la première collecte au lieu de douze articles
+  par jour. Si un jour on veut aussi leurs résumés, le chemin des résumés
+  existe et il suffit de ne plus les exclure.
+- **L'écart calculé, pas généré** : l'étape 1 prévoyait « un appel par jour
+  sur les titres » ; il sert à classer, pas à rédiger l'écart — une phrase
+  générée serait invérifiable, un groupement se relit.
+- Fenêtre de **trente jours glissants** (« ce mois-ci » du cahier),
+  soixante jours de mémoire (la borne des articles de la collecte).
+- `summary_state = done` pour « classé » (colonnes existantes, aucune
+  migration) ; une colonne dédiée viendrait si les deux sens divergeaient.
+- Registre d'angles fermé à neuf clés — traduisible, comptable ; l'angle
+  libre des résumés thématiques ne change pas.
+- Un article de concurrent ne se met pas de côté : une newsletter sous la
+  marque du client n'envoie pas ses lecteurs chez un concurrent et ne se
+  construit pas sur son article — l'écart dit le sujet, la matière est la
+  nôtre.
+- Pas de concurrents par défaut dans les packs métier : un concurrent est
+  propre à chaque cabinet (rien de client dans le code).
+- Trois recherches par collecte (au lieu de deux) ; file d'attente d'une
+  collecte derrière celle en cours, cent secondes d'attente au plus — d'où
+  le `maxDuration` de `/concurrents` à 240 s (l'attente, puis le budget de
+  120 s, puis la marge ; `/veille` reste à 180 s).
+- URL `/concurrents` (et non `/veille/concurrents`) : la navigation active
+  `/veille` sur tout `/veille/*`, deux entrées auraient été actives.
+
+### Ce que cette étape ne fait pas
+
+- Le composer ne compose pas encore son prompt depuis les six facettes et
+  les articles rattachés, et la revue ne vérifie pas les citations ni les
+  formulations reprises (étape 6) — aujourd'hui l'écart arrive par le
+  brief et la matière, comme le panier.
+- Un article de concurrent ne s'écarte pas à la main (rien à en faire :
+  il ne se met pas de côté) ; un sujet mal classé se corrige à la
+  collecte suivante seulement par ses nouveaux articles.
+- Le vocabulaire des sujets est celui d'un modèle guidé (sujets suivis,
+  sujets déjà vus, normalisation) : « taux immobilier » et « crédit
+  immobilier » restent deux sujets — c'est lisible, et c'est le cas vu
+  à la preuve. Rattacher un sujet de concurrent à un sujet suivi à la
+  main serait la suite naturelle si ça gêne.
+
+### Coût mesuré
+
+Un lot de quarante titres ≈ 1 500 jetons lus (dont le prompt en cache),
+500 écrits : ≈ 0,01 $ ; une organisation qui suit cinq concurrents : un
+lot par jour au plus après la première collecte (les flux n'apportent que
+le nouveau), soit ≈ 0,30 $ par mois — plus une recherche par concurrent
+sans flux et par jour (0,01 $ chacune). Rien pour les flux.
+
+### Preuves
+
+- **À blanc** (`scripts/_tmp-competitors-proof.ts`, supprimé) : **51
+  contrôles**, deux organisations jetables `_conc-a` (courtier) et
+  `_conc-b` (CGP), six concurrents RÉELS déclarés par les mêmes fonctions
+  que l'écran (flux découverts par appel réel : Credixia, Immobilier
+  Danger, Empruntis, Nortia ; sans flux : Pretto, Primonial) ; les
+  fonctions pures (normalisation, rapprochement, écart et fréquence sur un
+  jeu synthétique — trois concurrents, un brouillon « en préparation »,
+  une newsletter envoyée qui couvre, un article hors fenêtre, un article
+  non classé) ; **une collecte réelle sur A : 33 s, 3 flux lus, 24
+  articles (Credixia 10, Immobilier Danger 4, Empruntis 6, Pretto 4 par
+  recherche restreinte à pretto.fr), 24 titres classés en un appel**,
+  chacun avec un sujet et un angle du registre (« taux immobilier (8),
+  crédit immobilier (5), assurance emprunteur (3), marché immobilier
+  (2)… » ; angles figures 11, guide 9, opinion 2, news 1, comparison 1) ;
+  en base `summary` NULL, `summary_state` done, `themes` = [sujet],
+  `angle` = clé, et les colonnes de `watch_items` sans corps ni extrait ;
+  `listWatchItems` et `listPendingSummaries` ne rendent aucun article de
+  concurrent, le panier les refuse avec la clé lisible ; **l'écart : neuf
+  sujets, « taux immobilier — 4 concurrents » en tête**, trié ; une
+  newsletter marquée envoyée qui déclare le sujet (en MAJUSCULES) le fait
+  passer en « couvert », un brouillon le laisse « en préparation » ;
+  `describeGapSubject` rend concurrents, articles, angles, puis notre
+  matière une fois un article de nos sources résumé sur ce sujet ; le
+  brief (fr et en) ne contient aucun titre ni lien de concurrent et nomme
+  le sujet, les concurrents, les angles, notre matière et la règle ; B ne
+  voit rien de A (articles, écart, panier et désactivation refusés par
+  l'accès) ; une seconde collecte ne reclasse rien et ne relit aucun flux
+  (pas dus) ; destruction à zéro reliquat.
+- **Au navigateur** (`scripts/_tmp-browser-competitors.ts`, supprimé ;
+  build de production, session forgée, organisation jetable `_conc-nav`) :
+  **50 contrôles, zéro erreur console, zéro `pageerror`, zéro 5xx**, le
+  texte visible sans clé brute ni accolade à chaque écran — l'état vide
+  (formulaire déplié, entrée « Concurrents » active dans la navigation) ;
+  Credixia ajouté → « flux trouvé, la collecte démarre » → « Collecte en
+  cours » → **l'écart apparaît treize secondes plus tard** (titres
+  classés) avec la fréquence, les sujets et l'angle dominant du concurrent
+  et « tu ne l'as pas fait » sur chaque ligne ; Immobilier Danger puis
+  Pretto ajoutés à la suite → **lus par les collectes qui s'enchaînent
+  (vingt secondes)**, Pretto « Sans flux — cherché par domaine » avec
+  quatre articles trouvés sur son domaine ; « 3 de tes concurrents ont
+  traité « taux immobilier » (6 articles) — tu ne l'as pas fait » ;
+  `/veille` sans aucun concurrent, sa note renvoyant à l'écran ; « Écrire
+  sur ce sujet » → le composer avec cible et sujet dans l'URL, le brief
+  (sujet, « 3 concurrents l'ont traité ce mois-ci (Pretto, Credixia et
+  Immobilier Danger — 7 articles) », angles, règle), aucun lien de
+  concurrent, notre article en matière (« Matière : 1 article »), le
+  brouillon enregistré de lui-même ; retour : « En préparation dans « Notre
+  lecture du sujet » » ; marquée envoyée avec ce sujet : la ligne quitte
+  l'écart, « Sujets que tu as aussi traités (1) » dit « traité dans « … »
+  le 26 août 2026 » ; désactiver / réactiver Pretto ; « Actualiser »
+  répond ; en anglais, l'écran entier (« Competitors », « Content gap »,
+  « One of your competitors covered … — you haven't ») sans français
+  résiduel, `<html lang="en">`, et le brief reste dans la langue des
+  contenus de l'organisation. Captures relues. Le journal du serveur ne
+  porte que des « destination stream closed early » (le script rechargeait
+  la page pendant que l'auto-rafraîchissement streamait — une déconnexion
+  du client, pas une erreur du produit).
+- **Sur le build final** (après les dernières retouches — `health.ts`,
+  les messages — et le `maxDuration` à 240 s) : `tsc` et eslint propres
+  sur tout le dépôt, **5 056 messages fr/en vérifiés** (mêmes clés, syntaxe
+  ICU, mêmes arguments des deux côtés), et un second passage navigateur de
+  **34 contrôles, zéro échec** (organisation jetable `_conc-smoke`, session
+  forgée) : Credixia ajouté par le formulaire → flux découvert → **l'écart
+  en 13 s** (10 titres classés, cinq sujets), « Lu maintenant. » (la clé
+  masculine), « 10 articles de concurrents connus sur soixante jours, 10
+  classés », `/veille` sans le concurrent, « Écrire sur ce sujet » → le
+  brief avec le sujet, le concurrent, les angles et la règle, sans aucun
+  lien de concurrent, « mis de côté » disparu du libellé de la matière ;
+  en anglais « Read now. », « you haven’t », aucun français résiduel ;
+  désactiver puis réactiver ; zéro `pageerror`, zéro erreur console, zéro
+  5xx ; destruction à zéro reliquat. Trois pièges du harnais, pas du
+  produit : le contenu streamé n'est révélé qu'après `load` (attendre le
+  réseau au repos avant de lire le texte), un clone détaché du `body`
+  colle les blocs (« …/feedLu » — lire `innerText` sur le document
+  vivant), et une capture `fullPage` montre le squelette (capturer la
+  fenêtre).
+- Critères d'acceptation touchés ici : **deux organisations, des
+  concurrents différents, sans code spécifique** (A et B) ; **aucun
+  contenu d'article stocké** — pour un concurrent, même pas lu. Reste
+  l'email qui cite ses sources (étape 6).
+
 ## Avancement
 
 - **Étape 1 — exploration et conception** : `5cdf435`. STOP.
@@ -953,3 +1186,12 @@ plus ; une organisation active dont la veille tourne chaque jour :
   `/chiffres`, la collecte à trois déclencheurs, treize indicateurs lus à
   la source, le panier branché sur le composer — prouvée à blanc (50
   contrôles, une collecte réelle) et au navigateur (39 étapes). STOP.
+  Migration `0014` (verrou garanti par la base, date de recherche des
+  sujets) validée et appliquée au retour, avec la `0015` du chantier
+  marque blanche : `c3de5c1`.
+- **Étape 5 — veille concurrentielle et écart de contenu** :
+  `/concurrents`, les concurrents nommés (flux ou recherche par domaine),
+  les titres classés (sujet, angle) sans jamais lire une page, l'écart
+  calculé et actionnable (« écrire sur ce sujet » → le composer avec le
+  brief et notre matière), aucune migration — prouvée à blanc (51
+  contrôles, une collecte réelle) et au navigateur (50 contrôles). STOP.

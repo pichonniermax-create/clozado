@@ -1,4 +1,5 @@
 import type { NewsletterOutput } from "@/lib/newsletter/blocks";
+import type { CompetitorAngle } from "@/lib/watch/gap";
 
 /**
  * Contrat que le reste de l'app utilise pour générer une newsletter —
@@ -15,6 +16,13 @@ export interface AIProvider {
   summarizeArticle(input: SummarizeArticleInput): Promise<ArticleSummary>;
   /** Une recherche web bornée (un sujet, une langue, un pays, des domaines) : seules les URL réellement renvoyées par le moteur sont rendues. */
   searchArticles(input: SearchArticlesInput): Promise<SearchArticlesResult>;
+  /**
+   * La veille concurrentielle (étape 5) : le sujet et l'angle de chaque
+   * article d'un concurrent, classés depuis son TITRE public — le modèle
+   * ne reçoit ni texte ni résumé, et n'en rend pas. Un appel pour un lot
+   * de titres.
+   */
+  classifyTitles(input: ClassifyTitlesInput): Promise<ClassifyTitlesResult>;
   /**
    * Même génération, mais en rendant compte de son avancement : `onProgress`
    * est appelé à chaque fois qu'un morceau supplémentaire du JSON d'outil
@@ -124,6 +132,28 @@ export type SearchArticlesResult = {
   articles: SearchedArticle[];
   /** Le nombre de recherches facturées par le fournisseur. */
   searches: number;
+  model: string;
+};
+
+export type ClassifyTitlesInput = {
+  /** La langue dans laquelle un sujet nouveau s'écrit — celle de l'organisation. */
+  lang: "fr" | "en";
+  /** Les sujets suivis par l'organisation (libellés exacts) : un article qui en traite principalement y est classé. */
+  topics: string[];
+  /** Les sujets déjà donnés à d'autres articles de concurrents de cette organisation : le même sujet s'écrit toujours pareil. */
+  knownSubjects: string[];
+  items: { id: string; title: string; publisher: string }[];
+};
+
+export type TitleClassification = {
+  id: string;
+  /** Null : le titre n'annonce pas un article (accueil, rubrique, mention légale…). */
+  subject: string | null;
+  angle: CompetitorAngle;
+};
+
+export type ClassifyTitlesResult = {
+  items: TitleClassification[];
   model: string;
 };
 

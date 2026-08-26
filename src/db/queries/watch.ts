@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   newsletters,
@@ -18,6 +18,7 @@ import type { BusinessPack } from "@/lib/metrics/packs";
 import type { OrgScopeUser } from "@/lib/session";
 import type { WatchSourceTemplate, WatchTopicTemplate } from "@/lib/watch/templates";
 import { canonicalUrl, urlHash } from "@/lib/watch/url";
+import { computeContentGap, subjectsMatch, type CompetitorArticle, type TreatedSubject } from "@/lib/watch/gap";
 import { followIndicators, listFollowedIndicatorKeys } from "./market";
 import { AppError } from "@/lib/errors";
 import type { TranslatorOf } from "@/i18n/translator";
@@ -25,12 +26,15 @@ import { localeOfOrganization } from "@/i18n/locale";
 import { translatorFor } from "@/i18n/translator";
 
 /**
- * LA VEILLE — sujets, sources, articles, panier, collectes. Tout est par
- * organisation ; les fonctions d'écran reçoivent l'utilisateur et
- * exigent son organisation ; les fonctions de collecte reçoivent l'id
+ * LA VEILLE — sujets, sources, concurrents, articles, panier, collectes.
+ * Tout est par organisation ; les fonctions d'écran reçoivent l'utilisateur
+ * et exigent son organisation ; les fonctions de collecte reçoivent l'id
  * d'organisation que la collecte a déjà résolu. Ce qui est stocké d'un
  * article : titre, lien, date, éditeur, pays, langue, résumé original —
- * `insertWatchItems` n'a pas de paramètre pour autre chose.
+ * `insertWatchItems` n'a pas de paramètre pour autre chose. Les articles
+ * d'un CONCURRENT ne sont pas de la matière : ils n'apparaissent pas parmi
+ * les articles de la veille, ne se mettent pas de côté, ne sont jamais
+ * résumés — ils sont classés depuis leurs titres pour l'écart de contenu.
  */
 
 /** Une collecte est périmée au-delà de 24 h : la matière sert des newsletters hebdomadaires, pas un fil d'actualité. */
@@ -352,6 +356,9 @@ export type WatchItemRow = WatchItem & {
 
 const ITEM_ORDER = [sql`${watchItems.publishedAt} DESC NULLS LAST`, desc(watchItems.discoveredAt)];
 
+/** Un article qui n'est pas celui d'un concurrent (sans source déclarée, ou d'une source thématique) — la matière de la veille. À poser après la jointure sur `watchSources`. */
+const notCompetitor = or(isNull(watchSources.kind), ne(watchSources.kind, "competitor"));
+
 function selectItemRows(organizationId: string, extra: ReturnType<typeof and>[], limit: number) {
   return db
     .select({
@@ -366,10 +373,11 @@ function selectItemRows(organizationId: string, extra: ReturnType<typeof and>[],
     .leftJoin(watchSources, eq(watchSources.id, watchItems.sourceId))
     .leftJoin(watchTopics, eq(watchTopics.id, watchItems.topicId))
     .leftJoin(watchBasketItems, and(eq(watchBasketItems.itemId, watchItems.id), eq(watchBasketItems.organizationId, watchItems.organizationId)))
-    .where(and(eq(watchItems.organizationId, organizationId), ...extra))
+    .where(and(eq(watchItems.organizationId, organizationId), notCompetitor, ...extra))
     .orderBy(...ITEM_ORDER)
     .limit(limit);
 }
+
 
 function toRow(r: { item: WatchItem; sourceLabel: string | null; topicLabel: string | null; inBasket: boolean; usedIn: number; usedSent: boolean }): WatchItemRow {
   return { ...r.item, sourceLabel: r.sourceLabel, topicLabel: r.topicLabel, inBasket: Boolean(r.inBasket), usedIn: Number(r.usedIn), usedSent: Boolean(r.usedSent) };
@@ -414,6 +422,11 @@ async function getOwnItem(user: OrgScopeUser, id: string): Promise<WatchItem> {
 
 export async function addToBasket(user: OrgScopeUser, itemId: string, addedBy: string | null): Promise<void> {
   const item = await getOwnItem(user, itemId);
+  if (item.sourceId) {
+    // L'article d'un concurrent n'est pas de la matière : l'écart de contenu dit le sujet, la newsletter s'écrit depuis nos sources.
+    const source = await db.query.watchSources.findFirst({ where: eq(watchSources.id, item.sourceId), columns: { kind: true } });
+    if (source?.kind === "competitor") throw new AppError("l_article_d_un_concurrent_ne_se_ba6e");
+  }
   await db.insert(watchBasketItems).values({ organizationId: item.organizationId, itemId: item.id, addedBy }).onConflictDoNothing();
 }
 
@@ -444,19 +457,23 @@ export async function restoreWatchItem(user: OrgScopeUser, itemId: string): Prom
 /** Les articles à résumer, les plus récents d'abord — la collecte en prend autant que son budget le permet. */
 export async function listPendingSummaries(organizationId: string, limit: number): Promise<WatchItem[]> {
   const since = new Date(Date.now() - WATCH_MAX_ITEM_AGE_DAYS * 24 * 3600 * 1000);
-  return db
-    .select()
+  // Jamais l'article d'un concurrent : sa page n'est pas lue, il est classé depuis son titre (`listPendingClassification`).
+  const rows = await db
+    .select({ item: watchItems })
     .from(watchItems)
+    .leftJoin(watchSources, eq(watchSources.id, watchItems.sourceId))
     .where(
       and(
         eq(watchItems.organizationId, organizationId),
         eq(watchItems.summaryState, "pending"),
         isNull(watchItems.dismissedAt),
+        notCompetitor,
         sql`coalesce(${watchItems.publishedAt}, ${watchItems.discoveredAt}) >= ${since}`
       )
     )
     .orderBy(...ITEM_ORDER)
     .limit(limit);
+  return rows.map((r) => r.item);
 }
 
 export type SummaryPatch = {
@@ -492,6 +509,168 @@ export async function resetSummary(user: OrgScopeUser, itemId: string): Promise<
     .update(watchItems)
     .set({ summaryState: "pending", summary: null, summaryModel: null, updatedAt: new Date() })
     .where(eq(watchItems.id, item.id));
+}
+
+// ---------------------------------------------------------------------------
+// Concurrents — classés depuis leurs titres, l'écart de contenu (étape 5)
+// ---------------------------------------------------------------------------
+
+/** La condition d'un article de concurrent actif — à poser après une jointure INTERNE sur `watchSources`. */
+const competitorArticleWhere = (organizationId: string, since: Date) =>
+  and(
+    eq(watchItems.organizationId, organizationId),
+    eq(watchSources.kind, "competitor"),
+    isNull(watchSources.archivedAt),
+    isNull(watchItems.dismissedAt),
+    sql`coalesce(${watchItems.publishedAt}, ${watchItems.discoveredAt}) >= ${since}`
+  );
+
+function sinceDays(days: number): Date {
+  return new Date(Date.now() - days * 24 * 3600 * 1000);
+}
+
+/**
+ * Ce que les concurrents ont publié — les soixante jours de collecte, les
+ * plus récents d'abord — tel que l'écran et l'écart le lisent : titre,
+ * lien, date, concurrent, sujet et angle classés. Rien d'autre n'existe
+ * en base pour un article de concurrent : sa page n'est jamais lue.
+ */
+export async function listCompetitorArticles(organizationId: string, opts: { days?: number; limit?: number } = {}): Promise<CompetitorArticle[]> {
+  const rows = await db
+    .select({ item: watchItems, sourceLabel: watchSources.label })
+    .from(watchItems)
+    .innerJoin(watchSources, and(eq(watchSources.id, watchItems.sourceId), eq(watchSources.organizationId, watchItems.organizationId)))
+    .where(competitorArticleWhere(organizationId, sinceDays(opts.days ?? WATCH_MAX_ITEM_AGE_DAYS)))
+    .orderBy(...ITEM_ORDER)
+    .limit(opts.limit ?? 600);
+  return rows.map((r) => ({
+    id: r.item.id,
+    title: r.item.title,
+    url: r.item.url,
+    publishedAt: r.item.publishedAt,
+    discoveredAt: r.item.discoveredAt,
+    sourceId: r.item.sourceId as string,
+    sourceLabel: r.sourceLabel,
+    subject: r.item.summaryState === "done" ? (r.item.themes[0] ?? null) : null,
+    angle: r.item.summaryState === "done" ? r.item.angle : null,
+    classified: r.item.summaryState === "done",
+    pending: r.item.summaryState === "pending",
+  }));
+}
+
+/** Les articles de concurrents à classer — les titres que la collecte donne au modèle, les plus récents d'abord. */
+export async function listPendingClassification(organizationId: string, limit: number): Promise<{ id: string; title: string; publisher: string }[]> {
+  return db
+    .select({ id: watchItems.id, title: watchItems.title, publisher: watchItems.publisher })
+    .from(watchItems)
+    .innerJoin(watchSources, and(eq(watchSources.id, watchItems.sourceId), eq(watchSources.organizationId, watchItems.organizationId)))
+    .where(and(competitorArticleWhere(organizationId, sinceDays(WATCH_MAX_ITEM_AGE_DAYS)), eq(watchItems.summaryState, "pending")))
+    .orderBy(...ITEM_ORDER)
+    .limit(limit);
+}
+
+/** Les sujets déjà donnés aux articles de concurrents de l'organisation, les plus fréquents d'abord — le vocabulaire partagé que la classification réutilise. */
+export async function listCompetitorSubjects(organizationId: string, limit = 60): Promise<string[]> {
+  const rows = await db.execute(sql`
+    SELECT i.themes[1] AS subject, count(*)::int AS n
+    FROM ${watchItems} i
+    JOIN ${watchSources} s ON s.id = i.source_id AND s.organization_id = i.organization_id
+    WHERE i.organization_id = ${organizationId}::uuid AND s.kind = 'competitor' AND i.summary_state = 'done'
+      AND cardinality(i.themes) > 0 AND i.dismissed_at IS NULL
+      AND coalesce(i.published_at, i.discovered_at) >= ${sinceDays(WATCH_MAX_ITEM_AGE_DAYS)}
+    GROUP BY 1 ORDER BY 2 DESC, 1 ASC LIMIT ${limit}
+  `);
+  return (rows.rows as { subject: string }[]).map((r) => r.subject).filter(Boolean);
+}
+
+/**
+ * Ce que l'organisation a TRAITÉ depuis `since` : les sujets déclarés de
+ * ses newsletters marquées envoyées (l'anti-répétition les demande au
+ * marquage), et les thèmes ou le sujet des articles de veille qu'elle y a
+ * rattachés ; les brouillons touchés depuis `since` comptent « en
+ * préparation ». C'est le côté « toi » de l'écart.
+ */
+export async function listTreatedSubjects(organizationId: string, opts: { days: number }): Promise<TreatedSubject[]> {
+  const since = sinceDays(opts.days);
+  const rows = await db
+    .select({ id: newsletters.id, title: newsletters.title, sentAt: newsletters.sentAt, topics: newsletters.topics })
+    .from(newsletters)
+    .where(
+      and(
+        eq(newsletters.organizationId, organizationId),
+        or(gte(newsletters.sentAt, since), and(isNull(newsletters.sentAt), gte(newsletters.updatedAt, since)))
+      )
+    );
+  if (rows.length === 0) return [];
+  const attached = await db
+    .select({ newsletterId: newsletterSources.newsletterId, topicLabel: watchTopics.label, themes: watchItems.themes })
+    .from(newsletterSources)
+    .innerJoin(watchItems, and(eq(watchItems.id, newsletterSources.itemId), eq(watchItems.organizationId, newsletterSources.organizationId)))
+    .leftJoin(watchTopics, eq(watchTopics.id, watchItems.topicId))
+    .where(
+      and(
+        eq(newsletterSources.organizationId, organizationId),
+        inArray(
+          newsletterSources.newsletterId,
+          rows.map((r) => r.id)
+        )
+      )
+    );
+  const out: TreatedSubject[] = [];
+  const seen = new Set<string>();
+  const push = (newsletter: (typeof rows)[number], subject: string) => {
+    const key = `${newsletter.id}|${subject.trim().toLowerCase()}`;
+    if (!subject.trim() || seen.has(key)) return;
+    seen.add(key);
+    out.push({ subject: subject.trim(), newsletterId: newsletter.id, newsletterTitle: newsletter.title, sentAt: newsletter.sentAt });
+  };
+  for (const newsletter of rows) {
+    for (const topic of newsletter.topics) push(newsletter, topic);
+    for (const a of attached) {
+      if (a.newsletterId !== newsletter.id) continue;
+      if (a.topicLabel) push(newsletter, a.topicLabel);
+      for (const theme of a.themes) push(newsletter, theme);
+    }
+  }
+  return out;
+}
+
+/**
+ * NOTRE matière sur un sujet : les articles résumés de nos sources (jamais
+ * d'un concurrent) dont le sujet ou un thème parle de la même chose — ce
+ * que le composer reçoit quand une newsletter part de l'écart.
+ */
+export async function listOwnItemsOnSubject(user: OrgScopeUser, subject: string, limit = 8): Promise<WatchItemRow[]> {
+  const organizationId = requireOrganization(user);
+  const rows = await selectItemRows(organizationId, [isNull(watchItems.dismissedAt), eq(watchItems.summaryState, "done")], 300);
+  return rows
+    .map(toRow)
+    .filter((row) => (row.topicLabel ? subjectsMatch(subject, row.topicLabel) : false) || row.themes.some((theme) => subjectsMatch(subject, theme)))
+    .slice(0, limit);
+}
+
+export type GapSubjectContext = {
+  subject: string;
+  competitors: string[];
+  articles: number;
+  /** Les clés d'angle, les plus fréquentes d'abord (à traduire par l'appelant). */
+  angles: string[];
+  ownItems: WatchItemRow[];
+};
+
+/** Le contexte d'un sujet de l'écart, pour le composer : qui l'a traité, sous quels angles, et notre matière. */
+export async function describeGapSubject(user: OrgScopeUser, subject: string): Promise<GapSubjectContext> {
+  const organizationId = requireOrganization(user);
+  const [articles, ownItems] = await Promise.all([listCompetitorArticles(organizationId), listOwnItemsOnSubject(user, subject)]);
+  const gap = computeContentGap(articles, []);
+  const row = [...gap.gaps, ...gap.covered].find((r) => subjectsMatch(r.key, subject));
+  return {
+    subject: row?.subject ?? subject.trim(),
+    competitors: row?.competitors.map((c) => c.label) ?? [],
+    articles: row?.articles.length ?? 0,
+    angles: row?.angles.map((a) => a.angle) ?? [],
+    ownItems,
+  };
 }
 
 // ---------------------------------------------------------------------------

@@ -48,7 +48,8 @@
       "les_taches_n_ont_pas_pu_a5d6": "Tasks couldn’t be loaded."
     },
     "watch": {
-      "la_veille_n_a_pas_pu_525a": "Monitoring couldn’t be loaded."
+      "la_veille_n_a_pas_pu_525a": "Monitoring couldn’t be loaded.",
+      "les_concurrents_n_ont_pas_pu_3d9b": "Competitors could not be loaded."
     }
   },
   "globalError": {

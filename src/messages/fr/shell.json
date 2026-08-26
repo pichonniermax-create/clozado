@@ -48,7 +48,8 @@
       "les_taches_n_ont_pas_pu_a5d6": "Les tâches n’ont pas pu être chargées."
     },
     "watch": {
-      "la_veille_n_a_pas_pu_525a": "La veille n’a pas pu être chargée."
+      "la_veille_n_a_pas_pu_525a": "La veille n’a pas pu être chargée.",
+      "les_concurrents_n_ont_pas_pu_3d9b": "Les concurrents n’ont pas pu être chargés."
     }
   },
   "globalError": {

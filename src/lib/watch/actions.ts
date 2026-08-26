@@ -42,6 +42,8 @@ import { translatorFor } from "@/i18n/translator";
  * sans lui, le routeur remonte la page depuis son cache (vu sur /settings).
  */
 const PAGE = "/veille";
+/** L'écran des concurrents et de l'écart de contenu (étape 5) — ses gestes reviennent chez lui. */
+const COMPETITORS_PAGE = "/concurrents";
 
 function back(anchor?: string): string {
   return anchor ? `${PAGE}#${anchor}` : PAGE;
@@ -186,30 +188,39 @@ export async function retrySourceAction(id: string) {
   redirect(destination);
 }
 
-/** « Actualiser maintenant » : une collecte par dix minutes ; elle démarre tout de suite et s'exécute après la réponse. */
-export async function refreshWatchAction() {
+/** « Actualiser maintenant » : une collecte par dix minutes ; elle démarre tout de suite et s'exécute après la réponse. La même collecte, quel que soit l'écran qui la demande. */
+async function refreshAndReturnTo(page: string) {
   const t = await getTranslations("watch.actions");
   const user = await requireUser();
-  let destination = PAGE;
+  let destination = page;
   if (!user.organizationId) {
-    destination = withError(PAGE, t("aucune_organisation_selectionnee"));
+    destination = withError(page, t("aucune_organisation_selectionnee"));
   } else {
     try {
       const result = await scheduleWatchRefresh(user.organizationId, "manual");
-      if (result.status === "started") destination = withError(PAGE, t("collecte_lancee_les_nouveautes_apparaissent_au_b885"), "info");
-      else if (result.status === "running") destination = withError(PAGE, t("une_collecte_est_deja_en_cours"), "info");
+      if (result.status === "started") destination = withError(page, t("collecte_lancee_les_nouveautes_apparaissent_au_b885"), "info");
+      else if (result.status === "running") destination = withError(page, t("une_collecte_est_deja_en_cours"), "info");
       else
         destination = withError(
-          PAGE,
+          page,
           t("une_collecte_vient_d_avoir_lieu_1eeb", { formatDateTime: (await getFormats()).dateTime(result.until), watchManualCooldownMinutes: WATCH_MANUAL_COOLDOWN_MINUTES }),
           "info"
         );
     } catch (error) {
-      destination = withError(PAGE, await errorMessage(error));
+      destination = withError(page, await errorMessage(error));
     }
   }
   revalidatePath(PAGE);
+  revalidatePath(COMPETITORS_PAGE);
   redirect(destination);
+}
+
+export async function refreshWatchAction() {
+  await refreshAndReturnTo(PAGE);
+}
+
+export async function refreshCompetitorsAction() {
+  await refreshAndReturnTo(COMPETITORS_PAGE);
 }
 
 export async function addToBasketAction(itemId: string) {
@@ -322,4 +333,102 @@ export async function writeFromBasketAction(formData: FormData) {
     redirect(withError(`${PAGE}#panier`, t("choisis_d_abord_la_cible_a_9f68")));
   }
   redirect(`/newsletters/new?cible=${encodeURIComponent(targetId)}&panier=1`);
+}
+
+// ---------------------------------------------------------------------------
+// Les concurrents et l'écart de contenu (étape 5)
+// ---------------------------------------------------------------------------
+
+/**
+ * Un concurrent nommé : la même mécanique qu'une source — flux découvert
+ * depuis la page d'accueil, sinon recherche restreinte à son domaine —
+ * avec `kind = competitor` et sans sujet : on suit ce qu'il publie, quel
+ * qu'en soit le thème. Une collecte démarre tout de suite (déclencheur
+ * « visite », sans délai), ou dès la fin de celle en cours : l'écart
+ * n'attend pas le lendemain.
+ */
+export async function createCompetitorAction(formData: FormData) {
+  const t = await getTranslations("watch.actions");
+  const user = await requireUser();
+  let destination = `${COMPETITORS_PAGE}#concurrents`;
+  try {
+    const siteUrl = String(formData.get("siteUrl") ?? "").trim();
+    let feedUrl = String(formData.get("feedUrl") ?? "").trim() || null;
+    let discovered = false;
+    if (!feedUrl && siteUrl) {
+      const found = await discoverFeed(siteUrl.match(/^https?:\/\//i) ? siteUrl : `https://${siteUrl}`, 8_000);
+      if (found) {
+        feedUrl = found.feedUrl;
+        discovered = true;
+      }
+    }
+    const source = await createWatchSource(user, {
+      kind: "competitor",
+      label: String(formData.get("label") ?? ""),
+      siteUrl,
+      feedUrl,
+      country: String(formData.get("country") ?? "") || null,
+      lang: String(formData.get("lang") ?? "") || null,
+      topicId: null,
+    });
+    const info = discovered
+      ? t("concurrent_ajoute_flux_trouve_la_collecte_c3e7", { feedUrl: source.feedUrl ?? "" })
+      : source.feedUrl
+        ? t("concurrent_ajoute_avec_son_flux_la_5c12")
+        : t("concurrent_ajoute_sans_flux_il_sera_1d2c");
+    destination = withError(destination, info, "info");
+    // Tout de suite, ou dès la fin de la collecte en cours : le concurrent n'attend pas le lendemain.
+    if (user.organizationId) await scheduleWatchRefresh(user.organizationId, "visit", { queue: true }).catch(() => undefined);
+  } catch (error) {
+    destination = withError(destination, await errorMessage(error));
+  }
+  revalidatePath(COMPETITORS_PAGE);
+  redirect(destination);
+}
+
+/** Un geste sur un concurrent (désactiver, réactiver, réessayer) : revient sur l'écran des concurrents, l'information ou l'erreur en paramètre. */
+async function competitorGesture(work: (user: Awaited<ReturnType<typeof requireUser>>) => Promise<void>, info?: (t: Awaited<ReturnType<typeof getTranslations<"watch.actions">>>) => string) {
+  const user = await requireUser();
+  let destination = `${COMPETITORS_PAGE}#concurrents`;
+  try {
+    await work(user);
+    if (info) destination = withError(destination, info(await getTranslations("watch.actions")), "info");
+  } catch (error) {
+    destination = withError(destination, await errorMessage(error));
+  }
+  revalidatePath(COMPETITORS_PAGE);
+  redirect(destination);
+}
+
+export async function archiveCompetitorAction(id: string) {
+  await competitorGesture((user) => archiveWatchSource(user, id));
+}
+
+export async function restoreCompetitorAction(id: string) {
+  await competitorGesture((user) => restoreWatchSource(user, id));
+}
+
+/** « Réessayer » ou « Réveiller » : le concurrent redevient dû, la prochaine collecte le relit. */
+export async function retryCompetitorAction(id: string) {
+  await competitorGesture(
+    (user) => retryWatchSource(user, id),
+    (t) => t("le_concurrent_sera_relu_a_la_e0b1")
+  );
+}
+
+/**
+ * Depuis l'écart : « écrire sur ce sujet », avec la cible choisie — le
+ * composer reçoit le sujet (et, de lui, notre matière et le brief), jamais
+ * un article de concurrent.
+ */
+export async function writeFromGapAction(formData: FormData) {
+  const t = await getTranslations("watch.actions");
+  await requireUser();
+  const targetId = String(formData.get("targetId") ?? "").trim();
+  const subject = String(formData.get("subject") ?? "").trim();
+  if (!targetId || !subject) {
+    revalidatePath(COMPETITORS_PAGE);
+    redirect(withError(`${COMPETITORS_PAGE}#ecart`, t("choisis_d_abord_la_cible_a_9f68")));
+  }
+  redirect(`/newsletters/new?cible=${encodeURIComponent(targetId)}&sujet=${encodeURIComponent(subject)}`);
 }

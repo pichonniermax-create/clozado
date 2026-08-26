@@ -12,6 +12,8 @@ import {
   insertWatchItems,
   isSourceDue,
   isTopicSearchDue,
+  listCompetitorSubjects,
+  listPendingClassification,
   listPendingSummaries,
   markTopicSearched,
   listWatchSources,
@@ -44,21 +46,30 @@ import { createFormats } from "@/lib/format";
  * bornée par un budget, et sûre par construction sur le droit d'auteur —
  * le texte d'un article vit le temps du résumé et du contrôle des douze
  * mots, puis est oublié ; `saveSummaryResult` ne reçoit que le résumé.
+ * L'article d'un CONCURRENT, lui, n'est jamais lu : son titre public est
+ * classé (sujet, angle) en un appel groupé — c'est tout ce que l'écart de
+ * contenu demande, et il n'y a rien à reproduire.
  *
  * Ordre dans le budget : les indicateurs (quelques secondes), les flux
- * (parallèles, 10 s chacun), puis les recherches web (6 à 10 s : deux par
- * collecte, les sujets jamais cherchés ou cherchés depuis le plus
- * longtemps d'abord — `watch_topics.last_searched_at`) et les résumés
- * (8 à 12 s chacun) tant qu'il reste du temps. Ce qui ne tient pas attend
- * la collecte suivante — jamais une fonction coupée au milieu d'une
- * écriture : chaque étape écrit son résultat dès qu'elle l'a.
+ * (parallèles, 10 s chacun — concurrents compris), puis les recherches
+ * web (6 à 10 s : trois par collecte, les sujets et les concurrents sans
+ * flux jamais cherchés ou cherchés depuis le plus longtemps d'abord —
+ * `watch_topics.last_searched_at`, `watch_sources.last_fetched_at`), la
+ * classification des titres des concurrents (un appel par lot de
+ * quarante, quelques secondes) et les résumés (8 à 12 s chacun) tant
+ * qu'il reste du temps. Ce qui ne tient pas attend la collecte suivante —
+ * jamais une fonction coupée au milieu d'une écriture : chaque étape
+ * écrit son résultat dès qu'elle l'a.
  */
 export const WATCH_RUN_BUDGET_MS = 120_000;
 const SOURCE_TIMEOUT_MS = 10_000;
 const FEED_CONCURRENCY = 4;
 const MAX_ENTRIES_PER_FEED = 30;
-const MAX_SEARCHES_PER_RUN = 2;
+const MAX_SEARCHES_PER_RUN = 3;
 const SEARCH_RESERVE_MS = 45_000;
+const CLASSIFICATION_BATCH = 40;
+const MAX_CLASSIFICATION_BATCHES = 3;
+const CLASSIFICATION_RESERVE_MS = 25_000;
 const SUMMARY_RESERVE_MS = 15_000;
 const MAX_SUMMARIES_PER_RUN = 12;
 const INDICATOR_MAX_AGE_HOURS = 20;
@@ -68,6 +79,8 @@ export type WatchRunReport = {
   sourcesFailed: number;
   itemsNew: number;
   itemsSummarized: number;
+  /** Les articles de concurrents classés depuis leurs titres pendant cette collecte. */
+  itemsClassified: number;
   searches: number;
   indicatorsRead: number;
   error: string | null;
@@ -179,13 +192,15 @@ async function inPool<T, R>(items: T[], n: number, work: (item: T) => Promise<R>
 // Recherches web — bornées, en rotation
 // ---------------------------------------------------------------------------
 
-type SearchJob = { topic: WatchTopic; lang: "fr" | "en"; source: WatchSource | null; since: Date | null };
+/** Un sujet à chercher (avec, pour une source sans flux, le domaine qui restreint) — ou un CONCURRENT sans flux, cherché sur son domaine sans sujet : ce qu'il publie, quel qu'en soit le thème. */
+type SearchJob = { topic: WatchTopic | null; lang: "fr" | "en"; source: WatchSource | null; since: Date | null };
 
 /**
- * Les recherches DUES (sujet × langue pas cherché depuis vingt heures, plus
- * les sources sans flux rattachées à un sujet et dues selon leur santé),
- * les plus anciennes d'abord — jamais cherché avant tout. Une date lisible
- * en base plutôt qu'une rotation par compteur (migration 0014).
+ * Les recherches DUES (sujet × langue pas cherché depuis vingt heures, les
+ * sources sans flux rattachées à un sujet et les concurrents sans flux dus
+ * selon leur santé), les plus anciennes d'abord — jamais cherché avant
+ * tout. Une date lisible en base plutôt qu'une rotation par compteur
+ * (migration 0014).
  */
 function searchJobs(topics: WatchTopic[], sources: WatchSource[]): SearchJob[] {
   const jobs: SearchJob[] = [];
@@ -196,9 +211,15 @@ function searchJobs(topics: WatchTopic[], sources: WatchSource[]): SearchJob[] {
     }
   }
   for (const source of sources) {
-    if (source.feedUrl || !source.topicId || source.kind !== "source" || !isSourceDue(source)) continue;
+    if (source.feedUrl || !isSourceDue(source)) continue;
+    const lang = (source.lang === "en" ? "en" : "fr") as "fr" | "en";
+    if (source.kind === "competitor") {
+      jobs.push({ topic: null, lang, source, since: source.lastFetchedAt });
+      continue;
+    }
+    if (!source.topicId) continue;
     const topic = topics.find((t) => t.id === source.topicId);
-    if (topic) jobs.push({ topic, lang: (source.lang === "en" ? "en" : "fr") as "fr" | "en", source, since: source.lastFetchedAt });
+    if (topic) jobs.push({ topic, lang, source, since: source.lastFetchedAt });
   }
   return jobs.sort((a, b) => (a.since?.getTime() ?? 0) - (b.since?.getTime() ?? 0));
 }
@@ -227,10 +248,18 @@ function datedQuery(term: string, lang: "fr" | "en", now = new Date()): string {
   return `${term} ${months[now.getMonth()]} ${now.getFullYear()}`;
 }
 
+/** Le terme d'une recherche : celui du jour pour un sujet (un sujet à plusieurs termes les parcourt un par jour — lisible, sans état) ; pour un concurrent sans sujet, des mots génériques dans sa langue (`watch.search.competitor_terms`) — ce qu'il publie, quel qu'en soit le thème. */
+async function searchTerm(job: SearchJob): Promise<string> {
+  if (job.topic) {
+    const terms = job.topic.searchTerms.length ? job.topic.searchTerms : [job.topic.label];
+    return terms[Math.floor(Date.now() / 86_400_000) % terms.length];
+  }
+  const t = await translatorFor(job.lang, "watch");
+  return t("search.competitor_terms");
+}
+
 async function runSearch(provider: AIProvider, organizationId: string, job: SearchJob): Promise<{ itemsNew: number; searches: number }> {
-  const terms = job.topic.searchTerms.length ? job.topic.searchTerms : [job.topic.label];
-  // Le terme du jour : un sujet à plusieurs termes les parcourt un par jour — lisible, sans état.
-  const query = datedQuery(terms[Math.floor(Date.now() / 86_400_000) % terms.length], job.lang);
+  const query = datedQuery(await searchTerm(job), job.lang);
   const domain = job.source ? hostOf(job.source.siteUrl) : null;
   const result = await provider.searchArticles({
     query,
@@ -249,7 +278,7 @@ async function runSearch(provider: AIProvider, organizationId: string, job: Sear
       country: job.source?.country ?? article.country ?? countryFromHost(host),
       lang: article.lang ?? job.lang,
       sourceId: job.source?.id ?? null,
-      topicId: job.topic.id,
+      topicId: job.topic?.id ?? null,
       discoveredVia: "search",
     };
   });
@@ -317,6 +346,60 @@ async function summarizeOne(provider: AIProvider, item: Awaited<ReturnType<typeo
 }
 
 // ---------------------------------------------------------------------------
+// Concurrents — les titres classés, jamais la page
+// ---------------------------------------------------------------------------
+
+/**
+ * Les articles de concurrents encore « en attente » sont classés par lots
+ * depuis leurs TITRES : un appel par lot de quarante, le vocabulaire des
+ * sujets partagé avec ce que l'organisation suit et ce qui a déjà été
+ * donné (pour que l'écart groupe ce qui va ensemble). `summary_state =
+ * done` marque « classé » — il n'y a pas de résumé, et il n'y en aura
+ * jamais : la page n'est pas lue. Un titre qui n'annonce pas un article
+ * (accueil, rubrique) est classé « failed » et ne revient pas. Rend le
+ * nombre d'articles classés.
+ */
+async function classifyCompetitorTitles(
+  provider: AIProvider,
+  organizationId: string,
+  topics: WatchTopic[],
+  lang: "fr" | "en",
+  remaining: () => number
+): Promise<number> {
+  let classified = 0;
+  let known: string[] | null = null;
+  for (let batch = 0; batch < MAX_CLASSIFICATION_BATCHES; batch++) {
+    if (remaining() < CLASSIFICATION_RESERVE_MS) break;
+    const pending = await listPendingClassification(organizationId, CLASSIFICATION_BATCH);
+    if (pending.length === 0) break;
+    known ??= await listCompetitorSubjects(organizationId);
+    const result = await provider.classifyTitles({ lang, topics: topics.map((t) => t.label), knownSubjects: known, items: pending });
+    const byId = new Map(result.items.map((item) => [item.id, item]));
+    for (const item of pending) {
+      const entry = byId.get(item.id);
+      if (!entry) continue; // pas rendu : reste en attente, retenté à la collecte suivante
+      if (!entry.subject) {
+        await saveSummaryResult(item.id, { summaryState: "failed", summary: null, summaryModel: result.model, themes: [], angle: null });
+        continue;
+      }
+      await saveSummaryResult(item.id, {
+        summaryState: "done",
+        summary: null,
+        summaryModel: result.model,
+        themes: [entry.subject],
+        angle: entry.angle,
+        topicId: topicIdForThemes([entry.subject], topics),
+      });
+      if (!known.includes(entry.subject)) known.push(entry.subject);
+      classified++;
+    }
+    // Un lot qui n'a rien rendu d'utilisable : inutile d'insister dans cette collecte.
+    if (byId.size === 0) break;
+  }
+  return classified;
+}
+
+// ---------------------------------------------------------------------------
 // La collecte elle-même
 // ---------------------------------------------------------------------------
 
@@ -324,10 +407,11 @@ export async function executeWatchRun(run: WatchRun): Promise<WatchRunReport> {
   const started = Date.now();
   const deadline = started + WATCH_RUN_BUDGET_MS;
   const remaining = () => deadline - Date.now();
-  const report: WatchRunReport = { sourcesOk: 0, sourcesFailed: 0, itemsNew: 0, itemsSummarized: 0, searches: 0, indicatorsRead: 0, error: null };
+  const report: WatchRunReport = { sourcesOk: 0, sourcesFailed: 0, itemsNew: 0, itemsSummarized: 0, itemsClassified: 0, searches: 0, indicatorsRead: 0, error: null };
   const organizationId = run.organizationId;
-  // Ce qui s'écrit pendant la collecte (cause d'un échec, angle d'un résumé manqué) l'est dans la langue de l'organisation.
-  const tw = await translatorFor(await localeOfOrganization(organizationId), "watch");
+  // Ce qui s'écrit pendant la collecte (cause d'un échec, angle d'un résumé manqué, sujet d'un concurrent) l'est dans la langue de l'organisation.
+  const locale = await localeOfOrganization(organizationId);
+  const tw = await translatorFor(locale, "watch");
 
   try {
     report.indicatorsRead = await refreshOrganizationIndicators(organizationId).catch(() => 0);
@@ -346,7 +430,7 @@ export async function executeWatchRun(run: WatchRun): Promise<WatchRunReport> {
     try {
       provider = getAIProvider();
     } catch (error) {
-      if (error instanceof AINotConfiguredError) report.error = "Recherches et résumés impossibles : le fournisseur IA n'est pas configuré.";
+      if (error instanceof AINotConfiguredError) report.error = tw("run.fournisseur_ia_non_configure");
       else throw error;
     }
 
@@ -359,11 +443,18 @@ export async function executeWatchRun(run: WatchRun): Promise<WatchRunReport> {
           report.itemsNew += r.itemsNew;
           report.searches += r.searches;
           if (job.source) await recordSourceSuccess(job.source.id);
-          else await markTopicSearched(job.topic.id);
+          else if (job.topic) await markTopicSearched(job.topic.id);
         } catch (error) {
           if (job.source) await recordSourceFailure(job.source, readableError(error, tw));
-          else report.error = `Recherche « ${job.topic.label} » : ${readableError(error, tw)}`;
+          else if (job.topic) report.error = tw("run.recherche", { label: job.topic.label, error: readableError(error, tw) });
         }
+      }
+
+      try {
+        report.itemsClassified = await classifyCompetitorTitles(provider, organizationId, topics, locale, remaining);
+      } catch (error) {
+        // Les articles restent « en attente » et seront classés à la collecte suivante ; la cause est lisible dans le journal.
+        report.error = tw("run.classification", { error: readableError(error, tw) });
       }
 
       const pending = await listPendingSummaries(organizationId, MAX_SUMMARIES_PER_RUN);

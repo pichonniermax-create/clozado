@@ -8,6 +8,7 @@ import {
   ListTodo,
   Mail,
   Newspaper,
+  Radar,
   Route,
   Sigma,
   Target,
@@ -76,6 +77,7 @@ export const NAVIGATION: NavSection[] = [
     entries: [
       { href: "/cibles", key: "cibles", icon: UsersRound, requiresOrganization: true },
       { href: "/veille", key: "veille", icon: Newspaper, requiresOrganization: true },
+      { href: "/concurrents", key: "concurrents", icon: Radar, requiresOrganization: true },
       { href: "/chiffres", key: "chiffres", icon: Sigma, requiresOrganization: true },
       { href: "/newsletters", key: "newsletters", icon: Mail },
     ],

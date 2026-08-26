@@ -139,7 +139,7 @@
     "la_ligne_grise_sous_l_objet_ec2d": "The grey line under the subject, in the inbox",
     "la_redaction_a_echoue": "Writing failed.",
     "le_de_la_cible": "<link>{n}</link> — on {formatDate}, <span>{n2}%</span> of the audience{n3}",
-    "matiere_article_articles_mis_de_cote_0c6a": "Material: {count} {count, plural, one {article} other {articles}} set aside — every source used will be cited with its link",
+    "matiere_article_articles_mis_de_cote_0c6a": "Material: {count} {count, plural, one {article} other {articles}} — every source used will be cited with its link",
     "modifier": "Edit: {blockEditorTitle}",
     "objet": "Subject",
     "ou": "or",
