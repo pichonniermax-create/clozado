@@ -1261,6 +1261,14 @@ sans flux et par jour (0,01 $ chacune). Rien pour les flux.
 
 ### Ce que cette étape ne fait pas
 
+- **Limite connue — la voix n'est pas garantie.** Le tutoiement (ou le
+  vouvoiement, le registre) demandé par la facette « ton et voix » est une
+  consigne au modèle, appliquée « à chaque phrase » dans le prompt, mais
+  aucun contrôle déterministe ne peut la vérifier sur un texte libre : sur
+  les trois générations de preuve, le vouvoiement est resté deux fois
+  malgré « tutoiement ». Constaté, pas corrigé dans ce chantier ; à
+  reprendre si ça gêne (la facette elle-même — « tu », des exemples — ou
+  un contrôle sur les pronoms).
 - Le lien de l'appel à l'action n'est pas vérifié (c'est le lien de
   l'organisation, donné dans le brief).
 - Aucun export HTML nouveau : le rendu existant (l'éditeur,
@@ -1352,7 +1360,7 @@ bloc système est en cache par cible).
   calculé et actionnable (« écrire sur ce sujet » → le composer avec le
   brief et notre matière), aucune migration — prouvée à blanc (51
   contrôles, une collecte réelle) et au navigateur (50 + 34 contrôles). STOP.
-- **Étape 6 — le composer branché** : le prompt depuis les six facettes et
+- **Étape 6 — le composer branché** : `cb9b128`. Le prompt depuis les six facettes et
   la matière rattachée, le bloc Sources normalisé par la liste blanche,
   la revue étendue (chiffres, formulations, sources, liens) et en continu
   dans l'éditeur, les sujets déclarés par la génération, aucune migration
