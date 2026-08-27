@@ -1,5 +1,5 @@
 {
-  "id": "deb9d701-4448-4da0-a2ad-8241c40dabb1",
+  "id": "129eeb2f-5901-4476-be40-d3077acc2b81",
   "prevId": "2cf32679-3eae-44ec-a8a5-defe3252a639",
   "version": "7",
   "dialect": "postgresql",
@@ -2324,7 +2324,7 @@
         },
         "contacts_auto_send_stop_reason_check": {
           "name": "contacts_auto_send_stop_reason_check",
-          "value": "\"contacts\".\"auto_send_stop_reason\" IS NULL OR \"contacts\".\"auto_send_stop_reason\" IN ('replied', 'appointment', 'unsubscribed', 'manual')"
+          "value": "\"contacts\".\"auto_send_stop_reason\" IS NULL OR \"contacts\".\"auto_send_stop_reason\" IN ('replied', 'appointment', 'manual')"
         }
       },
       "isRLSEnabled": false

@@ -7,7 +7,8 @@
 --                          par pays vit en données) ; l'adresse d'ingestion (jeton secret, option corps) ;
 --                          les envois automatiques (interrupteur, période du plafond, heures de bureau).
 --   users                : l'adresse de réponse de la personne (surcharge du Reply-To), son lien de rendez-vous.
---   contacts             : l'arrêt définitif des envois automatiques (date, raison).
+--   contacts             : l'arrêt des envois automatiques (date, raison : replied, appointment, manual —
+--                          réarmable par une personne) ; la désinscription, elle, vit dans email_suppressions.
 --   newsletters          : send_mode (declared : marquée à la main ; sent : envoyée par le produit),
 --                          rempli à 'declared' pour les newsletters déjà marquées AVANT la contrainte.
 --   activities           : direction (inbound : le contact a écrit ; outbound : on lui a écrit).
@@ -16,7 +17,9 @@
 --   email_messages       : un email par destinataire (newsletter, test, automatique, manuel), l'id uuid v4
 --                          = clé d'idempotence et jeton de désinscription.
 --   email_events         : la chronologie brute des webhooks (sans IP ni navigateur), rejouable par unicité.
---   email_suppressions   : les adresses auxquelles on n'écrit plus, PAR organisation.
+--   email_suppressions   : les adresses auxquelles on n'écrit plus, PAR organisation ; une désinscription
+--                          est IRRÉVERSIBLE : le déclencheur email_suppressions_keep_unsubscribed refuse le
+--                          DELETE et toute modification d'une ligne 'unsubscribed' (hors drizzle-kit, posé ici).
 --   inbound_emails       : les emails ingérés (verdict d'authentification, proposition, sort).
 --   inbound_rejections   : les refus sans organisation (adresse inconnue), en compteurs.
 --   appointments         : les rendez-vous (Calendly ou saisis) ; calendar_connections : la connexion par personne.
@@ -380,9 +383,29 @@ DO $$ BEGIN
     ALTER TABLE "contacts" ADD CONSTRAINT "contacts_auto_send_stop_pair" CHECK (("contacts"."auto_send_stopped_at" IS NULL) = ("contacts"."auto_send_stop_reason" IS NULL));
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'contacts_auto_send_stop_reason_check') THEN
-    ALTER TABLE "contacts" ADD CONSTRAINT "contacts_auto_send_stop_reason_check" CHECK ("contacts"."auto_send_stop_reason" IS NULL OR "contacts"."auto_send_stop_reason" IN ('replied', 'appointment', 'unsubscribed', 'manual'));
+    ALTER TABLE "contacts" ADD CONSTRAINT "contacts_auto_send_stop_reason_check" CHECK ("contacts"."auto_send_stop_reason" IS NULL OR "contacts"."auto_send_stop_reason" IN ('replied', 'appointment', 'manual'));
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'activities_direction_check') THEN
     ALTER TABLE "activities" ADD CONSTRAINT "activities_direction_check" CHECK ("activities"."direction" IS NULL OR "activities"."direction" IN ('inbound', 'outbound'));
   END IF;
 END $$;
+--> statement-breakpoint
+-- ---------------------------------------------------------------------------------------------------------
+-- La désinscription est irréversible — garanti par la base, pas seulement par l'interface (obligation légale).
+-- Un DELETE ou une modification d'une ligne 'unsubscribed' est refusé tant que l'organisation existe ; la
+-- suppression en cascade de l'organisation entière (la ligne parente est déjà partie quand le déclencheur
+-- s'exécute) reste possible. CREATE OR REPLACE : rejouable.
+-- ---------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION email_suppressions_keep_unsubscribed() RETURNS trigger AS $$
+BEGIN
+  IF OLD.reason = 'unsubscribed' AND EXISTS (SELECT 1 FROM organizations o WHERE o.id = OLD.organization_id) THEN
+    RAISE EXCEPTION 'email_suppressions: une désinscription ne se retire ni ne se modifie jamais (organisation %, adresse %)', OLD.organization_id, OLD.email
+      USING ERRCODE = 'check_violation';
+  END IF;
+  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+  RETURN NEW;
+END $$ LANGUAGE plpgsql;
+--> statement-breakpoint
+DROP TRIGGER IF EXISTS email_suppressions_keep_unsubscribed ON "email_suppressions";
+--> statement-breakpoint
+CREATE TRIGGER email_suppressions_keep_unsubscribed BEFORE DELETE OR UPDATE ON "email_suppressions" FOR EACH ROW EXECUTE FUNCTION email_suppressions_keep_unsubscribed();

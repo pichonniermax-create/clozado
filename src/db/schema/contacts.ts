@@ -84,9 +84,12 @@ export const contacts = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     /**
      * L'arrêt des envois automatiques (chantier engagement) : posé dès que
-     * le contact répond, prend rendez-vous ou se désinscrit — définitif,
-     * sauf réarmement explicite et journalisé par une personne. La raison
-     * (`replied`, `appointment`, `unsubscribed`, `manual`) est affichée.
+     * le contact répond ou prend rendez-vous — réarmable explicitement par
+     * une personne, journalisé. La raison (`replied`, `appointment`,
+     * `manual`) est affichée. La DÉSINSCRIPTION n'est PAS ici : elle vit
+     * dans `email_suppressions`, par adresse, sans aucun chemin de retour
+     * (obligation légale — un déclencheur Postgres interdit même de
+     * supprimer la ligne, migration 0016).
      */
     autoSendStoppedAt: timestamp("auto_send_stopped_at", { withTimezone: true }),
     autoSendStopReason: text("auto_send_stop_reason"),
@@ -132,7 +135,7 @@ export const contacts = pgTable(
     ),
     check(
       "contacts_auto_send_stop_reason_check",
-      sql`${table.autoSendStopReason} IS NULL OR ${table.autoSendStopReason} IN ('replied', 'appointment', 'unsubscribed', 'manual')`
+      sql`${table.autoSendStopReason} IS NULL OR ${table.autoSendStopReason} IN ('replied', 'appointment', 'manual')`
     ),
     // Jamais deux fiches locales pour le même enregistrement distant.
     uniqueIndex("contacts_org_external_unique")

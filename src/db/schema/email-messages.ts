@@ -210,6 +210,13 @@ export const emailEvents = pgTable(
  * par les webhooks (rejet définitif, plainte) et à la main. La sélection
  * des destinataires et les règles l'excluent ; la fiche contact le dit.
  * Un désinscrit n'est plus jamais suivi ni relancé.
+ *
+ * IRRÉVERSIBLE : une désinscription (`reason = 'unsubscribed'`) ne se
+ * retire jamais — ni bouton, ni action, ni geste d'administrateur ; la
+ * base elle-même refuse le DELETE et la modification de la ligne
+ * (déclencheur `email_suppressions_keep_unsubscribed`, migration 0016,
+ * hors du périmètre de drizzle-kit). Seule la suppression de
+ * l'organisation entière l'emporte.
  */
 export const emailSuppressions = pgTable(
   "email_suppressions",
