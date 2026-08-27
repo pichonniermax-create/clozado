@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, integer, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 /**
  * Un "organizations" = un espace client isolé (un courtier, une PME...).
@@ -96,6 +96,38 @@ export const organizations = pgTable("organizations", {
   currency: text("currency").notNull().default("EUR"),
   /** Le fuseau de l'organisation (« Europe/Paris », « Europe/London », « America/Montreal ») — remplace le fuseau unique du produit. */
   timezone: text("timezone").notNull().default("Europe/Paris"),
+  // --- Engagement (chantier du 2026-08-27, migration 0016) : le domaine d'expédition, tel que le fournisseur le voit ---
+  /** L'identifiant du domaine chez le fournisseur d'envoi (Resend) ; NULL = jamais déclaré. */
+  emailDomainProviderId: text("email_domain_provider_id"),
+  /** Le statut global rendu par le fournisseur (« not_started », « pending », « verified », « failed », « temporary_failure ») — texte, jamais une liste figée. */
+  emailDomainStatus: text("email_domain_status"),
+  /** Les enregistrements DNS TELS QUE RENVOYÉS par le fournisseur, avec leur statut, plus notre ligne DMARC — jamais recomposés par le code. */
+  emailDomainRecords: jsonb("email_domain_records"),
+  emailDomainCheckedAt: timestamp("email_domain_checked_at", { withTimezone: true }),
+  /** La dernière erreur de vérification (réseau, fournisseur), lisible — jamais un échec muet. */
+  emailDomainCheckError: text("email_domain_check_error"),
+  // --- Engagement : le pied de page conforme — les FAITS de l'organisation (le profil par pays vit en données, src/lib/email/footer-profiles.ts) ---
+  /** Le pays de l'organisation, ISO 3166-1 alpha-2 (« FR », « CH », « CA ») ; NULL = le profil européen par défaut. */
+  country: text("country"),
+  /** L'adresse postale, telle qu'elle figure au pied des emails. */
+  postalAddress: text("postal_address"),
+  /** Les mentions légales libres (SIREN, ORIAS, RCS…) — on ne connaît pas toutes les professions. */
+  legalMention: text("legal_mention"),
+  /** La politique de confidentialité de l'organisation, liée au pied de page quand elle existe. */
+  privacyPolicyUrl: text("privacy_policy_url"),
+  // --- Engagement : l'ingestion d'emails ---
+  /** La partie locale secrète de l'adresse d'ingestion (« a7k2…@in.<domaine> »), 20 caractères aléatoires ; NULL = pas encore générée. */
+  ingestToken: text("ingest_token"),
+  /** Conserver le corps des emails ingérés (option RGPD) ; faux = seuls l'objet, la date et la contrepartie sont gardés. */
+  storeInboundBodies: boolean("store_inbound_bodies").notNull().default(false),
+  // --- Engagement : les envois automatiques (règles) ---
+  /** L'interrupteur général : faux = aucune règle n'envoie d'email, les tâches et notifications continuent. */
+  autoSendEnabled: boolean("auto_send_enabled").notNull().default(false),
+  /** Au plus un email automatique par contact par période, toutes règles confondues. */
+  autoSendPeriodDays: integer("auto_send_period_days").notNull().default(14),
+  /** La fenêtre d'envoi automatique : heures de bureau (dans le fuseau de l'organisation), jours ouvrés du lundi au vendredi. */
+  officeHoursStart: integer("office_hours_start").notNull().default(9),
+  officeHoursEnd: integer("office_hours_end").notNull().default(18),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
@@ -103,6 +135,15 @@ export const organizations = pgTable("organizations", {
   uniqueIndex("organizations_custom_domain_unique").on(table.customDomain).where(sql`${table.customDomain} IS NOT NULL`),
   // Trois lettres majuscules : la forme d'un code ISO 4217, pas la liste (elle change).
   check("organizations_currency_check", sql`${table.currency} ~ '^[A-Z]{3}$'`),
+  // Deux lettres majuscules : la forme d'un code ISO 3166-1, pas la liste.
+  check("organizations_country_check", sql`${table.country} IS NULL OR ${table.country} ~ '^[A-Z]{2}$'`),
+  // Un jeton d'ingestion ne désigne qu'une organisation.
+  uniqueIndex("organizations_ingest_token_unique").on(table.ingestToken).where(sql`${table.ingestToken} IS NOT NULL`),
+  check("organizations_auto_send_period_check", sql`${table.autoSendPeriodDays} >= 1 AND ${table.autoSendPeriodDays} <= 365`),
+  check(
+    "organizations_office_hours_check",
+    sql`${table.officeHoursStart} >= 0 AND ${table.officeHoursEnd} <= 24 AND ${table.officeHoursStart} < ${table.officeHoursEnd}`
+  ),
 ]);
 
 export type Organization = typeof organizations.$inferSelect;

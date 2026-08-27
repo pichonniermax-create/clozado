@@ -82,6 +82,14 @@ export const contacts = pgTable(
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
     /** Pierre tombale : posé à la suppression, jamais retiré. */
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    /**
+     * L'arrêt des envois automatiques (chantier engagement) : posé dès que
+     * le contact répond, prend rendez-vous ou se désinscrit — définitif,
+     * sauf réarmement explicite et journalisé par une personne. La raison
+     * (`replied`, `appointment`, `unsubscribed`, `manual`) est affichée.
+     */
+    autoSendStoppedAt: timestamp("auto_send_stopped_at", { withTimezone: true }),
+    autoSendStopReason: text("auto_send_stop_reason"),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -116,6 +124,15 @@ export const contacts = pgTable(
       sql`${table.kind} = 'person'
         OR (${table.firstName} IS NULL AND ${table.lastName} IS NULL AND ${table.birthDate} IS NULL
             AND ${table.companyId} IS NULL AND ${table.companyName} IS NULL AND ${table.jobTitle} IS NULL)`
+    ),
+    // L'arrêt des envois automatiques porte toujours sa raison, et une raison connue.
+    check(
+      "contacts_auto_send_stop_pair",
+      sql`(${table.autoSendStoppedAt} IS NULL) = (${table.autoSendStopReason} IS NULL)`
+    ),
+    check(
+      "contacts_auto_send_stop_reason_check",
+      sql`${table.autoSendStopReason} IS NULL OR ${table.autoSendStopReason} IN ('replied', 'appointment', 'unsubscribed', 'manual')`
     ),
     // Jamais deux fiches locales pour le même enregistrement distant.
     uniqueIndex("contacts_org_external_unique")

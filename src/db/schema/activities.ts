@@ -35,6 +35,8 @@ export const activities = pgTable(
     content: text("content"),
     /** Date de l'interaction elle-même — saisissable a posteriori, distincte de created_at. */
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+    /** Le sens d'un email ingéré (chantier engagement) : `inbound` (le contact a écrit — il a répondu), `outbound` (on lui a écrit) ; NULL pour une saisie manuelle. */
+    direction: text("direction"),
     contactId: uuid("contact_id"),
     dealId: uuid("deal_id"),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
@@ -42,6 +44,7 @@ export const activities = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    check("activities_direction_check", sql`${table.direction} IS NULL OR ${table.direction} IN ('inbound', 'outbound')`),
     // Une interaction sans contact NI affaire n'existe pas.
     check(
       "activities_has_subject",

@@ -162,189 +162,591 @@ irréversibles à trancher sur la seule partie reçue (Partie 1, points 1 et
 
 ---
 
-## 1. Le cahier tel qu'il est arrivé — tronqué
+## 1. Le cahier — complet depuis le 2026-08-27, reçu en deux fois
 
-Reçu : le contexte (premier client pilote payant, ses apporteurs
-d'affaires), le protocole d'ambiguïté, la définition de STOP, le modèle
-d'envoi (un seul compte Resend mutualisé, chaque organisation sous sa
-propre identité), la Partie 1 point 1 (envoi réel : domaine vérifié DKIM /
-SPF / DMARC, expéditeur par organisation, désinscription fonctionnelle,
-pied de page conforme composé depuis la configuration du marché — rien ne
-part sans) et le point 2 (parcours guidé du domaine : enregistrements DNS
-avec bouton copier, instructions par hébergeur, vérification automatique
-qui dit ce qui manque ; repli immédiat sur un sous-domaine mutualisé avec
-le nom d'expéditeur du client, bascule sans rien casser ; Reply-To
-toujours vers l'adresse réelle de l'utilisateur) — **jusqu'au tiret qui
-suit ce dernier point, puis plus rien**.
-
-Manquent : la fin du point 2, le point 3 et les suivants (le suivi
-d'engagement : ouverture, clic, ce qu'on en montre et où), la **Partie 2**
-(ingestion d'emails — c'est là que se décide le périmètre OAuth), la
-**Partie 3** (règles de relance), le plan d'étapes et les STOP. Rien
-n'est conçu pour ces parties : à recevoir d'abord.
+La première réception s'arrêtait au milieu du point 2 de la Partie 1 ;
+la seconde a apporté la fin du point 2, les points 3 (suivi par
+destinataire) et 4 (indicateurs dérivés par contact), la **Partie 2**
+(ingestion d'emails sans connexion de boîte, sécurité, parseur), la
+**Partie 3** (rendez-vous, moteur de règles, envoi automatique encadré),
+les contraintes, le hors périmètre, les critères d'acceptation, la
+méthode et l'ordre de travail (1. conception des parties 2 et 3 +
+migration 0016 + enregistrements DNS, STOP ; 2. Partie 1 ; 3. Partie 2 ;
+4. Partie 3 — à chaque STOP, la liste ordonnée des URL à ouvrir).
 
 ---
 
-## 2. Les décisions à trancher sur la partie reçue (Partie 1, points 1 et 2)
+## 2. Les décisions prises (réponses du 2026-08-27)
 
-Les irréversibles d'abord (schéma, dépendance externe, format de
-stockage) ; les réversibles sont notées avec la décision que je prendrai
-sauf avis contraire.
-
-### 2.1 Le sous-domaine mutualisé de la plateforme — dépendance externe, DNS à poser par toi
-
-- **Quel domaine ?** Le produit n'en connaît aucun (pas d'`APP_URL` ; les
-  commentaires citent `app.clozado.fr` et `clozado.app` en exemples).
-  Recommandation : un sous-domaine réservé au repli, du type
-  `mail.<domaine du produit>`, région **`eu-west-1`** (données et
-  Return-Path en Europe), enregistrements DNS posés par toi ; créé chez
-  Resend par l'API avec la clé existante (je te rends les enregistrements
-  à poser) ou par le tableau de bord. Son nom en variable d'environnement
-  (`EMAIL_SHARED_DOMAIN`), jamais dans le code.
-- **Le compte Resend** : quel plan (les quotas journalier et mensuel
-  bornent ce qu'un client pilote peut envoyer) ; le domaine du lien de
-  connexion est-il déjà vérifié (`EMAIL_FROM` réel, ou encore
-  `onboarding@resend.dev`) ; le suivi ouverture/clic à activer sur ce
-  sous-domaine (à confirmer avec le point 3 du cahier).
-- L'adresse d'expédition sur le sous-domaine (réversible) :
-  `<slug de l'organisation>@mail.…` — une adresse par organisation,
-  stable et unique (le slug l'est déjà), le nom d'expéditeur du client
-  devant. Je pars là-dessus.
-
-### 2.2 Le Reply-To — laquelle est « l'adresse réelle de l'utilisateur » ?
-
-Deux lectures : `sender_email` de l'ORGANISATION (déjà libellée « Adresse
-de réponse » à l'écran, une boîte partagée du type `contact@cabinet.fr`),
-ou l'adresse de la PERSONNE qui envoie (`users.email`, « sa messagerie
-habituelle »). Recommandation : **la personne qui clique « Envoyer »** ;
-`sender_email` devient alors l'adresse d'EXPÉDITION (le From une fois le
-domaine vérifié) et l'écran des réglages change de libellé. Si un cabinet
-veut ses réponses dans une boîte partagée, un réglage par organisation
-s'ajoutera le jour où un client le demande. Réversible, mais je te le
-demande parce que l'écran actuel dit autre chose.
-
-### 2.3 Le schéma — irréversible, projet de migration `0016` (à ton accord)
-
-Rien n'est renommé ni supprimé.
-
-- `organizations` : `email_domain_provider_id text` (l'id chez Resend),
-  `email_domain_status text` (le statut global rendu par l'API),
-  `email_domain_records jsonb` (les enregistrements TELS QUE RENVOYÉS, avec
-  leur statut, rafraîchis à chaque vérification — jamais recomposés par le
-  code), `email_domain_checked_at timestamptz` (la dernière vérification).
-  `email_domain_verified_at` reste LE fait qui compte pour l'expéditeur.
-  Plus les colonnes du pied de page (§2.4).
-- `newsletter_sends` (nouvelle) — l'ENVOI comme travail de fond : une
-  ligne par lancement (`newsletter_id`, `organization_id`, `started_at`,
-  `finished_at`, `error`, `queued`, `sent`, `failed` en compteurs,
-  `started_by`), index partiel unique « une seule ligne ouverte par
-  newsletter » (le verrou de `watch_runs`). `newsletters.sent_at` reste
-  le moment où l'audience est figée ; s'y ajoute `send_mode text`
-  (`declared` — le geste actuel, gardé pour un envoi fait ailleurs — ou
-  `sent`).
-- `email_messages` (nouvelle) — UNE ligne par destinataire et par envoi :
-  `id` (sert d'`Idempotency-Key`), `organization_id`, `newsletter_id`
-  (NULL-able : les emails de relance de la Partie 3 en auront besoin sans
-  newsletter), `contact_id`, `to_email` (l'adresse au moment de l'envoi —
-  une fiche change, un envoi non), `provider_message_id` (l'id Resend,
-  unique), `status` (`queued`, `sent`, `delivered`, `delayed`, `bounced`,
-  `complained`, `failed`), `sent_at`, `delivered_at`, `first_opened_at`,
-  `open_count`, `first_clicked_at`, `click_count`, `bounced_at`,
-  `failure_reason`. FK composites vers newsletter et contact (isolation par
-  construction, comme partout).
-- `email_events` (nouvelle) — le journal brut des webhooks : `message_id`,
-  `type`, `occurred_at`, `url` (pour un clic), `provider_event_id` (le
-  `svix-id`, unique : un webhook rejoué est ignoré), `payload jsonb`.
-  **Minimisation** : ni adresse IP ni navigateur (docs/module-relationnel.md
-  §C — rien sur une personne qui ne serve un usage décidé) ; recommandation
-  à valider, parce que Resend les fournit et que les retirer est un choix.
-- `email_suppressions` (nouvelle) — les adresses auxquelles on n'écrit plus,
-  PAR ORGANISATION : `(organization_id, email)` clé primaire, `reason`
-  (`unsubscribed`, `bounced`, `complained`), `source` (`link`, `webhook`,
-  `manual`), `message_id` (l'email d'où vient le geste, NULL-able),
-  `created_at`. Une adresse désinscrite du cabinet A reçoit toujours le
-  cabinet B : chaque organisation est un expéditeur distinct. La sélection
-  des destinataires exclut la table ; la fiche contact dit « désinscrit le… ».
-- Le jeton de désinscription (format de stockage) : recommandation
-  **l'`id` du message** (`/desinscription/<id>` — un uuid non devinable,
-  aucun secret, aucune table, et « désinscrit depuis quel email » gratuit),
-  plutôt qu'un jeton signé HMAC stateless (qui survivrait à la suppression
-  du message — inutile : un message ne se supprime pas).
-
-### 2.4 « Pied de page conforme composé depuis la configuration du marché » — elle n'existe pas
-
-Aucune donnée en base ne permet de composer un pied de page conforme
-aujourd'hui (§0.3). Qu'appelles-tu « configuration du marché » ? Deux
-hypothèses :
-
-- **(a) le marché = le pays** de l'organisation, rattaché aux réglages
-  régionaux : `organizations.country` (ISO 3166-1, non demandé jusqu'ici),
-  `postal_address text`, `legal_mention text` (SIREN, ORIAS, RCS — texte
-  libre : on ne connaît pas toutes les professions) ; le pied de page est
-  composé dans le code depuis un PROFIL PAR PAYS (des données, comme les
-  packs métier : France / UE — identification de l'expéditeur, lien de
-  désinscription, adresse postale ; Suisse — identification et
-  désinscription ; Canada — adresse postale et désinscription honorée sous
-  dix jours ; défaut — le profil européen), avec la phrase « Vous recevez
-  cet email parce que vous êtes en contact avec {organisation} » dans la
-  langue de l'organisation. Les profils sont à valider par toi : je ne
-  fais pas de droit, je les écris pour qu'on les relise.
-- **(b) autre chose que tu as en tête** (un objet « marché » plus large :
-  profession, autorité de tutelle, textes obligatoires…) — dis-le-moi
-  avant que je pose des colonnes.
-
-Dans les deux cas : `List-Unsubscribe` + `List-Unsubscribe-Post`
-(désinscription en un clic, exigée par Gmail et Yahoo pour les expéditeurs
-en volume) en en-tête, le lien dans le pied de page, une page publique
-`/desinscription/[id]` (hors du groupe `(app)`, comme `/partage/[token]`)
-qui confirme en un geste — dans la langue de l'organisation.
-
-### 2.5 Les dépendances npm — dépendance externe au sens du protocole
-
-`resend` (le SDK, qui inclut la vérification Svix des webhooks) ou **zéro
-dépendance** (`fetch` sur cinq points d'API, HMAC-SHA256 avec
-`node:crypto`). Recommandation : zéro dépendance — la surface utilisée est
-petite, le projet a toujours préféré ça (pas de `sharp`, pas de stockage
-externe), et le lien de connexion garde son transport SMTP existant. Le
-secret de signature des webhooks (`RESEND_WEBHOOK_SECRET`) est à créer par
-toi dans le tableau de bord Resend, vers `/api/webhooks/resend` — à
-confirmer avec le point 3 du cahier.
-
-### 2.6 `APP_URL` — réversible, je le ferai sauf avis contraire
-
-Une variable d'environnement pour les adresses absolues composées hors
-requête (envoi repris par le cron, webhook, lien de désinscription, logo) ;
-`requestOrigin()` reste la source quand il y a une requête. Sans elle, un
-envoi repris par le cron composerait des liens vers `localhost`.
-
-### 2.7 Le mécanisme d'envoi — réversible, mais il dicte le schéma ci-dessus
-
-« Envoyer » (action serveur) : (1) fige l'audience — l'existant, inchangé ;
-(2) crée les `email_messages` en `queued` pour les destinataires qui ont
-une adresse et ne sont pas supprimés (les autres restent dans
-`newsletter_recipients`, le compte reste juste, l'écran dit « n sans
-adresse, m désinscrits ») ; (3) `after()` envoie par lots de 100 avec
-`Idempotency-Key = id du message`, pose `sent` et l'id Resend ; (4) un
-envoi coupé (fonction arrêtée, 429, panne) est repris par
-`/api/cron/envois` — un cron fréquent est possible sur le plan Pro — ou
-par un bouton « Reprendre ». Ordre de grandeur : 5 000 contacts = 50
-requêtes, quelques secondes, dans les 300 s de la route. Un envoi de test
-(« m'envoyer cette newsletter ») paraît indispensable au pilote : est-il
-dans la partie manquante du cahier ?
+1. **Sous-domaines de la plateforme** : `mail.clozado.fr` (envoi de repli
+   et emails du produit) et `in.clozado.fr` (ingestion), région
+   **`eu-west-1`**, en variables d'environnement (`EMAIL_SHARED_DOMAIN`,
+   `EMAIL_INBOUND_DOMAIN`), jamais en dur. La racine `clozado.fr` n'est
+   touchée d'aucune façon : tous les enregistrements sont sous les deux
+   sous-domaines (§7). **Les deux domaines sont créés chez Resend** (ids
+   `20bd7d5a…` et `55485137…`, statut `not_started` tant que le DNS n'est
+   pas posé) — c'est ce qui donne les valeurs exactes (la clé DKIM est
+   propre à chaque domaine). `EMAIL_FROM` devient une adresse réelle sur
+   le sous-domaine mutualisé (« Clozado <connexion@mail.clozado.fr> ») —
+   pas de troisième domaine : le plan gratuit en admet **3** et le compte
+   en a déjà un (`societe2courtage.com`, déclaré le 15 juillet, jamais
+   vérifié — c'est le domaine du client pilote, le produit l'adoptera par
+   son nom au lieu d'en créer un doublon, §3.2). Donc **aucun autre
+   domaine client ne peut être vérifié avant le plan Pro (10 domaines)** ;
+   le repli mutualisé, lui, marche pour tout le monde. Quotas gratuits :
+   100 emails par jour, 3 000 par mois — le produit est conçu pour ça
+   (§3.3, §3.7).
+2. **Reply-To** : l'adresse de réponse de la PERSONNE (`users.
+   reply_to_email`, surcharge optionnelle sur son profil) si renseignée,
+   sinon celle de l'ORGANISATION (`sender_email`, « Adresse de réponse »),
+   sinon l'adresse de connexion de la personne qui envoie — toujours une
+   messagerie habituelle, jamais chez nous.
+3. **Schéma 0016** : validé dans son principe ; `email_events` sans IP ni
+   navigateur (définitif) ; `email_suppressions` par organisation ; le
+   jeton de désinscription = l'`id` du message, **uuid v4 par
+   `gen_random_uuid()`** : 122 bits aléatoires, ni séquentiel, ni dérivé
+   d'autre chose, ni énumérable (2^122 possibilités ; la page répond la
+   même chose à un id inconnu et à un id d'une autre organisation, et
+   elle est limitée en débit). Preuve prévue à l'étape 2 : un échantillon
+   d'ids consécutifs sans structure, et la route qui refuse un id forgé.
+   La migration est montrée (§6) et attend l'accord.
+4. **Configuration du marché** : pas construite ici. Minimum viable : les
+   FAITS de l'organisation (`country`, `postal_address`, `legal_mention`,
+   `privacy_policy_url`) sur `organizations`, et le PROFIL de pied de page
+   par pays en données dans le code (§3.4). Comment la remontée d'un
+   niveau restera indolore : les colonnes sont des faits SUR
+   l'organisation (son adresse, ses mentions) — elles ne bougeront pas ;
+   ce qui remontera, c'est le profil (les règles par pays), qui vit dans
+   UN résolveur (`footerProfileOf(org)`) : le jour du chantier marché, une
+   table `markets` et une colonne `organizations.market_id` s'ajoutent, le
+   résolveur lit le marché au lieu du pays, `country` devient une valeur
+   dérivée (un `UPDATE` de remplissage, puis la colonne se garde ou se
+   retire — les deux sont triviaux). Aucun écran, aucun email, aucune
+   requête n'a à changer : tous passent par le résolveur.
+5. **Dépendances** : zéro (`fetch` + `node:crypto`, DNS par `node:dns`).
+6. **Réversibles validés** : `APP_URL`, l'adresse par organisation sur le
+   sous-domaine (`<slug>@mail.clozado.fr`), l'envoi par lots repris par
+   cron. **L'envoi de test est dans le périmètre et prioritaire** (§3.3).
 
 ---
 
-## 3. Le plan — à écrire quand le cahier sera complet
+## 3. Partie 1 — l'envoi réel, le domaine, le suivi
 
-Provisoire, pour la seule partie reçue : **étape 1** = tes réponses au
-§2 et le reste du cahier → la conception écrite ici (les parties 2 et 3,
-le suivi d'engagement) et la migration `0016` montrée avant application.
-STOP. Les étapes suivantes (envoi réel + sous-domaine mutualisé, parcours
-guidé du domaine, suivi d'engagement, ingestion, règles) découleront du
-plan du cahier.
+### 3.1 L'expéditeur — une seule fonction, quatre situations
+
+`resolveSender(org, user)` (réécriture de `emailSender`) rend `{ from,
+replyTo }` :
+
+| Situation | From | Reply-To |
+|---|---|---|
+| Domaine non vérifié (repli) | `Nom d'expéditeur <slug@mail.clozado.fr>` | `user.reply_to_email` ‖ `org.sender_email` ‖ `user.email` |
+| Domaine vérifié et `sender_email` sur ce domaine | `Nom d'expéditeur <sender_email>` | idem |
+| Domaine vérifié mais `sender_email` ailleurs (gmail…) | repli, et l'écran le dit | idem |
+| Email du produit (lien de connexion, notification à une personne) | `Clozado <EMAIL_FROM>` | aucun |
+
+La bascule repli → domaine propre n'est qu'une lecture de
+`email_domain_verified_at` à chaque envoi : rien à réenvoyer, rien à
+reconfigurer ; les emails déjà partis gardent leurs en-têtes. Preuve
+prévue : les en-têtes réels des deux situations (un message avant, un
+message après vérification).
+
+### 3.2 Le parcours guidé du domaine (`/settings`, carte « Domaine d'envoi »)
+
+- **Déclarer** : la personne saisit `cabinet-dupont.fr` → si un domaine
+  de ce nom existe déjà chez Resend (le cas de `societe2courtage.com`),
+  il est ADOPTÉ (son id, ses enregistrements) ; sinon `POST /domains`
+  (région `eu-west-1`, suivi ouverture/clic activé, sous-domaine de suivi
+  `links`). Les enregistrements renvoyés sont stockés tels quels
+  (`email_domain_records`) et affichés : type, nom (absolu ET relatif,
+  parce que les hébergeurs attendent l'un ou l'autre), valeur, bouton
+  copier, statut par ligne. Notre ligne DMARC (`_dmarc.<domaine>` TXT
+  `v=DMARC1; p=none;`) s'ajoute à la liste.
+- **Vérifier** : « Vérifier maintenant » → `POST /domains/{id}/verify`,
+  puis `GET /domains/{id}` (statut par enregistrement) et une requête DNS
+  `node:dns` pour DMARC → `email_domain_records` mis à jour,
+  `email_domain_checked_at`, et le message en français clair : « Il manque
+  l'enregistrement TXT `resend._domainkey` » / « Le MX `send` pointe
+  ailleurs » / « DMARC absent ». Une erreur réseau ou fournisseur va dans
+  `email_domain_check_error`, affichée — jamais un échec muet. Quand tout
+  est vert (SPF, DKIM, DMARC), `email_domain_verified_at` est posé.
+- **États** visibles, trois par écran : *aucun domaine* (« tes emails
+  partent de mail.clozado.fr au nom de … — ça marche dès maintenant ») ;
+  *en attente* (la table des enregistrements avec ce qui manque) ;
+  *vérifié* (la date, l'adresse d'expédition effective) ; *échec* (le
+  motif). Instructions par hébergeur (OVH, Gandi, IONOS, Cloudflare,
+  o2switch, Squarespace/Google, autre) : des textes courts dans les
+  messages, avec le lien vers la page d'aide de l'hébergeur.
+- Décision réversible : DMARC exigé pour « vérifié » (le cahier le nomme
+  avec SPF et DKIM) ; `p=none` suffit — la politique se durcira plus tard.
+
+### 3.3 L'envoi — un bouton, un travail de fond, une reprise
+
+1. **« Envoyer »** (action serveur, sur `/newsletters/[id]`) : contrôles
+   (objet, au moins un bloc, revue sans blocage, pied de page complet —
+   adresse postale renseignée, sinon refus avec le lien vers les réglages),
+   puis en UN ordre : l'audience figée (l'existant `markNewsletterSent`,
+   `send_mode = 'sent'`), la ligne `newsletter_sends` (rendu HTML/texte
+   photographié, `List-Unsubscribe` prévu par message), et les
+   `email_messages` en `queued` pour les destinataires qui ont une adresse
+   ET ne sont pas dans `email_suppressions` (les autres restent des
+   destinataires figés ; l'écran dit « n sans adresse, m désinscrits »).
+2. **L'exécutant** (`after()`, puis le cron `/api/cron/envois` toutes les
+   dix minutes) prend le bail (`lease_until` = +5 min, UPDATE atomique),
+   lit les `queued` par lots de 100, `POST /emails/batch` avec
+   `Idempotency-Key = <id du message>` par email (le lot entier porte une
+   clé aussi) — une reprise ne duplique jamais —, pose `sent`,
+   `provider_message_id`, `sent_at` ; une erreur par email → `failed` +
+   motif ; un 429 → lecture de `retry-after` et pause ; un
+   `daily_quota_exceeded` / `monthly_quota_exceeded` → `paused_until`
+   (lendemain 00:05 UTC / premier du mois) + `pause_reason`, l'écran dit
+   « Quota du fournisseur atteint : 100 envoyés, 40 en attente — reprise
+   automatique demain à 02:05 » et le cron reprend. Quand plus rien n'est
+   `queued` : `finished_at`. Une fonction coupée laisse un bail expiré :
+   le cron reprend là où c'en était.
+3. **Ordre de grandeur** : 5 000 destinataires = 50 requêtes, quelques
+   secondes ; le plan gratuit les étale sur 50 jours — l'écran le dit
+   AVANT l'envoi (« ton plan permet 100 emails par jour : cet envoi de
+   340 se fera en 4 jours ») à partir d'un compteur local des envois du
+   jour ; la limite exacte n'est pas lisible par l'API, le comportement
+   au 429 est la vérité.
+4. **L'envoi de test** (prioritaire) : « M'envoyer un test » → un
+   `email_messages` `kind = test` vers l'adresse de connexion de la
+   personne (jamais un contact), objet préfixé « [Test] », rendu réel et
+   pied de page réel, journalisé sur la newsletter (« Test envoyé à … le
+   … ») ; son lien de désinscription mène à une page qui dit « email de
+   test — rien à désinscrire ». Il compte dans le quota (dit à l'écran).
+5. La carte actuelle devient : *brouillon* (Envoyer un test · Envoyer ·
+   « ou marquer comme envoyée ailleurs » en second rang) ; *envoi en
+   cours* (compteurs, pause, reprendre) ; *envoyée* (agrégats §3.5, tests,
+   sujets) ; *marquée à la main* (l'existant).
+
+### 3.4 Le pied de page conforme et la désinscription
+
+- Composé par `renderFooter(org, profile, message)` au rendu, dans la
+  langue de l'organisation, depuis le profil du pays (`src/lib/email/
+  footer-profiles.ts` : `FR`/UE par défaut, `CH`, `CA`, `GB`… — des
+  données : quelles lignes sont obligatoires, le délai de prise en compte
+  de la désinscription à afficher) et les faits de l'organisation : « Vous
+  recevez cet email parce que vous êtes en contact avec {organisation}. »
+  · « Se désinscrire » (lien) · l'adresse postale · les mentions légales ·
+  « Cet email mesure les ouvertures et les clics. Politique de
+  confidentialité » (lien si renseigné). Pas d'adresse postale → l'envoi
+  est refusé (pas le test).
+- En-têtes : `List-Unsubscribe: <https://APP_URL/desinscription/{id}>,
+  <mailto:…>` et `List-Unsubscribe-Post: List-Unsubscribe=One-Click`
+  (exigés par Gmail et Yahoo pour les expéditeurs en volume ; un `POST` de
+  leur part désinscrit sans page).
+- La page publique `/desinscription/[id]` (hors du groupe `(app)`, comme
+  `/partage/[token]`) : confirme en un geste, écrit `email_suppressions`
+  (reason `unsubscribed`, source `link` ou `one_click`), un événement
+  `unsubscribed`, `contacts.auto_send_stopped_at` (raison `unsubscribed`).
+  Un id inconnu → la même page neutre (404) ; un id de test → « email de
+  test » ; débit limité par IP.
+
+### 3.5 Le suivi par destinataire — webhooks, honnêteté, RGPD
+
+- `POST /api/webhooks/resend` : signature Svix vérifiée à la main
+  (`svix-id`, `svix-timestamp` ±5 min, `svix-signature` : HMAC-SHA256 de
+  `id.timestamp.corps` avec `RESEND_WEBHOOK_SECRET`), corps lu brut ;
+  `email.sent/delivered/delivery_delayed/bounced/complained/opened/clicked/
+  failed/suppressed` → `email_events` (unicité sur `svix-id` : un rejeu
+  est ignoré) et la mise à jour du message (statut, dates, compteurs ; un
+  clic porte son lien). Un `bounced` définitif ou un `complained` →
+  `email_suppressions` (source `webhook`). **Un désinscrit n'est plus
+  jamais suivi** : une ouverture ou un clic reçu pour une adresse
+  supprimée n'est pas enregistré. La route répond 200 vite et travaille
+  dans `after()`.
+- **Règle d'honnêteté** : « ouvert » est affiché « ouvert (approx.) » avec,
+  UNE fois par écran, l'explication « une ouverture peut être un
+  préchargement automatique (Apple Mail) ; le clic est le signal fiable » —
+  sur la fiche contact (en tête de la chronologie) et sur la campagne (à
+  côté de l'agrégat). Jamais un taux d'ouverture à la décimale : « 12 sur
+  40 (approx.) ».
+- **Fiche contact** : les emails reçus par ce contact dans le journal
+  unifié (fusion à la lecture, comme aujourd'hui : `envoyé`, `remis`,
+  `ouvert (approx.)`, `cliqué → lien`, `rejeté`, `désinscrit`) ; en tête,
+  les quatre indicateurs (§3.6).
+- **Campagne** (`/newsletters/[id]`) : envoyés, remis, ouverts (approx.),
+  cliqués (avec les liens cliqués et leur nombre), rejetés, désinscrits,
+  en attente — des comptes, pas des taux inventés.
+- RGPD : le pied de page mentionne la mesure ; la politique de
+  confidentialité de l'organisation est liée quand elle existe ; aucune
+  IP, aucun navigateur stocké.
+
+### 3.6 Les indicateurs par contact — une seule définition
+
+`src/db/queries/engagement.ts` expose UN fragment SQL par indicateur,
+réutilisé par la fiche, par les règles et par les critères de segment :
+
+- **Dernier email ouvert le** = `max(email_messages.last_opened_at)` du
+  contact (natures `newsletter`, `manual`, `automatic`) ;
+- **Dernier clic le** = `max(last_clicked_at)` ;
+- **Dernière interaction le** = le plus récent de `max(activities.
+  occurred_at)` (tout type, saisi ou ingéré) et `max(appointments.
+  starts_at)` des rendez-vous tenus (`scheduled`, `starts_at <= now()`) —
+  une ouverture ou un clic N'EST PAS une interaction ;
+- **Dernier rendez-vous le** = `max(appointments.starts_at)` des
+  rendez-vous non annulés, à venir compris (un rendez-vous pris rend la
+  règle « aucun rendez-vous » silencieuse).
+
+Le critère de segment `inactiveForDays` (aujourd'hui : activités seules)
+adopte la définition « dernière interaction » — une même phrase, un même
+calcul partout (décision réversible, notée).
+
+### 3.7 Les quotas — un comportement propre
+
+Compteur local des envois du jour et du mois (toutes natures) ; l'écran
+d'envoi annonce l'étalement ; le 429 est la vérité et met en pause ; les
+emails automatiques (Partie 3) passent APRÈS les newsletters en file et ne
+partent jamais si la pause est active (journal : `skipped`, motif
+`quota`) ; le lien de connexion n'est jamais bloqué par le produit (il
+passe par le même compte : si le quota est atteint, l'écran de connexion
+le dit).
+
+---
+
+## 4. Partie 2 — l'ingestion d'emails, sans connexion de boîte
+
+### 4.1 L'adresse d'ingestion
+
+Par organisation, `<jeton>@in.clozado.fr` ; le jeton (`organizations.
+ingest_token`) = 16 caractères `[a-z0-9]` tirés de `crypto.randomBytes`
+(~80 bits), généré à la première ouverture de la carte « Adresse
+d'ingestion » des réglages, régénérable (l'ancienne adresse cesse aussitôt
+d'être acceptée). Le domaine `in.clozado.fr` reçoit chez Resend
+(capability `receiving`, MX §7) ; `POST /api/webhooks/resend` reçoit
+`email.received` (métadonnées seulement), répond 200 et traite dans
+`after()` : `GET /emails/receiving/{id}` (objet, from, to, cc, texte,
+HTML, en-têtes, `raw.download_url` — le message brut, lien valable une
+heure), jamais les pièces jointes.
+
+### 4.2 Le mécanisme de vérification d'expéditeur — à valider avant de coder
+
+Quatre couches, dans cet ordre, toutes obligatoires :
+
+1. **L'adresse elle-même est un secret** : un jeton inconnu → refus,
+   compté dans `inbound_rejections` (motif `unknown_address`, détail = les
+   quatre premiers caractères), rien d'autre n'est lu.
+2. **L'expéditeur est un membre** : l'adresse de l'en-tête `From` (et du
+   `Return-Path`, quand il diffère) doit être celle d'un utilisateur de
+   l'organisation (`users.email`, insensible à la casse) — sinon refus
+   journalisé dans `inbound_emails` (`rejected`, `sender_not_member`), sans
+   lecture du corps.
+3. **L'expéditeur est authentifié — calculé par nous, pas lu dans un
+   champ** : Resend ne fournit aucun verdict SPF/DKIM/DMARC ; les en-têtes
+   `Authentication-Results` du message brut ne sont pas fiables (un
+   expéditeur peut les écrire lui-même). Donc, depuis le message brut
+   (`raw.download_url`) :
+   - **DKIM** (RFC 6376, `node:crypto` + `node:dns`) : lecture de
+     `DKIM-Signature` (`d=`, `s=`, `h=`, `bh=`, `b=`, canonicalisations
+     `c=`), clé publique par TXT `s._domainkey.d`, hachage du corps
+     canonicalisé, vérification RSA-SHA256 (ou Ed25519) de l'en-tête
+     canonicalisé ; **alignement** exigé : `d=` égal au domaine du `From`
+     ou de même domaine organisationnel (deux derniers labels — approximation
+     assumée, sans liste publique de suffixes) ;
+   - à défaut (signature absente, cassée ou non alignée — le cas Microsoft
+     365 sans DKIM sur le domaine du client), **SPF** : l'adresse IP de
+     connexion lue dans le premier en-tête `Received` — celui écrit par le
+     MTA de réception (`by inbound-smtp.eu-west-1.amazonaws.com`), le seul
+     digne de foi —, évaluation de `v=spf1` du domaine du `Return-Path`
+     (`ip4`, `ip6`, `a`, `mx`, `include`, `redirect`, `all`, dix requêtes
+     au plus), `pass` exigé ET alignement du `Return-Path` avec le `From` ;
+   - sinon `failed` (ou `unavailable` si le brut n'a pas pu être lu) →
+     refus journalisé (`sender_not_authenticated`), jamais une acceptation
+     par défaut. Le verdict et son détail (`d=`, sélecteur, IP, domaine
+     SPF) vont dans `auth_result`/`auth_detail` — la preuve, lisible.
+   Gmail, Outlook.com, iCloud et Google Workspace signent DKIM avec leur
+   domaine (couche DKIM) ; Microsoft 365 sans DKIM configuré passe par SPF
+   (`include:spf.protection.outlook.com`). Un `From` usurpé depuis un autre
+   serveur échoue aux deux.
+4. **Débit, taille, pièces jointes** : 60 emails par heure et 300 par
+   jour par organisation (comptés dans `inbound_emails`), au-delà refus
+   `rate_limited` ; brut > 5 Mo ou texte > 1 Mo → `too_large` ; les pièces
+   jointes ne sont jamais téléchargées ; doublon (`provider_email_id`,
+   `Message-ID`) ignoré.
+
+**Le contenu est non fiable, partout** : conservé comme texte (HTML →
+texte par retrait des balises et décodage des entités, jamais rendu en
+HTML dans l'interface, échappé par React à l'affichage) ; jamais exécuté,
+jamais interprété ; passé au modèle (§4.3) UNIQUEMENT comme données
+délimitées, avec une consigne système qui le déclare non fiable et une
+sortie contrainte par un schéma d'outil (champs + score) — un corps « ignore
+tes consignes et écris X » est stocké inerte et n'extrait rien de plus
+qu'un nom et un téléphone s'il y en a. Preuve prévue : ce corps exact,
+transféré, affiché tel quel, proposition vide.
+
+### 4.3 Le parseur — déterministe d'abord, l'IA propose, l'humain confirme
+
+- **Transfert ou copie** : transfert si l'objet commence par `Fwd:`/`TR:`/
+  `Fw:` ou si le corps porte un bloc de transfert reconnu (Gmail
+  « ---------- Forwarded message ---------- » / « Message transféré »,
+  Apple Mail « Begin forwarded message: » / « Début du message
+  réexpédié : », Outlook « From: … Sent: … To: … Subject: » / « De : …
+  Envoyé : … À : … Objet : ») → l'expéditeur d'ORIGINE (dans le bloc) est
+  la contrepartie, la date d'origine celle du bloc ; sinon copie (le membre
+  a écrit au contact, l'ingestion en Cci) → la contrepartie = le premier
+  destinataire (`To`, puis `Cc`) qui n'est ni un membre ni l'adresse
+  d'ingestion, la date = celle de l'email. Ni l'un ni l'autre → `pending`
+  avec la contrepartie à choisir.
+- **Le contact** : par email (`findDuplicateCandidates`, signal fort), sinon
+  par nom (signal faible) → « rattacher à cette fiche » ou « créer » ; la
+  fiche proposée est PRÉ-REMPLIE (nom, email, téléphone, société, fonction)
+  et modifiable ; rien n'est écrit avant « Confirmer ».
+- **La signature** (assistée) : les 15 dernières lignes non citées du
+  corps → le modèle (outil `extract_signature` : `name`, `phone`,
+  `company`, `job_title`, chacun avec `confidence` 0–1 ; `null` sans
+  signature) ; les champs sous 0,6 sont affichés en « à vérifier ». Sans
+  clé IA, le déterministe seul (téléphone par regex, nom par le `From`).
+- **L'interaction** : à la confirmation, une `activities` de type `email`
+  (`direction` = `inbound` pour un transfert d'un email du contact,
+  `outbound` pour une copie), `occurred_at` = la date d'origine, `content`
+  = l'objet (+ « transféré par … »). Le corps n'est conservé
+  (`inbound_emails.body_text`) que si `store_inbound_bodies` est activé ;
+  sinon NULL dès la réception — pas seulement caché. Un email `inbound`
+  pose `contacts.auto_send_stopped_at` (raison `replied`).
+- **Écrans** : `/emails-recus` (à confirmer · traités · refusés, avec le
+  motif et le verdict d'authentification), la carte des réglages (adresse
+  + copier + régénérer + option « conserver le corps »), la fiche contact
+  (l'interaction dans le journal).
+
+---
+
+## 5. Partie 3 — les rendez-vous et les règles de relance
+
+### 5.1 Les rendez-vous
+
+- **Calendly par webhook**, connexion PAR PERSONNE (profil) : la personne
+  colle un jeton d'accès personnel Calendly ; le produit appelle une fois
+  `GET /users/me` puis `POST /webhook_subscriptions` (portée `user`,
+  événements `invitee.created` et `invitee.canceled`, `signing_key`
+  généré par nous), garde l'URI de l'abonnement et la clé de signature
+  chiffrée (AES-256-GCM, clé dérivée d'`AUTH_SECRET`) dans
+  `calendar_connections` — le jeton d'accès n'est **jamais conservé**.
+  `POST /api/webhooks/calendly` : `Calendly-Webhook-Signature: t=…,v1=…`,
+  HMAC-SHA256 hexadécimal de `t.corps` avec la clé de la connexion
+  (identifiée par l'hôte `event_memberships[].user_email` → `users`),
+  tolérance 5 minutes ; `invitee.created` → `appointments` (`external_id`
+  = l'URI de l'invité, unique par organisation : un rejeu ne crée rien),
+  contact par l'email de l'invité dans l'organisation (créé s'il n'existe
+  pas : `source = external`, `external_system = calendly`, nom et email
+  pré-remplis), `auto_send_stopped_at` (raison `appointment`) ;
+  `invitee.canceled` → `canceled`. **Contrainte externe** : Calendly
+  réserve les webhooks aux plans payants (Standard, Teams, Enterprise) —
+  la saisie manuelle marche sans. Question : le client pilote est-il sur
+  un plan payant Calendly (nécessaire pour la preuve réelle) ?
+- **Saisie manuelle en un clic** depuis toute fiche : « Rendez-vous
+  maintenant » (date/heure préremplies, modifiables) et « Rendez-vous le… ».
+- **Le lien de prise de rendez-vous** (`users.booking_url`) : insérable
+  d'un clic dans le composer (bloc bouton/CTA prérempli) et variable
+  `{lien_rdv}` des gabarits.
+
+### 5.2 Le moteur de règles
+
+- **Une règle** (`rules`) = déclencheur + seuil en jours + conditions +
+  une action, affichée comme une phrase : « Aucun rendez-vous depuis
+  15 jours · étiquette Apporteur · → créer une tâche pour le conseiller ».
+  Déclencheurs (SQL sur les indicateurs §3.6) : `no_appointment`
+  (`dernier rendez-vous` NULL ou < now − X j), `no_interaction`, `email_not_
+  opened` / `email_not_clicked` (un email `newsletter` ou `manual` envoyé
+  il y a plus de X j, remis, sans ouverture / sans clic — jamais un email
+  `automatic` : anti-boucle), `share_unanswered` (un partage PRM `pending`
+  depuis plus de X j vers un partenaire dont l'email est celui du contact).
+  Conditions (`RULE_CONDITIONS_SCHEMA`, zod, une fonction de compilation
+  comme les segments) : `tagsAny`, `targetIds` (membre d'une cible),
+  `partnerProfessions` (un partenaire PRM de même email et de cette
+  profession — le « type de partenaire » du cahier, texte libre du
+  client), `ownerIds`. Seuils par règle, valeurs par défaut de
+  l'organisation (`share_pending_reminder_days`… existants et 15 jours).
+- **L'évaluation** : cron horaire `/api/cron/regles` (+ « Évaluer
+  maintenant »), verrou par organisation (`rule_runs`, index partiel) ;
+  pour chaque règle active : les contacts vivants qui matchent conditions
+  ET déclencheur, MOINS ceux déjà traités par cette règle dans la fenêtre
+  du seuil (`rule_actions` `done`) ; l'action ; une ligne de journal par
+  contact, `done` ou `skipped` avec le motif.
+- **Les actions** : `create_task` (titre = nom de la règle, échéance
+  aujourd'hui, responsable = conseiller du contact sinon créateur de la
+  règle, une seule tâche ouverte par (règle, contact) — garanti par la
+  base) ; `notify_owner` (email au responsable, dans SA langue, depuis
+  `EMAIL_FROM`) ; `prepare_draft` (`email_messages` `status = draft`,
+  `kind = manual`, gabarit rendu — sur la fiche et dans le journal :
+  Envoyer · Modifier · Ignorer) ; `send_email` (§5.3).
+
+### 5.3 L'envoi automatique — les garde-fous, un par un
+
+| Garde-fou | Où il tient |
+|---|---|
+| Opt-in explicite par règle | `rules_auto_send_optin_check` (la base refuse `send_email` sans `auto_send_confirmed_at`) + à l'écran, la case à cocher sous le gabarit affiché en entier |
+| Gabarit validé, figé, relisible | `rule_templates` par versions, jamais modifiées ; le journal cite la version ; variables limitées à `{prenom}`, `{nom}`, `{nom_complet}`, `{societe}`, `{organisation}`, `{expediteur}`, `{lien_rdv}` — toute autre accolade est refusée à l'enregistrement |
+| Plafond : 1 email automatique par contact par période | requête sur `email_messages` (`kind = automatic`, `sent_at > now − period`) avant chaque envoi, toutes règles confondues ; `skipped` motif `cap` |
+| Arrêt immédiat et définitif | `contacts.auto_send_stopped_at` posé par : interaction `inbound` (transfert d'une réponse), rendez-vous (Calendly ou saisi), désinscription ; `skipped` motif `stopped` ; réarmement possible par une personne, journalisé (interprétation à valider) |
+| Fenêtre d'envoi | jours ouvrés lundi–vendredi, `office_hours_start/end` dans le fuseau de l'organisation ; hors fenêtre `skipped` motif `window`, réessayé à l'heure suivante |
+| Journal complet | `rule_actions` (règle, gabarit, quand, à qui, résultat) — sur la fiche contact et sur `/regles/journal` |
+| Interrupteur général | `organizations.auto_send_enabled` (faux par défaut) : `send_email` → `skipped` motif `disabled` ; tâches, notifications et brouillons continuent |
+| Anti-boucle | les emails `automatic` sont exclus des déclencheurs ; une tâche créée par une règle n'est pas une interaction ; un brouillon préparé n'est rien tant qu'une personne ne l'envoie pas |
+| Désinscrit | `email_suppressions` consulté avant tout envoi (`skipped` motif `suppressed`) |
+| Quota fournisseur | pause d'envoi active → `skipped` motif `quota` |
+
+### 5.4 Écrans
+
+`/regles` (la liste des phrases, état, dernier passage, « Évaluer
+maintenant ») ; `/regles/new` et `/regles/[id]` (déclencheur, seuil,
+conditions, action, gabarit avec aperçu rendu et variables, opt-in) ;
+`/regles/journal` (toutes les actions, filtrables) ; `/settings` : carte
+« Envois automatiques » (interrupteur, période, heures de bureau) ; le
+profil de la personne (menu de compte) : adresse de réponse, lien de
+rendez-vous, connexion Calendly ; la fiche contact : indicateurs, journal
+enrichi, rendez-vous, « envois automatiques arrêtés le … (a répondu) ».
+
+---
+
+## 6. Le schéma et la migration `0016_engagement` — montrés, en attente d'accord
+
+Fichiers : `src/db/schema/{email-messages,inbound-emails,appointments,
+rules}.ts` (nouveaux), `organizations.ts`, `users.ts`, `contacts.ts`,
+`newsletters.ts`, `activities.ts`, `tasks.ts` (colonnes ajoutées),
+`src/db/migrations/0016_engagement.sql` (388 lignes, réécrite à la main
+depuis la sortie drizzle-kit : FK dans les `CREATE TABLE`, `IF NOT EXISTS`,
+blocs `DO`, remplissage de `send_mode` avant sa contrainte — rejouable),
+`meta/0016_snapshot.json` et le journal. Rien n'est renommé ni supprimé.
+`tsc` et le lint passent. **Non appliquée.**
+
+- `organizations` + `email_domain_provider_id`, `email_domain_status`,
+  `email_domain_records` (jsonb), `email_domain_checked_at`,
+  `email_domain_check_error`, `country` (CHECK deux majuscules),
+  `postal_address`, `legal_mention`, `privacy_policy_url`, `ingest_token`
+  (unique partiel), `store_inbound_bodies` (faux), `auto_send_enabled`
+  (faux), `auto_send_period_days` (14, CHECK 1–365), `office_hours_start`
+  (9) / `office_hours_end` (18) (CHECK 0 ≤ début < fin ≤ 24).
+- `users` + `reply_to_email`, `booking_url`.
+- `contacts` + `auto_send_stopped_at`, `auto_send_stop_reason` (paire +
+  liste : `replied`, `appointment`, `unsubscribed`, `manual`).
+- `newsletters` + `send_mode` (`declared` | `sent`, paire avec `sent_at` ;
+  les newsletters déjà marquées reçoivent `declared` avant la contrainte).
+- `activities` + `direction` (`inbound` | `outbound` | NULL).
+- `tasks` + `rule_id` (FK composite vers `rules`), index unique partiel
+  « une tâche ouverte par (règle, contact) ».
+- `newsletter_sends` : id, organisation, newsletter (FK composite),
+  `started_by`, `started_at`, `finished_at`, `lease_until`, `paused_until`,
+  `pause_reason`, `error`, `queued`/`sent`/`failed`, `subject`, `html`,
+  `text_body` ; un seul envoi ouvert par newsletter (index partiel).
+- `email_messages` : id (uuid v4), organisation, `kind` (`newsletter` |
+  `test` | `automatic` | `manual`), newsletter, envoi, contact, règle (FK
+  composites), `to_email`, `from_email`, `reply_to`, `subject`, `body`,
+  `status` (`draft`…`canceled`), `provider_message_id` (unique partiel),
+  dates (`queued/sent/delivered/first_opened/last_opened/first_clicked/
+  last_clicked/bounced/failed_at`), `open_count`, `click_count`,
+  `failure_reason`, `created_by` ; CHECK des rattachements par nature ;
+  index fiche contact, campagne, plafond, exécutant.
+- `email_events` : message (FK composite), `type` (liste), `occurred_at`,
+  `url`, `detail` (jsonb — motif de rejet/retard seulement),
+  `provider_event_id` (unique partiel).
+- `email_suppressions` : PK (organisation, email), `reason`, `source`,
+  message et contact (FK composites).
+- `inbound_emails` : `provider_email_id` (unique), `message_id_header`,
+  `received_at`, `sender_email`, `sender_user_id`, `auth_result` (liste),
+  `auth_detail`, `status` (liste), `rejection_reason`, `mode`, `subject`,
+  `counterpart_email/name`, `original_date`, contact (FK composite),
+  `activity_id`, `proposal` (jsonb), `body_text`, `size_bytes`,
+  `confirmed_by/at`. `inbound_rejections` : compteurs sans organisation
+  (motif, détail) — deuxième exception assumée après `market_observations`.
+- `appointments` : contact (FK composite), `user_id`, `source`
+  (`calendly` | `manual`), `external_id` (unique partiel par organisation),
+  `title`, `starts_at`, `ends_at`, `status` (`scheduled` | `canceled`, paire
+  avec `canceled_at`), `notes`. `calendar_connections` : PK (personne,
+  fournisseur), URIs, `subscription_uri`, `signing_key_encrypted`, dates.
+- `rules` : `name`, `enabled`, `archived_at`, `trigger` (liste),
+  `threshold_days` (1–365), `conditions` (jsonb), `action` (liste),
+  `auto_send_confirmed_at/by` (CHECK : exigé pour `send_email`),
+  `last_run_at`, `position`. `rule_templates` : règle (FK composite),
+  `version` (unique par règle), `subject`, `body`. `rule_runs` : verrou
+  par organisation (index partiel), compteurs. `rule_actions` : passage,
+  règle, contact, gabarit (FK composites), `action`, `outcome` (`done` |
+  `skipped`), `skip_reason`, `task_id` et `message_id` (références souples :
+  un cycle d'imports entre schémas interdit la FK — documenté).
+
+Décisions de schéma à connaître : une règle ne se supprime jamais (elle
+s'archive) — les FK vers `rules` n'ont pas d'action de suppression ; les
+`ON DELETE CASCADE` des FK composites ne jouent qu'avec l'organisation
+(contacts et messages ne se suppriment jamais autrement) ; aucun enum
+Postgres nouveau — des `CHECK` sur du texte, comme le reste du produit.
+
+---
+
+## 7. Les enregistrements DNS à créer — sous `mail.clozado.fr` et `in.clozado.fr` uniquement
+
+Tels que renvoyés par Resend le 2026-08-27 (région `eu-west-1`), plus la
+ligne DMARC. Le « nom » est donné relatif à la zone `clozado.fr` (ce que
+la plupart des hébergeurs attendent) et absolu entre parenthèses. TTL :
+« auto » ou la valeur par défaut. Rien à la racine ; aucun enregistrement
+existant à modifier.
+
+**Envoi — `mail.clozado.fr`**
+
+| Type | Nom (relatif à clozado.fr) | Valeur | Priorité |
+|---|---|---|---|
+| TXT | `resend._domainkey.mail` (`resend._domainkey.mail.clozado.fr`) | `p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDVpnpIMrWgw4q7pLjr/WmmXoK41PtB+LbRx5MzAKLqK4Zs+Pt/9KSQYbf3FrvWq6VdlX8IwlVQZOpRG3Mm6vDljUK9vlXK2+fJxdDE7o11wCKMeoSUrkC3T8/1WTFTAjneqjKEmWxnUgm0IsqjZ8BgMZvvtUj8K9uUzFHqNf99uQIDAQAB` | — |
+| MX | `send.mail` (`send.mail.clozado.fr`) | `feedback-smtp.eu-west-1.amazonses.com` | 10 |
+| TXT | `send.mail` (`send.mail.clozado.fr`) | `v=spf1 include:amazonses.com ~all` | — |
+| CNAME | `links.mail` (`links.mail.clozado.fr`) | `links1.resend-dns.com` | — |
+| TXT | `_dmarc.mail` (`_dmarc.mail.clozado.fr`) | `v=DMARC1; p=none;` | — |
+
+**Réception — `in.clozado.fr`**
+
+| Type | Nom (relatif à clozado.fr) | Valeur | Priorité |
+|---|---|---|---|
+| MX | `in` (`in.clozado.fr`) | `inbound-smtp.eu-west-1.amazonaws.com` | 10 |
+| TXT | `resend._domainkey.in` (`resend._domainkey.in.clozado.fr`) | `p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDX4zlPrsaxpcnjuQzOc82eH+C5FIkL0Ei7CX4MD1C/sR/iRhuOCNz9pUkhOusZEkNJgyV2ICfRKkWaSnobaM0CLo/nf2lm2S0dZY0wDhCGRvBgb4b0Km8xU4VI6q4O9d0g19RO69rVvTvkOzPr07Tp2iLOXq49ZUNuOZUmPO1XtwIDAQAB` | — |
+
+(La ligne DKIM de `in` est renvoyée par Resend bien que le domaine ne
+serve qu'à recevoir : la poser ne coûte rien et évite un « en attente ».)
+
+Une fois posés : `POST /domains/{id}/verify` depuis le produit (ou le
+bouton du tableau de bord Resend) ; la propagation prend de quelques
+minutes à quelques heures.
+
+**Variables d'environnement à créer sur Vercel** (et dans `.env.local`) :
+`APP_URL=https://<hôte de l'application>`, `EMAIL_FROM=Clozado
+<connexion@mail.clozado.fr>`, `EMAIL_SHARED_DOMAIN=mail.clozado.fr`,
+`EMAIL_INBOUND_DOMAIN=in.clozado.fr`, `RESEND_WEBHOOK_SECRET` (à créer
+dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
+événements email.* — je te dirai quand, à l'étape 2). `CRON_SECRET` existe.
+
+---
+
+## 8. Le plan et les preuves
+
+- **Étape 1 — conception + migration 0016 + DNS** : ce document. STOP :
+  accord sur la migration (elle s'applique par `npm run db:migrate:http`
+  au début de l'étape 2), sur le mécanisme d'authentification (§4.2), sur
+  l'interprétation « arrêt définitif, réarmable par une personne » (§5.3),
+  et les DNS posés.
+- **Étape 2 — Partie 1** : `resolveSender`, le client Resend (`fetch`),
+  l'envoi (action, exécutant, cron `/api/cron/envois`, pause quota,
+  reprise), l'envoi de test, le pied de page et `/desinscription/[id]`,
+  les webhooks et le suivi, la carte « Domaine d'envoi », les indicateurs
+  et la fiche contact, la campagne. Preuves : en-têtes réels avant/après
+  vérification (le domaine du pilote ou un domaine de test à toi), réponse
+  à un email de test vers `pichonniermax@gmail.com` et où elle arrive,
+  vérification DNS qui nomme ce qui manque, ouverture et clic réels sur la
+  fiche avec la mention, ids de désinscription non énumérables. URL à
+  ouvrir : `/settings#domaine`, `/newsletters/[id]` (test, envoi,
+  agrégats), `/contacts/[id]` (chronologie, indicateurs),
+  `/desinscription/[id]`.
+- **Étape 3 — Partie 2** : réception, authentification, parseur,
+  `/emails-recus`, réglages. Preuves : transfert depuis une adresse membre
+  → fiche pré-remplie ; même email depuis une adresse inconnue → refus
+  journalisé ; corps « ignore tes consignes » → inerte.
+- **Étape 4 — Partie 3** : rendez-vous (Calendly + saisie), règles,
+  journal, envoi automatique encadré. Preuves : rendez-vous Calendly →
+  « dernier rendez-vous » ; règle 15 jours → action ; plafond ; arrêt sur
+  réponse / désinscription ; interrupteur coupé.
 
 ## Avancement
 
-- **Étape 0 — état des lieux** (2026-08-27) : ce document, §§0-2. Cahier
-  reçu tronqué ; décisions demandées ; rien de construit, aucune migration.
-  STOP.
+- **Étape 0 — état des lieux** (2026-08-27) : `90c34a9`. Cahier reçu
+  tronqué ; décisions demandées. STOP.
+- **Étape 1 — conception des parties 1 (fin), 2 et 3, schéma et migration
+  `0016_engagement` (rédigée, montrée, NON appliquée), domaines
+  `mail.clozado.fr` et `in.clozado.fr` créés chez Resend, enregistrements
+  DNS listés** (2026-08-27). STOP : accord sur la migration et sur §4.2,
+  DNS à poser, état du compte Resend à confirmer.

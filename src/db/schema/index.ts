@@ -30,3 +30,7 @@ export * from "./acquisition-rejections";
 export * from "./leads";
 export * from "./watch";
 export * from "./market";
+export * from "./email-messages";
+export * from "./inbound-emails";
+export * from "./appointments";
+export * from "./rules";

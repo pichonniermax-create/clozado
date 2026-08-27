@@ -25,6 +25,10 @@ export const users = pgTable(
     }),
     /** La langue de l'interface choisie par la personne (« fr », « en ») ; NULL = la langue par défaut de son organisation (migration 0015). */
     locale: text("locale"),
+    /** L'adresse de réponse de la personne (chantier engagement) ; NULL = celle de l'organisation (`sender_email`). */
+    replyToEmail: text("reply_to_email"),
+    /** Son lien de prise de rendez-vous (Calendly…), insérable dans les emails et les gabarits. */
+    bookingUrl: text("booking_url"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

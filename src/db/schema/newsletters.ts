@@ -1,4 +1,5 @@
-import { foreignKey, index, integer, jsonb, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { check, foreignKey, index, integer, jsonb, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { contacts } from "./contacts";
 import { mailTargets } from "./mail-targets";
 import { organizations } from "./organizations";
@@ -32,6 +33,8 @@ export const newsletters = pgTable("newsletters", {
   /** Marquée comme envoyée à cette date (déclarée, modifiable) ; NULL = brouillon. */
   sentAt: timestamp("sent_at", { withTimezone: true }),
   sentMarkedBy: uuid("sent_marked_by").references(() => users.id, { onDelete: "set null" }),
+  /** Comment elle est partie (chantier engagement) : `declared` (marquée à la main, envoyée ailleurs) ou `sent` (envoyée par le produit) ; NULL tant qu'elle est un brouillon. */
+  sendMode: text("send_mode"),
   /** La photographie de l'audience au moment du marquage : libellé et nature de la cible, critères, nombre. */
   audienceSnapshot: jsonb("audience_snapshot"),
   createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
@@ -42,6 +45,9 @@ export const newsletters = pgTable("newsletters", {
   unique("newsletters_id_org_unique").on(table.id, table.organizationId),
   // L'anti-répétition et l'historique : les envois récents d'une organisation.
   index("newsletters_org_sent_idx").on(table.organizationId, table.sentAt),
+  // Envoyée ⇔ on sait comment ; brouillon ⇔ pas de mode.
+  check("newsletters_send_mode_check", sql`${table.sendMode} IS NULL OR ${table.sendMode} IN ('declared', 'sent')`),
+  check("newsletters_send_mode_pair", sql`(${table.sentAt} IS NULL) = (${table.sendMode} IS NULL)`),
 ]);
 
 /**

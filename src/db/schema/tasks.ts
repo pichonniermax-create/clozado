@@ -16,6 +16,7 @@ import { contacts } from "./contacts";
 import { dealShares } from "./deal-shares";
 import { deals } from "./deals";
 import { organizations } from "./organizations";
+import { rules } from "./rules";
 import { users } from "./users";
 
 /** Deux états seulement : une tâche est à faire ou faite. L'urgence vient de l'échéance, pas d'un statut. */
@@ -61,6 +62,8 @@ export const tasks = pgTable(
     autoRule: taskAutoRuleEnum("auto_rule"),
     sourceShareId: uuid("source_share_id"),
     sourceCommissionId: uuid("source_commission_id"),
+    /** La règle du moteur (chantier engagement) qui a créé la tâche ; NULL sinon. Une règle ne se supprime jamais. */
+    ruleId: uuid("rule_id"),
     // --- Récurrence ---
     recurUnit: taskRecurUnitEnum("recur_unit"),
     recurEvery: integer("recur_every"),
@@ -107,6 +110,15 @@ export const tasks = pgTable(
     uniqueIndex("tasks_auto_commission_unique")
       .on(table.autoRule, table.sourceCommissionId)
       .where(sql`${table.sourceCommissionId} IS NOT NULL`),
+    // Une seule tâche OUVERTE par (règle, contact) : une règle qui matche tous les jours ne crée pas une tâche par jour.
+    uniqueIndex("tasks_rule_contact_open_unique")
+      .on(table.ruleId, table.contactId)
+      .where(sql`${table.ruleId} IS NOT NULL AND ${table.status} = 'open'`),
+    foreignKey({
+      name: "tasks_rule_org_fk",
+      columns: [table.ruleId, table.organizationId],
+      foreignColumns: [rules.id, rules.organizationId],
+    }),
     // Isolation garantie par la base sur tous les rattachements.
     foreignKey({
       name: "tasks_contact_org_fk",
