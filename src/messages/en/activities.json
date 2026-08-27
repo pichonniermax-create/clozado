@@ -7,7 +7,12 @@
     "share_revoked": "Share revoked · {partner}",
     "share_sent": "Share sent to {partner}",
     "share_viewed": "Share viewed by {partner}",
-    "task_done": "Task completed: {body}"
+    "task_done": "Task completed: {body}",
+    "email_sent": "Email sent: {body}",
+    "email_opened": "Email opened (approx.): {body}",
+    "email_clicked": "Click in “{body}”",
+    "email_bounced": "Email bounced: {body}",
+    "email_unsubscribed": "Unsubscribed from “{body}”"
   },
   "journal": {
     "affaire": "· deal <link>{dealTitle}</link>",
@@ -42,7 +47,12 @@
     "share_sent": "Share sent",
     "share_viewed": "Share viewed",
     "stage": "Stage change",
-    "task_done": "Task completed"
+    "task_done": "Task completed",
+    "email_sent": "Email sent",
+    "email_opened": "Email opened (approx.)",
+    "email_clicked": "Click in an email",
+    "email_bounced": "Email bounced",
+    "email_unsubscribed": "Unsubscription"
   },
   "queries": {
     "fiche_existante_completee": "Existing record completed: {join}.",

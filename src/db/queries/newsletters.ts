@@ -290,15 +290,12 @@ export async function getNewsletterOrThrow(user: OrgScopeUser, id: string) {
  * Ensuite, modifier, dupliquer ou désactiver la cible ne change rien au
  * passé.
  */
-export async function markNewsletterSent(
-  user: OrgScopeUser,
-  id: string,
-  input: { sentAt: Date; topics: string[]; markedBy: string },
-  /** La description de la cible, figée dans la photographie de l'audience — dans la langue du moment. */
-  t: TargetsTranslator
-) {
-  const newsletter = await getNewsletterOrThrow(user, id);
-  if (newsletter.sentAt) throw new AppError("cette_newsletter_est_deja_marquee_envoyee");
+/**
+ * La cible d'une newsletter et la photographie de son audience (sans le
+ * nombre, posé par la requête qui fige) — partagées par « marquer comme
+ * envoyée » et par l'envoi réel : une seule définition de ce qui est figé.
+ */
+export async function buildAudienceSnapshot(newsletter: { organizationId: string; targetId: string }, t: TargetsTranslator) {
   const target = await db.query.mailTargets.findFirst({ where: eq(mailTargets.id, newsletter.targetId) });
   if (!target || target.organizationId !== newsletter.organizationId) {
     throw new AppError("la_cible_de_cette_newsletter_est_introuvable", undefined, 404);
@@ -311,6 +308,19 @@ export async function markNewsletterSent(
     criteria: parseCriteria(target.criteria),
     summary: describeTarget(target, options, t),
   };
+  return { target, snapshot };
+}
+
+export async function markNewsletterSent(
+  user: OrgScopeUser,
+  id: string,
+  input: { sentAt: Date; topics: string[]; markedBy: string },
+  /** La description de la cible, figée dans la photographie de l'audience — dans la langue du moment. */
+  t: TargetsTranslator
+) {
+  const newsletter = await getNewsletterOrThrow(user, id);
+  if (newsletter.sentAt) throw new AppError("cette_newsletter_est_deja_marquee_envoyee");
+  const { target, snapshot } = await buildAudienceSnapshot(newsletter, t);
   const topics = normalizeTopics(input.topics);
   await db.execute(sql`
     WITH ins AS (
@@ -322,7 +332,7 @@ export async function markNewsletterSent(
       RETURNING contact_id
     )
     UPDATE ${newsletters}
-    SET sent_at = ${input.sentAt}, sent_marked_by = ${input.markedBy}::uuid, topics = ${textArray(topics)},
+    SET sent_at = ${input.sentAt}, sent_marked_by = ${input.markedBy}::uuid, send_mode = 'declared', topics = ${textArray(topics)},
         audience_snapshot = (${JSON.stringify(snapshot)}::jsonb || jsonb_build_object('count', (SELECT count(*) FROM ins))),
         updated_at = now()
     WHERE id = ${id}::uuid`);
@@ -332,11 +342,13 @@ export async function markNewsletterSent(
 export async function unmarkNewsletterSent(user: OrgScopeUser, id: string) {
   const newsletter = await getNewsletterOrThrow(user, id);
   if (!newsletter.sentAt) throw new AppError("cette_newsletter_n_est_pas_marquee_envoyee");
+  // Un envoi RÉEL est un fait : des emails sont partis, on ne le défait pas.
+  if (newsletter.sendMode === "sent") throw new AppError("cette_newsletter_a_ete_envoyee_par_le_produit");
   await db.batch([
     db.delete(newsletterRecipients).where(eq(newsletterRecipients.newsletterId, id)),
     db
       .update(newsletters)
-      .set({ sentAt: null, sentMarkedBy: null, audienceSnapshot: null, updatedAt: new Date() })
+      .set({ sentAt: null, sentMarkedBy: null, sendMode: null, audienceSnapshot: null, updatedAt: new Date() })
       .where(eq(newsletters.id, id)),
   ]);
 }

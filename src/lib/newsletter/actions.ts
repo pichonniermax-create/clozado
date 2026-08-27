@@ -10,7 +10,10 @@ import { attachNewsletterSources, markNewsletterSent, normalizeTopics, unmarkNew
 import { assertOrgAccess, orgScope } from "@/db/scope";
 import { SEND_ERROR_PARAM } from "@/components/newsletter/labels";
 import { errorMessage, withError } from "@/lib/form-actions";
-import { requireUser } from "@/lib/session";
+import { requireSessionUser, requireUser } from "@/lib/session";
+import { requestOrigin } from "@/lib/request-origin";
+import { getLatestSend, unpauseSend } from "@/db/queries/email-sends";
+import { launchNewsletterSend, scheduleSendResume, sendTestEmail } from "@/lib/email/send-newsletter";
 import { NEWSLETTER_DRAFT_SCHEMA, parseBlockPayload, type AnyBlock } from "./blocks";
 import { AppError } from "@/lib/errors";
 import { getTranslations } from "next-intl/server";
@@ -237,6 +240,52 @@ export async function updateNewsletterTopicsAction(id: string, formData: FormDat
     await updateNewsletterTopics(user, id, String(formData.get("topics") ?? "").split(/[,;\n]/));
   } catch (error) {
     destination = withError(destination, await errorMessage(error), SEND_ERROR_PARAM);
+  }
+  redirect(destination);
+}
+
+// ---------------------------------------------------------------------------
+// L'envoi réel, l'email de test, la reprise (chantier engagement, étape 2)
+// ---------------------------------------------------------------------------
+
+/** « Envoyer » : le rendu réel, l'audience figée, les messages en file, l'exécutant après la réponse. Toute erreur revient sur la carte d'envoi. */
+export async function sendNewsletterAction(id: string) {
+  const user = await requireUser();
+  const session = await requireSessionUser();
+  let destination = `/newsletters/${id}#envoi`;
+  try {
+    await launchNewsletterSend(user, session.id, id, await requestOrigin());
+  } catch (error) {
+    destination = withError(`/newsletters/${id}#envoi`, await errorMessage(error), SEND_ERROR_PARAM);
+  }
+  redirect(destination);
+}
+
+/** « M'envoyer un test » : vers l'adresse de connexion de la personne, jamais vers un contact. */
+export async function sendTestAction(id: string) {
+  const user = await requireUser();
+  const session = await requireSessionUser();
+  let destination = `/newsletters/${id}#envoi`;
+  try {
+    if (!session.email) throw new AppError("aucune_adresse_de_reponse");
+    await sendTestEmail(user, { id: session.id, email: session.email }, id, await requestOrigin());
+  } catch (error) {
+    destination = withError(`/newsletters/${id}#envoi`, await errorMessage(error), SEND_ERROR_PARAM);
+  }
+  redirect(destination);
+}
+
+/** « Reprendre » un envoi en pause ou abandonné par une fonction coupée. */
+export async function resumeSendAction(id: string) {
+  const user = await requireUser();
+  let destination = `/newsletters/${id}#envoi`;
+  try {
+    const send = await getLatestSend(id);
+    if (!send || send.finishedAt) throw new AppError("cet_envoi_est_termine");
+    await unpauseSend(user, send.id);
+    scheduleSendResume(send.id, await requestOrigin());
+  } catch (error) {
+    destination = withError(`/newsletters/${id}#envoi`, await errorMessage(error), SEND_ERROR_PARAM);
   }
   redirect(destination);
 }

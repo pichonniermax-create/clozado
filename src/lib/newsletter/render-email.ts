@@ -46,12 +46,42 @@ export type RenderSignatory = {
   jobTitle: string | null;
 } | null;
 
+/**
+ * LE PIED DE PAGE CONFORME (chantier engagement, §3.4) — des phrases déjà
+ * traduites dans la langue de l'organisation et les faits de
+ * l'organisation, composés par `buildFooter` (src/lib/email/footer.ts)
+ * depuis son profil de pays. Le rendu ne sait rien du droit : il pose ce
+ * qu'on lui donne, dans cet ordre.
+ */
+export type RenderFooter = {
+  /** « Vous recevez cet email parce que vous êtes en contact avec … » */
+  why: string;
+  /** Le libellé du lien de désinscription et son adresse. */
+  unsubscribeLabel: string;
+  unsubscribeUrl: string;
+  /** La phrase sur le délai de prise en compte, quand le profil l'exige ; null sinon. */
+  unsubscribeDelay: string | null;
+  /** L'adresse postale de l'expéditeur (une ligne par retour à la ligne). */
+  postalAddress: string | null;
+  /** Les mentions légales libres. */
+  legalMention: string | null;
+  /** « Cet email mesure les ouvertures et les clics. » — null quand le profil ne l'exige pas. */
+  tracking: string | null;
+  /** La politique de confidentialité de l'organisation, quand elle existe. */
+  privacyLabel: string | null;
+  privacyUrl: string | null;
+  /** L'avertissement d'un email de test, en tête du pied de page ; null pour un envoi réel. */
+  testNotice: string | null;
+};
+
 export type RenderInput = {
   brand: RenderBrand;
   subject: string;
   preheader: string;
   blocks: AnyBlock[];
   signatory: RenderSignatory;
+  /** Le pied de page conforme — absent dans l'éditeur (aperçu de la feuille), toujours présent dans un email qui part. */
+  footer?: RenderFooter | null;
   /** La langue des contenus (attribut `lang` du document) — celle de l'organisation ; « fr » à défaut. */
   lang?: string;
   /**
@@ -254,6 +284,23 @@ function renderSignature(signatory: RenderSignatory, brand: ResolvedBrand): stri
   );
 }
 
+/** Le pied de page : petites lignes grises, une table à une colonne — jamais dépendant d'un <style>. */
+function renderFooter(footer: RenderFooter, brand: ResolvedBrand): string {
+  const line = (html: string) => `<p style="margin:0 0 6px 0;font:400 12px/1.5 ${brand.bodyFont};color:${brand.secondary};">${html}</p>`;
+  const link = (href: string, label: string) => `<a href="${escapeHtml(href)}" style="color:${brand.secondary};text-decoration:underline;">${escapeHtml(label)}</a>`;
+  const lines: string[] = [];
+  if (footer.testNotice) {
+    lines.push(`<p style="margin:0 0 10px 0;padding:8px 10px;border:1px dashed ${brand.secondary};font:600 12px/1.5 ${brand.bodyFont};color:${brand.ink};">${escapeHtml(footer.testNotice)}</p>`);
+  }
+  lines.push(line(`${escapeHtml(footer.why)} ${link(footer.unsubscribeUrl, footer.unsubscribeLabel)}`));
+  if (footer.unsubscribeDelay) lines.push(line(escapeHtml(footer.unsubscribeDelay)));
+  if (footer.postalAddress) lines.push(line(escapeHtml(footer.postalAddress).replace(/\r?\n/g, "<br>")));
+  if (footer.legalMention) lines.push(line(escapeHtml(footer.legalMention).replace(/\r?\n/g, "<br>")));
+  const tail = [footer.tracking ? escapeHtml(footer.tracking) : "", footer.privacyUrl && footer.privacyLabel ? link(footer.privacyUrl, footer.privacyLabel) : ""].filter(Boolean).join(" ");
+  if (tail) lines.push(line(tail));
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:16px 24px 24px 24px;border-top:1px solid ${brand.secondary};">${lines.join("")}</td></tr></table>`;
+}
+
 /**
  * Ancre de clic de l'éditeur. `data-*` sur un `<td>` est inerte dans tous les
  * clients email — mais par prudence elle n'est émise QUE quand
@@ -404,10 +451,70 @@ ${renderPreheader(input.preheader)}
 ${renderHeader(brand)}
 ${body}
 ${renderSignature(input.signatory, brand)}
+${input.footer ? renderFooter(input.footer, brand) : ""}
 </td></tr>
 </table>
 </td></tr>
 </table>
 </body>
 </html>`;
+}
+
+/**
+ * LA VERSION TEXTE de l'email (la partie `text/plain` qui accompagne le
+ * HTML : lisible par les clients qui ne rendent pas le HTML, et un signal
+ * de sérieux pour les filtres) — les mêmes blocs, sans mise en page : un
+ * titre en majuscules, les chiffres clés en « valeur — libellé », les
+ * boutons en « libellé : adresse », le pied de page en lignes.
+ */
+export function renderNewsletterText(input: Pick<RenderInput, "subject" | "preheader" | "blocks" | "signatory" | "footer" | "brand">): string {
+  const out: string[] = [];
+  if (input.preheader.trim()) out.push(input.preheader.trim(), "");
+  for (const block of input.blocks) {
+    switch (block.type) {
+      case "titre":
+        out.push(block.level === 1 ? block.text.toUpperCase() : block.text, "");
+        break;
+      case "texte":
+        out.push(block.text.trim(), "");
+        break;
+      case "chiffre_cle":
+        out.push(`${block.value} — ${block.label}${block.caption ? ` (${block.caption})` : ""}`);
+        break;
+      case "fiches":
+        for (const card of block.cards) out.push(`• ${card.title}`, `  ${card.text}`);
+        out.push("");
+        break;
+      case "cta":
+        out.push(block.title, block.text, `${block.buttonLabel} : ${block.url}`, "");
+        break;
+      case "bouton":
+        out.push(`${block.label} : ${block.url}`, "");
+        break;
+      case "sources":
+        if (block.items.length > 0) {
+          out.push(block.title);
+          for (const item of block.items) out.push(`- ${item.title} — ${item.url}`);
+          out.push("");
+        }
+        break;
+      case "separateur":
+        out.push("—", "");
+        break;
+    }
+  }
+  if (input.signatory) out.push(input.signatory.name, ...(input.signatory.jobTitle ? [input.signatory.jobTitle] : []), "");
+  const footer = input.footer;
+  if (footer) {
+    out.push("--");
+    if (footer.testNotice) out.push(footer.testNotice);
+    out.push(`${footer.why} ${footer.unsubscribeLabel} : ${footer.unsubscribeUrl}`);
+    if (footer.unsubscribeDelay) out.push(footer.unsubscribeDelay);
+    if (footer.postalAddress) out.push(footer.postalAddress);
+    if (footer.legalMention) out.push(footer.legalMention);
+    if (footer.tracking) out.push(footer.tracking);
+    if (footer.privacyUrl && footer.privacyLabel) out.push(`${footer.privacyLabel} : ${footer.privacyUrl}`);
+  }
+  // Jamais deux lignes vides de suite : un texte propre, pas un gruyère.
+  return out.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
 }

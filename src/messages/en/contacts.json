@@ -40,7 +40,7 @@
     "appels_emails_rendez_vous_et_notes_920c": "Calls, emails, meetings and notes — and what their deals say: stage changes, shares, completed tasks.",
     "aucune_affaire_reliee_a_cette_fiche": "No deals linked to this record —",
     "aucune_etiquette_dans_ton_organisation_pour_4ff3": "No tags in your organization yet — create the first one below.",
-    "aucune_newsletter_marquee_envoyee_a_cette_15d7": "No newsletter marked as sent to this person. The history builds up when a newsletter is marked “sent” to an audience they belong to — the sending itself happens from your emailing tool.",
+    "aucune_newsletter_marquee_envoyee_a_cette_15d7": "No newsletter sent to this person. The history builds up when a newsletter is sent — or marked as sent — to an audience they belong to.",
     "aucune_personne_rattachee_a_cette_societe_ec5c": "No people linked to this company. The link is set from a person’s record.",
     "aucune_pour_l_instant_voir_les_4a14": "none yet — <link>see audiences</link>",
     "aucune_tache_pour_ce_contact_l_20ff": "No tasks for this contact — the quick add below links it to this record.",
@@ -93,7 +93,34 @@
     "telephone": "Phone",
     "toutes_les_donnees_de_cette_fiche_873e": "All this record’s data — identity, tags, deals, tasks, interactions, access log — in a JSON file.",
     "ville": "City",
-    "vip_prospect_notaire": "VIP, Prospect, Notary…"
+    "vip_prospect_notaire": "VIP, Prospect, Notary…",
+    "desinscrit": "Unsubscribed",
+    "desinscrit_detail": "This address no longer receives emails from the organization since {when} ({reason}). This is final: nothing and no one can reverse it.",
+    "suppressionReasons": {
+      "unsubscribed": "unsubscription",
+      "bounced": "address bounced",
+      "complained": "reported as spam",
+      "manual": "manual removal"
+    },
+    "indicateurs": {
+      "dernier_email_ouvert": "Last email opened",
+      "approx": "Approximate — a preload counts as an open",
+      "dernier_clic": "Last click",
+      "derniere_interaction": "Last interaction",
+      "interaction_def": "Call, email, held appointment, note, or click",
+      "dernier_rendez_vous": "Last appointment"
+    },
+    "emailState": {
+      "queued": "queued",
+      "sent": "sent",
+      "delivered": "delivered",
+      "delayed": "delayed",
+      "bounced": "bounced",
+      "complained": "reported as spam",
+      "failed": "send failed",
+      "opened": "opened (approx.)",
+      "clicked": "clicked"
+    }
   },
   "detailNotFound": {
     "cette_fiche_n_existe_pas": "This record doesn’t exist.",

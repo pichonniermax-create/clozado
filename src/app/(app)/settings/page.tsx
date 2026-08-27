@@ -46,6 +46,10 @@ import { assetUrlsFromMeta } from "@/lib/brand/assets";
 import { normalizeHex } from "@/lib/brand/color";
 import { brandStyle, deriveBrandTokens } from "@/lib/brand/derive";
 import { isPlausibleEmail } from "@/lib/email/address";
+import { EmailDomainCard } from "@/components/settings/email-domain-card";
+import { LegalFootprintCard } from "@/components/settings/legal-footprint-card";
+import { sharedSendingDomain } from "@/lib/email/config";
+import { resolveSender } from "@/lib/email/sender";
 import { withError } from "@/lib/form-actions";
 import { BUSINESS_PACK_LIST, resolveBusinessPack } from "@/lib/metrics";
 import { requestOrigin } from "@/lib/request-origin";
@@ -177,6 +181,16 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const savedBrand = brandStyle(deriveBrandTokens(savedHex, "light").tokens);
   const assetUrls = assetUrlsFromMeta(org.id, assetMeta);
   const activeSiteKeys = siteKeyRows.filter((k) => !k.revokedAt);
+  // L'expéditeur effectif aujourd'hui (repli ou domaine propre) — sans EMAIL_SHARED_DOMAIN, la carte le dit.
+  let sharedDomain = "";
+  let effectiveFrom = "";
+  try {
+    sharedDomain = sharedSendingDomain();
+    effectiveFrom = resolveSender(org, null).from;
+  } catch {
+    sharedDomain = "";
+    effectiveFrom = "";
+  }
   const nothingConnected = collection.lastEventAt === null && collection.lastLeadAt === null;
 
   async function saveStage(formData: FormData) {
@@ -283,6 +297,10 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </form>
         </CardContent>
       </Card>
+
+      <EmailDomainCard org={org} readOnly={readOnly} sharedDomain={sharedDomain} effectiveFrom={effectiveFrom} />
+
+      <LegalFootprintCard org={org} readOnly={readOnly} />
 
       <Card id="langue" className="scroll-mt-24">
         <CardHeader>

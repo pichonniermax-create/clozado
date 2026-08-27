@@ -1,0 +1,14 @@
+{
+  "mon_profil": "Mon profil",
+  "ce_que_tu_regles_pour_toi": "Ce que tu règles pour toi : où arrivent les réponses à tes envois, ton lien de prise de rendez-vous.",
+  "adresse_de_reponse": "Adresse de réponse",
+  "sinon_celle_de_l_organisation": "Si vide, les réponses vont à l’adresse de réponse de l’organisation ({email}).",
+  "sinon_ton_adresse_de_connexion": "Si vide, les réponses vont à ton adresse de connexion.",
+  "lien_de_prise_de_rendez_vous": "Lien de prise de rendez-vous",
+  "calendly_ou_autre": "Calendly ou autre — insérable d’un clic dans les emails et les gabarits.",
+  "placeholder_lien": "https://calendly.com/…",
+  "enregistrer": "Enregistrer",
+  "l_adresse_de_reponse_ne_semble_pas_valide": "L’adresse de réponse ne semble pas valide.",
+  "le_lien_de_rendez_vous_ne_semble_pas_valide": "Le lien de rendez-vous ne semble pas valide (il commence par https://).",
+  "profil_enregistre": "Profil enregistré."
+}

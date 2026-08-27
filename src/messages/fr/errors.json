@@ -129,5 +129,19 @@
   "un_lead_porte_au_moins_un_email_dc0f": "Un lead porte au moins un email ou un téléphone.",
   "une_interaction_se_rattache_a_un_contact_b8a7": "Une interaction se rattache à un contact ou à une affaire.",
   "une_note_sans_texte_n_a_rien_9ef4": "Une note sans texte n’a rien à dire — écris-la, ou choisis « Appel », « Email » ou « Rendez-vous ».",
-  "une_recurrence_sans_echeance_ne_veut_rien_3108": "Une récurrence sans échéance ne veut rien dire — pose d’abord une échéance."
+  "une_recurrence_sans_echeance_ne_veut_rien_3108": "Une récurrence sans échéance ne veut rien dire — pose d’abord une échéance.",
+  "envoi_introuvable": "Cet envoi est introuvable.",
+  "cet_envoi_est_termine": "Cet envoi est terminé : il n’y a rien à reprendre.",
+  "cette_newsletter_a_ete_envoyee_par_le_produit": "Cette newsletter a été envoyée par le produit : des emails sont partis, le marquage ne s’annule pas.",
+  "l_objet_est_vide_ecris_le_avant_d_envoyer": "L’objet est vide : écris-le avant d’envoyer.",
+  "la_newsletter_n_est_pas_finie_un_bloc_est_vide": "La newsletter n’est pas finie : l’aperçu (préheader) ou un bloc est vide ou incomplet.",
+  "l_adresse_postale_manque_au_pied_de_page": "L’adresse postale manque au pied de page : renseigne-la dans Marque & réglages avant d’envoyer.",
+  "aucune_adresse_de_reponse": "Aucune adresse de réponse : renseigne-la dans ton profil ou dans les réglages de l’organisation.",
+  "l_email_de_test_n_est_pas_parti": "L’email de test n’est pas parti ({reason}).",
+  "ce_domaine_ne_semble_pas_valide": "« {domain} » ne ressemble pas à un domaine (attendu : cabinet-dupont.fr).",
+  "un_domaine_est_deja_declare_retire_le_d_abord": "Un domaine est déjà déclaré ({domain}) : retire-le d’abord.",
+  "domaine_indisponible_sur_ce_plan": "Le plan actuel du fournisseur d’envoi n’admet pas de domaine supplémentaire : la vérification est indisponible pour l’instant, tes emails continuent de partir du sous-domaine de la plateforme.",
+  "le_fournisseur_d_envoi_a_repondu": "Le fournisseur d’envoi a répondu : {message}",
+  "aucun_domaine_d_envoi_declare": "Aucun domaine d’envoi n’est déclaré.",
+  "utilisateur_introuvable": "Utilisateur introuvable."
 }

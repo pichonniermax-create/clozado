@@ -4,7 +4,8 @@
     "mon_compte": "Mon compte",
     "se_deconnecter": "Se déconnecter",
     "langue": "Langue",
-    "celle_de_l_organisation": "Celle de l’organisation ({language})"
+    "celle_de_l_organisation": "Celle de l’organisation ({language})",
+    "mon_profil": "Mon profil"
   },
   "appHeader": {
     "rechercher_un_contact": "Rechercher un contact…",

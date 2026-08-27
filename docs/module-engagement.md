@@ -741,6 +741,163 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   « dernier rendez-vous » ; règle 15 jours → action ; plafond ; arrêt sur
   réponse / désinscription ; interrupteur coupé.
 
+## Étape 2 — la Partie 1 construite : envoi réel, domaine guidé, suivi, envoi de test
+
+### Ce qui est construit
+
+- **L'expéditeur** (`src/lib/email/sender.ts`, `resolveSender`) : le repli
+  `<slug>@EMAIL_SHARED_DOMAIN` au nom de l'organisation tant que le domaine
+  n'est pas vérifié, l'adresse propre dès qu'il l'est ET que l'adresse
+  d'expédition est dessus ; Reply-To = adresse de réponse de la personne
+  (`users.reply_to_email`, page `/profil`) ‖ celle de l'organisation ‖
+  l'adresse de connexion. Les emails du produit (lien de connexion) partent
+  d'`EMAIL_FROM`, désormais exigé — plus aucun repli `onboarding@resend.dev`
+  (`src/auth.ts`, `src/lib/email/config.ts`).
+- **Le fournisseur** en `fetch` (`src/lib/email/resend.ts`) : envoi unitaire
+  et par lot avec `Idempotency-Key`, domaines (lister, déclarer, relire,
+  vérifier), erreurs typées (quota, débit, indisponibilité).
+- **Le rendu** : le pied de page conforme (`RenderFooter`, composé par
+  `buildFooter` depuis le profil du pays — `src/lib/email/footer-profiles.ts`,
+  des données — et les faits de l'organisation) et la version texte
+  (`renderNewsletterText`) dans `render-email.ts` ; le lien de
+  désinscription est un marqueur substitué par message à la remise
+  (`src/lib/email/deliver.ts`), jamais cinq mille rendus.
+- **L'envoi** (`src/lib/email/send-newsletter.ts`, `src/db/queries/
+  email-sends.ts`) : contrôles (objet, aperçu, blocs aboutis, adresse
+  postale), départ en UN ordre SQL (audience figée + `send_mode = 'sent'` +
+  ligne d'envoi avec le rendu photographié + un message `queued` par
+  destinataire ayant une adresse et non supprimé), exécutant par lots de
+  100 après la réponse (`after()`), bail de cinq minutes, compteurs
+  recomptés, pause propre au quota (`daily_quota_exceeded` → lendemain
+  00:05 UTC ; mensuel → premier du mois), au débit (`retry-after`, trois
+  essais) et à l'indisponibilité (dix minutes) ; reprise par le cron
+  `/api/cron/envois` toutes les dix minutes (`vercel.json`) et par le bouton
+  « Reprendre ». Une leçon SQL au passage : la requête principale ne voit
+  pas les lignes que ses CTE modifiantes viennent d'écrire — elle lit leurs
+  `RETURNING`, et le compteur s'écrit dans un second ordre (recompté de
+  toute façon).
+- **L'email de test** : vers l'adresse de connexion de la personne, jamais
+  un contact, rendu et pied de page réels, avertissement de test dans le
+  pied de page, objet préfixé, journalisé sur la newsletter avec son état
+  et le motif d'un échec ; son lien de désinscription mène à une page qui
+  dit « email de test ». Le test passe même sans adresse postale ; l'envoi
+  réel, non.
+- **La désinscription** : page publique `/desinscription/[id]` (langue de
+  l'organisation, geste par formulaire, 404 neutre pour un id inconnu,
+  débit limité), route `POST /api/unsubscribe/[id]` pour le clic « se
+  désabonner » des messageries (`List-Unsubscribe` +
+  `List-Unsubscribe-Post`, un GET ne désinscrit jamais), écriture dans
+  `email_suppressions` — irréversible jusqu'à la base.
+- **Le suivi** : `POST /api/webhooks/resend` (signature Svix vérifiée à la
+  main, corps brut, ±5 min, rejeu ignoré par l'unicité de `svix-id`,
+  message inconnu → 404 pour que le fournisseur réessaie), les événements
+  → `email_events` + le message (statuts qui ne reculent jamais), rejet
+  définitif et plainte → suppression, ouverture et clic d'un désinscrit
+  ignorés. Aucune IP, aucun navigateur.
+- **Les indicateurs** (`src/db/queries/engagement.ts`) : une définition SQL
+  par indicateur ; « dernière interaction » = activité, rendez-vous tenu ou
+  CLIC (jamais une ouverture) — précision du 2026-08-27. Sur la fiche
+  contact : quatre tuiles, l'ouverture dite approximative ; le journal
+  unifié fusionne envoyé / ouvert (approx.) / cliqué (avec le lien) /
+  rejeté / désinscription ; badge « Désinscrit » avec la phrase
+  « définitif ».
+- **Le domaine** (`src/lib/email/domain.ts`, carte « Domaine d'envoi » des
+  réglages) : déclaration ou ADOPTION d'un domaine déjà présent chez le
+  fournisseur (le cas du pilote), enregistrements stockés tels que
+  renvoyés + notre ligne DMARC lue par `node:dns`, statut par ligne, nom
+  complet et nom relatif, bouton copier, « ce qui manque » nommé, erreur
+  du fournisseur affichée, « indisponible sur ce plan » quand le plan ne
+  prend plus de domaine, instructions par hébergeur (OVH, Gandi, IONOS,
+  Cloudflare, o2switch, Squarespace, autre), retrait (le repli reprend).
+- **Le pied de page** (carte « Pied de page des emails ») : pays (profil),
+  adresse postale, mentions légales, politique de confidentialité.
+- **La carte d'envoi** (`send-status-card.tsx`) en quatre états : brouillon
+  (expéditeur et adresse de réponse annoncés, repli dit avec le lien, test,
+  envoi à N contacts avec l'audience réelle et une case de confirmation
+  native, envoyés du jour, « marquer comme envoyée ailleurs » replié),
+  envoi en cours (compteurs, pause avec motif et « Reprendre », interruption
+  détectée), envoyée (agrégats en comptes — envoyés, remis, ouverts
+  (approx.), cliqués, rejetés, désinscrits, échecs, non envoyés —, la règle
+  d'honnêteté dite une fois, les liens cliqués), marquée à la main
+  (l'existant ; un envoi réel ne s'annule pas).
+- Français et anglais pour tout (namespaces `email`, `profile`,
+  `settings.domainCard`, `settings.legalCard`, `newsletters.sendStatusCard`
+  réécrit, `contacts.detail`, `activities`, `ui.copyButton`, `errors`).
+
+### Décisions réversibles
+
+- DMARC `p=none` exigé pour « vérifié » (avec SPF et DKIM du fournisseur).
+- Le rendu d'un envoi est photographié une fois (`newsletter_sends.html`)
+  avec le marqueur `%%CLOZADO_UNSUBSCRIBE%%` ; modifier la newsletter après
+  l'envoi ne change pas ce qui est parti.
+- La confirmation d'envoi est une case à cocher native (pas de dialogue) ;
+  l'annulation d'un envoi réel n'existe pas.
+- Le cron des envois passe toutes les dix minutes (plan Pro requis pour
+  cette fréquence) ; l'envoi n'en dépend pas.
+- Un email de test compte dans le quota du fournisseur (dit à l'écran).
+
+### Preuves
+
+- **À blanc** (`scripts/_tmp-engagement-proof.ts`, 47 contrôles, TOUT OK) :
+  l'expéditeur dans ses quatre situations et les trois niveaux de Reply-To ;
+  le pied de page et ses manques ; le rendu HTML et texte ; le refus sans
+  adresse postale (le test passe) ; le départ atomique (2 messages en file
+  pour 3 destinataires figés, une seconde tentative refusée) ; les liens de
+  désinscription propres à chaque message et les en-têtes ; les jetons
+  uuid v4 ; la signature Svix (valide / corps modifié / horodatage ancien) ;
+  remis, ouvert, cliqué, rejeté définitif → suppression, rejeu ignoré,
+  message inconnu signalé ; la désinscription par lien puis « déjà », la
+  ligne rattachée au message et au contact, **DELETE et UPDATE refusés par
+  la base** (le déclencheur), un second ajout sans effet, l'ouverture d'un
+  désinscrit ignorée, l'audience réelle tombée à zéro, un test qui ne
+  désinscrit personne, un id inconnu neutre ; les indicateurs (dernière
+  interaction = le clic), le journal fusionné ; les agrégats ; l'adoption
+  de `mail.clozado.fr` chez le fournisseur sans doublon, 5 enregistrements
+  manquants nommés, DMARC lu par nous, « vérifier maintenant » sans erreur
+  muette, le retrait.
+- **Au navigateur** (`scripts/_tmp-engagement-browser.ts`, 38 contrôles,
+  TOUT OK, français puis anglais, build de production) : réglages (carte
+  domaine en repli avec l'expéditeur effectif, déclaration de
+  `mail.clozado.fr` → 5 enregistrements manquants nommés ligne par ligne
+  avec état et bouton copier, « Vérifier maintenant » horodaté sans échec
+  muet, retrait → le repli reprend ; carte pied de page), newsletter en
+  brouillon (expéditeur et adresse de réponse annoncés, repli dit avec le
+  lien, **le refus du fournisseur affiché en toutes lettres** quand le test
+  part sans domaine vérifié, et le test journalisé en échec), profil
+  (l'adresse de réponse enregistrée et sa surcharge visible sur la
+  newsletter), fiche contact (quatre indicateurs, ouverture dite
+  approximative), page publique de désinscription (l'organisation et
+  l'adresse dites, « C'est fait » définitif, la suppression en base, badge
+  « Désinscrit » sur la fiche), un id inconnu → 404, un-clic POST accepté /
+  GET redirige sans désinscrire, webhook et cron refusés sans secret (503),
+  zéro `pageerror`, zéro erreur console, aucune clé brute.
+- **Ce que la preuve navigateur a trouvé et corrigé** : un lien de
+  désinscription inconnu répondait **200** avec l'UI 404 — le squelette
+  `src/app/loading.tsx` enveloppait TOUTES les pages publiques dans une
+  Suspense racine, la coquille partait avant le `notFound()`. Le squelette
+  est descendu par segment (`login/loading.tsx`, `inscription/loading.tsx`,
+  composant `public-card-skeleton.tsx` ; `partage/[token]` avait déjà le
+  sien) et `/desinscription/[id]` répond un vrai 404 avant le premier
+  octet. Deux artefacts de harnais au passage : `innerText` ne lit jamais
+  la valeur d'un `<textarea>` (lire `inputValue()`), et `getByText` attrape
+  aussi l'annonceur de route de Next (ancrer sur le titre). Un contrôle à
+  blanc épinglait aussi le statut de compte `not_started` : après une
+  vérification expirée chez Resend, le domaine passe `failed` — le
+  contrôle vérifie désormais l'intention (« non vérifié »).
+- Les trois scripts `scripts/_tmp-engagement-*.ts` sont committés avec
+  l'étape (exception assumée à la règle « supprimés avant le commit ») :
+  les preuves d'envoi réel encore dues s'appuient dessus — ils partent à
+  la clôture de l'étape.
+- **En attente des DNS** (`mail.clozado.fr`, `in.clozado.fr` : aucun
+  enregistrement ne répondait encore le 2026-08-27 ; chez Resend,
+  `mail.clozado.fr` est passé `failed` — une vérification lancée qui a
+  expiré faute d'enregistrements, sans conséquence : elle repart d'un
+  clic) : l'envoi réel vers `pichonniermax@gmail.com`, les en-têtes réels
+  avant/après vérification (prévu : l'organisation de preuve adopte
+  `mail.clozado.fr` comme domaine propre — la bascule se prouve sans
+  domaine client), la réponse à un email de test, l'ouverture et le clic
+  réels sur la fiche, `RESEND_WEBHOOK_SECRET` à créer et à poser.
+
 ## Avancement
 
 - **Étape 0 — état des lieux** (2026-08-27) : `90c34a9`. Cahier reçu
@@ -750,3 +907,14 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   `mail.clozado.fr` et `in.clozado.fr` créés chez Resend, enregistrements
   DNS listés** (2026-08-27). STOP : accord sur la migration et sur §4.2,
   DNS à poser, état du compte Resend à confirmer.
+- **Étape 2 — la Partie 1 construite** (2026-08-27) : migration 0016
+  appliquée et désinscription irréversible (`35c4134`), puis l'envoi réel
+  par lots avec reprise, l'email de test, le pied de page conforme, la
+  désinscription publique, les webhooks signés, les indicateurs et la
+  fiche, la carte « Domaine d'envoi », `/profil`, français et anglais.
+  Preuves : 47 contrôles à blanc TOUT OK, 38 contrôles au navigateur TOUT
+  OK (et un vrai défaut corrigé : le 404 de `/desinscription/[id]` rendu
+  possible en descendant le squelette racine par segment). STOP : poser
+  les DNS du §7 chez l'hébergeur de `clozado.fr`, puis les preuves
+  d'envoi réel (§ « En attente des DNS ») et `RESEND_WEBHOOK_SECRET` —
+  l'étape se clôt là-dessus.

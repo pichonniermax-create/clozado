@@ -4,6 +4,7 @@ import NextAuth from "next-auth";
 import Nodemailer from "next-auth/providers/nodemailer";
 import { createTransport } from "nodemailer";
 import { renderMagicLinkEmail } from "@/lib/email/magic-link";
+import { productSender } from "@/lib/email/sender";
 import { db } from "@/db";
 import { accounts, users, verificationTokens } from "@/db/schema";
 
@@ -26,7 +27,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         secure: true,
         auth: { user: "resend", pass: process.env.RESEND_API_KEY },
       },
-      from: process.env.EMAIL_FROM ?? "onboarding@resend.dev",
+      // L'expéditeur du produit : une adresse RÉELLE (chantier engagement) — sans EMAIL_FROM, l'envoi refuse et le dit.
+      from: productSender().from,
       // Le lien de connexion dans la langue de son destinataire (chantier
       // i18n, étape 4) — à la place du modèle anglais d'Auth.js. Le
       // transport est le même que le sien ; ce qui change, c'est le texte.

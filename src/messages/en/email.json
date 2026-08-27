@@ -1,0 +1,25 @@
+{
+  "footer": {
+    "why": "You are receiving this email because you are in contact with {organization}.",
+    "unsubscribe": "Unsubscribe",
+    "unsubscribe_delay": "Unsubscribe requests are honoured within {days} business days.",
+    "tracking": "This email measures opens and clicks.",
+    "privacy": "Privacy policy",
+    "test_notice": "Test email sent from {product} — nothing went out to your contacts."
+  },
+  "test": {
+    "subject_prefix": "[Test] "
+  },
+  "unsubscribe": {
+    "title": "Unsubscribe",
+    "intro": "You will no longer receive emails from {organization} at {email}.",
+    "confirm": "Confirm my unsubscription",
+    "done_title": "Done",
+    "done": "{email} will no longer receive emails from {organization}. This decision is final: {organization} cannot reverse it.",
+    "already": "{email} was already unsubscribed from {organization}’s emails.",
+    "test_title": "Test email",
+    "test": "This email was a test sent from {product}: there is nothing to unsubscribe from.",
+    "invalid_title": "This link is not valid",
+    "invalid": "The unsubscribe link is incomplete or expired. You can reply to the email you received to ask not to be contacted again."
+  }
+}

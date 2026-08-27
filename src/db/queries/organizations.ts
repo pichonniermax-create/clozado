@@ -112,3 +112,32 @@ export async function updateOrganizationPack(user: OrgScopeUser, pack: string): 
   await db.update(organizations).set({ businessPack: key, updatedAt: new Date() }).where(eq(organizations.id, user.organizationId));
   return key;
 }
+
+/** Ce que la vérification du domaine d'expédition écrit — toujours l'ensemble, tel que le fournisseur l'a dit. */
+export type EmailDomainState = {
+  emailDomain: string | null;
+  emailDomainProviderId: string | null;
+  emailDomainStatus: string | null;
+  emailDomainRecords: unknown;
+  emailDomainCheckedAt: Date | null;
+  emailDomainCheckError: string | null;
+  emailDomainVerifiedAt: Date | null;
+};
+
+/** Écrit l'état du domaine d'expédition — un admin, sur SA propre organisation (chantier engagement, §3.2). */
+export async function saveEmailDomainState(user: OrgScopeUser, state: EmailDomainState): Promise<void> {
+  if (user.role !== "admin" || !user.organizationId) {
+    throw new AppError("acces_refuse_seul_l_admin_de_l_7ac9", undefined, 403);
+  }
+  await db.update(organizations).set({ ...state, updatedAt: new Date() }).where(eq(organizations.id, user.organizationId));
+}
+
+export type LegalFootprintInput = { country: string | null; postalAddress: string | null; legalMention: string | null; privacyPolicyUrl: string | null };
+
+/** Les faits du pied de page conforme (pays, adresse postale, mentions, politique de confidentialité) — validés par l'écran. */
+export async function updateOrganizationLegal(user: OrgScopeUser, data: LegalFootprintInput): Promise<void> {
+  if (user.role !== "admin" || !user.organizationId) {
+    throw new AppError("acces_refuse_seul_l_admin_de_l_7ac9", undefined, 403);
+  }
+  await db.update(organizations).set({ ...data, updatedAt: new Date() }).where(eq(organizations.id, user.organizationId));
+}

@@ -7,7 +7,13 @@ import { countMembersByTarget, getMailTarget, listMailTargets } from "@/db/queri
 import { getRenderContext, listNewsletterSources } from "@/db/queries/newsletters";
 import { loadNewsletter } from "@/lib/newsletter/actions";
 import { requestOrigin } from "@/lib/request-origin";
-import { requireUser } from "@/lib/session";
+import { requireSessionUser, requireUser } from "@/lib/session";
+import { countSendableMembers, countSentSince, getCampaignStats, getLatestSend, listTestMessages, sendPhase } from "@/db/queries/email-sends";
+import { getOrganizationOfRecord } from "@/db/queries/organizations";
+import { getUserProfile } from "@/db/queries/users";
+import { sharedSendingDomain } from "@/lib/email/config";
+import { missingFooterFacts } from "@/lib/email/footer";
+import { resolveSender } from "@/lib/email/sender";
 import { getTranslations } from "next-intl/server";
 import { settingsOfOrganization } from "@/i18n/locale-lookup";
 import { DEFAULT_LOCALE } from "@/i18n/locales";
@@ -41,6 +47,30 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
   }
   const counts = await countMembersByTarget(editorTargets);
 
+  // La carte d'envoi (chantier engagement) : l'envoi en cours ou terminé, ses agrégats, les tests, l'expéditeur effectif, l'audience réelle.
+  const session = await requireSessionUser();
+  const org = await getOrganizationOfRecord(user, data.newsletter.organizationId);
+  const currentTarget = editorTargets.find((t) => t.id === data.newsletter.targetId) ?? null;
+  const [send, tests, profile, sendable, sentToday] = await Promise.all([
+    getLatestSend(data.newsletter.id),
+    listTestMessages(data.newsletter.id),
+    getUserProfile(session.id),
+    currentTarget && !data.newsletter.sentAt ? countSendableMembers(currentTarget) : Promise.resolve(0),
+    countSentSince(new Date(new Date().setUTCHours(0, 0, 0, 0))),
+  ]);
+  const stats = data.newsletter.sendMode === "sent" ? await getCampaignStats(data.newsletter.id, org.id) : null;
+  const phase = sendPhase(send);
+  let sender = null;
+  let sharedDomain = "";
+  try {
+    sharedDomain = sharedSendingDomain();
+    const resolved = resolveSender(org, profile);
+    sender = { from: resolved.from, replyTo: resolved.replyTo, fallback: resolved.fallback, sharedDomain };
+  } catch {
+    // Sans EMAIL_SHARED_DOMAIN, la carte refuse d'envoyer et le dit (pas d'expéditeur).
+    sender = null;
+  }
+
   return (
     <>
       <PageHeader
@@ -69,7 +99,18 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
           topics: data.newsletter.topics,
         }}
       />
-      <SendStatusCard newsletter={data.newsletter} error={typeof sendError === "string" ? sendError : undefined} />
+      <SendStatusCard
+        newsletter={data.newsletter}
+        send={send}
+        stats={stats}
+        tests={tests}
+        sender={sender}
+        audience={currentTarget ? { total: counts.get(currentTarget.id) ?? 0, sendable } : null}
+        footerMissing={missingFooterFacts(org).length > 0}
+        sentToday={sentToday}
+        phase={phase}
+        error={typeof sendError === "string" ? sendError : undefined}
+      />
     </>
   );
 }

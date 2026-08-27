@@ -53,7 +53,7 @@ export default async function NewslettersPage() {
                 <Link href={`/newsletters/${n.id}`} className="flex min-w-0 flex-1 flex-col px-4 py-3">
                   <span className="flex items-center gap-2">
                     <span className="truncate text-sm font-medium">{n.title}</span>
-                    {n.sentAt ? <Badge>{t("envoyee")}</Badge> : <Badge variant="secondary">{t("brouillon")}</Badge>}
+                    {n.sentAt ? <Badge>{n.sendMode === "sent" ? t("envoyee") : t("marquee_envoyee")}</Badge> : <Badge variant="secondary">{t("brouillon")}</Badge>}
                   </span>
                   <span className="truncate text-xs tabular-nums text-muted-foreground">
                     {n.subject ?? t("objet_a_ecrire")}

@@ -12,7 +12,11 @@ import {
   Eye,
   Inbox,
   Mail,
+  MailOpen,
+  MailX,
   MessageSquare,
+  MousePointerClick,
+  UserMinus,
   Milestone,
   Phone,
   Route,
@@ -164,6 +168,11 @@ const KIND_ICONS: Record<JournalKind, ReactNode> = {
   origin_changed: <Route />,
   task_done: <CheckCircle2 />,
   lead_received: <Inbox />,
+  email_sent: <Send />,
+  email_opened: <MailOpen />,
+  email_clicked: <MousePointerClick />,
+  email_bounced: <MailX />,
+  email_unsubscribed: <UserMinus />,
 };
 
 function JournalRow({
@@ -184,7 +193,7 @@ function JournalRow({
   const showDeal = entry.dealId && entry.dealTitle && context !== "deal";
   const showContact = entry.contactId && entry.contactName && context !== "contact";
   // Le titre de la tâche est déjà dans l'intitulé (journalHeadline).
-  const body = entry.kind === "task_done" ? null : entry.body;
+  const body = entry.kind === "task_done" || entry.kind.startsWith("email_") ? null : entry.body;
 
   return (
     <li className="flex gap-3">
@@ -222,6 +231,9 @@ function JournalRow({
           )}
         </div>
         {body && <p className="text-sm whitespace-pre-line text-muted-foreground">{body}</p>}
+        {entry.url && (
+          <a href={entry.url} target="_blank" rel="noreferrer" className="truncate text-xs underline underline-offset-2">{entry.url}</a>
+        )}
         <p className="text-xs tabular-nums text-muted-foreground">
           {entry.actorLabel ?? t("systeme")} · {fmt.dateTime(entry.at)}
           {showDeal && (

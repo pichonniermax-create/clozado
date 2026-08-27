@@ -49,7 +49,7 @@
     "la_couleur_n_est_pas_un_466e": "La couleur n’est pas un code hexadécimal valide.",
     "leads_30_jours": "Leads (30 jours)",
     "lecture_seule_seul_l_admin_de_0a29": "Lecture seule — seul l’admin de l’organisation peut modifier ces réglages.",
-    "les_emails_envoyes_en_ton_nom_c54e": "Les emails envoyés en ton nom partent depuis l’adresse du produit, avec ton nom d’expéditeur devant ; ton adresse reçoit les réponses. Elle deviendra l’expéditeur lui-même une fois ton domaine d’envoi vérifié.",
+    "les_emails_envoyes_en_ton_nom_c54e": "Les emails envoyés en ton nom partent de ton adresse sur le sous-domaine de la plateforme, avec ton nom d’expéditeur devant ; ton adresse de réponse reçoit les réponses (chaque membre peut mettre la sienne dans son profil). Elle deviendra l’expéditeur lui-même une fois ton domaine d’envoi vérifié.",
     "les_etapes_de_ce_pipeline_leur_6f64": "Les étapes de ce pipeline — leur ordre est celui du kanban. Probabilité indicative en %, marqueur gagné/perdu sur les étapes terminales.",
     "les_indicateurs_mis_en_avant_sur_4291": "Les indicateurs mis en avant sur le tableau de bord sont ceux de ton métier — un CGP suit ses encours et sa collecte, un courtier ses volumes et ses délais.{n}",
     "libelle_de_l_etape": "Libellé de l’étape",
@@ -115,7 +115,10 @@
     "dates_heures_et_echeances_se_lisent_a7b8": "Dates, heures et échéances se lisent dans ce fuseau.",
     "enregistrer_langue_devise_et_fuseau": "Enregistrer",
     "langue_devise_ou_fuseau_inconnu": "Langue, devise ou fuseau inconnu.",
-    "langue_devise_et_fuseau_enregistres": "Langue, devise et fuseau enregistrés."
+    "langue_devise_et_fuseau_enregistres": "Langue, devise et fuseau enregistrés.",
+    "le_pays_doit_etre_un_code_a_deux_lettres": "Le pays doit être un code à deux lettres (FR, BE, CH…).",
+    "l_adresse_de_la_politique_de_confidentialite_ne_semble_pas_valide": "L’adresse de la politique de confidentialité ne semble pas valide (elle commence par https://).",
+    "pied_de_page_enregistre": "Pied de page enregistré."
   },
   "queries": {
     "fields": {
@@ -131,5 +134,97 @@
     "origine_detachee": "Origine détachée",
     "origine_non_renseignee": "origine non renseignée",
     "site_principal": "Site principal"
+  },
+  "domainCard": {
+    "domaine_d_envoi": "Domaine d’envoi",
+    "verifie": "Vérifié",
+    "en_attente": "En attente",
+    "repli": "Repli",
+    "expediteur_effectif": "Aujourd’hui, tes emails partent de : {from}",
+    "sans_domaine": "Tant que ton domaine n’est pas vérifié, tes emails partent du sous-domaine {domain} de la plateforme, à ton nom — ça marche dès maintenant. Déclare ton domaine pour envoyer depuis ta propre adresse : nous te donnons les enregistrements DNS à créer, puis la bascule se fait toute seule, sans rien réenvoyer.",
+    "ton_domaine": "Ton domaine",
+    "celui_de_ton_adresse": "Celui de ton adresse d’expédition (« cabinet-dupont.fr »).",
+    "placeholder_domaine": "cabinet-dupont.fr",
+    "declarer": "Déclarer ce domaine",
+    "indisponible_sur_ce_plan": "Le plan actuel du fournisseur d’envoi n’admet pas de domaine supplémentaire : {domain} ne peut pas être vérifié pour l’instant. Tes emails continuent de partir de {shared}, à ton nom, sans rien changer. La vérification sera possible quand le plan aura été augmenté.",
+    "le_fournisseur_a_dit": "Le fournisseur a répondu : {message}",
+    "retirer_ce_domaine": "Retirer ce domaine",
+    "verifie_le": "dernière vérification le {when}",
+    "verifier_maintenant": "Vérifier maintenant",
+    "verifie_expediteur_propre": "Vérifié le {when} : tes emails partent de ton adresse d’expédition, sur ton domaine.",
+    "verifie_mais_adresse_ailleurs": "Le domaine {domain} est vérifié, mais ton adresse de réponse n’est pas dessus : tes emails partent encore du sous-domaine de la plateforme. <link>Mettre une adresse sur ce domaine</link>",
+    "tout_est_pose_verification_en_cours": "Tous les enregistrements sont là ; la vérification par le fournisseur est en cours — revérifie dans quelques minutes.",
+    "il_manque": "Il manque {count, plural, one {un enregistrement} other {# enregistrements}} : {names}. Crée-les chez ton hébergeur (copie chaque valeur), puis « Vérifier maintenant ». La propagation prend de quelques minutes à quelques heures.",
+    "colonnes": {
+      "type": "Type",
+      "nom": "Nom",
+      "valeur": "Valeur",
+      "etat": "État"
+    },
+    "relatif": "(chez certains hébergeurs : {name})",
+    "verifie_par_nous": "vérifié par nous",
+    "recordStatus": {
+      "verified": "En place",
+      "pending": "En cours",
+      "not_started": "Manquant",
+      "failed": "Incorrect",
+      "temporary_failure": "Réessayer"
+    },
+    "instructions_par_hebergeur": "Instructions par hébergeur",
+    "hosters": {
+      "ovh": {
+        "name": "OVH",
+        "steps": "Manager OVH → Noms de domaine → ton domaine → onglet « Zone DNS » → « Ajouter une entrée ». Choisis le type (TXT, MX, CNAME), colle le nom en sous-domaine (la partie avant ton domaine) et la valeur. Pour un MX, la priorité est demandée à part (10)."
+      },
+      "gandi": {
+        "name": "Gandi",
+        "steps": "Tableau de bord Gandi → Domaines → ton domaine → « Enregistrements DNS » → « Ajouter ». Type, nom (sans le domaine), valeur ; pour un MX, la priorité 10 va devant la valeur."
+      },
+      "ionos": {
+        "name": "IONOS",
+        "steps": "IONOS → Domaines & SSL → ton domaine → « DNS » → « Ajouter un enregistrement ». Nom d’hôte = la partie avant ton domaine ; pour un TXT long (DKIM), colle la valeur entière."
+      },
+      "cloudflare": {
+        "name": "Cloudflare",
+        "steps": "Cloudflare → ton site → DNS → « Add record ». Pour le CNAME de suivi, désactive le nuage orange (proxy « DNS only »). Nom = la partie avant ton domaine ; priorité 10 pour le MX."
+      },
+      "o2switch": {
+        "name": "o2switch",
+        "steps": "cPanel → « Éditeur de zone DNS » → « Gérer » → « Ajouter un enregistrement ». Nom complet avec le domaine, un point final accepté ; TTL par défaut."
+      },
+      "squarespace": {
+        "name": "Squarespace / Google Domains",
+        "steps": "Squarespace → Domaines → ton domaine → « Paramètres DNS » → « Enregistrements personnalisés » → « Ajouter ». Hôte = la partie avant ton domaine ; pour un MX, la priorité 10 est un champ à part."
+      },
+      "other": {
+        "name": "Autre hébergeur",
+        "steps": "Cherche « zone DNS » ou « enregistrements DNS » dans ton hébergeur. Chaque ligne du tableau devient un enregistrement : le type, le nom (souvent sans ton domaine, parfois avec), la valeur telle quelle, et pour le MX la priorité 10. Ne touche à aucun enregistrement existant."
+      }
+    }
+  },
+  "legalCard": {
+    "pied_de_page_des_emails": "Pied de page des emails",
+    "chaque_email_porte_qui_l_envoie": "Chaque email porte qui l’envoie, son adresse postale, le lien de désinscription et la mention de la mesure des ouvertures et des clics — composés d’après le profil de ton pays. Rien ne part sans.",
+    "sans_adresse_postale_aucun_envoi": "Sans adresse postale, aucun envoi réel ne peut partir (un test, si).",
+    "pays": "Pays",
+    "le_pays_choisit_les_regles": "Choisit les règles du pied de page — profil appliqué : {profile}.",
+    "profiles": {
+      "eu": "Union européenne",
+      "ch": "Suisse",
+      "gb": "Royaume-Uni",
+      "ca": "Canada",
+      "us": "États-Unis"
+    },
+    "non_renseigne_profil_europeen": "Non renseigné (profil européen)",
+    "politique_de_confidentialite": "Politique de confidentialité",
+    "liee_au_pied_de_page": "Liée au pied de page quand elle est renseignée.",
+    "placeholder_politique": "https://mon-cabinet.fr/confidentialite",
+    "adresse_postale": "Adresse postale",
+    "obligatoire_au_pied": "Obligatoire au pied de chaque email.",
+    "placeholder_adresse": "12 rue des Lilas\n69001 Lyon",
+    "mentions_legales": "Mentions légales",
+    "siren_orias_rcs": "SIREN, ORIAS, RCS… texte libre, tel qu’il s’affichera.",
+    "placeholder_mentions": "SARL au capital de 10 000 € · ORIAS 12 345 678",
+    "enregistrer_le_pied_de_page": "Enregistrer le pied de page"
   }
 }

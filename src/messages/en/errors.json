@@ -129,5 +129,19 @@
   "un_lead_porte_au_moins_un_email_dc0f": "A lead carries at least an email or a phone number.",
   "une_interaction_se_rattache_a_un_contact_b8a7": "An interaction is attached to a contact or a deal.",
   "une_note_sans_texte_n_a_rien_9ef4": "A note without text has nothing to say — write it, or choose “Call”, “Email” or “Meeting”.",
-  "une_recurrence_sans_echeance_ne_veut_rien_3108": "A recurrence without a due date means nothing — set a due date first."
+  "une_recurrence_sans_echeance_ne_veut_rien_3108": "A recurrence without a due date means nothing — set a due date first.",
+  "envoi_introuvable": "This send cannot be found.",
+  "cet_envoi_est_termine": "This send is finished: there is nothing to resume.",
+  "cette_newsletter_a_ete_envoyee_par_le_produit": "This newsletter was sent by the product: emails went out, the mark cannot be undone.",
+  "l_objet_est_vide_ecris_le_avant_d_envoyer": "The subject is empty: write it before sending.",
+  "la_newsletter_n_est_pas_finie_un_bloc_est_vide": "The newsletter isn’t finished: the preview text (preheader) or a block is empty or incomplete.",
+  "l_adresse_postale_manque_au_pied_de_page": "The postal address is missing from the footer: fill it in under Brand & settings before sending.",
+  "aucune_adresse_de_reponse": "No reply address: set it in your profile or in the organization’s settings.",
+  "l_email_de_test_n_est_pas_parti": "The test email didn’t go out ({reason}).",
+  "ce_domaine_ne_semble_pas_valide": "“{domain}” doesn’t look like a domain (expected: cabinet-dupont.fr).",
+  "un_domaine_est_deja_declare_retire_le_d_abord": "A domain is already declared ({domain}): remove it first.",
+  "domaine_indisponible_sur_ce_plan": "The current plan of the sending provider doesn’t allow another domain: verification is unavailable for now, your emails keep going out from the platform’s subdomain.",
+  "le_fournisseur_d_envoi_a_repondu": "The sending provider replied: {message}",
+  "aucun_domaine_d_envoi_declare": "No sending domain is declared.",
+  "utilisateur_introuvable": "User not found."
 }

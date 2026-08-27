@@ -1,7 +1,10 @@
 import { use } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Download, Mail } from "lucide-react";
+import { CalendarDays, Download, Mail, MailOpen, MessageSquare, MousePointerClick } from "lucide-react";
+import { StatTile } from "@/components/stat-tile";
+import { suppressionOfContact } from "@/db/queries/email-events";
+import { getContactIndicators, listSentNewslettersOfContact } from "@/db/queries/engagement";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +44,15 @@ import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import type { TranslatorOf } from "@/i18n/translator";
 
+/** L'état de l'email réellement envoyé à cette personne pour une newsletter : remis, ouvert (approx.), cliqué, rejeté… — vide pour un envoi déclaré à la main. */
+function emailStateOf(m: { status: string; firstOpenedAt: Date | null; firstClickedAt: Date | null } | undefined, t: TranslatorOf<"contacts.detail">): string {
+  if (!m) return "";
+  if (m.firstClickedAt) return t("emailState.clicked");
+  if (m.firstOpenedAt) return t("emailState.opened");
+  const known = ["queued", "sent", "delivered", "delayed", "bounced", "complained", "failed"] as const;
+  return (known as readonly string[]).includes(m.status) ? t(`emailState.${m.status as (typeof known)[number]}`) : m.status;
+}
+
 /** Les gestes du journal d'accès, en mots — `contacts.detail.access.<geste>` ; un geste inconnu s'affiche tel quel. */
 const ACCESS_ACTIONS = ["view", "export", "delete", "merge"] as const;
 function accessLabel(action: string, t: TranslatorOf<"contacts.detail">): string {
@@ -71,7 +83,7 @@ export default async function ContactPage({
   // à l'heure (exigence données personnelles, docs/module-relationnel.md §C).
   await logContactAccess(contact, user.id, "view");
 
-  const [accessLog, orgUsers, duplicates, journal, mailTargets, contactTargets, received] = await Promise.all([
+  const [accessLog, orgUsers, duplicates, journal, mailTargets, contactTargets, received, indicators, suppression, sentMessages] = await Promise.all([
     listContactAccessLog(user, id),
     listOrgUsers(user),
     contact.deletedAt
@@ -83,7 +95,12 @@ export default async function ContactPage({
     contact.deletedAt ? Promise.resolve([]) : listTargetsOfContact(user, id),
     // Ce qu'elle a reçu : la photographie des envois marqués, même si la fiche est une tombale.
     listNewslettersReceivedByContact(user, id),
+    // Les quatre indicateurs d'engagement (chantier engagement, une seule définition chacun), l'adresse supprimée, l'état des envois réels.
+    contact.deletedAt ? Promise.resolve(null) : getContactIndicators(user, id),
+    contact.deletedAt ? Promise.resolve(null) : suppressionOfContact(contact.organizationId, id),
+    contact.deletedAt ? Promise.resolve([]) : listSentNewslettersOfContact(user, id),
   ]);
+  const messageByNewsletter = new Map(sentMessages.map((m) => [m.id, m]));
 
   // -------------------------------------------------------------------
   // Pierre tombale : l'identité a été détruite, seule la traçabilité
@@ -115,6 +132,7 @@ export default async function ContactPage({
         backTo={{ href: "/contacts", label: tr("contacts") }}
         actions={
           <span className="flex items-center gap-2">
+            {suppression && <Badge variant="outline" title={tr("desinscrit_detail", { when: fmt.date(suppression.createdAt), reason: tr(`suppressionReasons.${suppression.reason as "unsubscribed" | "bounced" | "complained" | "manual"}`) })}>{tr("desinscrit")}</Badge>}
             {!isPerson && <Badge variant="secondary">{tr("societe")}</Badge>}
             {owner && (
               <span className="text-xs text-muted-foreground">{tr("suivi_par", { n: owner.name ?? owner.email })}</span>
@@ -153,6 +171,22 @@ export default async function ContactPage({
           ))
         )}
       </p>
+
+      {/* Les indicateurs d'engagement — une seule définition par indicateur
+          (src/db/queries/engagement.ts) ; l'ouverture est dite approximative. */}
+      {indicators && (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatTile label={tr("indicateurs.dernier_email_ouvert")} value={indicators.lastOpenedAt ? fmt.date(indicators.lastOpenedAt) : "—"} hint={tr("indicateurs.approx")} icon={<MailOpen />} />
+          <StatTile label={tr("indicateurs.dernier_clic")} value={indicators.lastClickedAt ? fmt.date(indicators.lastClickedAt) : "—"} icon={<MousePointerClick />} />
+          <StatTile label={tr("indicateurs.derniere_interaction")} value={indicators.lastInteractionAt ? fmt.date(indicators.lastInteractionAt) : "—"} hint={tr("indicateurs.interaction_def")} icon={<MessageSquare />} />
+          <StatTile label={tr("indicateurs.dernier_rendez_vous")} value={indicators.lastAppointmentAt ? fmt.date(indicators.lastAppointmentAt) : "—"} icon={<CalendarDays />} />
+        </div>
+      )}
+      {suppression && (
+        <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+          {tr("desinscrit_detail", { when: fmt.date(suppression.createdAt), reason: tr(`suppressionReasons.${suppression.reason as "unsubscribed" | "bounced" | "complained" | "manual"}`) })}
+        </p>
+      )}
 
       <Card>
         <CardHeader>
@@ -341,7 +375,10 @@ export default async function ContactPage({
                 key={n.id}
                 href={`/newsletters/${n.id}`}
                 title={n.subject || n.title}
-                subtitle={tr("envoyee_le", { value: n.sentAt ? fmt.date(n.sentAt) : "—", value2: n.topics.length > 0 ? tr("sujets", { join: n.topics.join(", ") }) : "" })}
+                subtitle={[
+                  tr("envoyee_le", { value: n.sentAt ? fmt.date(n.sentAt) : "—", value2: n.topics.length > 0 ? tr("sujets", { join: n.topics.join(", ") }) : "" }),
+                  emailStateOf(messageByNewsletter.get(n.id), tr),
+                ].filter(Boolean).join(" · ")}
               />
             ))}
           </ListCard>

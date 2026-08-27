@@ -5,5 +5,10 @@
   },
   "sheet": {
     "fermer": "Close"
+  },
+  "copyButton": {
+    "copier": "Copy",
+    "copie": "Copied",
+    "copie_manuelle": "Copy this text:"
   }
 }

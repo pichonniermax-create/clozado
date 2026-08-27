@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** Chargement d'un écran public (accueil, connexion) — la silhouette du cadre des écrans publics. */
-export default function RootLoading() {
+/** La silhouette des écrans publics à carte (connexion, inscription) pendant leur chargement. */
+export function PublicCardSkeleton() {
   return (
     <div className="flex min-h-screen flex-col bg-muted/40">
       <div className="flex flex-1 items-center justify-center px-4 py-10">

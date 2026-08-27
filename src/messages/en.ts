@@ -5,6 +5,7 @@ import brand from "./en/brand.json";
 import contacts from "./en/contacts.json";
 import dashboard from "./en/dashboard.json";
 import deals from "./en/deals.json";
+import email from "./en/email.json";
 import errors from "./en/errors.json";
 import figures from "./en/figures.json";
 import followup from "./en/followup.json";
@@ -13,6 +14,7 @@ import metrics from "./en/metrics.json";
 import nav from "./en/nav.json";
 import newsletters from "./en/newsletters.json";
 import partners from "./en/partners.json";
+import profile from "./en/profile.json";
 import settings from "./en/settings.json";
 import shares from "./en/shares.json";
 import shell from "./en/shell.json";
@@ -39,6 +41,7 @@ const en = {
   contacts,
   dashboard,
   deals,
+  email,
   errors,
   figures,
   followup,
@@ -47,6 +50,7 @@ const en = {
   nav,
   newsletters,
   partners,
+  profile,
   settings,
   shares,
   shell,

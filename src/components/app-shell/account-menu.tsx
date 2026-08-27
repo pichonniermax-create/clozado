@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Check, LogOut, Settings } from "lucide-react";
+import { Check, LogOut, Settings, UserRound } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -77,6 +77,10 @@ export function AccountMenu({
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+        <DropdownMenuItem render={<Link href="/profil" />}>
+          <UserRound />
+          {t("mon_profil")}
+        </DropdownMenuItem>
         {hasOrganization && (
           <DropdownMenuItem render={<Link href="/settings" />}>
             <Settings />

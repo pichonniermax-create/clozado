@@ -1,0 +1,14 @@
+{
+  "mon_profil": "My profile",
+  "ce_que_tu_regles_pour_toi": "What you set for yourself: where replies to your sends arrive, your booking link.",
+  "adresse_de_reponse": "Reply address",
+  "sinon_celle_de_l_organisation": "If empty, replies go to the organization’s reply address ({email}).",
+  "sinon_ton_adresse_de_connexion": "If empty, replies go to your sign-in address.",
+  "lien_de_prise_de_rendez_vous": "Booking link",
+  "calendly_ou_autre": "Calendly or other — insertable in one click into emails and templates.",
+  "placeholder_lien": "https://calendly.com/…",
+  "enregistrer": "Save",
+  "l_adresse_de_reponse_ne_semble_pas_valide": "The reply address doesn’t look valid.",
+  "le_lien_de_rendez_vous_ne_semble_pas_valide": "The booking link doesn’t look valid (it starts with https://).",
+  "profil_enregistre": "Profile saved."
+}

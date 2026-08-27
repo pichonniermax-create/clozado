@@ -40,7 +40,7 @@
     "appels_emails_rendez_vous_et_notes_920c": "Appels, emails, rendez-vous et notes — et ce que ses affaires racontent : étapes franchies, partages, tâches achevées.",
     "aucune_affaire_reliee_a_cette_fiche": "Aucune affaire reliée à cette fiche —",
     "aucune_etiquette_dans_ton_organisation_pour_4ff3": "Aucune étiquette dans ton organisation pour l’instant — crée la première ci-dessous.",
-    "aucune_newsletter_marquee_envoyee_a_cette_15d7": "Aucune newsletter marquée envoyée à cette personne. L’historique se construit quand une newsletter est marquée « envoyée » à une cible dont elle fait partie — l’envoi lui-même se fait depuis ton outil d’emailing.",
+    "aucune_newsletter_marquee_envoyee_a_cette_15d7": "Aucune newsletter envoyée à cette personne. L’historique se construit quand une newsletter est envoyée — ou marquée envoyée — à une cible dont elle fait partie.",
     "aucune_personne_rattachee_a_cette_societe_ec5c": "Aucune personne rattachée à cette société. Le lien se pose depuis la fiche d’une personne.",
     "aucune_pour_l_instant_voir_les_4a14": "aucune pour l’instant — <link>voir les cibles</link>",
     "aucune_tache_pour_ce_contact_l_20ff": "Aucune tâche pour ce contact — l’ajout rapide ci-dessous la rattache à cette fiche.",
@@ -93,7 +93,34 @@
     "telephone": "Téléphone",
     "toutes_les_donnees_de_cette_fiche_873e": "Toutes les données de cette fiche — identité, étiquettes, affaires, tâches, interactions, journal des accès — dans un fichier JSON.",
     "ville": "Ville",
-    "vip_prospect_notaire": "VIP, Prospect, Notaire…"
+    "vip_prospect_notaire": "VIP, Prospect, Notaire…",
+    "desinscrit": "Désinscrit",
+    "desinscrit_detail": "Cette adresse ne reçoit plus d’emails de l’organisation depuis le {when} ({reason}). C’est définitif : rien ni personne ne peut le revenir.",
+    "suppressionReasons": {
+      "unsubscribed": "désinscription",
+      "bounced": "adresse rejetée",
+      "complained": "signalé comme indésirable",
+      "manual": "retrait manuel"
+    },
+    "indicateurs": {
+      "dernier_email_ouvert": "Dernier email ouvert",
+      "approx": "Approximatif — le préchargement compte comme une ouverture",
+      "dernier_clic": "Dernier clic",
+      "derniere_interaction": "Dernière interaction",
+      "interaction_def": "Appel, email, rendez-vous tenu, note, ou clic",
+      "dernier_rendez_vous": "Dernier rendez-vous"
+    },
+    "emailState": {
+      "queued": "en attente d’envoi",
+      "sent": "envoyé",
+      "delivered": "remis",
+      "delayed": "retardé",
+      "bounced": "rejeté",
+      "complained": "signalé comme indésirable",
+      "failed": "échec d’envoi",
+      "opened": "ouvert (approx.)",
+      "clicked": "cliqué"
+    }
   },
   "detailNotFound": {
     "cette_fiche_n_existe_pas": "Cette fiche n’existe pas.",

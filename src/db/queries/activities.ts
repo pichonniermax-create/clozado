@@ -19,6 +19,7 @@ import {
 import { assertOrgAccess } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
+import { listContactEmailEntries } from "./engagement";
 import type { TranslatorOf } from "@/i18n/translator";
 
 /**
@@ -64,7 +65,12 @@ export type JournalKind =
   | "commission_updated"
   | "origin_changed"
   | "task_done"
-  | "lead_received";
+  | "lead_received"
+  | "email_sent"
+  | "email_opened"
+  | "email_clicked"
+  | "email_bounced"
+  | "email_unsubscribed";
 
 export type JournalEntry = {
   /** Unique toutes sources confondues (préfixe par source). */
@@ -95,6 +101,10 @@ export type JournalEntry = {
   activityId: string | null;
   /** Lead reçu : l'origine (configurée, sinon le texte reçu, sinon le simulateur). */
   originLabel: string | null;
+  /** Le lien cliqué dans un email (chantier engagement) ; absent ailleurs. */
+  url?: string | null;
+  /** La newsletter dont vient l'email, pour y mener. */
+  newsletterId?: string | null;
 };
 
 export type Journal = { entries: JournalEntry[]; truncated: boolean };
@@ -441,6 +451,23 @@ async function collectJournal(scope: JournalScope, limit: number, t: TranslatorO
       activityId: null,
       originLabel: r.originLabel ?? r.originRaw ?? r.simulator ?? t("origine_non_renseignee"),
     });
+  }
+
+  // Les emails reçus par cette personne (chantier engagement) : envoyé, ouvert
+  // (approx.), chaque clic avec son lien, rejeté, désinscrit — fusionnés à la
+  // lecture, comme le reste. Sur une fiche seulement : le fil de
+  // l'organisation ne montre pas cinq mille envois.
+  if (scope.contactId) {
+    const contactId = scope.contactId;
+    const base = { partnerName: null, autoRule: null, stage: null, dealId: null, dealTitle: null, contactId, contactName: null, activityId: null, originLabel: null, actorLabel: null };
+    for (const m of await listContactEmailEntries(orgId, contactId, limit)) {
+      if (m.sentAt) entries.push({ ...base, key: `mail:${m.messageId}:sent`, kind: "email_sent", at: m.sentAt, body: m.subject, url: null, newsletterId: m.newsletterId });
+      if (m.firstOpenedAt) entries.push({ ...base, key: `mail:${m.messageId}:opened`, kind: "email_opened", at: m.firstOpenedAt, body: m.subject, url: null, newsletterId: m.newsletterId });
+      if (m.bouncedAt) entries.push({ ...base, key: `mail:${m.messageId}:bounced`, kind: "email_bounced", at: m.bouncedAt, body: [m.subject, m.failureReason].filter(Boolean).join(" — "), url: null, newsletterId: m.newsletterId });
+      for (const e of m.events) {
+        entries.push({ ...base, key: `mail:${m.messageId}:${e.type}:${e.at.getTime()}`, kind: e.type === "clicked" ? "email_clicked" : "email_unsubscribed", at: e.at, body: m.subject, url: e.url, newsletterId: m.newsletterId });
+      }
+    }
   }
 
   entries.sort((a, b) => b.at.getTime() - a.at.getTime() || a.key.localeCompare(b.key));

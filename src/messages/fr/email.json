@@ -1,0 +1,25 @@
+{
+  "footer": {
+    "why": "Vous recevez cet email parce que vous êtes en contact avec {organization}.",
+    "unsubscribe": "Se désinscrire",
+    "unsubscribe_delay": "La désinscription est prise en compte sous {days} jours ouvrables.",
+    "tracking": "Cet email mesure les ouvertures et les clics.",
+    "privacy": "Politique de confidentialité",
+    "test_notice": "Email de test envoyé depuis {product} — rien n’est parti vers vos contacts."
+  },
+  "test": {
+    "subject_prefix": "[Test] "
+  },
+  "unsubscribe": {
+    "title": "Se désinscrire",
+    "intro": "Vous ne recevrez plus d’emails de {organization} à l’adresse {email}.",
+    "confirm": "Confirmer ma désinscription",
+    "done_title": "C’est fait",
+    "done": "L’adresse {email} ne recevra plus d’emails de {organization}. Cette décision est définitive : {organization} ne peut pas la revenir.",
+    "already": "L’adresse {email} était déjà désinscrite des emails de {organization}.",
+    "test_title": "Email de test",
+    "test": "Cet email était un test envoyé depuis {product} : il n’y a rien à désinscrire.",
+    "invalid_title": "Ce lien n’est pas valide",
+    "invalid": "Le lien de désinscription est incomplet ou expiré. Vous pouvez répondre à l’email reçu pour demander à ne plus être contacté."
+  }
+}
