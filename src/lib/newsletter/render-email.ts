@@ -52,6 +52,8 @@ export type RenderInput = {
   preheader: string;
   blocks: AnyBlock[];
   signatory: RenderSignatory;
+  /** La langue des contenus (attribut `lang` du document) — celle de l'organisation ; « fr » à défaut. */
+  lang?: string;
   /**
    * Rendu destiné à l'éditeur : ajoute une ancre `data-block` par bloc pour
    * que le clic sache quel bloc ouvrir. Faux (défaut) pour tout rendu qui
@@ -177,6 +179,27 @@ function renderBouton(block: Extract<AnyBlock, { type: "bouton" }>, brand: Resol
   return bulletproofButton(block.label, block.url, brand);
 }
 
+/**
+ * Les SOURCES (étape 6) : les articles de la matière dont l'email s'inspire,
+ * chacun avec son lien — le titre lié, l'éditeur et la date. Un intitulé
+ * court au-dessus (celui du bloc), une ligne par article, en table à une
+ * colonne pour que tous les clients l'alignent pareil. Un bloc sans article
+ * ne rend que son intitulé (le brouillon qu'on vient d'insérer).
+ */
+function renderSources(block: Extract<AnyBlock, { type: "sources" }>, brand: ResolvedBrand): string {
+  const heading = block.title
+    ? `<p style="margin:0 0 8px 0;font:600 12px/1.4 ${brand.bodyFont};letter-spacing:0.08em;text-transform:uppercase;color:${brand.secondary};">${escapeHtml(block.title)}</p>`
+    : "";
+  const rows = block.items
+    .map((item) => {
+      const meta = [item.publisher, item.date].filter(Boolean).map(escapeHtml).join(", ");
+      return `<tr><td style="padding:4px 0;font:400 13px/1.5 ${brand.bodyFont};color:${brand.ink};"><a href="${escapeHtml(item.url)}" style="color:${brand.primary};text-decoration:underline;">${escapeHtml(item.title)}</a>${meta ? `<span style="color:${brand.secondary};"> — ${meta}</span>` : ""}</td></tr>`;
+    })
+    .join("");
+  const list = rows ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${rows}</table>` : "";
+  return `${heading}${list}`;
+}
+
 function renderSeparateur(brand: ResolvedBrand): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:16px 0;"><div style="border-top:1px solid ${brand.secondary};font-size:0;line-height:0;">&nbsp;</div></td></tr></table>`;
 }
@@ -289,7 +312,9 @@ export function renderBlockUnits(
               ? renderCta(block, brand)
               : block.type === "bouton"
                 ? renderBouton(block, brand)
-                : renderSeparateur(brand);
+                : block.type === "sources"
+                  ? renderSources(block, brand)
+                  : renderSeparateur(brand);
     const attrs = editable ? blockAttrs(i) : undefined;
     // Le séparateur n'est pas encadré en rendu normal (il porte ses propres
     // marges) : en mode éditeur il l'est quand même, sinon il n'aurait aucune
@@ -351,7 +376,7 @@ export function renderNewsletterHtml(input: RenderInput): string {
   const body = renderBlocks(input.blocks, input.brand, input.editable ?? false);
 
   return `<!doctype html>
-<html lang="fr" xmlns="http://www.w3.org/1999/xhtml">
+<html lang="${escapeHtml(input.lang ?? "fr")}" xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />

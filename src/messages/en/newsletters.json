@@ -56,7 +56,15 @@
     "titre": "Title",
     "titre_de_l_encart": "Box title",
     "un_trait_horizontal_qui_separe_deux_6e97": "A horizontal line that separates two parts of the email. Nothing to configure.",
-    "une_phrase_qui_donne_envie_de_ae4d": "A sentence that makes people want to click."
+    "une_phrase_qui_donne_envie_de_ae4d": "A sentence that makes people want to click.",
+    "intitule_du_bloc": "Heading",
+    "ex_sources": "E.g. Sources",
+    "articles_cites": "Cited articles",
+    "aucun_article_cite_pour_l_instant": "No article cited yet.",
+    "a_citer_aussi": "Also worth citing",
+    "citer": "Cite",
+    "les_sources_viennent_de_la_matiere_rattachee": "Sources come from the material attached to this email (basket or content gap): title, publisher, date and link as stored — never a link typed by hand.",
+    "aucun_article_n_est_rattache_a_cet_email": "No article is attached to this email: start from the monitoring basket or the content gap to have sources to cite."
   },
   "blocks": {
     "bouton": {
@@ -86,6 +94,10 @@
     "titre": {
       "label": "Title",
       "hint": "Opens a section"
+    },
+    "sources": {
+      "label": "Sources",
+      "hint": "The articles the email draws on, with their links"
     }
   },
   "detail": {
@@ -151,14 +163,15 @@
     "sujets": " · topics: {join}",
     "supprimer_ce_bloc": "Delete this block",
     "termine": "Done",
-    "un_chiffre_n_est_ni_dans_5699": "A figure is neither in your verified figures nor in brackets — check it or put it in brackets.",
-    "un_peu_long_risque_d_etre_49a6": "A bit long: it may get cut off in some inboxes."
-  },
-  "review": {
-    "blocs_d_appel_a_l_action_c471": "{ctaCount} call-to-action blocks (cta/button) — only one is allowed per newsletter.",
-    "chiffre_non_autorise_dans_un_bloc_3f72": "Unauthorized figure “{figure}” in a {type} block — neither a verified figure of the organization nor a [placeholder].",
-    "objet_de_caracteres_maximum": "Subject is {count} characters — maximum {subjectMax}.",
-    "preheader_de_caracteres_maximum": "Preheader is {count} characters — maximum {preheaderMax}."
+    "un_peu_long_risque_d_etre_49a6": "A bit long: it may get cut off in some inboxes.",
+    "le_chiffre_n_est_ni_dans_tes": "The figure {figure} is neither one of your verified figures nor in brackets — check it or put it in brackets.",
+    "le_chiffre_vient_de_l_article": "The figure {figure} comes from the article “{title}”: it is not one of your verified figures — check it, or add it under Figures.",
+    "formulation_reprise_de_la_source": "A phrase repeats the source “{title}” — rephrase it in our own words.",
+    "un_lien_dans_le_texte_ne_correspond": "A link in the text does not match any attached source — remove it, or cite the article in the Sources block.",
+    "article_articles_de_la_matiere_non_cites": "{count, plural, one {One article of the material is not cited} other {# articles of the material are not cited}} — if they were used, add them to the Sources block.",
+    "source_sources_hors_matiere_retirees": "{count, plural, one {One cited source outside the material was removed} other {# cited sources outside the material were removed}} — only attached articles can be cited.",
+    "le_bloc_sources_est_vide": "The Sources block is empty: choose the articles to cite, or delete it.",
+    "sujets_traites_declares": "Topics covered: {join} — editable when marking as sent."
   },
   "saveIndicator": {
     "enregistre": "Saved {formatSavedAt}",

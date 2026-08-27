@@ -56,6 +56,7 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
         }))}
         brand={context.brand}
         signatory={context.signatory}
+        allowedFigures={context.allowedFigures}
         sources={sources.map((s) => ({ ...s, publishedAt: s.publishedAt?.toISOString() ?? null }))}
         initial={{
           id: data.newsletter.id,
@@ -65,6 +66,7 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
           preheader: data.newsletter.preheader ?? "",
           brief: data.newsletter.brief ?? "",
           blocks: data.blocks,
+          topics: data.newsletter.topics,
         }}
       />
       <SendStatusCard newsletter={data.newsletter} error={typeof sendError === "string" ? sendError : undefined} />

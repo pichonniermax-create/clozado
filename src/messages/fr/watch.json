@@ -33,7 +33,8 @@
     "angles_qu_ils_ont_pris_prends_9b7c": "Angles qu’ils ont pris : {angles}. Prends le nôtre : ce que ça change concrètement pour le lecteur, avec nos chiffres vérifiés quand ils existent.",
     "ne_reprends_rien_de_ce_qu_2f6e": "Ne reprends rien de ce qu’ils ont écrit — ni idée précise, ni formulation : seul le sujet vient d’eux. Cite chaque source utilisée avec son lien.",
     "aucun_article_de_nos_sources_sur_3a41": "Aucun article de nos sources sur ce sujet pour l’instant : écris depuis notre expertise, sans chiffre qui ne soit pas vérifié.",
-    "notre_matiere_sur_ce_sujet": "Notre matière sur ce sujet :"
+    "a_partir_des_articles_mis_de_cote": "{count, plural, one {À partir de l’article mis de côté} other {À partir des # articles mis de côté}} (la matière est jointe : titres, nos résumés, liens) : ce que ça change concrètement pour le lecteur, un seul appel à l’action. Cite chaque source utilisée avec son lien ; ne reprends aucune formulation d’origine.",
+    "notre_matiere_articles_joints": "{count, plural, one {Notre matière : un article de nos sources sur ce sujet, joint} other {Notre matière : # articles de nos sources sur ce sujet, joints}} — appuie-toi dessus et cite-les."
   },
   "competitors": {
     "concurrents": "Concurrents",

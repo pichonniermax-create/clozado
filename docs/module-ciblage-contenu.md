@@ -1171,6 +1171,163 @@ sans flux et par jour (0,01 $ chacune). Rien pour les flux.
   contenu d'article stocké** — pour un concurrent, même pas lu. Reste
   l'email qui cite ses sources (étape 6).
 
+## Étape 6 — le composer branché : l'identité, la matière, les sources citées, la revue en continu
+
+### Ce qui est construit
+
+- **Le prompt se compose depuis les six facettes** (`buildSystemPrompt`,
+  `buildIdentityBlock` dans `src/lib/ai/anthropic.ts` — exportés pour les
+  preuves) : dans le bloc système, stable par cible et mis en cache, la
+  personne à qui on écrit — qui lit, ce qui la préoccupe, ce qu'elle sait
+  déjà, ce qui l'intéresse, le ton et la voix pour elle (prime sur le ton
+  de marque), CE QU'ON NE LUI DIT PAS — chaque facette remplie avec son
+  intitulé, une facette vide n'y figure pas, et une cible sans identité est
+  dite non renseignée (« écris pour le lecteur que ce libellé désigne, sans
+  rien supposer de plus »). Puis les sujets déjà envoyés à cette cible
+  (`listRecentTopicsForTarget` : cinq envois marqués, douze sujets au plus —
+  « à ne pas répéter sans angle nouveau »), les chiffres vérifiés complets
+  « valeur (source, date) », les règles. Rien de client écrit en dur :
+  `TargetProfile` porte les six facettes, `getDesignContext` les lit.
+- **La matière est structurée, plus recopiée dans le brief.** L'éditeur
+  envoie à la route de conception les identifiants des articles rattachés
+  (`sourceItemIds`) ; la route les relit en base, scopés à l'organisation
+  de la cible (`listSourcesForComposer` — jamais l'article d'un
+  concurrent, jamais celui d'une autre organisation) ; le message
+  utilisateur les donne un par ligne : `[id] « titre » — éditeur, date —
+  lien` et « Notre résumé : … » (ou « pas encore de résumé : seul le titre
+  est connu »). Jamais le texte d'un article — il n'existe pas en base.
+  Les briefs du panier et de l'écart ne sont plus qu'une consigne
+  (`watch.brief.*`, dans la langue des contenus).
+- **Chaque source utilisée est citée avec son lien : le bloc `sources`**,
+  huitième type du registre (`blocks.ts` — schéma d'outil généré, comme les
+  autres). Le modèle l'émet avec l'intitulé et les articles (id, titre,
+  lien, éditeur, date) ; **le serveur le normalise** (`normalizeSourcesBlocks`)
+  : seuls les identifiants de la matière restent, leurs champs sont
+  recopiés depuis la base (jamais un titre reformulé ni un lien écrit de
+  mémoire), doublons et inconnus retirés et signalés, un bloc vidé
+  disparaît. Rendu email-safe (`renderSources` : intitulé, titre lié,
+  éditeur, date, en table à une colonne) ; éditable (intitulé, retirer,
+  « Citer » parmi les articles de la matière — rien ne se tape à la main).
+- **La revue déterministe, étendue et en continu** (`review.ts` — des codes
+  et des paramètres, les phrases écrites à l'écran) : les CHIFFRES (tout
+  nombre qui n'est ni un chiffre vérifié — valeur OU libellé : « sur
+  20 ans » se cite avec le taux — ni un `[placeholder]` ; un chiffre qui
+  figure dans un résumé ou un titre de la matière est signalé « vient de
+  l'article « … » » ; les dates sont retirées d'abord — « 12 août 2026 »,
+  « August 12, 2026 », « T3 2026 », « 3e trimestre 2026 », une année seule
+  — comme les numéros d'énumération « 1. ») ; les FORMULATIONS (aucune
+  suite de huit mots normalisés d'un titre ou de NOTRE résumé d'un article
+  — `originality.ts`, le contrôle des résumés — objet et préheader
+  compris ; un titre entier dès quatre mots) ; les SOURCES (un article
+  rattaché non cité, une source citée hors matière retirée, un bloc vide,
+  un lien dans le texte courant qui n'est pas une source — la ponctuation
+  qui suit un lien est ignorée) ; l'appel à l'action unique, les longueurs.
+  Elle tourne **après chaque génération ET en continu dans l'éditeur**
+  (`useMemo` sur le document ; `getRenderContext` fournit les chiffres
+  autorisés) : un chiffre tapé à la main est signalé aussitôt, un
+  `[placeholder]` le fait disparaître. Aucun chiffre non autorisé ne passe
+  sans être vu — elle signale, la personne décide : « marquer comme
+  envoyée » enregistre un fait, il ne se bloque pas.
+- **Les sujets traités sont déclarés par la génération** (`topics`, un à
+  quatre, dans le schéma de l'outil), affichés sous la matière (« Sujets
+  traités : … — modifiables au marquage »), enregistrés avec le brouillon
+  (`saveNewsletter.topics`), préremplis au marquage « envoyée ». « Écrire
+  sur ce sujet » (l'écart) pose le sujet d'avance : le brouillon est « en
+  préparation » dès son premier enregistrement, même sans article joint.
+- Au passage : `RenderContext` porte les chiffres autorisés et la langue
+  des contenus, `<html lang>` de l'email suit cette langue, la lecture
+  d'une année ou d'un mois-année n'est plus un « chiffre non autorisé ».
+- **Aucune migration** : `topics` existe, un bloc vit en jsonb.
+
+### Décisions réversibles
+
+- **La revue compare l'email à ce que le composer a VU** — titres et nos
+  résumés — puisque le texte d'un article n'existe nulle part (règle de
+  droit d'auteur tenue par construction) ; huit mots plutôt que douze (des
+  textes courts, les nôtres), un titre entier dès quatre mots.
+- Une source citée est un article de la matière, par identifiant ; le
+  modèle propose, la base dicte les champs.
+- Un chiffre lu dans un article n'est pas un chiffre vérifié : il est
+  signalé avec son article ; pour l'autoriser, on l'ajoute dans /chiffres
+  avec sa source et sa date.
+- Une date n'est pas un chiffre ; le prix d'exactement « 2000 » passerait
+  pour une année — accepté.
+- Cinq envois et douze sujets récents dans le prompt.
+- La voix (tutoiement, registre) est une consigne au modèle, appliquée « à
+  chaque phrase » — pas de contrôle déterministe possible sur un texte
+  libre ; le vouvoiement est resté sur deux générations de preuve sur
+  trois. À renforcer dans la facette elle-même (« tu », des exemples) si
+  ça gêne.
+
+### Ce que cette étape ne fait pas
+
+- Le lien de l'appel à l'action n'est pas vérifié (c'est le lien de
+  l'organisation, donné dans le brief).
+- Aucun export HTML nouveau : le rendu existant (l'éditeur,
+  `/api/newsletters/render`) porte le bloc Sources.
+- La revue ne relit jamais la page d'un article — par construction.
+
+### Coût mesuré
+
+Une génération ≈ 15 s, quelques milliers de jetons, ≈ 0,03 à 0,05 $ (le
+bloc système est en cache par cible).
+
+### Preuves
+
+- **À blanc** (`scripts/_tmp-composer-proof.ts`, supprimé) : **47
+  contrôles, zéro échec** — le prompt (les six facettes avec leur valeur,
+  les sujets récents, le chiffre « valeur (source, date) », sans facette
+  « non renseignée » et rien d'inventé ; la matière ligne par ligne, le
+  résumé ou son absence, rien sans matière) ; la revue (dates et chiffre
+  vérifié non signalés, 15 % signalé et [délai] non, 3,45 % venu du résumé
+  signalé avec son article, huit mots repris signalés et six non, un titre
+  de cinq mots repris, l'objet lu, un lien étranger signalé et ceux d'une
+  source ou du bouton non, un article non cité compté, tout cité = rien,
+  bloc vide, deux CTA, « sur 20 ans » du libellé autorisé, « 1. » non
+  compté, deux occurrences signalées deux fois) ; la liste blanche (champs
+  de la base, inconnu / doublon / bloc vidé retirés) ; le rendu (lien,
+  titre, éditeur, date, intitulé, `lang`) ; le schéma d'outil (`topics`
+  requis, bloc sources) ; les briefs fr et en ; les requêtes sur une
+  organisation jetable (six facettes lues, sujets des envois MARQUÉS
+  seulement, seul le chiffre complet, la matière sans concurrent ni autre
+  organisation ni inconnu) ; **trois générations réelles** (15 s chacune) :
+  chaque fois un bloc sources aux identifiants de la matière — zéro retrait
+  par la liste blanche —, un à quatre sujets déclarés, le bloc sources avant
+  l'appel à l'action unique et dernier, aucun lien étranger, « TAEG »
+  absent (la facette « ce qu'on ne lui dit pas »). La revue a fait son
+  travail sur ces générations : à la première, un article évoqué sans être
+  cité (« 1 article de la matière non cité » → consigne renforcée, cité aux
+  deux suivantes) ; à la deuxième, une suite de huit mots reprise de notre
+  résumé (« en juillet le taux moyen sur vingt ans ») ; à chaque fois, le
+  3,45 % venu de l'article signalé comme tel. Destruction à zéro reliquat.
+- **Au navigateur** (`scripts/_tmp-browser-composer.ts`, supprimé ; build
+  de production, session forgée, organisation jetable `_comp-nav`) :
+  **24 contrôles, zéro échec** — depuis le panier
+  (`/newsletters/new?panier=1&cible=…`) : « Matière : 2 articles — chaque
+  source utilisée sera citée avec son lien », le brief réduit à la consigne,
+  sans lien ; « Rédiger l'email » → **la génération réelle en flux**, les
+  sujets déclarés affichés (« Baisse des taux, Assurance emprunteur et
+  Capacité d'emprunt »), **le bloc Sources rendu dans le document avec les
+  deux liens de la matière** et aucun lien hors matière, la revue à l'écran
+  (« Le chiffre 3,45 % vient de l'article « … » : il n'est pas dans tes
+  chiffres vérifiés — vérifie-le, ou ajoute-le dans Chiffres », l'objet de
+  43 caractères), le brouillon enregistré de lui-même ; **la revue en
+  continu** : « Un apport de 42 % » tapé à la main → « Le chiffre 42 % n'est
+  ni dans tes chiffres vérifiés, ni entre crochets » aussitôt, remplacé par
+  « [apport %] » → le signalement disparaît ; un bloc Sources inséré à la
+  main → « Le bloc Sources est vide » et « À citer aussi » (les articles de
+  la matière), « Citer » → « Les Échos · 12 août 2026 » (les champs de la
+  base) et le signalement disparaît, puis supprimé ; rechargé : le bloc
+  Sources relu de la base, les sujets là, le champ « Sujets traités » du
+  marquage prérempli ; « Écrire sur ce sujet » : « Sujets traités :
+  assurance emprunteur » posé d'avance, le brief avec le sujet et la règle ;
+  marquée envoyée avec ces sujets ; en anglais « Material: 2 articles »,
+  « Topics covered: », « Sent on », `<html lang="en">`, texte propre ; zéro
+  `pageerror`, zéro erreur console, zéro 5xx ; destruction à zéro reliquat.
+  Captures relues. Un piège d'outillage : `tsx` enveloppe les fonctions
+  internes d'un `page.evaluate` d'un helper `__name` absent du navigateur —
+  les évaluations s'écrivent en chaînes.
+
 ## Avancement
 
 - **Étape 1 — exploration et conception** : `5cdf435`. STOP.
@@ -1189,9 +1346,16 @@ sans flux et par jour (0,01 $ chacune). Rien pour les flux.
   Migration `0014` (verrou garanti par la base, date de recherche des
   sujets) validée et appliquée au retour, avec la `0015` du chantier
   marque blanche : `c3de5c1`.
-- **Étape 5 — veille concurrentielle et écart de contenu** :
+- **Étape 5 — veille concurrentielle et écart de contenu** : `69991c5`.
   `/concurrents`, les concurrents nommés (flux ou recherche par domaine),
   les titres classés (sujet, angle) sans jamais lire une page, l'écart
   calculé et actionnable (« écrire sur ce sujet » → le composer avec le
   brief et notre matière), aucune migration — prouvée à blanc (51
-  contrôles, une collecte réelle) et au navigateur (50 contrôles). STOP.
+  contrôles, une collecte réelle) et au navigateur (50 + 34 contrôles). STOP.
+- **Étape 6 — le composer branché** : le prompt depuis les six facettes et
+  la matière rattachée, le bloc Sources normalisé par la liste blanche,
+  la revue étendue (chiffres, formulations, sources, liens) et en continu
+  dans l'éditeur, les sujets déclarés par la génération, aucune migration
+  — prouvée à blanc (47 contrôles, trois générations réelles) et au
+  navigateur (24 contrôles). **Le chantier est terminé de bout en
+  bout.**

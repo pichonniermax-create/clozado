@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import {
   contacts,
@@ -26,6 +26,7 @@ import type {
 import type { OrgScopeUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
 import type { TargetsTranslator } from "@/lib/targets/criteria";
+import { toAppLocale, type AppLocale } from "@/i18n/locales";
 
 /**
  * Charge une cible par id, vérifie qu'elle appartient bien à l'organisation
@@ -66,10 +67,14 @@ async function resolveTargetContext(user: OrgScopeUser, targetId: string) {
  * (§7.2 du dossier de reconstruction).
  */
 export type DesignContext = {
+  /** L'organisation de la cible — celle dont la matière et les réglages (langue des contenus, formats) sont lus. */
+  organizationId: string;
   organization: OrganizationProfile;
   target: TargetProfile;
   signatory: SignatoryProfile;
   verifiedFigures: VerifiedFigureProfile[];
+  /** Les sujets des derniers envois à cette cible — l'anti-répétition, dite au modèle. */
+  recentTopics: string[];
 };
 
 export async function getDesignContext(
@@ -81,30 +86,74 @@ export async function getDesignContext(
   // Seuls les chiffres COMPLETS (source ET date) partent au modèle : la
   // règle « aucun chiffre sans sa date et sa source » s'applique aussi aux
   // chiffres internes ; l'écran des chiffres montre ceux qui manquent.
-  const figures = await listCitableFigures(org.id);
+  const [figures, recentTopics] = await Promise.all([listCitableFigures(org.id), listRecentTopicsForTarget(org.id, target.id)]);
 
   return {
+    organizationId: org.id,
     organization: {
       name: org.name,
       tagline: org.tagline,
       toneOfVoice: org.toneOfVoice,
       editorialGuidelines: org.editorialGuidelines,
     },
+    // Les six facettes de l'identité éditoriale (étape 3) — telles quelles,
+    // vides comprises : le prompt compose avec ce qui est rempli.
     target: {
       label: target.label,
-      persona: target.persona,
       audienceLabel: target.audienceLabel,
+      persona: target.persona,
+      concerns: target.concerns,
+      knowledgeLevel: target.knowledgeLevel,
+      interests: target.interests,
       editorialVoice: target.editorialVoice,
+      avoid: target.avoid,
     },
     signatory: signatory ? { name: signatory.name, jobTitle: signatory.jobTitle } : null,
     verifiedFigures: figures.map((f) => ({ label: f.label, value: f.value, sourceName: f.sourceName ?? "", asOf: f.asOf ?? "" })),
+    recentTopics,
   };
 }
 
-/** Marque + signataire nécessaires à `renderNewsletterHtml` pour une cible donnée. */
+/**
+ * Les sujets traités par les derniers envois marqués à cette cible (cinq
+ * envois, douze sujets au plus, les plus récents d'abord) — ce que le
+ * composer dit au modèle de ne pas répéter sans angle nouveau. Le même
+ * historique que l'anti-répétition montre à l'écran, lu ici par cible.
+ */
+export async function listRecentTopicsForTarget(organizationId: string, targetId: string): Promise<string[]> {
+  const rows = await db
+    .select({ topics: newsletters.topics })
+    .from(newsletters)
+    .where(and(eq(newsletters.organizationId, organizationId), eq(newsletters.targetId, targetId), isNotNull(newsletters.sentAt)))
+    .orderBy(desc(newsletters.sentAt))
+    .limit(5);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    for (const topic of row.topics) {
+      const key = topic.trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(topic.trim());
+      if (out.length >= 12) return out;
+    }
+  }
+  return out;
+}
+
+/**
+ * Marque + signataire nécessaires à `renderNewsletterHtml` pour une cible
+ * donnée — et ce que l'éditeur doit savoir pour sa revue continue : les
+ * chiffres autorisés (la même liste que le prompt) et la langue des
+ * contenus.
+ */
 export type RenderContext = {
   brand: RenderBrand;
   signatory: RenderSignatory;
+  /** Les chiffres vérifiés complets de l'organisation — valeurs et libellés — que la revue déterministe de l'éditeur lit. */
+  allowedFigures: string[];
+  /** La langue des contenus de l'organisation. */
+  locale: AppLocale;
 };
 
 export async function getRenderContext(
@@ -114,9 +163,12 @@ export async function getRenderContext(
   origin?: string
 ): Promise<RenderContext> {
   const { org, signatory } = await resolveTargetContext(user, targetId);
+  const [brand, figures] = await Promise.all([resolveRenderBrand(org, origin), listCitableFigures(org.id)]);
   return {
-    brand: await resolveRenderBrand(org, origin),
+    brand,
     signatory: signatory ? { name: signatory.name, jobTitle: signatory.jobTitle } : null,
+    allowedFigures: figures.flatMap((f) => [f.value, f.label]),
+    locale: toAppLocale(org.defaultLocale),
   };
 }
 

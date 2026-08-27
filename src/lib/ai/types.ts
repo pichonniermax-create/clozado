@@ -52,13 +52,46 @@ export type OrganizationProfile = {
   editorialGuidelines: string | null;
 };
 
-/** Cible/persona (`mail_targets`) vers laquelle la newsletter est écrite. */
+/**
+ * La cible (`mail_targets`) vers laquelle la newsletter est écrite : son
+ * libellé et son IDENTITÉ ÉDITORIALE EN SIX FACETTES (chantier « ciblage et
+ * contenu », étape 6) — le prompt se compose depuis ce qui est rempli, une
+ * facette vide n'y figure pas ; aucune formulation de cible n'est écrite
+ * en dur dans le fournisseur.
+ */
 export type TargetProfile = {
   label: string;
-  persona: string | null;
   audienceLabel: string | null;
-  /** Le ton et la voix à adopter pour cette cible — prime sur le ton générique de l'organisation ; NULL tant que l'identité n'est pas remplie. */
+  /** Qui lit. */
+  persona: string | null;
+  /** Ce qui préoccupe cette personne. */
+  concerns: string | null;
+  /** Ce qu'elle sait déjà du sujet. */
+  knowledgeLevel: string | null;
+  /** Ce qui l'intéresse. */
+  interests: string | null;
+  /** Le ton et la voix à adopter pour elle — prime sur le ton générique de l'organisation. */
   editorialVoice: string | null;
+  /** Ce qu'on ne lui dit pas. */
+  avoid: string | null;
+};
+
+/**
+ * Un article de la MATIÈRE (les articles rattachés à la newsletter) tel que
+ * le composer le reçoit : ce qui est en base et rien d'autre — jamais le
+ * texte de l'article, qui n'existe pas en base (règle de droit d'auteur).
+ * `id` est la liste blanche : un bloc `sources` ne peut citer que ces
+ * identifiants, et ses champs sont recopiés depuis ici par le serveur.
+ */
+export type SourceProfile = {
+  id: string;
+  title: string;
+  publisher: string;
+  /** La date telle qu'elle s'affiche dans la langue des contenus (« 12 août 2026 »), vide si inconnue. */
+  date: string;
+  url: string;
+  /** NOTRE résumé (écrit avec nos mots à la collecte), null s'il n'existe pas encore. */
+  summary: string | null;
 };
 
 export type SignatoryProfile = {
@@ -163,6 +196,10 @@ export type DesignNewsletterInput = {
   signatory: SignatoryProfile;
   /** Chiffres autorisés de l'organisation — même liste que `reviewNewsletter` vérifie ensuite. */
   verifiedFigures: VerifiedFigureProfile[];
+  /** La matière : les articles rattachés (titres, liens, dates, nos résumés) — la liste blanche des sources citables. */
+  sources: SourceProfile[];
+  /** Les sujets déjà traités dans les derniers envois à cette cible — l'anti-répétition, dite au modèle. */
+  recentTopics: string[];
   lang: "fr" | "en";
   brief: string;
   /** Cible de volume approximative du corps, en caractères (espaces compris). */

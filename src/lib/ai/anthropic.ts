@@ -328,8 +328,15 @@ export class AnthropicProvider implements AIProvider {
   }
 }
 
-function buildSystemPrompt(input: DesignNewsletterInput): string {
-  const { organization, verifiedFigures } = input;
+/**
+ * Le prompt système — STABLE pour une organisation et une cible (mis en
+ * cache) : le profil de l'organisation, l'identité de la cible en six
+ * facettes (celles qui sont remplies — jamais une formulation de cible en
+ * dur ici), ce qui lui a déjà été envoyé, les chiffres autorisés, les
+ * règles. Exporté pour être lu tel quel par les preuves.
+ */
+export function buildSystemPrompt(input: DesignNewsletterInput): string {
+  const { organization, verifiedFigures, recentTopics } = input;
 
   // Chaque chiffre transmis porte sa source et sa date (chantier « ciblage
   // et contenu ») : ce qui n'en a pas n'arrive pas jusqu'ici.
@@ -347,22 +354,29 @@ function buildSystemPrompt(input: DesignNewsletterInput): string {
 
   const taglineNote = organization.tagline ? ` Tagline : « ${organization.tagline} ».` : "";
 
+  const recentBlock = recentTopics.length
+    ? `\n\nDÉJÀ ENVOYÉ À CETTE CIBLE RÉCEMMENT — sujets traités, à ne pas répéter sans angle nouveau : ${recentTopics.map((t) => `« ${t} »`).join(", ")}.`
+    : "";
+
   return `Tu es le rédacteur marketing de ${organization.name}.${taglineNote}
 
 ${toneBlock}${guidelinesBlock}
 
+${buildIdentityBlock(input.target)}${recentBlock}
+
 CHIFFRES (RÈGLE ABSOLUE) : n'invente JAMAIS un chiffre, un prix, un taux, un délai ni un montant. Par ordre de priorité :
 1) CHIFFRES VÉRIFIÉS DE L'ORGANISATION, utilisables tels quels, chacun avec sa source et sa date entre parenthèses — cite-les « valeur (source, date) » : ${figuresList}.
-2) DONNÉES RÉELLES SOURCÉES éventuellement fournies dans le message utilisateur : utilise-les en priorité dans les blocs chiffre_cle, TOUJOURS citées au format « valeur (source, date) ». Jamais sans leur date.
-3) TOUT AUTRE chiffre (prix, délai, taux, apport…) → un PLACEHOLDER entre crochets : [apport %], [délai], [prix m²]. Un chiffre sans source vérifiée ou fournie = crochet, sans exception.
+2) UN CHIFFRE LU DANS LA MATIÈRE (nos résumés d'articles, voir plus bas) n'est PAS vérifié par l'organisation : si tu le cites, écris-le « valeur (éditeur, date) » dans la phrase qui s'appuie sur l'article, jamais dans un bloc chiffre_cle — il sera signalé « à vérifier ». Préfère les chiffres vérifiés.
+3) TOUT AUTRE chiffre (prix, délai, taux, apport…) → un PLACEHOLDER entre crochets : [apport %], [délai], [prix m²]. Un chiffre sans source vérifiée ou fournie = crochet, sans exception. Une date n'est pas un chiffre.
 
-IDENTITÉ ÉDITORIALE PAR CIBLE : le message utilisateur fournit l'identité de la cible (qui est le lecteur, la voix à prendre). Elle PRIME sur le ton générique ci-dessus.
+MATIÈRE ET SOURCES (RÈGLE ABSOLUE — DROIT D'AUTEUR) : le message utilisateur peut fournir une MATIÈRE : des articles, chacun avec un identifiant, son titre, son éditeur, sa date, son lien et NOTRE résumé (écrit avec nos mots). Tu n'as jamais le texte d'un article — seulement ces résumés. Tu écris avec tes mots : ne recopie ni un titre ni un résumé, même en partie (un contrôle refuse toute suite de huit mots reprise). Tout article dont tu utilises une information — ou dont tu évoques le sujet, même en passant — est cité dans UN bloc sources — ses champs (id, title, url, publisher, date) recopiés EXACTEMENT depuis la matière, jamais un article absent de la matière, jamais un lien écrit de mémoire. Sans matière, ou si tu n'en utilises rien : aucun bloc sources. Aucun lien dans le texte courant : les liens vivent dans le bloc sources et l'appel à l'action.
 
 BLOCS DISPONIBLES (utilise l'outil emit_newsletter) :
 - titre (text, level 1-3, eyebrow) — titre court et concret ; level 1 pour le titre principal, avec un eyebrow (kicker éditorial de 2 à 4 mots annonçant l'angle, jamais le nom de la cible ni un mot générique type « Newsletter ») ; eyebrow vide ("") pour les level 2/3.
 - texte (text) — UN paragraphe = UNE idée, 2-3 phrases MAX. Plusieurs paragraphes possibles dans le MÊME bloc, séparés par une ligne vide — jamais deux blocs texte à la suite.
-- chiffre_cle (value, label, caption) — une donnée mise en avant : UNIQUEMENT un chiffre vérifié (liste ci-dessus) OU un [placeholder], jamais une métrique inventée. Toujours en rangée de 2 à 4 blocs chiffre_cle CONSÉCUTIFS (jamais isolé, jamais deux rangées). SYMÉTRIE : une caption sur TOUTES les colonnes de la rangée, ou sur AUCUNE.
+- chiffre_cle (value, label, caption) — une donnée mise en avant : UNIQUEMENT un chiffre vérifié (liste ci-dessus) OU un [placeholder], jamais une métrique inventée ni un chiffre de la matière. Toujours en rangée de 2 à 4 blocs chiffre_cle CONSÉCUTIFS (jamais isolé, jamais deux rangées). SYMÉTRIE : une caption sur TOUTES les colonnes de la rangée, ou sur AUCUNE.
 - fiches (cards : 2 à 4 { title, text }) — dès qu'une liste de points s'y prête (critères, étapes, comparatif) plutôt que des paragraphes empilés.
+- sources (title, items : { id, title, url, publisher, date }) — les articles de la MATIÈRE dont tu as utilisé une information, recopiés exactement ; title = un intitulé court dans la langue demandée (« Sources », « Pour aller plus loin ») ; un seul bloc sources, placé juste avant l'appel à l'action.
 - cta (title, text, buttonLabel, url) — l'UNIQUE encart d'appel à l'action.
 - bouton (label, url) — bouton seul (compte comme le CTA unique).
 - separateur — séparateur visuel, aucun champ.
@@ -372,17 +386,45 @@ RÈGLES DE COPIE — PERCUTANT, MOBILE-FIRST :
 - ENTAME par le chiffre / la donnée concrète, jamais par une intro générique. INTERDIT : « Dans un contexte… », « Nous tenions à vous informer… ».
 - UN SEUL CTA dans toute la newsletter (un seul bloc cta OU un seul bouton, jamais les deux, jamais plusieurs).
 - Termine par l'unique CTA.
+- LA VOIX DE LA CIBLE : le ton et la voix indiqués pour elle (tutoiement ou vouvoiement, registre) s'appliquent à CHAQUE phrase, objet et préheader compris.
 - SIGNATURE : n'ajoute JAMAIS de bloc dédié à la signature — elle est ajoutée automatiquement au rendu si l'organisation en a défini une pour cette cible.
 - Tout le texte dans la langue demandée.
+
+SUJETS TRAITÉS (topics) : un à quatre sujets courts (deux à quatre mots, dans la langue demandée) — ce dont cet email traite ; ils servent à ne pas se répéter d'un envoi à l'autre.
 
 OBJET EMAIL : ≤ 42 caractères, mène par le bénéfice ou le chiffre, zéro clickbait. Préheader (preview) ≤ 85 caractères et DISTINCT de l'objet.`;
 }
 
-function buildUserMessage(input: DesignNewsletterInput): string {
-  const { target, signatory, lang, brief, targetLength } = input;
+/**
+ * L'identité de la cible, composée depuis ses six facettes — seulement
+ * celles qui sont remplies ; une cible sans identité est dite telle, pas
+ * inventée.
+ */
+function buildIdentityBlock(target: DesignNewsletterInput["target"]): string {
+  const audience = target.audienceLabel ? ` (audience ${target.audienceLabel})` : "";
+  const head = `LA PERSONNE À QUI TU ÉCRIS — cible « ${target.label} »${audience} :`;
+  const facets = [
+    target.persona ? `- Qui lit : ${target.persona}` : "",
+    target.concerns ? `- Ce qui la préoccupe : ${target.concerns}` : "",
+    target.knowledgeLevel ? `- Ce qu'elle sait déjà (son niveau) : ${target.knowledgeLevel}` : "",
+    target.interests ? `- Ce qui l'intéresse : ${target.interests}` : "",
+    target.editorialVoice ? `- Le ton et la voix pour elle (prime sur le ton de marque) : ${target.editorialVoice}` : "",
+    target.avoid ? `- CE QU'ON NE LUI DIT PAS (jamais, sous aucune forme) : ${target.avoid}` : "",
+  ].filter(Boolean);
+  if (facets.length === 0) {
+    return `${head}\nson identité n'est pas encore renseignée — écris pour le lecteur que ce libellé désigne, sans rien supposer de plus.`;
+  }
+  return `${head}\n${facets.join("\n")}\nChaque bloc s'adresse à elle : ses préoccupations d'abord, à son niveau (ni jargon, ni évidences), dans le ton indiqué — et rien de ce qu'on ne lui dit pas.`;
+}
 
-  const personaLine = target.persona ? ` — persona : ${target.persona}` : "";
-  const audienceLine = target.audienceLabel ? ` Audience ${target.audienceLabel}.` : "";
+/**
+ * Le message utilisateur — ce qui change d'un email à l'autre : la langue,
+ * la signature, la longueur, la MATIÈRE (les articles rattachés, avec
+ * leur identifiant — la liste blanche du bloc sources) et le brief.
+ * Exporté pour être lu tel quel par les preuves.
+ */
+export function buildUserMessage(input: DesignNewsletterInput): string {
+  const { signatory, lang, brief, targetLength, sources } = input;
 
   const signatureNote = signatory
     ? `Signature : n'écris AUCUN bloc signature — la signature officielle de ${signatory.name} est ajoutée automatiquement au rendu.`
@@ -392,15 +434,24 @@ function buildUserMessage(input: DesignNewsletterInput): string {
     ? `Longueur cible : ${targetLength.label} — vise ~${targetLength.ideal} caractères de corps (espaces compris), fourchette ${targetLength.min}-${targetLength.max}. Ajuste le nombre de sections et la longueur des paragraphes en conséquence.`
     : "";
 
+  const matiere = sources.length
+    ? [
+        `MATIÈRE — ${sources.length} article${sources.length > 1 ? "s" : ""} rattaché${sources.length > 1 ? "s" : ""} (nos résumés, jamais leur texte) :`,
+        ...sources.map(
+          (s) =>
+            `[${s.id}] « ${s.title} » — ${s.publisher}${s.date ? `, ${s.date}` : ""} — ${s.url}\n   ${s.summary ? `Notre résumé : ${s.summary}` : "(pas encore de résumé : seul le titre est connu — ne le paraphrase pas, cite l'article ou laisse-le)"}`
+        ),
+      ].join("\n")
+    : "";
+
   return [
-    `Cible : ${target.label}${personaLine}.${audienceLine}`,
-    target.editorialVoice ? `Identité éditoriale de la cible (elle prime sur le ton générique) : ${target.editorialVoice}` : "",
     `Langue : ${lang === "fr" ? "français" : "anglais"}.`,
     signatureNote,
     lengthLine,
+    matiere,
     `Brief : ${brief}`,
     "",
-    "Propose une newsletter percutante et profonde, scannable au téléphone : entame par le chiffre / la donnée, 1 idée par bloc portée jusqu'à son implication pour le lecteur, UN SEUL CTA. Tout chiffre est soit vérifié par l'organisation, soit cité « valeur (source, date) » depuis les données fournies, soit un [placeholder].",
+    `Propose une newsletter percutante et profonde, scannable au téléphone : entame par le chiffre / la donnée, 1 idée par bloc portée jusqu'à son implication pour le lecteur, UN SEUL CTA. Tout chiffre est soit vérifié par l'organisation, soit cité « valeur (éditeur, date) » depuis la matière, soit un [placeholder].${sources.length ? " Cite dans un bloc sources chaque article de la matière dont tu utilises une information, champs recopiés exactement ; ne reprends aucune formulation de la matière." : ""} Déclare les sujets traités (topics).`,
   ]
     .filter(Boolean)
     .join("\n");

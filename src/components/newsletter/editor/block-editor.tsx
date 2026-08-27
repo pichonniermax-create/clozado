@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { AnyBlock } from "@/lib/newsletter/blocks";
+import { useFormats } from "@/components/i18n/formats-provider";
+import type { EditorSource } from "./newsletter-editor";
 import { useTranslations } from "next-intl";
 
 /**
@@ -47,11 +49,15 @@ const TITLE_LEVELS = [
 export function BlockEditor({
   block,
   onChange,
+  sources = [],
 }: {
   block: AnyBlock;
   onChange: (next: AnyBlock) => void;
+  /** La matière rattachée à l'email — les seuls articles qu'un bloc Sources peut citer. */
+  sources?: EditorSource[];
 }) {
   const t = useTranslations("newsletters.blockEditor");
+  const fmt = useFormats();
   switch (block.type) {
     case "titre":
       return (
@@ -279,6 +285,83 @@ export function BlockEditor({
           {t("un_trait_horizontal_qui_separe_deux_6e97")}
         </p>
       );
+
+    case "sources": {
+      // Les sources se choisissent parmi la matière — titre, éditeur, date et
+      // lien tels qu'en base ; rien ne se tape à la main (règle de la liste
+      // blanche, la même que celle de la génération).
+      const cited = new Set(block.items.map((item) => item.id));
+      const available = sources.filter((source) => !cited.has(source.id));
+      return (
+        <div className="flex flex-col gap-4">
+          <Field label={t("intitule_du_bloc")}>
+            <Input
+              value={block.title}
+              onChange={(e) => onChange({ ...block, title: e.target.value })}
+              placeholder={t("ex_sources")}
+              autoFocus
+            />
+          </Field>
+          <Field label={t("articles_cites")}>
+            {block.items.length === 0 ? (
+              <p className="text-xs text-muted-foreground">{t("aucun_article_cite_pour_l_instant")}</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {block.items.map((item, i) => (
+                  <li key={item.id} className="flex items-start justify-between gap-2 rounded-lg border border-border p-2 text-sm">
+                    <span className="min-w-0 flex flex-col">
+                      <span className="truncate font-medium">{item.title}</span>
+                      <span className="text-xs text-muted-foreground">{[item.publisher, item.date].filter(Boolean).join(" · ")}</span>
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      onClick={() => onChange({ ...block, items: block.items.filter((_, n) => n !== i) })}
+                    >
+                      {t("retirer")}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Field>
+          {available.length > 0 && (
+            <Field label={t("a_citer_aussi")}>
+              <ul className="flex flex-col gap-2">
+                {available.map((source) => (
+                  <li key={source.id} className="flex items-start justify-between gap-2 rounded-lg border border-dashed border-border p-2 text-sm">
+                    <span className="min-w-0 flex flex-col">
+                      <span className="truncate font-medium">{source.title}</span>
+                      <span className="text-xs text-muted-foreground">{[source.publisher, source.publishedAt ? fmt.date(source.publishedAt) : ""].filter(Boolean).join(" · ")}</span>
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="xs"
+                      onClick={() =>
+                        onChange({
+                          ...block,
+                          items: [
+                            ...block.items,
+                            { id: source.id, title: source.title, url: source.url, publisher: source.publisher, date: source.publishedAt ? fmt.date(source.publishedAt) : "" },
+                          ],
+                        })
+                      }
+                    >
+                      {t("citer")}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </Field>
+          )}
+          <p className="text-xs text-muted-foreground">
+            {sources.length === 0 ? t("aucun_article_n_est_rattache_a_cet_email") : t("les_sources_viennent_de_la_matiere_rattachee")}
+          </p>
+        </div>
+      );
+    }
   }
 }
 

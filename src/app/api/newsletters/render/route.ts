@@ -67,6 +67,7 @@ export async function POST(request: Request) {
     preheader: body.data.preheader,
     blocks: body.data.blocks,
     signatory: context.signatory,
+    lang: context.locale,
     editable: body.data.editable ?? false,
   });
 

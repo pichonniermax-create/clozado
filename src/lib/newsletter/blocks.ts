@@ -12,10 +12,12 @@ import { AppError } from "@/lib/errors";
  * divergé. Ici, ils ne peuvent pas diverger : il n'y a qu'une définition.
  *
  * 7 types en V1 (surface réduite) : titre, texte, chiffre_cle, fiches, cta,
- * bouton, separateur. `image`, `article` et `espace` existent dans le
- * dossier source mais dépendent de modules hors périmètre (panier veille,
- * bibliothèque d'images) ou n'apportent rien sans eux — ajouter un type plus
- * tard ne demande de toucher que ce fichier.
+ * bouton, separateur — plus `sources` depuis le chantier « ciblage et
+ * contenu » (étape 6) : les articles de la matière dont l'email s'inspire,
+ * cités avec leur lien. `image` et `espace` existent dans le dossier source
+ * mais dépendent de modules hors périmètre (bibliothèque d'images) ou
+ * n'apportent rien sans eux — ajouter un type demande de toucher ce
+ * fichier, le rendu (`render-email.ts`) et l'éditeur de bloc.
  */
 export const BLOCK_TYPES = [
   "titre",
@@ -25,6 +27,7 @@ export const BLOCK_TYPES = [
   "cta",
   "bouton",
   "separateur",
+  "sources",
 ] as const;
 
 export type BlockType = (typeof BLOCK_TYPES)[number];
@@ -66,6 +69,21 @@ function buildBlockSchemas(required: z.ZodString) {
     text: required,
   });
 
+  /**
+   * Une source citée : l'article de la MATIÈRE (son identifiant en base est
+   * la liste blanche — jamais un lien de mémoire) et ce qu'on en montre,
+   * recopié depuis la base par le serveur après la génération
+   * (`normalizeSourcesBlocks`) : le modèle propose, la base dicte.
+   */
+  const sourceItem = z.strictObject({
+    id: z.string().min(1),
+    title: z.string(),
+    url: z.string(),
+    publisher: z.string(),
+    /** La date telle qu'elle s'affiche (« 12 août 2026 ») ; vide ("") si inconnue. */
+    date: z.string(),
+  });
+
   return {
     titre: z.strictObject({
       type: z.literal("titre"),
@@ -105,6 +123,13 @@ function buildBlockSchemas(required: z.ZodString) {
     separateur: z.strictObject({
       type: z.literal("separateur"),
     }),
+    /** Les articles dont l'email s'inspire, avec leur lien — la citation des sources (étape 6). Un bloc vide est toléré en brouillon (on vient de l'insérer), signalé par la revue. */
+    sources: z.strictObject({
+      type: z.literal("sources"),
+      /** L'intitulé du bloc (« Sources », « Pour aller plus loin ») — la seule copie du modèle dans ce bloc. */
+      title: required,
+      items: z.array(sourceItem).max(10),
+    }),
   };
 }
 
@@ -135,6 +160,7 @@ export const BLOCK_PAYLOAD_SCHEMAS = {
   cta: DRAFT_BLOCK_SCHEMAS.cta.omit({ type: true }),
   bouton: DRAFT_BLOCK_SCHEMAS.bouton.omit({ type: true }),
   separateur: DRAFT_BLOCK_SCHEMAS.separateur.omit({ type: true }),
+  sources: DRAFT_BLOCK_SCHEMAS.sources.omit({ type: true }),
 } as const satisfies Record<BlockType, z.ZodTypeAny>;
 
 export type BlockPayload<T extends BlockType> = z.infer<(typeof BLOCK_SCHEMAS)[T]>;
@@ -179,6 +205,8 @@ export function defaultBlock(type: BlockType): AnyBlock {
       return { type: "bouton", label: "", url: "" };
     case "separateur":
       return { type: "separateur" };
+    case "sources":
+      return { type: "sources", title: "", items: [] };
   }
 }
 
@@ -197,6 +225,7 @@ export const BLOCK_UNION = z.discriminatedUnion("type", [
   BLOCK_SCHEMAS.cta,
   BLOCK_SCHEMAS.bouton,
   BLOCK_SCHEMAS.separateur,
+  BLOCK_SCHEMAS.sources,
 ]);
 
 /** Même union, au niveau brouillon — voir `DRAFT_BLOCK_SCHEMAS`. */
@@ -208,13 +237,20 @@ export const DRAFT_BLOCK_UNION = z.discriminatedUnion("type", [
   DRAFT_BLOCK_SCHEMAS.cta,
   DRAFT_BLOCK_SCHEMAS.bouton,
   DRAFT_BLOCK_SCHEMAS.separateur,
+  DRAFT_BLOCK_SCHEMAS.sources,
 ]);
 
-/** Ce que l'IA doit produire : objet, préheader, et la liste ordonnée des blocs. */
+/**
+ * Ce que l'IA doit produire : objet, préheader, la liste ordonnée des blocs,
+ * et les SUJETS TRAITÉS (étape 6) — un à quatre sujets courts, déclarés par
+ * la génération, enregistrés avec le brouillon et préremplis au marquage
+ * « envoyée » : c'est ce que l'anti-répétition et l'écart de contenu lisent.
+ */
 export const NEWSLETTER_OUTPUT_SCHEMA = z.strictObject({
   subject: z.string().min(1),
   preheader: z.string().min(1),
   blocks: z.array(BLOCK_UNION).min(1),
+  topics: z.array(z.string().min(1)).min(1).max(5),
 });
 
 /**
@@ -238,6 +274,8 @@ export const NEWSLETTER_DRAFT_SCHEMA = z.strictObject({
 export type NewsletterOutput = z.infer<typeof NEWSLETTER_OUTPUT_SCHEMA>;
 export type NewsletterDraft = z.infer<typeof NEWSLETTER_DRAFT_SCHEMA>;
 export type AnyBlock = z.infer<typeof DRAFT_BLOCK_UNION>;
+export type SourcesBlock = Extract<AnyBlock, { type: "sources" }>;
+export type SourceItem = SourcesBlock["items"][number];
 
 /**
  * Le schéma d'outil `emit_newsletter` transmis à l'IA, GÉNÉRÉ depuis
@@ -260,7 +298,7 @@ export function buildEmitNewsletterTool() {
     name: "emit_newsletter",
     description:
       // eslint-disable-next-line local/no-visible-text -- la description d\'un outil donnée au modèle, pas un texte d\'interface
-      "Émet la newsletter composée : objet, préheader, et la liste ordonnée des blocs.",
+      "Émet la newsletter composée : objet, préheader, la liste ordonnée des blocs, et les sujets traités (topics : un à quatre sujets courts).",
     input_schema: inputSchema,
   } as const;
 }

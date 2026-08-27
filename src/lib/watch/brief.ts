@@ -2,42 +2,25 @@ import type { TranslatorOf } from "@/i18n/translator";
 import type { Formats } from "@/lib/format";
 
 /**
- * Le brief prérempli quand une newsletter part du panier (« écrire à
- * partir de ça ») : les titres, éditeurs, dates, liens et NOS résumés —
- * c'est ce que le composer reçoit aujourd'hui comme matière. À l'étape 6,
- * le prompt lira les articles rattachés directement ; ce texte restera un
- * point de départ que l'utilisateur peut remanier.
+ * Les BRIEFS préremplis quand une newsletter part de la veille — une
+ * consigne au modèle, que la personne remanie, dans la langue des contenus
+ * de l'organisation (`watch.brief.*`). Depuis l'étape 6, la matière
+ * (titres, liens, dates, nos résumés) est transmise au composer telle
+ * quelle et affichée dans le panneau « Matière » de l'éditeur : le brief
+ * ne la recopie plus, il dit quoi en faire.
  */
-export type BriefSource = {
-  title: string;
-  url: string;
-  publisher: string;
-  publishedAt: Date | string | null;
-  summary: string | null;
-};
 
-export function buildBasketBrief(items: BriefSource[], fmt: Formats): string {
-  const lines: string[] = [
-    // eslint-disable-next-line local/no-visible-text -- une consigne au modèle (le brief), pas un texte d'interface : sa langue est celle des contenus générés
-    "À partir des articles mis de côté ci-dessous. Cite chaque source utilisée avec son lien ; ne reprends aucune formulation d'origine — les résumés sont écrits avec nos mots.",
-    "",
-  ];
-  items.forEach((item, i) => {
-    const date = item.publishedAt ? `, ${fmt.date(item.publishedAt)}` : "";
-    lines.push(`${i + 1}. « ${item.title} » — ${item.publisher}${date} — ${item.url}`);
-    if (item.summary) lines.push(`   ${item.summary}`);
-    lines.push("");
-  });
-  return lines.join("\n").trim();
+/** « Écrire une newsletter à partir de ça » (le panier). */
+export function buildBasketBrief(count: number, t: TranslatorOf<"watch">): string {
+  return t("brief.a_partir_des_articles_mis_de_cote", { count });
 }
 
 /**
- * Le brief prérempli quand une newsletter part de l'ÉCART DE CONTENU
- * (« écrire sur ce sujet ») : le sujet, combien de concurrents l'ont
- * traité et sous quels angles — et c'est tout ce qui vient d'eux. La
- * matière, elle, est la nôtre : nos articles sur ce sujet quand il y en a.
- * Les phrases viennent des messages, dans la langue des contenus de
- * l'organisation (c'est une consigne au modèle, que la personne remanie).
+ * « Écrire sur ce sujet » (l'écart de contenu) : le sujet, combien de
+ * concurrents l'ont traité et sous quels angles — et c'est tout ce qui
+ * vient d'eux. La matière, elle, est la nôtre : nos articles sur ce sujet
+ * quand il y en a (joints au composer), sinon la consigne d'écrire depuis
+ * notre expertise.
  */
 export type GapBriefContext = {
   subject: string;
@@ -45,7 +28,8 @@ export type GapBriefContext = {
   articles: number;
   /** Les angles pris par les concurrents, déjà traduits. */
   angles: string[];
-  ownItems: BriefSource[];
+  /** Le nombre de nos articles sur ce sujet, joints comme matière. */
+  ownItemsCount: number;
 };
 
 export function buildGapBrief(ctx: GapBriefContext, t: TranslatorOf<"watch">, fmt: Formats): string {
@@ -55,16 +39,6 @@ export function buildGapBrief(ctx: GapBriefContext, t: TranslatorOf<"watch">, fm
   }
   if (ctx.angles.length > 0) lines.push(t("brief.angles_qu_ils_ont_pris_prends_9b7c", { angles: fmt.list(ctx.angles) }));
   lines.push(t("brief.ne_reprends_rien_de_ce_qu_2f6e"));
-  lines.push("");
-  if (ctx.ownItems.length === 0) {
-    lines.push(t("brief.aucun_article_de_nos_sources_sur_3a41"));
-  } else {
-    lines.push(t("brief.notre_matiere_sur_ce_sujet"));
-    ctx.ownItems.forEach((item, i) => {
-      const date = item.publishedAt ? `, ${fmt.date(item.publishedAt)}` : "";
-      lines.push(`${i + 1}. « ${item.title} » — ${item.publisher}${date} — ${item.url}`);
-      if (item.summary) lines.push(`   ${item.summary}`);
-    });
-  }
+  lines.push(ctx.ownItemsCount === 0 ? t("brief.aucun_article_de_nos_sources_sur_3a41") : t("brief.notre_matiere_articles_joints", { count: ctx.ownItemsCount }));
   return lines.join("\n").trim();
 }

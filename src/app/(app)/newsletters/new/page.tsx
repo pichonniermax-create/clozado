@@ -11,7 +11,6 @@ import { requireUser } from "@/lib/session";
 import { buildBasketBrief, buildGapBrief } from "@/lib/watch/brief";
 import { isCompetitorAngle } from "@/lib/watch/gap";
 import { getTranslations } from "next-intl/server";
-import { getFormats } from "@/i18n/formats";
 import { settingsOfOrganization } from "@/i18n/locale-lookup";
 import { translatorFor } from "@/i18n/translator";
 import { createFormats, PRODUCT_FORMATS } from "@/lib/format";
@@ -34,7 +33,6 @@ export default async function NewNewsletterPage({
   searchParams: Promise<{ cible?: string; panier?: string; sujet?: string }>;
 }) {
   const tr = await getTranslations("newsletters.new");
-  const fmt = await getFormats();
   const user = await requireUser();
   const settings = user.organizationId ? await settingsOfOrganization(user.organizationId) : PRODUCT_FORMATS;
   const contentLocale = settings.locale;
@@ -42,17 +40,22 @@ export default async function NewNewsletterPage({
   const targets = await listMailTargets(user);
   let sources: EditorSource[] = [];
   let initialBrief: string | undefined;
+  let initialTopics: string[] | undefined;
   if (panier && user.organizationId) {
     // La matière du panier : titres, liens, dates et nos résumés — rattachés à
-    // l'email dès son premier enregistrement (« déjà utilisé » dans la veille).
-    const basket = await listBasket(user);
+    // l'email dès son premier enregistrement (« déjà utilisé » dans la veille)
+    // et transmis au composer tels quels (étape 6) ; le brief n'est plus
+    // qu'une consigne, dans la langue des contenus.
+    const [basket, tw] = await Promise.all([listBasket(user), translatorFor(contentLocale, "watch")]);
     sources = toEditorSources(basket);
-    initialBrief = sources.length > 0 ? buildBasketBrief(basket, fmt) : undefined;
+    initialBrief = sources.length > 0 ? buildBasketBrief(sources.length, tw) : undefined;
   } else if (sujet?.trim() && user.organizationId) {
     // L'écart de contenu : de tes concurrents, le sujet et les angles pris —
-    // rien d'autre ; la matière est la nôtre (nos articles sur ce sujet). Le
-    // brief est une consigne au modèle : dans la langue des contenus, avec
-    // les formats de l'organisation.
+    // rien d'autre ; la matière est la nôtre (nos articles sur ce sujet),
+    // transmise au composer. Le brief est une consigne au modèle : dans la
+    // langue des contenus, avec les formats de l'organisation. Le sujet est
+    // posé d'avance comme sujet traité : l'écart voit le brouillon « en
+    // préparation » dès son premier enregistrement.
     const [context, tw] = await Promise.all([describeGapSubject(user, sujet.trim()), translatorFor(contentLocale, "watch")]);
     sources = toEditorSources(context.ownItems);
     initialBrief = buildGapBrief(
@@ -61,11 +64,12 @@ export default async function NewNewsletterPage({
         competitors: context.competitors,
         articles: context.articles,
         angles: context.angles.filter(isCompetitorAngle).map((angle) => tw(`angles.${angle}`)),
-        ownItems: context.ownItems,
+        ownItemsCount: context.ownItems.length,
       },
       tw,
       createFormats(settings)
     );
+    initialTopics = [context.subject];
   }
   const initialTargetId = targets.some((t) => t.id === cible) ? cible : undefined;
 
@@ -106,7 +110,9 @@ export default async function NewNewsletterPage({
         targets={targets.map((t) => ({ id: t.id, label: t.label, count: counts.get(t.id) ?? 0 }))}
         initialTargetId={initialTargetId}
         initialBrief={initialBrief}
+        initialTopics={initialTopics}
         sources={sources}
+        allowedFigures={context.allowedFigures}
         brand={context.brand}
         signatory={context.signatory}
       />

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { mailTargets, newsletterBlocks, newsletters } from "@/db/schema";
 import { parseLocalDateTime } from "@/db/queries/activities";
-import { attachNewsletterSources, markNewsletterSent, unmarkNewsletterSent, updateNewsletterTopics } from "@/db/queries/newsletters";
+import { attachNewsletterSources, markNewsletterSent, normalizeTopics, unmarkNewsletterSent, updateNewsletterTopics } from "@/db/queries/newsletters";
 import { assertOrgAccess, orgScope } from "@/db/scope";
 import { SEND_ERROR_PARAM } from "@/components/newsletter/labels";
 import { errorMessage, withError } from "@/lib/form-actions";
@@ -49,6 +49,8 @@ const saveInputSchema = NEWSLETTER_DRAFT_SCHEMA.extend({
   brief: z.string().trim().optional(),
   /** Les articles du panier dont la newsletter part (« écrire à partir de ça ») — rattachés à l'enregistrement, idempotent. */
   sourceItemIds: z.array(z.uuid()).max(50).optional(),
+  /** Les sujets traités — déclarés par la génération (étape 6), ou posés d'avance depuis l'écart de contenu ; absents : inchangés. */
+  topics: z.array(z.string()).max(20).optional(),
 });
 
 export type SaveNewsletterInput = z.infer<typeof saveInputSchema>;
@@ -85,6 +87,7 @@ export async function saveNewsletter(input: SaveNewsletterInput) {
         subject: parsed.subject || null,
         preheader: parsed.preheader || null,
         brief: parsed.brief ?? null,
+        ...(parsed.topics ? { topics: normalizeTopics(parsed.topics) } : {}),
         updatedAt: new Date(),
       })
       .where(eq(newsletters.id, newsletterId));
@@ -100,6 +103,7 @@ export async function saveNewsletter(input: SaveNewsletterInput) {
         subject: parsed.subject || null,
         preheader: parsed.preheader || null,
         brief: parsed.brief ?? null,
+        topics: parsed.topics ? normalizeTopics(parsed.topics) : [],
         createdBy: user.id,
       })
       .returning({ id: newsletters.id });

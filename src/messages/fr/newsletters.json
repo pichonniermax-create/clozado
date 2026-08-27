@@ -56,7 +56,15 @@
     "titre": "Titre",
     "titre_de_l_encart": "Titre de l’encart",
     "un_trait_horizontal_qui_separe_deux_6e97": "Un trait horizontal qui sépare deux parties de l’email. Rien à régler.",
-    "une_phrase_qui_donne_envie_de_ae4d": "Une phrase qui donne envie de cliquer."
+    "une_phrase_qui_donne_envie_de_ae4d": "Une phrase qui donne envie de cliquer.",
+    "intitule_du_bloc": "Intitulé",
+    "ex_sources": "Ex : Sources",
+    "articles_cites": "Articles cités",
+    "aucun_article_cite_pour_l_instant": "Aucun article cité pour l’instant.",
+    "a_citer_aussi": "À citer aussi",
+    "citer": "Citer",
+    "les_sources_viennent_de_la_matiere_rattachee": "Les sources viennent de la matière rattachée à cet email (panier ou écart de contenu) : titre, éditeur, date et lien tels qu’en base — jamais un lien tapé à la main.",
+    "aucun_article_n_est_rattache_a_cet_email": "Aucun article n’est rattaché à cet email : pars du panier de la veille ou de l’écart de contenu pour avoir des sources à citer."
   },
   "blocks": {
     "bouton": {
@@ -86,6 +94,10 @@
     "titre": {
       "label": "Titre",
       "hint": "Ouvre une section"
+    },
+    "sources": {
+      "label": "Sources",
+      "hint": "Les articles dont l’email s’inspire, avec leur lien"
     }
   },
   "detail": {
@@ -151,14 +163,15 @@
     "sujets": " · sujets : {join}",
     "supprimer_ce_bloc": "Supprimer ce bloc",
     "termine": "Terminé",
-    "un_chiffre_n_est_ni_dans_5699": "Un chiffre n’est ni dans tes chiffres vérifiés, ni entre crochets — vérifie-le ou mets-le entre crochets.",
-    "un_peu_long_risque_d_etre_49a6": "Un peu long : risque d’être coupé dans certaines boîtes mail."
-  },
-  "review": {
-    "blocs_d_appel_a_l_action_c471": "{ctaCount} blocs d’appel à l’action (cta/bouton) — un seul est autorisé par newsletter.",
-    "chiffre_non_autorise_dans_un_bloc_3f72": "Chiffre non autorisé \"{figure}\" dans un bloc {type} — ni un chiffre vérifié de l’organisation, ni un [placeholder].",
-    "objet_de_caracteres_maximum": "Objet de {count} caractères — maximum {subjectMax}.",
-    "preheader_de_caracteres_maximum": "Préheader de {count} caractères — maximum {preheaderMax}."
+    "un_peu_long_risque_d_etre_49a6": "Un peu long : risque d’être coupé dans certaines boîtes mail.",
+    "le_chiffre_n_est_ni_dans_tes": "Le chiffre {figure} n’est ni dans tes chiffres vérifiés, ni entre crochets — vérifie-le ou mets-le entre crochets.",
+    "le_chiffre_vient_de_l_article": "Le chiffre {figure} vient de l’article « {title} » : il n’est pas dans tes chiffres vérifiés — vérifie-le, ou ajoute-le dans Chiffres.",
+    "formulation_reprise_de_la_source": "Une formulation reprend la source « {title} » — reformule avec nos mots.",
+    "un_lien_dans_le_texte_ne_correspond": "Un lien dans le texte ne correspond à aucune source rattachée — retire-le, ou cite l’article dans le bloc Sources.",
+    "article_articles_de_la_matiere_non_cites": "{count, plural, one {Un article de la matière n’est pas cité} other {# articles de la matière ne sont pas cités}} — s’ils ont servi, ajoute-les au bloc Sources.",
+    "source_sources_hors_matiere_retirees": "{count, plural, one {Une source citée hors de la matière a été retirée} other {# sources citées hors de la matière ont été retirées}} — seuls les articles rattachés se citent.",
+    "le_bloc_sources_est_vide": "Le bloc Sources est vide : choisis les articles à citer, ou supprime-le.",
+    "sujets_traites_declares": "Sujets traités : {join} — modifiables au marquage « envoyée »."
   },
   "saveIndicator": {
     "enregistre": "Enregistré {formatSavedAt}",

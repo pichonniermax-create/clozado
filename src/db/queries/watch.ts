@@ -649,6 +649,36 @@ export async function listOwnItemsOnSubject(user: OrgScopeUser, subject: string,
     .slice(0, limit);
 }
 
+/**
+ * La MATIÈRE d'une newsletter pour le composer (étape 6) : les articles
+ * demandés, de l'organisation, jamais ceux d'un concurrent (ils ne sont
+ * pas de la matière) — titre, lien, éditeur, date, NOTRE résumé. C'est la
+ * liste blanche du bloc `sources` : le modèle ne peut citer que ces
+ * identifiants, et leurs champs sont recopiés d'ici.
+ */
+export async function listSourcesForComposer(
+  organizationId: string,
+  ids: string[]
+): Promise<{ id: string; title: string; url: string; publisher: string; publishedAt: Date | null; summary: string | null }[]> {
+  const unique = Array.from(new Set(ids));
+  if (unique.length === 0) return [];
+  const rows = await db
+    .select({
+      id: watchItems.id,
+      title: watchItems.title,
+      url: watchItems.url,
+      publisher: watchItems.publisher,
+      publishedAt: watchItems.publishedAt,
+      summary: watchItems.summary,
+    })
+    .from(watchItems)
+    .leftJoin(watchSources, eq(watchSources.id, watchItems.sourceId))
+    .where(and(eq(watchItems.organizationId, organizationId), inArray(watchItems.id, unique), notCompetitor));
+  // Dans l'ordre demandé (celui du panier ou de l'écart).
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  return unique.map((id) => byId.get(id)).filter((r): r is NonNullable<typeof r> => Boolean(r));
+}
+
 export type GapSubjectContext = {
   subject: string;
   competitors: string[];

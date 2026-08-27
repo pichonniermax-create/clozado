@@ -32,7 +32,7 @@ import {
   type RenderBrand,
   type RenderSignatory,
 } from "@/lib/newsletter/render-email";
-import { PREHEADER_MAX, SUBJECT_MAX, type ReviewIssue } from "@/lib/newsletter/review";
+import { PREHEADER_MAX, reviewNewsletter, SUBJECT_MAX, type ReviewIssue } from "@/lib/newsletter/review";
 import { saveNewsletter } from "@/lib/newsletter/actions";
 import { targetSummaryAction, type TargetSummary } from "@/lib/targets/actions";
 import { useFormats } from "@/components/i18n/formats-provider";
@@ -45,15 +45,27 @@ import type { AppLocale } from "@/i18n/locales";
 export type EditorTarget = { id: string; label: string; count: number };
 
 /**
- * Les messages de la revue sont écrits pour un journal technique (« Chiffre
- * non autorisé "12" dans un bloc chiffre_cle — ni un chiffre vérifié… »).
- * Ils sont reformulés ici pour l'écran, sans toucher à `review.ts` : c'est
- * le même travail de langage que sur le reste de l'éditeur.
+ * La revue déterministe (`review.ts`) rend des codes et des paramètres ;
+ * les phrases sont écrites ici, pour l'écran, dans la langue de la
+ * personne — c'est le même travail de langage que sur le reste de
+ * l'éditeur, et la revue reste pure.
  */
 function reviewMessage(issue: ReviewIssue, t: TranslatorOf<"newsletters.newsletterEditor">): string {
   switch (issue.code) {
     case "unauthorized_figure":
-      return t("un_chiffre_n_est_ni_dans_5699");
+      return t("le_chiffre_n_est_ni_dans_tes", { figure: issue.figure });
+    case "figure_from_source":
+      return t("le_chiffre_vient_de_l_article", { figure: issue.figure, title: issue.sourceTitle });
+    case "copied_passage":
+      return t("formulation_reprise_de_la_source", { title: issue.sourceTitle });
+    case "foreign_url":
+      return t("un_lien_dans_le_texte_ne_correspond");
+    case "uncited_sources":
+      return t("article_articles_de_la_matiere_non_cites", { count: issue.count });
+    case "unknown_source":
+      return t("source_sources_hors_matiere_retirees", { count: issue.count });
+    case "sources_empty":
+      return t("le_bloc_sources_est_vide");
     case "multiple_ctas":
       return t("il_y_a_plusieurs_invitations_a_a0a4");
     case "subject_too_long":
@@ -84,6 +96,10 @@ export type NewsletterEditorProps = {
   initialBrief?: string;
   /** La matière : les articles rattachés (nouvel email depuis le panier, ou email déjà enregistré). */
   sources?: EditorSource[];
+  /** Les valeurs des chiffres vérifiés de l'organisation — la revue continue de l'éditeur les lit (la même liste que le prompt). */
+  allowedFigures: string[];
+  /** Les sujets posés d'avance pour un nouvel email (« écrire sur ce sujet » depuis l'écart de contenu). */
+  initialTopics?: string[];
   /** La langue des contenus GÉNÉRÉS — celle de l'organisation par défaut, pas celle de la personne qui écrit. */
   lang: AppLocale;
   initial?: {
@@ -94,6 +110,7 @@ export type NewsletterEditorProps = {
     preheader: string;
     brief: string;
     blocks: AnyBlock[];
+    topics: string[];
   };
 };
 
@@ -107,7 +124,7 @@ export type NewsletterEditorProps = {
  * d'affichage à tenir synchronisé, et sans aller-retour réseau : ce qu'on
  * voit se met à jour à la frappe.
  */
-export function NewsletterEditor({ targets, brand, signatory, initialTargetId, initialBrief, sources = [], initial, lang }: NewsletterEditorProps) {
+export function NewsletterEditor({ targets, brand, signatory, initialTargetId, initialBrief, sources = [], allowedFigures, initialTopics, initial, lang }: NewsletterEditorProps) {
   const tr = useTranslations("newsletters.newsletterEditor");
   const tb = useTranslations("newsletters");
   const fmt = useFormats();
@@ -117,6 +134,8 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
   const [preheader, setPreheader] = useState(initial?.preheader ?? "");
   const [blocks, setBlocks] = useState<AnyBlock[]>(initial?.blocks ?? []);
   const [brief, setBrief] = useState(initial?.brief ?? initialBrief ?? "");
+  /** Les sujets traités : déclarés par la génération, ou posés d'avance depuis l'écart ; enregistrés avec le brouillon, préremplis au marquage. */
+  const [topics, setTopics] = useState<string[]>(initial?.topics ?? initialTopics ?? []);
 
   /**
    * La sélection est ancrée sur un BLOC, pas sur une unité : les index
@@ -127,8 +146,12 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
   const [selectedBlock, setSelectedBlock] = useState<number | null>(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** Résultat de la revue déterministe, porté jusqu'à l'écran. */
-  const [reviewIssues, setReviewIssues] = useState<ReviewIssue[]>([]);
+  /**
+   * Ce que seule la route de génération sait (une source citée hors de la
+   * matière, retirée par la liste blanche) ; le reste de la revue tourne
+   * ici, en continu, sur le document tel qu'il est.
+   */
+  const [generationNotes, setGenerationNotes] = useState<ReviewIssue[]>([]);
 
   const [dragUnit, setDragUnit] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<{
@@ -139,6 +162,20 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
   const { commit, undo, canUndo } = useBlockHistory(blocks, setBlocks);
 
   const shell = useMemo(() => renderDocumentShell(brand, signatory), [brand, signatory]);
+
+  /**
+   * LA REVUE DÉTERMINISTE, EN CONTINU : la même fonction que la route de
+   * génération, sur le document courant — un chiffre tapé à la main, un
+   * lien ajouté, une source retirée sont vus comme ce que l'IA a produit.
+   * Aucun chiffre non autorisé n'atteint l'envoi sans être signalé. Pas
+   * pendant la rédaction : les blocs provisoires ne sont pas encore le
+   * document.
+   */
+  const reviewSources = useMemo(() => sources.map((s) => ({ id: s.id, title: s.title, url: s.url, summary: s.summary })), [sources]);
+  const reviewIssues = useMemo<ReviewIssue[]>(
+    () => (generating ? [] : [...generationNotes, ...reviewNewsletter({ subject, preheader, blocks }, { allowedFigures, sources: reviewSources }).issues]),
+    [generating, generationNotes, subject, preheader, blocks, allowedFigures, reviewSources]
+  );
   // `editable` pose les ancres `data-block` que le clic utilise pour savoir
   // quel bloc ouvrir. Elles n'existent que dans ce rendu-ci.
   const units = useMemo(() => renderBlockUnits(blocks, brand, true), [blocks, brand]);
@@ -227,12 +264,15 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
     commit(blocks);
     setGenerating(true);
     setError(null);
-    setReviewIssues([]);
+    setGenerationNotes([]);
     try {
       const res = await fetch("/api/newsletters/ai/design", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetId, brief, lang }),
+        // La matière part par ses identifiants : la route la relit en base
+        // (scopée à l'organisation de la cible) — c'est la liste blanche des
+        // sources que l'email pourra citer.
+        body: JSON.stringify({ targetId, brief, lang, sourceItemIds: sources.map((s) => s.id) }),
       });
 
       if (!res.ok || !res.body) {
@@ -282,7 +322,8 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
             setSubject(event.newsletter.subject);
             setPreheader(event.newsletter.preheader);
             setBlocks(event.newsletter.blocks);
-            setReviewIssues(event.review?.issues ?? []);
+            setTopics(Array.isArray(event.newsletter.topics) ? event.newsletter.topics : []);
+            setGenerationNotes(((event.review?.issues ?? []) as ReviewIssue[]).filter((issue) => issue.code === "unknown_source"));
           }
         }
       }
@@ -310,6 +351,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
       preheader,
       brief: brief.trim() || undefined,
       blocks,
+      topics,
       // La matière est rattachée à la première écriture (idempotent ensuite).
       sourceItemIds: sources.length ? sources.map((s) => s.id) : undefined,
     });
@@ -319,7 +361,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
       // ferait perdre ce qui n'est pas encore parti.
       window.history.replaceState(null, "", `/newsletters/${id}`);
     }
-  }, [newsletterId, targetId, subject, preheader, brief, blocks, initial?.title, sources, tr]);
+  }, [newsletterId, targetId, subject, preheader, brief, blocks, topics, initial?.title, sources, tr]);
 
   // Rien n'est écrit tant que le document est vide : ouvrir puis quitter
   // l'écran ne doit pas semer un brouillon fantôme dans la liste.
@@ -327,7 +369,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
     blocks.length > 0 || subject.trim().length > 0 || preheader.trim().length > 0;
 
   const saveState = useAutosave({
-    data: JSON.stringify({ targetId, subject, preheader, brief, blocks }),
+    data: JSON.stringify({ targetId, subject, preheader, brief, blocks, topics }),
     hasContent: hasContent && Boolean(targetId),
     save,
   });
@@ -403,6 +445,11 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
         </details>
       )}
 
+      {/* Les sujets traités, déclarés par la rédaction : ce que l'anti-répétition et l'écart de contenu liront. */}
+      {topics.length > 0 && !generating && (
+        <p className="text-xs text-muted-foreground">{tr("sujets_traites_declares", { join: fmt.list(topics) })}</p>
+      )}
+
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}
@@ -419,21 +466,25 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
             {tr("a_verifier_avant_d_envoyer")}
           </p>
           <ul className="flex flex-col gap-1">
-            {reviewIssues.map((issue, i) => (
-              <li key={i} className="text-xs">
-                {issue.blockIndex !== undefined ? (
-                  <button
-                    type="button"
-                    className="text-left underline underline-offset-2 hover:text-foreground"
-                    onClick={() => setSelectedBlock(issue.blockIndex!)}
-                  >
-                    {reviewMessage(issue, tr)}
-                  </button>
-                ) : (
-                  reviewMessage(issue, tr)
-                )}
-              </li>
-            ))}
+            {reviewIssues.map((issue, i) => {
+              // Un signalement qui pointe un bloc s'ouvre d'un clic ; les autres (sources non citées, objet) portent sur l'email entier.
+              const at = "blockIndex" in issue ? issue.blockIndex : undefined;
+              return (
+                <li key={i} className="text-xs">
+                  {at !== undefined ? (
+                    <button
+                      type="button"
+                      className="text-left underline underline-offset-2 hover:text-foreground"
+                      onClick={() => setSelectedBlock(at)}
+                    >
+                      {reviewMessage(issue, tr)}
+                    </button>
+                  ) : (
+                    reviewMessage(issue, tr)
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
@@ -544,6 +595,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
                               <BlockEditor
                                 block={blocks[bi]}
                                 onChange={(next) => replaceBlock(bi, next)}
+                                sources={sources}
                               />
                             </div>
                           ))}
