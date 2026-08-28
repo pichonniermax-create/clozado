@@ -897,8 +897,9 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   l'étape (exception assumée à la règle « supprimés avant le commit ») :
   les preuves d'envoi réel encore dues s'appuient dessus — ils partent à
   la clôture de l'étape.
-- **En attente des DNS** (`mail.clozado.fr`, `in.clozado.fr` : aucun
-  enregistrement ne répondait encore le 2026-08-27 ; chez Resend,
+- **En attente des DNS** (état au commit de l'étape 2 b — réalisé depuis,
+  voir « Preuves réelles » ci-dessous) (`mail.clozado.fr`, `in.clozado.fr` :
+  aucun enregistrement ne répondait encore le 2026-08-27 ; chez Resend,
   `mail.clozado.fr` est passé `failed` — une vérification lancée qui a
   expiré faute d'enregistrements, sans conséquence : elle repart d'un
   clic) : l'envoi réel vers `pichonniermax@gmail.com`, les en-têtes réels
@@ -906,6 +907,57 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   `mail.clozado.fr` comme domaine propre — la bascule se prouve sans
   domaine client), la réponse à un email de test, l'ouverture et le clic
   réels sur la fiche, `RESEND_WEBHOOK_SECRET` à créer et à poser.
+
+### Preuves réelles (2026-08-27 au soir, complétées le 2026-08-28)
+
+- **DNS posés par l'utilisateur** : `mail.clozado.fr` ET `in.clozado.fr`
+  sont « verified » chez Resend (API `/domains`) ; `_dmarc.mail.clozado.fr`
+  répond `v=DMARC1; p=none;`, `send.mail.clozado.fr` porte le MX et le SPF
+  d'amazonses, `in.clozado.fr` son MX `inbound-smtp.eu-west-1`.
+- **Avant bascule** (scripts `_tmp-engagement-real.ts`, phase `avant`) :
+  l'email de test part du repli `Cabinet Engagement
+  <_engage-test@mail.clozado.fr>` (21:48 UTC), statut `sent` + id
+  fournisseur en base ; chez Resend `last_event: opened` (ouvert dans
+  Gmail).
+- **Bascule** (phase `bascule`, 21:49 UTC) : l'écran des réglages déclare
+  `mail.clozado.fr` comme domaine propre de l'organisation de preuve,
+  « Vérifié le … », 5 enregistrements « En place » (DMARC vérifié par
+  nous), `email_domain_status = verified` en base.
+- **Après bascule** (phase `envoi`, 21:55 UTC) : envoi réel à 2 contacts,
+  From `Cabinet Engagement <cabinet@mail.clozado.fr>`, Reply-To de la
+  personne ; chez Resend `last_event: delivered` pour
+  `pichonniermax@gmail.com` et `bounced` pour `bounced@resend.dev`. En
+  base locale les messages restent `sent` : aucun webhook ne peut joindre
+  le Codespace — attendu, la remise est attestée par l'API du fournisseur.
+- **En-têtes réels lus dans Gmail (RAW), avant ET après bascule** :
+  `dkim=pass` (`mail.clozado.fr`, s=resend), `spf=pass`
+  (`send.mail.clozado.fr`), `dmarc=pass`, `Reply-To:
+  pichonniermax+reponse@gmail.com` présent, `List-Unsubscribe` +
+  `List-Unsubscribe-Post: List-Unsubscribe=One-Click`, pied de page
+  complet (mention de test / « Vous recevez cet email parce que… » /
+  désinscription / adresse postale / mention légale / « mesure les
+  ouvertures et les clics ») ; pixel `links.mail.clozado.fr/CI0/…` et
+  liens réécrits `CL0/…` → le sous-domaine de suivi répond en HTTPS.
+- **Réponse au test** : envoyée vers l'adresse de réponse (comme un client
+  mail qui honore le Reply-To), arrivée dans la boîte le 2026-08-28
+  (11:39 UTC). Contre-preuve involontaire la veille : une réponse envoyée
+  au From (l'API Gmail ignore le Reply-To, contrairement aux clients
+  mail) rebondit « domaine introuvable » — exactement la raison d'être du
+  Reply-To obligatoire du cahier.
+- **Déploiement production** : les échecs de `59a9ed5` et `06c9d93` sont
+  le cron `*/10` refusé par le plan Hobby (le lien d'erreur Vercel mène à
+  « Usage & Pricing for Cron Jobs » ; aucun déploiement créé) — corrigé
+  par `4bfe87c` (cron quotidien). Depuis, le déploiement se crée mais
+  échoue instantanément (créé et en échec dans la même seconde, donc
+  AVANT le build — le build du commit poussé passe localement dans les
+  conditions de Vercel) : le motif est à lire dans le tableau de bord
+  Vercel (équipe `s2-c`, `dpl_9BYTX6ZuHUETXEeUYaUuufXxZw2s`),
+  vraisemblablement au niveau du compte ou du plan, pas du code.
+- **Webhook Resend** : création par l'API tentée depuis la session
+  (endpoint `https://clozado.vercel.app/api/webhooks/resend`), refusée
+  par le garde-fou de permissions de l'outil — à créer avec l'accord de
+  l'utilisateur (API ou tableau de bord Resend), le secret `whsec_…` à
+  poser sur Vercel et dans `.env.local`.
 
 ## Avancement
 
@@ -927,3 +979,19 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   les DNS du §7 chez l'hébergeur de `clozado.fr`, puis les preuves
   d'envoi réel (§ « En attente des DNS ») et `RESEND_WEBHOOK_SECRET` —
   l'étape se clôt là-dessus.
+- **Étape 2 — les preuves réelles et le déblocage du déploiement**
+  (2026-08-27 au soir et 2026-08-28) : DNS posés, les deux domaines
+  « verified » chez Resend ; test avant bascule, adoption du domaine
+  propre par l'écran, envoi réel après bascule — attestés par l'API
+  Resend (`opened` / `delivered` / `bounced`) et par les en-têtes réels
+  lus dans Gmail (DKIM/SPF/DMARC pass, Reply-To, One-Click, pied
+  complet) ; réponse au test arrivée à l'adresse de réponse. Découvert :
+  les déploiements Vercel échouaient depuis `59a9ed5` — cron `*/10`
+  refusé par le plan Hobby, corrigé (`4bfe87c`, cron quotidien 06:00
+  UTC) ; un second blocage instantané, antérieur au build, reste à lire
+  dans le tableau de bord Vercel. STOP : lever ce blocage, poser les
+  variables de production (`APP_URL`, `EMAIL_FROM` aligné,
+  `EMAIL_SHARED_DOMAIN`, `EMAIL_INBOUND_DOMAIN`,
+  `RESEND_WEBHOOK_SECRET`), créer le webhook Resend, puis la preuve
+  finale (remise/rejet/ouverture/clic réels par la production dans la
+  base, fiche et carte) — l'étape se clôt là-dessus.
