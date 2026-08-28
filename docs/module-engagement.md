@@ -836,7 +836,8 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   2026-08-28 : sur le plan Vercel Hobby, un cron plus fréquent qu'une fois
   par jour fait échouer le déploiement ENTIER** — `59a9ed5` et `06c9d93`
   n'ont jamais atteint la production (restée sur `35c4134`, statuts GitHub
-  « Vercel: failure », build local identique OK). Passé à `0 6 * * *`
+  « Vercel: failure » ; le build local passait, mais pour une autre
+  raison que celle supposée — voir « Preuves réelles »). Passé à `0 6 * * *`
   (UTC). Conséquence assumée : un envoi interrompu reprend au plus tard le
   lendemain matin, ou tout de suite par le bouton « Reprendre » ; l'envoi
   normal n'en dépend pas (`after()`). Si un jour c'est insuffisant : plan
@@ -947,12 +948,24 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
 - **Déploiement production** : les échecs de `59a9ed5` et `06c9d93` sont
   le cron `*/10` refusé par le plan Hobby (le lien d'erreur Vercel mène à
   « Usage & Pricing for Cron Jobs » ; aucun déploiement créé) — corrigé
-  par `4bfe87c` (cron quotidien). Depuis, le déploiement se crée mais
-  échoue instantanément (créé et en échec dans la même seconde, donc
-  AVANT le build — le build du commit poussé passe localement dans les
-  conditions de Vercel) : le motif est à lire dans le tableau de bord
-  Vercel (équipe `s2-c`, `dpl_9BYTX6ZuHUETXEeUYaUuufXxZw2s`),
-  vraisemblablement au niveau du compte ou du plan, pas du code.
+  par `4bfe87c` (cron quotidien). Le second échec (`4bfe87c`, `16a80f3`),
+  lu par l'utilisateur dans les journaux Vercel, était bien du code — et
+  de notre fait : les scripts temporaires `scripts/_tmp-engagement-*.ts`
+  committés à l'étape 2 (b) importent `playwright`, présent dans le
+  `node_modules` du Codespace mais absent de `package.json` ; `npm ci`
+  chez Vercel ne l'installe pas et le typecheck de `next build` (le
+  `tsconfig` inclut `**/*.ts`, donc `scripts/`) échoue : `TS2307: Cannot
+  find module 'playwright'` ×2 et `TS7006` (paramètres implicitement
+  `any`) ×5, « Failed to type check ». Reproduit à l'identique ici en
+  cachant `node_modules/playwright` (`tsc --noEmit` sur `16a80f3` : les
+  mêmes sept erreurs) — l'affirmation « le build passe localement dans
+  les conditions de Vercel » de la veille était fausse, le `node_modules`
+  local contenait playwright ; et « échec dans la même seconde » était une
+  mauvaise lecture des horodatages du statut GitHub. Ce blocage existait
+  donc dès `59a9ed5`, masqué par celui du cron. Corrigé en sortant les six
+  scripts du dépôt (copies locales conservées pour la preuve finale) et
+  en ajoutant `scripts/_tmp-*` à `.gitignore`, pour que la règle
+  « supprimés avant commit » ne repose plus sur la mémoire.
 - **Webhook Resend** : création par l'API tentée depuis la session
   (endpoint `https://clozado.vercel.app/api/webhooks/resend`), refusée
   par le garde-fou de permissions de l'outil — à créer avec l'accord de
@@ -988,8 +1001,10 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   complet) ; réponse au test arrivée à l'adresse de réponse. Découvert :
   les déploiements Vercel échouaient depuis `59a9ed5` — cron `*/10`
   refusé par le plan Hobby, corrigé (`4bfe87c`, cron quotidien 06:00
-  UTC) ; un second blocage instantané, antérieur au build, reste à lire
-  dans le tableau de bord Vercel. STOP : lever ce blocage, poser les
+  UTC) ; puis, lu par l'utilisateur dans les journaux Vercel, les scripts
+  temporaires committés cassaient le typecheck (`playwright` absent de
+  `package.json`) — sortis du dépôt et ignorés par git, déploiement
+  vérifié (voir « Preuves réelles »). STOP : poser les
   variables de production (`APP_URL`, `EMAIL_FROM` aligné,
   `EMAIL_SHARED_DOMAIN`, `EMAIL_INBOUND_DOMAIN`,
   `RESEND_WEBHOOK_SECRET`), créer le webhook Resend, puis la preuve

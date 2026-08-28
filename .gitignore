@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# scripts de vérification temporaires (jamais committés : ils importent playwright, absent de package.json, et cassent le build Vercel)
+scripts/_tmp-*
