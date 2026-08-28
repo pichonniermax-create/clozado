@@ -965,7 +965,15 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   donc dès `59a9ed5`, masqué par celui du cron. Corrigé en sortant les six
   scripts du dépôt (copies locales conservées pour la preuve finale) et
   en ajoutant `scripts/_tmp-*` à `.gitignore`, pour que la règle
-  « supprimés avant commit » ne repose plus sur la mémoire.
+  « supprimés avant commit » ne repose plus sur la mémoire. Résultat :
+  `ea24943` déployé en Production le 2026-08-28 à 13:58 UTC (statut
+  GitHub `success`, premier déploiement réussi depuis `35c4134`) ; sondes
+  après coup : `/desinscription/<id réel>` 200, `/api/cron/envois` et
+  `/api/cron/veille` 503 « CRON_SECRET absent », `POST
+  /api/webhooks/resend` 503 `webhook_not_configured` — les routes de
+  l'étape 2 sont en ligne, mais ce déploiement ne voyait ni `CRON_SECRET`
+  ni `RESEND_WEBHOOK_SECRET` (une variable Vercel n'est injectée qu'au
+  déploiement suivant sa création : redéploiement nécessaire).
 - **Webhook Resend** : création par l'API tentée depuis la session
   (endpoint `https://clozado.vercel.app/api/webhooks/resend`), refusée
   par le garde-fou de permissions de l'outil — à créer avec l'accord de
