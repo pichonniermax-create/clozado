@@ -771,8 +771,8 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   recomptés, pause propre au quota (`daily_quota_exceeded` → lendemain
   00:05 UTC ; mensuel → premier du mois), au débit (`retry-after`, trois
   essais) et à l'indisponibilité (dix minutes) ; reprise par le cron
-  `/api/cron/envois` toutes les dix minutes (`vercel.json`) et par le bouton
-  « Reprendre ». Une leçon SQL au passage : la requête principale ne voit
+  `/api/cron/envois` (quotidien 06:00 UTC — contrainte du plan Vercel
+  Hobby, voir « Décisions réversibles ») et par le bouton « Reprendre ». Une leçon SQL au passage : la requête principale ne voit
   pas les lignes que ses CTE modifiantes viennent d'écrire — elle lit leurs
   `RETURNING`, et le compteur s'écrit dans un second ordre (recompté de
   toute façon).
@@ -832,8 +832,17 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   l'envoi ne change pas ce qui est parti.
 - La confirmation d'envoi est une case à cocher native (pas de dialogue) ;
   l'annulation d'un envoi réel n'existe pas.
-- Le cron des envois passe toutes les dix minutes (plan Pro requis pour
-  cette fréquence) ; l'envoi n'en dépend pas.
+- Le cron des envois était prévu toutes les dix minutes ; **découvert le
+  2026-08-28 : sur le plan Vercel Hobby, un cron plus fréquent qu'une fois
+  par jour fait échouer le déploiement ENTIER** — `59a9ed5` et `06c9d93`
+  n'ont jamais atteint la production (restée sur `35c4134`, statuts GitHub
+  « Vercel: failure », build local identique OK). Passé à `0 6 * * *`
+  (UTC). Conséquence assumée : un envoi interrompu reprend au plus tard le
+  lendemain matin, ou tout de suite par le bouton « Reprendre » ; l'envoi
+  normal n'en dépend pas (`after()`). Si un jour c'est insuffisant : plan
+  Pro (revenir à `*/10` en un commit) ou un déclencheur externe qui
+  appelle `/api/cron/envois` avec `CRON_SECRET` — à trancher, rien à
+  construire d'avance.
 - Un email de test compte dans le quota du fournisseur (dit à l'écran).
 
 ### Preuves
