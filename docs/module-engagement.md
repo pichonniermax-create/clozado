@@ -980,6 +980,59 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   l'utilisateur (API ou tableau de bord Resend), le secret `whsec_…` à
   poser sur Vercel et dans `.env.local`.
 
+### Preuve finale depuis la production (2026-08-28, 14:03 → 14:12 UTC)
+
+- **Préalables posés par l'utilisateur** : variables Vercel Production
+  (`APP_URL`, `EMAIL_SHARED_DOMAIN`, `EMAIL_INBOUND_DOMAIN`, `EMAIL_FROM`
+  modifiée, `RESEND_WEBHOOK_SECRET`) ; webhook Resend `bbf2281d…` sur
+  `https://clozado.vercel.app/api/webhooks/resend`, tous les événements
+  (dont `email.received`, utile à l'étape 3). Redéploiement `deff141`
+  (14:00:52) : `POST /api/webhooks/resend` non signé répond désormais
+  `invalid_signature` — le secret est vu, le 503 a disparu.
+- **Session** : cookie `__Secure-authjs.session-token` forgé avec le même
+  `AUTH_SECRET`, accepté par la production (`/profil` 200) — en HTTPS le
+  nom du cookie change, le sel aussi.
+- **Envoi par la production** : newsletter « Preuve engagement
+  (production) » (`c70b3190…`) dans `_engage-test` ; carte « Envoyer à 2
+  contacts — 2 avec une adresse et non désinscrits, sur 3 dans la cible » ;
+  exécutant `after()` côté Vercel : 2 messages `sent` à 14:03:34,7, envoi
+  terminé 14:03:35,2 (sent 2, failed 0, pas de pause).
+- **Webhooks réels reçus par la production** (base partagée) : Max
+  `delivered` à 14:03:36,032 (événements `sent` msg_3IXzri…, `delivered`
+  msg_3IXzrv…) ; `bounced@resend.dev` `bounced` à 14:03:35,468 (« Permanent
+  — General — … hard bounce … ») → ligne `email_suppressions` (motif
+  `bounced`).
+- **Email reçu dans Gmail (RAW)** : From `Cabinet Engagement
+  <cabinet@mail.clozado.fr>`, `Reply-To: pichonniermax+reponse@gmail.com`,
+  `List-Unsubscribe: <https://clozado.vercel.app/api/unsubscribe/e5c28638-…>`
+  + One-Click (l'`APP_URL` de production est appliquée), dkim/spf/dmarc
+  pass, pied complet, pixel `links.mail.clozado.fr/CI0/…`, lien
+  `CL0/https:%2F%2Fexample.com%2Frendez-vous/…`.
+- **Ouverture et clic** demandés avec ces URL exactes, comme un client mail
+  (pixel : 200 `image/gif` ; lien : 302 → `https://example.com/rendez-vous`)
+  → `opened` 14:11:39,503 et `clicked` 14:11:39,573 (URL conservée, aucun
+  IP/UA) ; `open_count` 1, `click_count` 1 ; indicateurs : dernier clic =
+  dernière interaction, dernière ouverture posée.
+- **Écrans de production** : fiche de Max (« Dernier email ouvert 28 août
+  2026 — approximatif », « Dernier clic 28 août 2026 », « Dernière
+  interaction 28 août 2026 », journal avec le lien), fiche du rejeté
+  (« rejeté »), carte de la newsletter (Envoyés 2, Remis 1, Ouverts
+  (approx.) 1, Cliqués 1, Rejetés 1, Non envoyés 1 — 1 sans adresse).
+  13 contrôles OK, zéro erreur de page ni de console. Fixture détruite,
+  scripts temporaires supprimés.
+- **Observations à garder** : (1) juste après le clic « Envoyer
+  maintenant », la carte n'a pas affiché « Envoi en cours » ni « Envoyée
+  le » dans les 45 s (l'envoi, lui, était fini en 3 s) ; après navigation
+  tout est là — jamais vu en local (deux preuves) ; à observer au prochain
+  envoi réel par une personne, et si ça se reproduit, le rafraîchissement
+  après l'action est à revoir. (2) Sur une newsletter envoyée, l'en-tête de
+  composition (sélecteur de cible, « À vérifier avant d'envoyer ») reste
+  affiché au-dessus de la carte d'envoi — à arbitrer. (3) **La production
+  ne voit pas `CRON_SECRET`** : `/api/cron/veille` et `/api/cron/envois`
+  répondent 503 « CRON_SECRET absent » — les deux crons (veille 05:30,
+  reprise des envois 06:00) sont inactifs en production tant que la
+  variable n'est pas posée en Production et un redéploiement fait.
+
 ## Avancement
 
 - **Étape 0 — état des lieux** (2026-08-27) : `90c34a9`. Cahier reçu
@@ -1012,9 +1065,18 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   UTC) ; puis, lu par l'utilisateur dans les journaux Vercel, les scripts
   temporaires committés cassaient le typecheck (`playwright` absent de
   `package.json`) — sortis du dépôt et ignorés par git, déploiement
-  vérifié (voir « Preuves réelles »). STOP : poser les
-  variables de production (`APP_URL`, `EMAIL_FROM` aligné,
-  `EMAIL_SHARED_DOMAIN`, `EMAIL_INBOUND_DOMAIN`,
-  `RESEND_WEBHOOK_SECRET`), créer le webhook Resend, puis la preuve
-  finale (remise/rejet/ouverture/clic réels par la production dans la
-  base, fiche et carte) — l'étape se clôt là-dessus.
+  vérifié (voir « Preuves réelles »). Puis, variables posées et webhook
+  créé par l'utilisateur, la preuve finale depuis la production.
+- **Étape 2 — CLOSE** (2026-08-28) : envoi réel par la production,
+  remise, rejet + suppression, ouverture et clic revenus par les webhooks
+  dans la base, la fiche et la carte (voir « Preuve finale depuis la
+  production »). Reste hors code, à faire par l'utilisateur :
+  `CRON_SECRET` en Production Vercel (+ redéploiement) — sans quoi les
+  crons de veille et de reprise sont inactifs. **Étape 3 — Partie 2**
+  (§4) : tout est prêt côté infrastructure (`in.clozado.fr` vérifié avec
+  MX, le webhook porte `email.received`, mécanisme §4.2 accordé) ; à
+  vérifier au départ : que la réception est bien active sur `in.clozado.fr`
+  chez Resend (« receiving »). **Étape 4 — Partie 3** (§5) : question
+  ouverte « Calendly payant chez le pilote ? » (la saisie manuelle est le
+  chemin par défaut, Calendly un confort) ; le reste ne dépend de rien
+  d'externe.
