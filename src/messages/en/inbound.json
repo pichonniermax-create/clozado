@@ -1,0 +1,88 @@
+{
+  "actions": {
+    "email_confirme": "Email confirmed: the record and the interaction are up to date.",
+    "email_ignore": "Email ignored: nothing was written.",
+    "reglage_enregistre": "Setting saved."
+  },
+  "activity": {
+    "copie_de": "{subject} — copy sent by {who}",
+    "sans_objet": "No subject",
+    "transfere_par": "{subject} — forwarded by {who}"
+  },
+  "auth": {
+    "dkim": "DKIM",
+    "dkim_aligned": "Signature verified",
+    "failed": "Not authenticated",
+    "non_aligne": "domain not aligned",
+    "spf": "SPF",
+    "spf_aligned": "Server verified",
+    "unavailable": "Could not be checked"
+  },
+  "card": {
+    "a_choisir": "To be chosen",
+    "a_qualifier": "To qualify",
+    "a_verifier": "To be checked",
+    "confirmer": "Confirm",
+    "copie": "Copy",
+    "creer_une_nouvelle_fiche": "Create a new record",
+    "email": "Email",
+    "email_d_origine_du": "original email of {when}",
+    "fonction": "Job title",
+    "ignorer": "Ignore",
+    "la_fiche": "The record",
+    "le_sens": "The direction of this email",
+    "le_sens_decide_de_l_arret_automatique": "An email coming from the contact stops automatic sending to them.",
+    "nom": "Name",
+    "proposition_deterministe": "Proposal made without a model: phone by pattern, name from the header.",
+    "proposition_du_modele": "Proposal from a model, based on the last lines of the message: nothing is written until you confirm.",
+    "rattacher_ne_modifie_pas_la_fiche": "Linking does not change the existing record: only the interaction is added to it.",
+    "recu_de_le": "Received from {sender} on {when}",
+    "sans_objet": "No subject",
+    "sens_entrant": "It comes from the contact",
+    "sens_sortant": "It goes to the contact",
+    "societe": "Company",
+    "telephone": "Phone",
+    "transfert": "Forward",
+    "voir_le_message": "View the message"
+  },
+  "page": {
+    "aucune_adresse_encore": "No ingestion address yet: <link>create it in the settings</link>, then forward an email to that address.",
+    "ce_que_l_adresse_d_ingestion_a_recu": "What the ingestion address has received.",
+    "cet_ecran_appartient_a_une_organisation": "Received emails belong to an organization: pick one in the top banner.",
+    "choisis_une_organisation": "Pick an organization",
+    "confirme": "Confirmed",
+    "emails_recus": "Received emails",
+    "empty": {
+      "pending": "Nothing to confirm",
+      "rejected": "No rejection",
+      "treated": "Nothing handled yet"
+    },
+    "emptyHint": {
+      "pending": "Forward an email to your ingestion address, or put it in blind copy when you write to a contact: the proposal shows up here.",
+      "rejected": "A rejected email appears here with its reason — unknown address, sender not a member, sender not authenticated, rate or size.",
+      "treated": "Confirmed and ignored emails end up here, with the record they were linked to."
+    },
+    "ignore": "Ignored",
+    "l_adresse_d_ingestion": "The ingestion address",
+    "onglets": "Received emails tabs",
+    "page_sur": "Page {page} of {pageCount}",
+    "precedents": "Previous",
+    "recu_de_le": "Received from {sender} on {when}",
+    "sans_objet": "No subject",
+    "suivants": "Next",
+    "tabs": {
+      "pending": "To confirm ({count})",
+      "rejected": "Rejected ({count})",
+      "treated": "Handled ({count})"
+    },
+    "transfere_a_ou_mets_en_copie": "Forward an email to {address}, or put that address in blind copy: the proposal shows up here."
+  },
+  "rejection": {
+    "rate_limited": "Too many emails received",
+    "sender_not_authenticated": "Sender not authenticated",
+    "sender_not_member": "Unknown sender",
+    "too_large": "Message too large",
+    "unknown_address": "Unknown ingestion address",
+    "unreadable": "Unreadable message"
+  }
+}

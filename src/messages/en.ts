@@ -10,6 +10,7 @@ import errors from "./en/errors.json";
 import figures from "./en/figures.json";
 import followup from "./en/followup.json";
 import home from "./en/home.json";
+import inbound from "./en/inbound.json";
 import metrics from "./en/metrics.json";
 import nav from "./en/nav.json";
 import newsletters from "./en/newsletters.json";
@@ -46,6 +47,7 @@ const en = {
   figures,
   followup,
   home,
+  inbound,
   metrics,
   nav,
   newsletters,

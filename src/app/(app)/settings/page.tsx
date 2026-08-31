@@ -47,8 +47,9 @@ import { normalizeHex } from "@/lib/brand/color";
 import { brandStyle, deriveBrandTokens } from "@/lib/brand/derive";
 import { isPlausibleEmail } from "@/lib/email/address";
 import { EmailDomainCard } from "@/components/settings/email-domain-card";
+import { IngestAddressCard } from "@/components/settings/ingest-address-card";
 import { LegalFootprintCard } from "@/components/settings/legal-footprint-card";
-import { sharedSendingDomain } from "@/lib/email/config";
+import { inboundDomain, sharedSendingDomain } from "@/lib/email/config";
 import { resolveSender } from "@/lib/email/sender";
 import { withError } from "@/lib/form-actions";
 import { BUSINESS_PACK_LIST, resolveBusinessPack } from "@/lib/metrics";
@@ -191,6 +192,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     sharedDomain = "";
     effectiveFrom = "";
   }
+  // Le domaine de réception (Partie 2) : sans la variable, la carte d'ingestion le dit plutôt que d'afficher une adresse fausse.
+  let receivingDomain: string | null = null;
+  try {
+    receivingDomain = inboundDomain();
+  } catch {
+    receivingDomain = null;
+  }
   const nothingConnected = collection.lastEventAt === null && collection.lastLeadAt === null;
 
   async function saveStage(formData: FormData) {
@@ -301,6 +309,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <EmailDomainCard org={org} readOnly={readOnly} sharedDomain={sharedDomain} effectiveFrom={effectiveFrom} />
 
       <LegalFootprintCard org={org} readOnly={readOnly} />
+
+      <IngestAddressCard org={org} readOnly={readOnly} inboundDomain={receivingDomain} />
 
       <Card id="langue" className="scroll-mt-24">
         <CardHeader>

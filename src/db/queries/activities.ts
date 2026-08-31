@@ -522,6 +522,13 @@ export type ActivityInput = {
   occurredAt?: Date | null;
   contactId?: string | null;
   dealId?: string | null;
+  /**
+   * Le SENS d'un email consigné (chantier engagement, §4.3) : `inbound`
+   * quand il vient du contact (un email de lui, transféré), `outbound`
+   * quand il part vers lui (une copie en Cci). Null pour tout le reste —
+   * une note, un appel, un rendez-vous n'ont pas de sens.
+   */
+  direction?: "inbound" | "outbound" | null;
 };
 
 /**
@@ -579,6 +586,7 @@ export async function createActivity(user: OrgScopeUser, createdBy: string, inpu
       occurredAt,
       contactId,
       dealId: input.dealId ?? null,
+      direction: input.type === "email" ? (input.direction ?? null) : null,
       createdBy,
     })
     .returning();

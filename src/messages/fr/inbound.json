@@ -1,0 +1,88 @@
+{
+  "actions": {
+    "email_confirme": "Email confirmé : la fiche et l’interaction sont à jour.",
+    "email_ignore": "Email ignoré : rien n’a été écrit.",
+    "reglage_enregistre": "Réglage enregistré."
+  },
+  "activity": {
+    "copie_de": "{subject} — copie envoyée par {who}",
+    "sans_objet": "Sans objet",
+    "transfere_par": "{subject} — transféré par {who}"
+  },
+  "auth": {
+    "dkim": "DKIM",
+    "dkim_aligned": "Signature vérifiée",
+    "failed": "Non authentifié",
+    "non_aligne": "domaine non aligné",
+    "spf": "SPF",
+    "spf_aligned": "Serveur vérifié",
+    "unavailable": "Vérification impossible"
+  },
+  "card": {
+    "a_choisir": "À choisir",
+    "a_qualifier": "À qualifier",
+    "a_verifier": "À vérifier",
+    "confirmer": "Confirmer",
+    "copie": "Copie",
+    "creer_une_nouvelle_fiche": "Créer une nouvelle fiche",
+    "email": "Email",
+    "email_d_origine_du": "email d’origine du {when}",
+    "fonction": "Fonction",
+    "ignorer": "Ignorer",
+    "la_fiche": "La fiche",
+    "le_sens": "Le sens de cet email",
+    "le_sens_decide_de_l_arret_automatique": "Un email venant du contact arrête l’envoi automatique vers lui.",
+    "nom": "Nom",
+    "proposition_deterministe": "Proposition établie sans modèle : le téléphone par motif, le nom par l’en-tête.",
+    "proposition_du_modele": "Proposition d’un modèle, à partir des dernières lignes du message : rien n’est écrit avant ta confirmation.",
+    "rattacher_ne_modifie_pas_la_fiche": "Rattacher ne modifie pas la fiche existante : seule l’interaction s’y ajoute.",
+    "recu_de_le": "Reçu de {sender} le {when}",
+    "sans_objet": "Sans objet",
+    "sens_entrant": "Il vient du contact",
+    "sens_sortant": "Il part vers le contact",
+    "societe": "Société",
+    "telephone": "Téléphone",
+    "transfert": "Transfert",
+    "voir_le_message": "Voir le message"
+  },
+  "page": {
+    "aucune_adresse_encore": "Aucune adresse d’ingestion pour l’instant : <link>crée-la dans les réglages</link>, puis transfère un email à cette adresse.",
+    "ce_que_l_adresse_d_ingestion_a_recu": "Ce que l’adresse d’ingestion a reçu.",
+    "cet_ecran_appartient_a_une_organisation": "Les emails reçus appartiennent à une organisation : choisis-en une dans le bandeau du haut.",
+    "choisis_une_organisation": "Choisis une organisation",
+    "confirme": "Confirmé",
+    "emails_recus": "Emails reçus",
+    "empty": {
+      "pending": "Rien à confirmer",
+      "rejected": "Aucun refus",
+      "treated": "Rien de traité pour l’instant"
+    },
+    "emptyHint": {
+      "pending": "Transfère un email à ton adresse d’ingestion, ou mets-la en copie cachée quand tu écris à un contact : la proposition arrive ici.",
+      "rejected": "Un email refusé apparaît ici avec son motif — adresse inconnue, expéditeur non membre, expéditeur non authentifié, débit ou taille.",
+      "treated": "Les emails confirmés et ignorés se retrouvent ici, avec la fiche à laquelle ils ont été rattachés."
+    },
+    "ignore": "Ignoré",
+    "l_adresse_d_ingestion": "L’adresse d’ingestion",
+    "onglets": "Onglets des emails reçus",
+    "page_sur": "Page {page} sur {pageCount}",
+    "precedents": "Précédents",
+    "recu_de_le": "Reçu de {sender} le {when}",
+    "sans_objet": "Sans objet",
+    "suivants": "Suivants",
+    "tabs": {
+      "pending": "À confirmer ({count})",
+      "rejected": "Refusés ({count})",
+      "treated": "Traités ({count})"
+    },
+    "transfere_a_ou_mets_en_copie": "Transfère un email à {address}, ou mets cette adresse en copie cachée : la proposition arrive ici."
+  },
+  "rejection": {
+    "rate_limited": "Trop d’emails reçus",
+    "sender_not_authenticated": "Expéditeur non authentifié",
+    "sender_not_member": "Expéditeur inconnu",
+    "too_large": "Message trop volumineux",
+    "unknown_address": "Adresse d’ingestion inconnue",
+    "unreadable": "Message illisible"
+  }
+}

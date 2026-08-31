@@ -132,6 +132,27 @@ export async function saveEmailDomainState(user: OrgScopeUser, state: EmailDomai
   await db.update(organizations).set({ ...state, updatedAt: new Date() }).where(eq(organizations.id, user.organizationId));
 }
 
+/**
+ * L'ADRESSE D'INGESTION (chantier engagement, §4.1) — le jeton s'écrit une
+ * fois, et se régénère à la demande : l'ancienne adresse cesse aussitôt
+ * d'être acceptée (aucun email en vol n'est « rattrapé »). Même garde-fou
+ * que le reste des réglages : un admin, sur SA propre organisation.
+ */
+export async function saveIngestToken(user: OrgScopeUser, token: string): Promise<void> {
+  if (user.role !== "admin" || !user.organizationId) {
+    throw new AppError("acces_refuse_seul_l_admin_de_l_7ac9", undefined, 403);
+  }
+  await db.update(organizations).set({ ingestToken: token, updatedAt: new Date() }).where(eq(organizations.id, user.organizationId));
+}
+
+/** « Conserver le corps des emails reçus » — décoché, le corps est NULL dès la réception, pas seulement caché. */
+export async function setStoreInboundBodies(user: OrgScopeUser, store: boolean): Promise<void> {
+  if (user.role !== "admin" || !user.organizationId) {
+    throw new AppError("acces_refuse_seul_l_admin_de_l_7ac9", undefined, 403);
+  }
+  await db.update(organizations).set({ storeInboundBodies: store, updatedAt: new Date() }).where(eq(organizations.id, user.organizationId));
+}
+
 export type LegalFootprintInput = { country: string | null; postalAddress: string | null; legalMention: string | null; privacyPolicyUrl: string | null };
 
 /** Les faits du pied de page conforme (pays, adresse postale, mentions, politique de confidentialité) — validés par l'écran. */

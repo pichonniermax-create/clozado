@@ -10,6 +10,7 @@ import errors from "./fr/errors.json";
 import figures from "./fr/figures.json";
 import followup from "./fr/followup.json";
 import home from "./fr/home.json";
+import inbound from "./fr/inbound.json";
 import metrics from "./fr/metrics.json";
 import nav from "./fr/nav.json";
 import newsletters from "./fr/newsletters.json";
@@ -46,6 +47,7 @@ const fr = {
   figures,
   followup,
   home,
+  inbound,
   metrics,
   nav,
   newsletters,

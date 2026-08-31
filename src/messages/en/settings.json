@@ -7,6 +7,114 @@
     "simulateur_credit_serveur": "Loan simulator — server",
     "un_nom_par_integration_simulateur_credit_b255": "One name per integration (“Loan simulator — server”), so you know what to revoke later."
   },
+  "domainCard": {
+    "celui_de_ton_adresse": "The one of your sending address (“cabinet-dupont.fr”).",
+    "colonnes": {
+      "etat": "Status",
+      "nom": "Name",
+      "type": "Type",
+      "valeur": "Value"
+    },
+    "declarer": "Declare this domain",
+    "domaine_d_envoi": "Sending domain",
+    "en_attente": "Pending",
+    "expediteur_effectif": "Today, your emails go out from: {from}",
+    "hosters": {
+      "cloudflare": {
+        "name": "Cloudflare",
+        "steps": "Cloudflare → your site → DNS → “Add record”. For the tracking CNAME, turn the orange cloud off (proxy “DNS only”). Name = the part before your domain; priority 10 for the MX."
+      },
+      "gandi": {
+        "name": "Gandi",
+        "steps": "Gandi dashboard → Domains → your domain → “DNS Records” → “Add”. Type, name (without the domain), value; for an MX, priority 10 goes before the value."
+      },
+      "ionos": {
+        "name": "IONOS",
+        "steps": "IONOS → Domains & SSL → your domain → “DNS” → “Add record”. Host name = the part before your domain; for a long TXT (DKIM), paste the whole value."
+      },
+      "o2switch": {
+        "name": "o2switch",
+        "steps": "cPanel → “Zone Editor” → “Manage” → “Add Record”. Full name with the domain, a trailing dot is accepted; default TTL."
+      },
+      "other": {
+        "name": "Other host",
+        "steps": "Look for “DNS zone” or “DNS records” at your host. Each row of the table becomes a record: the type, the name (often without your domain, sometimes with it), the value as is, and priority 10 for the MX. Don’t touch any existing record."
+      },
+      "ovh": {
+        "name": "OVH",
+        "steps": "OVH Manager → Domain names → your domain → “DNS Zone” tab → “Add an entry”. Pick the type (TXT, MX, CNAME), paste the name as a subdomain (the part before your domain) and the value. For an MX, the priority is asked separately (10)."
+      },
+      "squarespace": {
+        "name": "Squarespace / Google Domains",
+        "steps": "Squarespace → Domains → your domain → “DNS settings” → “Custom records” → “Add”. Host = the part before your domain; for an MX, priority 10 is a separate field."
+      }
+    },
+    "il_manque": "{count, plural, one {One record is} other {# records are}} missing: {names}. Create them at your DNS host (copy each value), then “Check now”. Propagation takes from a few minutes to a few hours.",
+    "indisponible_sur_ce_plan": "The current plan of the sending provider doesn’t allow another domain: {domain} cannot be verified for now. Your emails keep going out from {shared}, under your name, with nothing to change. Verification will be possible once the plan has been upgraded.",
+    "instructions_par_hebergeur": "Instructions by DNS host",
+    "le_fournisseur_a_dit": "The provider replied: {message}",
+    "placeholder_domaine": "cabinet-dupont.fr",
+    "recordStatus": {
+      "failed": "Incorrect",
+      "not_started": "Missing",
+      "pending": "In progress",
+      "temporary_failure": "Retry",
+      "verified": "In place"
+    },
+    "relatif": "(at some hosts: {name})",
+    "repli": "Fallback",
+    "retirer_ce_domaine": "Remove this domain",
+    "sans_domaine": "Until your domain is verified, your emails go out from the platform’s {domain} subdomain, under your name — it works right now. Declare your domain to send from your own address: we give you the DNS records to create, then the switch happens by itself, nothing to resend.",
+    "ton_domaine": "Your domain",
+    "tout_est_pose_verification_en_cours": "All records are there; the provider’s verification is in progress — check again in a few minutes.",
+    "verifie": "Verified",
+    "verifie_expediteur_propre": "Verified on {when}: your emails go out from your sending address, on your domain.",
+    "verifie_le": "last check on {when}",
+    "verifie_mais_adresse_ailleurs": "The domain {domain} is verified, but your reply address is not on it: your emails still go out from the platform’s subdomain. <link>Set an address on this domain</link>",
+    "verifie_par_nous": "checked by us",
+    "verifier_maintenant": "Check now"
+  },
+  "ingestCard": {
+    "adresse_d_ingestion": "Ingestion address",
+    "aucune_adresse_pour_l_instant": "No address yet. Once created, forward an email to it — or put it in blind copy when you write to a contact — and the proposal shows up in “Received emails”.",
+    "conserver_le_corps": "Keep the body of received emails",
+    "copier_l_adresse": "Copy the ingestion address",
+    "creer_l_adresse": "Create the address",
+    "enregistrer_le_reglage": "Save the setting",
+    "lecture_seule": "Read only: only the organization admin can create or renew the address.",
+    "reception_non_configuree": "Receiving is not configured on this deployment (EMAIL_INBOUND_DOMAIN is missing): no ingestion address can be created.",
+    "regenerer_coupe_l_ancienne": "Renewing replaces the address: the old one stops being accepted immediately, and emails still on their way to it will be rejected.",
+    "regenerer_l_adresse": "Renew the address",
+    "seuls_les_membres_authentifies": "This address is a secret. Only emails sent by a member of the organization, and authenticated (DKIM or SPF), are accepted — the others are rejected, with their reason visible.",
+    "sinon_le_corps_n_est_pas_ecrit": "Unchecked, the body is not written to the database at all — only the subject, the counterpart and the proposal are kept.",
+    "transfere_un_email_ou_mets_la_en_copie": "Forward an email to this address, or put it in blind copy: the product proposes a record and an interaction.",
+    "voir_les_emails_recus": "View received emails"
+  },
+  "legalCard": {
+    "adresse_postale": "Postal address",
+    "chaque_email_porte_qui_l_envoie": "Every email carries who sends it, its postal address, the unsubscribe link and the mention that opens and clicks are measured — composed from your country’s profile. Nothing goes out without them.",
+    "enregistrer_le_pied_de_page": "Save the footer",
+    "le_pays_choisit_les_regles": "Chooses the footer rules — profile applied: {profile}.",
+    "liee_au_pied_de_page": "Linked from the footer when set.",
+    "mentions_legales": "Legal mentions",
+    "non_renseigne_profil_europeen": "Not set (European profile)",
+    "obligatoire_au_pied": "Required at the bottom of every email.",
+    "pays": "Country",
+    "pied_de_page_des_emails": "Email footer",
+    "placeholder_adresse": "12 rue des Lilas\n69001 Lyon",
+    "placeholder_mentions": "SARL with a capital of €10,000 · ORIAS 12 345 678",
+    "placeholder_politique": "https://my-firm.com/privacy",
+    "politique_de_confidentialite": "Privacy policy",
+    "profiles": {
+      "ca": "Canada",
+      "ch": "Switzerland",
+      "eu": "European Union",
+      "gb": "United Kingdom",
+      "us": "United States"
+    },
+    "sans_adresse_postale_aucun_envoi": "Without a postal address, no real send can go out (a test can).",
+    "siren_orias_rcs": "Company number, regulator registration… free text, shown as is."
+  },
   "page": {
     "adresse_de_reponse": "Reply-to address",
     "ajoute_ce_domaine_ci_dessous_s_79a9": "— add this domain below if it’s yours",
@@ -18,6 +126,7 @@
     "aucun_pack_n_est_choisi_pour_b897": "No pack is chosen yet: the dashboard shows the “Any profession” pack.",
     "aucune_cle_chaque_integration_serveur_recoit_5bce": "No keys. Each server integration gets its own — revocable separately.",
     "aucune_visite_ni_aucun_lead_recus_d528": "No visits or leads received. The rest of the product works without them; the acquisition funnel will fill up as soon as the script line is in place and a domain declared, and as soon as a simulator sends leads with an API key.",
+    "chaque_membre_peut_choisir_la_sienne_c3d4": "Each member can pick their own from their account menu.",
     "cle_creee_le": "{label} · key created on {formatDateTime}",
     "cle_s_de_site_revoquee_s_e4b5": "{count} site key(s) revoked — scripts that still carry them are rejected and counted above.",
     "cles_d_api_leads_cote_serveur": "API keys (leads, server-side)",
@@ -27,31 +136,43 @@
     "couleur_de_la_marque": "Brand color",
     "creee_le": "<span>{label} <code>{keyPrefix}…</code></span><span2>created on {formatDateTime}{value}{n}</span2>",
     "creer": "Create",
+    "dates_heures_et_echeances_se_lisent_a7b8": "Dates, times and due dates are read in this time zone.",
     "dernier_evenement_le": "last event on {formatDateTime}",
     "dernier_le": "last on {formatDateTime}",
     "dernier_usage_le": "· last used on {formatDateTime}",
     "descendre": "Move {label} down",
     "deux_entrees_les_leads_envoyes_par_ee12": "Two inputs: leads, sent by your simulators server-side with an API key; visits and simulations, sent by a script line placed on your sites, accepted only from the domains declared below.",
+    "devise": "Currency",
     "domaines_autorises": "Allowed domains",
     "enregistrer": "Save",
     "enregistrer_la_marque": "Save brand",
+    "enregistrer_langue_devise_et_fuseau": "Save",
     "enregistrer_le_pack": "Save pack",
     "enregistrer_les_domaines": "Save domains",
     "envoi_post_api_leads_en_tete_7cd8": "Send: <code>POST {appOrigin}/api/leads</code>, header <code2>Authorization: Bearer clz_…</code2>, JSON with at least <code3>email</code3> or <code4>phone</code4>, plus <code5>origin</code5>, <code6>simulator</code6>, <code7>visitor_id</code7>, <code8>utm_*</code8>, <code9>payload</code9> (≤ 16 KB).",
     "etape_intermediaire": "Intermediate stage",
     "expediteur_des_emails": "Email sender",
     "fois_derniere_le": "{count} times · last on {formatDateTime}",
+    "fuseau_horaire": "Time zone",
     "gagne": "Won",
     "identifiant_une_seule_couleur_le_systeme_0d04": "Identifier: {slug}. A single color: the system derives buttons, links, light backgrounds and the active navigation row from it, making sure everything stays readable.",
     "inter": "Inter",
     "jamais_utilisee": "· never used",
+    "l_adresse_de_la_politique_de_confidentialite_ne_semble_pas_valide": "The privacy policy address doesn’t look valid (it starts with https://).",
     "l_adresse_de_reponse_ne_semble_ac1b": "The reply-to address doesn’t look valid.",
     "la_couleur_n_est_pas_un_466e": "The color isn’t a valid hex code.",
+    "la_langue_de_l_espace_par_defaut_1a2b": "The workspace’s default language, the currency amounts are read in, the time zone for dates and due dates.",
+    "langue_devise_et_fuseau": "Language, currency and time zone",
+    "langue_devise_et_fuseau_enregistres": "Language, currency and time zone saved.",
+    "langue_devise_ou_fuseau_inconnu": "Unknown language, currency or time zone.",
+    "langue_par_defaut": "Default language",
+    "le_pays_doit_etre_un_code_a_deux_lettres": "The country must be a two-letter code (FR, BE, CH…).",
     "leads_30_jours": "Leads (30 days)",
     "lecture_seule_seul_l_admin_de_0a29": "Read-only — only the organization’s admin can change these settings.",
     "les_emails_envoyes_en_ton_nom_c54e": "Emails sent in your name go out from your address on the platform’s subdomain, with your sender name in front; your reply address receives the replies (each member can set their own in their profile). It will become the sender itself once your sending domain is verified.",
     "les_etapes_de_ce_pipeline_leur_6f64": "The stages of this pipeline — their order is the kanban’s. Indicative probability in %, won/lost marker on the final stages.",
     "les_indicateurs_mis_en_avant_sur_4291": "The metrics highlighted on the dashboard are those of your profession — a wealth advisor tracks assets under management and inflows, a broker tracks volumes and turnaround times.{n}",
+    "les_montants_s_affichent_dans_cette_e5f6": "Amounts are shown in this currency — nothing is converted.",
     "libelle_de_l_etape": "Stage label",
     "libelle_de_la_nouvelle_etape": "New stage label",
     "ligne_de_script_a_poser_sur_276d": "Script line to place on your sites",
@@ -71,6 +192,7 @@
     "nouvelle_etape": "New stage",
     "pack_metier": "Business pack",
     "perdu": "Lost",
+    "pied_de_page_enregistre": "Footer saved.",
     "placement": "Investment",
     "police_des_emails": "Email font",
     "pour_faire_tourner_une_cle_sans_7a76": "To rotate a key without interrupting capture: create the new one, place it on your sites, then revoke the old one. For a simulator, add <code>data-simulator=\"…\"</code> and call <code2>clozado.track(\"simulation_started\")</code2> / <code3>clozado.track(\"simulation_completed\")</code3>.",
@@ -78,13 +200,13 @@
     "proposes_quand_une_affaire_part_sur_8e27": "Offered when a deal moves to a “lost” stage. A reason used by a deal can no longer be deleted.",
     "recoit_les_reponses_de_tes_contacts": "Receives replies from your contacts.",
     "rejections": {
-      "domain_not_allowed": "Undeclared domain",
-      "origin_missing": "Request without an origin domain",
-      "site_key_revoked": "Revoked site key still in use",
       "api_key_revoked": "Revoked API key still in use",
-      "rate_limited": "Rate limit exceeded",
+      "domain_not_allowed": "Undeclared domain",
+      "invalid_payload": "Invalid payload",
+      "origin_missing": "Request without an origin domain",
       "payload_too_large": "Payload too large",
-      "invalid_payload": "Invalid payload"
+      "rate_limited": "Rate limit exceeded",
+      "site_key_revoked": "Revoked site key still in use"
     },
     "renommer": "Rename",
     "requetes_refusees_a_corriger_sinon_la_f8d0": "Rejected requests — fix them, or capture stays silent",
@@ -104,127 +226,21 @@
     "une_famille_d_affaires_avec_ses_e8c5": "A family of deals with its own stages (mortgage, investment, transaction…).",
     "une_version_pour_fond_clair_une_0410": "One version for light backgrounds, one for dark backgrounds if you have it, and the tab icon derived automatically. Without a logo, the default brand is shown.",
     "visites_30_jours": "Visits (30 days)",
-    "www_mon_cabinet_fr_simulateur_mon_c2b2": "www.my-firm.com\nsimulator.my-firm.com",
-    "langue_devise_et_fuseau": "Language, currency and time zone",
-    "la_langue_de_l_espace_par_defaut_1a2b": "The workspace’s default language, the currency amounts are read in, the time zone for dates and due dates.",
-    "langue_par_defaut": "Default language",
-    "chaque_membre_peut_choisir_la_sienne_c3d4": "Each member can pick their own from their account menu.",
-    "devise": "Currency",
-    "les_montants_s_affichent_dans_cette_e5f6": "Amounts are shown in this currency — nothing is converted.",
-    "fuseau_horaire": "Time zone",
-    "dates_heures_et_echeances_se_lisent_a7b8": "Dates, times and due dates are read in this time zone.",
-    "enregistrer_langue_devise_et_fuseau": "Save",
-    "langue_devise_ou_fuseau_inconnu": "Unknown language, currency or time zone.",
-    "langue_devise_et_fuseau_enregistres": "Language, currency and time zone saved.",
-    "le_pays_doit_etre_un_code_a_deux_lettres": "The country must be a two-letter code (FR, BE, CH…).",
-    "l_adresse_de_la_politique_de_confidentialite_ne_semble_pas_valide": "The privacy policy address doesn’t look valid (it starts with https://).",
-    "pied_de_page_enregistre": "Footer saved."
+    "www_mon_cabinet_fr_simulateur_mon_c2b2": "www.my-firm.com\nsimulator.my-firm.com"
   },
   "queries": {
     "fields": {
+      "city": "city",
+      "companyName": "company",
+      "country": "country",
       "firstName": "first name",
+      "jobTitle": "job title",
       "lastName": "last name",
       "phone": "phone",
-      "companyName": "company",
-      "jobTitle": "job title",
-      "city": "city",
-      "postalCode": "postal code",
-      "country": "country"
+      "postalCode": "postal code"
     },
     "origine_detachee": "Detached origin",
     "origine_non_renseignee": "origin not provided",
     "site_principal": "Main site"
-  },
-  "domainCard": {
-    "domaine_d_envoi": "Sending domain",
-    "verifie": "Verified",
-    "en_attente": "Pending",
-    "repli": "Fallback",
-    "expediteur_effectif": "Today, your emails go out from: {from}",
-    "sans_domaine": "Until your domain is verified, your emails go out from the platform’s {domain} subdomain, under your name — it works right now. Declare your domain to send from your own address: we give you the DNS records to create, then the switch happens by itself, nothing to resend.",
-    "ton_domaine": "Your domain",
-    "celui_de_ton_adresse": "The one of your sending address (“cabinet-dupont.fr”).",
-    "placeholder_domaine": "cabinet-dupont.fr",
-    "declarer": "Declare this domain",
-    "indisponible_sur_ce_plan": "The current plan of the sending provider doesn’t allow another domain: {domain} cannot be verified for now. Your emails keep going out from {shared}, under your name, with nothing to change. Verification will be possible once the plan has been upgraded.",
-    "le_fournisseur_a_dit": "The provider replied: {message}",
-    "retirer_ce_domaine": "Remove this domain",
-    "verifie_le": "last check on {when}",
-    "verifier_maintenant": "Check now",
-    "verifie_expediteur_propre": "Verified on {when}: your emails go out from your sending address, on your domain.",
-    "verifie_mais_adresse_ailleurs": "The domain {domain} is verified, but your reply address is not on it: your emails still go out from the platform’s subdomain. <link>Set an address on this domain</link>",
-    "tout_est_pose_verification_en_cours": "All records are there; the provider’s verification is in progress — check again in a few minutes.",
-    "il_manque": "{count, plural, one {One record is} other {# records are}} missing: {names}. Create them at your DNS host (copy each value), then “Check now”. Propagation takes from a few minutes to a few hours.",
-    "colonnes": {
-      "type": "Type",
-      "nom": "Name",
-      "valeur": "Value",
-      "etat": "Status"
-    },
-    "relatif": "(at some hosts: {name})",
-    "verifie_par_nous": "checked by us",
-    "recordStatus": {
-      "verified": "In place",
-      "pending": "In progress",
-      "not_started": "Missing",
-      "failed": "Incorrect",
-      "temporary_failure": "Retry"
-    },
-    "instructions_par_hebergeur": "Instructions by DNS host",
-    "hosters": {
-      "ovh": {
-        "name": "OVH",
-        "steps": "OVH Manager → Domain names → your domain → “DNS Zone” tab → “Add an entry”. Pick the type (TXT, MX, CNAME), paste the name as a subdomain (the part before your domain) and the value. For an MX, the priority is asked separately (10)."
-      },
-      "gandi": {
-        "name": "Gandi",
-        "steps": "Gandi dashboard → Domains → your domain → “DNS Records” → “Add”. Type, name (without the domain), value; for an MX, priority 10 goes before the value."
-      },
-      "ionos": {
-        "name": "IONOS",
-        "steps": "IONOS → Domains & SSL → your domain → “DNS” → “Add record”. Host name = the part before your domain; for a long TXT (DKIM), paste the whole value."
-      },
-      "cloudflare": {
-        "name": "Cloudflare",
-        "steps": "Cloudflare → your site → DNS → “Add record”. For the tracking CNAME, turn the orange cloud off (proxy “DNS only”). Name = the part before your domain; priority 10 for the MX."
-      },
-      "o2switch": {
-        "name": "o2switch",
-        "steps": "cPanel → “Zone Editor” → “Manage” → “Add Record”. Full name with the domain, a trailing dot is accepted; default TTL."
-      },
-      "squarespace": {
-        "name": "Squarespace / Google Domains",
-        "steps": "Squarespace → Domains → your domain → “DNS settings” → “Custom records” → “Add”. Host = the part before your domain; for an MX, priority 10 is a separate field."
-      },
-      "other": {
-        "name": "Other host",
-        "steps": "Look for “DNS zone” or “DNS records” at your host. Each row of the table becomes a record: the type, the name (often without your domain, sometimes with it), the value as is, and priority 10 for the MX. Don’t touch any existing record."
-      }
-    }
-  },
-  "legalCard": {
-    "pied_de_page_des_emails": "Email footer",
-    "chaque_email_porte_qui_l_envoie": "Every email carries who sends it, its postal address, the unsubscribe link and the mention that opens and clicks are measured — composed from your country’s profile. Nothing goes out without them.",
-    "sans_adresse_postale_aucun_envoi": "Without a postal address, no real send can go out (a test can).",
-    "pays": "Country",
-    "le_pays_choisit_les_regles": "Chooses the footer rules — profile applied: {profile}.",
-    "profiles": {
-      "eu": "European Union",
-      "ch": "Switzerland",
-      "gb": "United Kingdom",
-      "ca": "Canada",
-      "us": "United States"
-    },
-    "non_renseigne_profil_europeen": "Not set (European profile)",
-    "politique_de_confidentialite": "Privacy policy",
-    "liee_au_pied_de_page": "Linked from the footer when set.",
-    "placeholder_politique": "https://my-firm.com/privacy",
-    "adresse_postale": "Postal address",
-    "obligatoire_au_pied": "Required at the bottom of every email.",
-    "placeholder_adresse": "12 rue des Lilas\n69001 Lyon",
-    "mentions_legales": "Legal mentions",
-    "siren_orias_rcs": "Company number, regulator registration… free text, shown as is.",
-    "placeholder_mentions": "SARL with a capital of €10,000 · ORIAS 12 345 678",
-    "enregistrer_le_pied_de_page": "Save the footer"
   }
 }

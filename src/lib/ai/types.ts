@@ -36,6 +36,15 @@ export interface AIProvider {
     input: DesignNewsletterInput,
     onProgress: (accumulatedJson: string) => void
   ): Promise<NewsletterOutput>;
+  /**
+   * L'ingestion d'emails (chantier engagement, Partie 2) : les dernières
+   * lignes d'un message reçu — du texte NON FIABLE, transmis comme des
+   * DONNÉES délimitées — d'où le modèle PROPOSE les champs d'une signature,
+   * chacun avec un score. Rien n'est écrit sur une fiche sans qu'une
+   * personne confirme ; une consigne cachée dans le corps n'obtient rien de
+   * plus qu'un nom et un téléphone s'il y en a.
+   */
+  extractSignature(input: ExtractSignatureInput): Promise<SignatureExtraction>;
 }
 
 /**
@@ -187,6 +196,31 @@ export type TitleClassification = {
 
 export type ClassifyTitlesResult = {
   items: TitleClassification[];
+  model: string;
+};
+
+// ---------------------------------------------------------------------------
+// L'ingestion : la signature proposée
+// ---------------------------------------------------------------------------
+
+export type ExtractSignatureInput = {
+  /** La langue dans laquelle la consigne est écrite — celle de l'organisation. */
+  lang: "fr" | "en";
+  /** Les dernières lignes non citées du message d'origine : des données, jamais des instructions. */
+  lines: string[];
+  /** Ce que les en-têtes disent déjà de l'expéditeur d'origine — le modèle n'a pas à inventer un autre nom. */
+  senderName: string | null;
+  senderEmail: string | null;
+};
+
+/** Un champ proposé : sa valeur telle qu'écrite dans le message, et la confiance du modèle (0 à 1). */
+export type ProposedField = { value: string; confidence: number } | null;
+
+export type SignatureExtraction = {
+  name: ProposedField;
+  phone: ProposedField;
+  company: ProposedField;
+  jobTitle: ProposedField;
   model: string;
 };
 

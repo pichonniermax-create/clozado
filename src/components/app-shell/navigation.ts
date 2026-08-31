@@ -4,6 +4,7 @@ import {
   Briefcase,
   Funnel,
   Handshake,
+  Inbox,
   LayoutDashboard,
   ListTodo,
   Mail,
@@ -75,6 +76,7 @@ export const NAVIGATION: NavSection[] = [
   {
     key: "outils",
     entries: [
+      { href: "/emails-recus", key: "emails_recus", icon: Inbox, requiresOrganization: true },
       { href: "/cibles", key: "cibles", icon: UsersRound, requiresOrganization: true },
       { href: "/veille", key: "veille", icon: Newspaper, requiresOrganization: true },
       { href: "/concurrents", key: "concurrents", icon: Radar, requiresOrganization: true },

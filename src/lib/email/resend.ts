@@ -2,9 +2,10 @@ import { resendApiKey } from "./config";
 
 /**
  * Le client du fournisseur d'envoi (Resend), en `fetch` — zéro dépendance
- * (décision validée, docs/module-engagement.md §2.5). Cinq points d'API et
+ * (décision validée, docs/module-engagement.md §2.5). Sept points d'API et
  * rien d'autre : envoyer (par lot), déclarer / relire / vérifier un
- * domaine, lister les domaines. Toute erreur du fournisseur remonte
+ * domaine, lister les domaines, relire un email reçu et télécharger son
+ * message brut (Partie 2). Toute erreur du fournisseur remonte
  * typée (`ResendError`) avec son statut, son code et le délai de reprise
  * qu'il demande — jamais avalée.
  */
@@ -159,4 +160,69 @@ export async function createDomain(name: string): Promise<ProviderDomain> {
 /** Demande la vérification (asynchrone) ; l'état se relit ensuite par `getDomain`. */
 export async function verifyDomain(id: string): Promise<void> {
   await call<{ id: string }>("POST", `/domains/${encodeURIComponent(id)}/verify`);
+}
+
+// ---------------------------------------------------------------------------
+// Réception (Partie 2 — l'ingestion, docs/module-engagement.md §4.1)
+// ---------------------------------------------------------------------------
+
+/**
+ * Un email REÇU tel que le fournisseur le rend (`GET /emails/receiving/{id}`).
+ * Le webhook `email.received` ne porte QUE des métadonnées : le contenu se
+ * relit ici, et le message brut — celui que l'authentification examine — se
+ * télécharge par `raw.download_url`, un lien signé valable une heure.
+ * Les pièces jointes ne sont jamais téléchargées.
+ */
+export type ReceivedEmail = {
+  id: string;
+  from: string;
+  to: string[];
+  cc: string[];
+  bcc: string[];
+  /** Les adresses pour lesquelles le message a été reçu (clause `for` des en-têtes `Received`) — la seule trace d'une adresse en Cci. */
+  received_for?: string[];
+  subject: string | null;
+  html: string | null;
+  text: string | null;
+  headers: Record<string, string>;
+  created_at: string;
+  message_id?: string | null;
+  raw: { download_url: string; expires_at: string } | null;
+  attachments?: { id: string; filename?: string; content_type?: string }[];
+};
+
+export async function getReceivedEmail(id: string): Promise<ReceivedEmail> {
+  return call<ReceivedEmail>("GET", `/emails/receiving/${encodeURIComponent(id)}`);
+}
+
+/**
+ * Télécharge le message brut, BORNÉ : au-delà de `maxBytes` la lecture est
+ * abandonnée et `tooLarge` est rendu — jamais un message sans limite en
+ * mémoire. Le lien est signé (CloudFront) : il ne porte pas la clé d'API.
+ */
+export async function downloadRawMessage(url: string, maxBytes: number): Promise<{ raw: Buffer | null; bytes: number; tooLarge: boolean }> {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new ResendError(response.status, null, `resend: téléchargement du brut ${response.status}`, null);
+  }
+  const declared = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    await response.body?.cancel();
+    return { raw: null, bytes: declared, tooLarge: true };
+  }
+  if (!response.body) return { raw: null, bytes: 0, tooLarge: false };
+  const chunks: Buffer[] = [];
+  let bytes = 0;
+  const reader = response.body.getReader();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    bytes += value.byteLength;
+    if (bytes > maxBytes) {
+      await reader.cancel();
+      return { raw: null, bytes, tooLarge: true };
+    }
+    chunks.push(Buffer.from(value));
+  }
+  return { raw: Buffer.concat(chunks), bytes, tooLarge: false };
 }

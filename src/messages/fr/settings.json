@@ -7,6 +7,114 @@
     "simulateur_credit_serveur": "Simulateur crédit — serveur",
     "un_nom_par_integration_simulateur_credit_b255": "Un nom par intégration (« Simulateur crédit — serveur »), pour savoir quoi révoquer plus tard."
   },
+  "domainCard": {
+    "celui_de_ton_adresse": "Celui de ton adresse d’expédition (« cabinet-dupont.fr »).",
+    "colonnes": {
+      "etat": "État",
+      "nom": "Nom",
+      "type": "Type",
+      "valeur": "Valeur"
+    },
+    "declarer": "Déclarer ce domaine",
+    "domaine_d_envoi": "Domaine d’envoi",
+    "en_attente": "En attente",
+    "expediteur_effectif": "Aujourd’hui, tes emails partent de : {from}",
+    "hosters": {
+      "cloudflare": {
+        "name": "Cloudflare",
+        "steps": "Cloudflare → ton site → DNS → « Add record ». Pour le CNAME de suivi, désactive le nuage orange (proxy « DNS only »). Nom = la partie avant ton domaine ; priorité 10 pour le MX."
+      },
+      "gandi": {
+        "name": "Gandi",
+        "steps": "Tableau de bord Gandi → Domaines → ton domaine → « Enregistrements DNS » → « Ajouter ». Type, nom (sans le domaine), valeur ; pour un MX, la priorité 10 va devant la valeur."
+      },
+      "ionos": {
+        "name": "IONOS",
+        "steps": "IONOS → Domaines & SSL → ton domaine → « DNS » → « Ajouter un enregistrement ». Nom d’hôte = la partie avant ton domaine ; pour un TXT long (DKIM), colle la valeur entière."
+      },
+      "o2switch": {
+        "name": "o2switch",
+        "steps": "cPanel → « Éditeur de zone DNS » → « Gérer » → « Ajouter un enregistrement ». Nom complet avec le domaine, un point final accepté ; TTL par défaut."
+      },
+      "other": {
+        "name": "Autre hébergeur",
+        "steps": "Cherche « zone DNS » ou « enregistrements DNS » dans ton hébergeur. Chaque ligne du tableau devient un enregistrement : le type, le nom (souvent sans ton domaine, parfois avec), la valeur telle quelle, et pour le MX la priorité 10. Ne touche à aucun enregistrement existant."
+      },
+      "ovh": {
+        "name": "OVH",
+        "steps": "Manager OVH → Noms de domaine → ton domaine → onglet « Zone DNS » → « Ajouter une entrée ». Choisis le type (TXT, MX, CNAME), colle le nom en sous-domaine (la partie avant ton domaine) et la valeur. Pour un MX, la priorité est demandée à part (10)."
+      },
+      "squarespace": {
+        "name": "Squarespace / Google Domains",
+        "steps": "Squarespace → Domaines → ton domaine → « Paramètres DNS » → « Enregistrements personnalisés » → « Ajouter ». Hôte = la partie avant ton domaine ; pour un MX, la priorité 10 est un champ à part."
+      }
+    },
+    "il_manque": "Il manque {count, plural, one {un enregistrement} other {# enregistrements}} : {names}. Crée-les chez ton hébergeur (copie chaque valeur), puis « Vérifier maintenant ». La propagation prend de quelques minutes à quelques heures.",
+    "indisponible_sur_ce_plan": "Le plan actuel du fournisseur d’envoi n’admet pas de domaine supplémentaire : {domain} ne peut pas être vérifié pour l’instant. Tes emails continuent de partir de {shared}, à ton nom, sans rien changer. La vérification sera possible quand le plan aura été augmenté.",
+    "instructions_par_hebergeur": "Instructions par hébergeur",
+    "le_fournisseur_a_dit": "Le fournisseur a répondu : {message}",
+    "placeholder_domaine": "cabinet-dupont.fr",
+    "recordStatus": {
+      "failed": "Incorrect",
+      "not_started": "Manquant",
+      "pending": "En cours",
+      "temporary_failure": "Réessayer",
+      "verified": "En place"
+    },
+    "relatif": "(chez certains hébergeurs : {name})",
+    "repli": "Repli",
+    "retirer_ce_domaine": "Retirer ce domaine",
+    "sans_domaine": "Tant que ton domaine n’est pas vérifié, tes emails partent du sous-domaine {domain} de la plateforme, à ton nom — ça marche dès maintenant. Déclare ton domaine pour envoyer depuis ta propre adresse : nous te donnons les enregistrements DNS à créer, puis la bascule se fait toute seule, sans rien réenvoyer.",
+    "ton_domaine": "Ton domaine",
+    "tout_est_pose_verification_en_cours": "Tous les enregistrements sont là ; la vérification par le fournisseur est en cours — revérifie dans quelques minutes.",
+    "verifie": "Vérifié",
+    "verifie_expediteur_propre": "Vérifié le {when} : tes emails partent de ton adresse d’expédition, sur ton domaine.",
+    "verifie_le": "dernière vérification le {when}",
+    "verifie_mais_adresse_ailleurs": "Le domaine {domain} est vérifié, mais ton adresse de réponse n’est pas dessus : tes emails partent encore du sous-domaine de la plateforme. <link>Mettre une adresse sur ce domaine</link>",
+    "verifie_par_nous": "vérifié par nous",
+    "verifier_maintenant": "Vérifier maintenant"
+  },
+  "ingestCard": {
+    "adresse_d_ingestion": "Adresse d’ingestion",
+    "aucune_adresse_pour_l_instant": "Aucune adresse pour l’instant. Une fois créée, transfère un email à cette adresse — ou mets-la en copie cachée quand tu écris à un contact — et la proposition arrive dans « Emails reçus ».",
+    "conserver_le_corps": "Conserver le corps des emails reçus",
+    "copier_l_adresse": "Copier l’adresse d’ingestion",
+    "creer_l_adresse": "Créer l’adresse",
+    "enregistrer_le_reglage": "Enregistrer le réglage",
+    "lecture_seule": "Lecture seule : seul l’admin de l’organisation peut créer ou régénérer l’adresse.",
+    "reception_non_configuree": "La réception n’est pas configurée sur ce déploiement (variable EMAIL_INBOUND_DOMAIN absente) : aucune adresse d’ingestion ne peut être créée.",
+    "regenerer_coupe_l_ancienne": "Régénérer remplace l’adresse : l’ancienne cesse aussitôt d’être acceptée, et les emails encore en route vers elle seront refusés.",
+    "regenerer_l_adresse": "Régénérer l’adresse",
+    "seuls_les_membres_authentifies": "Cette adresse est un secret. Seuls les emails envoyés par un membre de l’organisation, et authentifiés (DKIM ou SPF), sont acceptés — les autres sont refusés, avec leur motif visible.",
+    "sinon_le_corps_n_est_pas_ecrit": "Décoché, le corps n’est pas écrit en base du tout — seuls l’objet, la contrepartie et la proposition sont conservés.",
+    "transfere_un_email_ou_mets_la_en_copie": "Transfère un email à cette adresse, ou mets-la en copie cachée : le produit propose une fiche et une interaction.",
+    "voir_les_emails_recus": "Voir les emails reçus"
+  },
+  "legalCard": {
+    "adresse_postale": "Adresse postale",
+    "chaque_email_porte_qui_l_envoie": "Chaque email porte qui l’envoie, son adresse postale, le lien de désinscription et la mention de la mesure des ouvertures et des clics — composés d’après le profil de ton pays. Rien ne part sans.",
+    "enregistrer_le_pied_de_page": "Enregistrer le pied de page",
+    "le_pays_choisit_les_regles": "Choisit les règles du pied de page — profil appliqué : {profile}.",
+    "liee_au_pied_de_page": "Liée au pied de page quand elle est renseignée.",
+    "mentions_legales": "Mentions légales",
+    "non_renseigne_profil_europeen": "Non renseigné (profil européen)",
+    "obligatoire_au_pied": "Obligatoire au pied de chaque email.",
+    "pays": "Pays",
+    "pied_de_page_des_emails": "Pied de page des emails",
+    "placeholder_adresse": "12 rue des Lilas\n69001 Lyon",
+    "placeholder_mentions": "SARL au capital de 10 000 € · ORIAS 12 345 678",
+    "placeholder_politique": "https://mon-cabinet.fr/confidentialite",
+    "politique_de_confidentialite": "Politique de confidentialité",
+    "profiles": {
+      "ca": "Canada",
+      "ch": "Suisse",
+      "eu": "Union européenne",
+      "gb": "Royaume-Uni",
+      "us": "États-Unis"
+    },
+    "sans_adresse_postale_aucun_envoi": "Sans adresse postale, aucun envoi réel ne peut partir (un test, si).",
+    "siren_orias_rcs": "SIREN, ORIAS, RCS… texte libre, tel qu’il s’affichera."
+  },
   "page": {
     "adresse_de_reponse": "Adresse de réponse",
     "ajoute_ce_domaine_ci_dessous_s_79a9": "— ajoute ce domaine ci-dessous s’il est à toi",
@@ -18,6 +126,7 @@
     "aucun_pack_n_est_choisi_pour_b897": "Aucun pack n’est choisi pour l’instant : le tableau de bord montre le pack « Tout métier ».",
     "aucune_cle_chaque_integration_serveur_recoit_5bce": "Aucune clé. Chaque intégration serveur reçoit la sienne — révocable séparément.",
     "aucune_visite_ni_aucun_lead_recus_d528": "Aucune visite ni aucun lead reçus. Le reste du produit fonctionne sans ; le funnel d’acquisition se remplira dès que la ligne de script sera posée et un domaine déclaré, et dès qu’un simulateur enverra des leads avec une clé d’API.",
+    "chaque_membre_peut_choisir_la_sienne_c3d4": "Chaque membre peut choisir la sienne dans son menu de compte.",
     "cle_creee_le": "{label} · clé créée le {formatDateTime}",
     "cle_s_de_site_revoquee_s_e4b5": "{count} clé(s) de site révoquée(s) — les scripts qui les portent encore sont refusés et comptés ci-dessus.",
     "cles_d_api_leads_cote_serveur": "Clés d’API (leads, côté serveur)",
@@ -27,31 +136,43 @@
     "couleur_de_la_marque": "Couleur de la marque",
     "creee_le": "<span>{label} <code>{keyPrefix}…</code></span><span2>créée le {formatDateTime}{value}{n}</span2>",
     "creer": "Créer",
+    "dates_heures_et_echeances_se_lisent_a7b8": "Dates, heures et échéances se lisent dans ce fuseau.",
     "dernier_evenement_le": "dernier événement le {formatDateTime}",
     "dernier_le": "dernier le {formatDateTime}",
     "dernier_usage_le": "· dernier usage le {formatDateTime}",
     "descendre": "Descendre {label}",
     "deux_entrees_les_leads_envoyes_par_ee12": "Deux entrées : les leads, envoyés par tes simulateurs côté serveur avec une clé d’API ; les visites et simulations, envoyées par une ligne de script posée sur tes sites, acceptées seulement depuis les domaines déclarés ci-dessous.",
+    "devise": "Devise",
     "domaines_autorises": "Domaines autorisés",
     "enregistrer": "Enregistrer",
     "enregistrer_la_marque": "Enregistrer la marque",
+    "enregistrer_langue_devise_et_fuseau": "Enregistrer",
     "enregistrer_le_pack": "Enregistrer le pack",
     "enregistrer_les_domaines": "Enregistrer les domaines",
     "envoi_post_api_leads_en_tete_7cd8": "Envoi : <code>POST {appOrigin}/api/leads</code>, en-tête <code2>Authorization: Bearer clz_…</code2>, JSON avec au moins <code3>email</code3> ou <code4>phone</code4>, et <code5>origin</code5>, <code6>simulator</code6>, <code7>visitor_id</code7>, <code8>utm_*</code8>, <code9>payload</code9> (≤ 16 Ko).",
     "etape_intermediaire": "Étape intermédiaire",
     "expediteur_des_emails": "Expéditeur des emails",
     "fois_derniere_le": "{count} fois · dernière le {formatDateTime}",
+    "fuseau_horaire": "Fuseau horaire",
     "gagne": "Gagné",
     "identifiant_une_seule_couleur_le_systeme_0d04": "Identifiant : {slug}. Une seule couleur : le système en dérive les boutons, les liens, les fonds légers et la ligne active de la navigation, en garantissant que tout reste lisible.",
     "inter": "Inter",
     "jamais_utilisee": "· jamais utilisée",
+    "l_adresse_de_la_politique_de_confidentialite_ne_semble_pas_valide": "L’adresse de la politique de confidentialité ne semble pas valide (elle commence par https://).",
     "l_adresse_de_reponse_ne_semble_ac1b": "L’adresse de réponse ne semble pas valide.",
     "la_couleur_n_est_pas_un_466e": "La couleur n’est pas un code hexadécimal valide.",
+    "la_langue_de_l_espace_par_defaut_1a2b": "La langue de l’espace par défaut, la devise dans laquelle les montants se lisent, le fuseau des dates et des échéances.",
+    "langue_devise_et_fuseau": "Langue, devise et fuseau",
+    "langue_devise_et_fuseau_enregistres": "Langue, devise et fuseau enregistrés.",
+    "langue_devise_ou_fuseau_inconnu": "Langue, devise ou fuseau inconnu.",
+    "langue_par_defaut": "Langue par défaut",
+    "le_pays_doit_etre_un_code_a_deux_lettres": "Le pays doit être un code à deux lettres (FR, BE, CH…).",
     "leads_30_jours": "Leads (30 jours)",
     "lecture_seule_seul_l_admin_de_0a29": "Lecture seule — seul l’admin de l’organisation peut modifier ces réglages.",
     "les_emails_envoyes_en_ton_nom_c54e": "Les emails envoyés en ton nom partent de ton adresse sur le sous-domaine de la plateforme, avec ton nom d’expéditeur devant ; ton adresse de réponse reçoit les réponses (chaque membre peut mettre la sienne dans son profil). Elle deviendra l’expéditeur lui-même une fois ton domaine d’envoi vérifié.",
     "les_etapes_de_ce_pipeline_leur_6f64": "Les étapes de ce pipeline — leur ordre est celui du kanban. Probabilité indicative en %, marqueur gagné/perdu sur les étapes terminales.",
     "les_indicateurs_mis_en_avant_sur_4291": "Les indicateurs mis en avant sur le tableau de bord sont ceux de ton métier — un CGP suit ses encours et sa collecte, un courtier ses volumes et ses délais.{n}",
+    "les_montants_s_affichent_dans_cette_e5f6": "Les montants s’affichent dans cette devise — rien n’est converti.",
     "libelle_de_l_etape": "Libellé de l’étape",
     "libelle_de_la_nouvelle_etape": "Libellé de la nouvelle étape",
     "ligne_de_script_a_poser_sur_276d": "Ligne de script à poser sur tes sites",
@@ -71,6 +192,7 @@
     "nouvelle_etape": "Nouvelle étape",
     "pack_metier": "Pack métier",
     "perdu": "Perdu",
+    "pied_de_page_enregistre": "Pied de page enregistré.",
     "placement": "Placement",
     "police_des_emails": "Police des emails",
     "pour_faire_tourner_une_cle_sans_7a76": "Pour faire tourner une clé sans couper la collecte : crée la nouvelle, pose-la sur tes sites, puis révoque l’ancienne. Pour un simulateur, ajoute <code>data-simulator=\"…\"</code> et appelle <code2>clozado.track(\"simulation_started\")</code2> / <code3>clozado.track(\"simulation_completed\")</code3>.",
@@ -78,13 +200,13 @@
     "proposes_quand_une_affaire_part_sur_8e27": "Proposés quand une affaire part sur une étape « perdu ». Un motif utilisé par une affaire ne peut plus être supprimé.",
     "recoit_les_reponses_de_tes_contacts": "Reçoit les réponses de tes contacts.",
     "rejections": {
-      "domain_not_allowed": "Domaine non déclaré",
-      "origin_missing": "Requête sans domaine d’origine",
-      "site_key_revoked": "Clé de site révoquée encore utilisée",
       "api_key_revoked": "Clé d’API révoquée encore utilisée",
-      "rate_limited": "Débit dépassé",
+      "domain_not_allowed": "Domaine non déclaré",
+      "invalid_payload": "Charge invalide",
+      "origin_missing": "Requête sans domaine d’origine",
       "payload_too_large": "Charge trop volumineuse",
-      "invalid_payload": "Charge invalide"
+      "rate_limited": "Débit dépassé",
+      "site_key_revoked": "Clé de site révoquée encore utilisée"
     },
     "renommer": "Renommer",
     "requetes_refusees_a_corriger_sinon_la_f8d0": "Requêtes refusées — à corriger, sinon la collecte reste muette",
@@ -104,127 +226,21 @@
     "une_famille_d_affaires_avec_ses_e8c5": "Une famille d’affaires avec ses propres étapes (crédit, placement, transaction…).",
     "une_version_pour_fond_clair_une_0410": "Une version pour fond clair, une version pour fond sombre si tu l’as, et l’icône d’onglet dérivée automatiquement. Sans logo, la marque par défaut s’affiche.",
     "visites_30_jours": "Visites (30 jours)",
-    "www_mon_cabinet_fr_simulateur_mon_c2b2": "www.mon-cabinet.fr\nsimulateur.mon-cabinet.fr",
-    "langue_devise_et_fuseau": "Langue, devise et fuseau",
-    "la_langue_de_l_espace_par_defaut_1a2b": "La langue de l’espace par défaut, la devise dans laquelle les montants se lisent, le fuseau des dates et des échéances.",
-    "langue_par_defaut": "Langue par défaut",
-    "chaque_membre_peut_choisir_la_sienne_c3d4": "Chaque membre peut choisir la sienne dans son menu de compte.",
-    "devise": "Devise",
-    "les_montants_s_affichent_dans_cette_e5f6": "Les montants s’affichent dans cette devise — rien n’est converti.",
-    "fuseau_horaire": "Fuseau horaire",
-    "dates_heures_et_echeances_se_lisent_a7b8": "Dates, heures et échéances se lisent dans ce fuseau.",
-    "enregistrer_langue_devise_et_fuseau": "Enregistrer",
-    "langue_devise_ou_fuseau_inconnu": "Langue, devise ou fuseau inconnu.",
-    "langue_devise_et_fuseau_enregistres": "Langue, devise et fuseau enregistrés.",
-    "le_pays_doit_etre_un_code_a_deux_lettres": "Le pays doit être un code à deux lettres (FR, BE, CH…).",
-    "l_adresse_de_la_politique_de_confidentialite_ne_semble_pas_valide": "L’adresse de la politique de confidentialité ne semble pas valide (elle commence par https://).",
-    "pied_de_page_enregistre": "Pied de page enregistré."
+    "www_mon_cabinet_fr_simulateur_mon_c2b2": "www.mon-cabinet.fr\nsimulateur.mon-cabinet.fr"
   },
   "queries": {
     "fields": {
+      "city": "ville",
+      "companyName": "société",
+      "country": "pays",
       "firstName": "prénom",
+      "jobTitle": "fonction",
       "lastName": "nom",
       "phone": "téléphone",
-      "companyName": "société",
-      "jobTitle": "fonction",
-      "city": "ville",
-      "postalCode": "code postal",
-      "country": "pays"
+      "postalCode": "code postal"
     },
     "origine_detachee": "Origine détachée",
     "origine_non_renseignee": "origine non renseignée",
     "site_principal": "Site principal"
-  },
-  "domainCard": {
-    "domaine_d_envoi": "Domaine d’envoi",
-    "verifie": "Vérifié",
-    "en_attente": "En attente",
-    "repli": "Repli",
-    "expediteur_effectif": "Aujourd’hui, tes emails partent de : {from}",
-    "sans_domaine": "Tant que ton domaine n’est pas vérifié, tes emails partent du sous-domaine {domain} de la plateforme, à ton nom — ça marche dès maintenant. Déclare ton domaine pour envoyer depuis ta propre adresse : nous te donnons les enregistrements DNS à créer, puis la bascule se fait toute seule, sans rien réenvoyer.",
-    "ton_domaine": "Ton domaine",
-    "celui_de_ton_adresse": "Celui de ton adresse d’expédition (« cabinet-dupont.fr »).",
-    "placeholder_domaine": "cabinet-dupont.fr",
-    "declarer": "Déclarer ce domaine",
-    "indisponible_sur_ce_plan": "Le plan actuel du fournisseur d’envoi n’admet pas de domaine supplémentaire : {domain} ne peut pas être vérifié pour l’instant. Tes emails continuent de partir de {shared}, à ton nom, sans rien changer. La vérification sera possible quand le plan aura été augmenté.",
-    "le_fournisseur_a_dit": "Le fournisseur a répondu : {message}",
-    "retirer_ce_domaine": "Retirer ce domaine",
-    "verifie_le": "dernière vérification le {when}",
-    "verifier_maintenant": "Vérifier maintenant",
-    "verifie_expediteur_propre": "Vérifié le {when} : tes emails partent de ton adresse d’expédition, sur ton domaine.",
-    "verifie_mais_adresse_ailleurs": "Le domaine {domain} est vérifié, mais ton adresse de réponse n’est pas dessus : tes emails partent encore du sous-domaine de la plateforme. <link>Mettre une adresse sur ce domaine</link>",
-    "tout_est_pose_verification_en_cours": "Tous les enregistrements sont là ; la vérification par le fournisseur est en cours — revérifie dans quelques minutes.",
-    "il_manque": "Il manque {count, plural, one {un enregistrement} other {# enregistrements}} : {names}. Crée-les chez ton hébergeur (copie chaque valeur), puis « Vérifier maintenant ». La propagation prend de quelques minutes à quelques heures.",
-    "colonnes": {
-      "type": "Type",
-      "nom": "Nom",
-      "valeur": "Valeur",
-      "etat": "État"
-    },
-    "relatif": "(chez certains hébergeurs : {name})",
-    "verifie_par_nous": "vérifié par nous",
-    "recordStatus": {
-      "verified": "En place",
-      "pending": "En cours",
-      "not_started": "Manquant",
-      "failed": "Incorrect",
-      "temporary_failure": "Réessayer"
-    },
-    "instructions_par_hebergeur": "Instructions par hébergeur",
-    "hosters": {
-      "ovh": {
-        "name": "OVH",
-        "steps": "Manager OVH → Noms de domaine → ton domaine → onglet « Zone DNS » → « Ajouter une entrée ». Choisis le type (TXT, MX, CNAME), colle le nom en sous-domaine (la partie avant ton domaine) et la valeur. Pour un MX, la priorité est demandée à part (10)."
-      },
-      "gandi": {
-        "name": "Gandi",
-        "steps": "Tableau de bord Gandi → Domaines → ton domaine → « Enregistrements DNS » → « Ajouter ». Type, nom (sans le domaine), valeur ; pour un MX, la priorité 10 va devant la valeur."
-      },
-      "ionos": {
-        "name": "IONOS",
-        "steps": "IONOS → Domaines & SSL → ton domaine → « DNS » → « Ajouter un enregistrement ». Nom d’hôte = la partie avant ton domaine ; pour un TXT long (DKIM), colle la valeur entière."
-      },
-      "cloudflare": {
-        "name": "Cloudflare",
-        "steps": "Cloudflare → ton site → DNS → « Add record ». Pour le CNAME de suivi, désactive le nuage orange (proxy « DNS only »). Nom = la partie avant ton domaine ; priorité 10 pour le MX."
-      },
-      "o2switch": {
-        "name": "o2switch",
-        "steps": "cPanel → « Éditeur de zone DNS » → « Gérer » → « Ajouter un enregistrement ». Nom complet avec le domaine, un point final accepté ; TTL par défaut."
-      },
-      "squarespace": {
-        "name": "Squarespace / Google Domains",
-        "steps": "Squarespace → Domaines → ton domaine → « Paramètres DNS » → « Enregistrements personnalisés » → « Ajouter ». Hôte = la partie avant ton domaine ; pour un MX, la priorité 10 est un champ à part."
-      },
-      "other": {
-        "name": "Autre hébergeur",
-        "steps": "Cherche « zone DNS » ou « enregistrements DNS » dans ton hébergeur. Chaque ligne du tableau devient un enregistrement : le type, le nom (souvent sans ton domaine, parfois avec), la valeur telle quelle, et pour le MX la priorité 10. Ne touche à aucun enregistrement existant."
-      }
-    }
-  },
-  "legalCard": {
-    "pied_de_page_des_emails": "Pied de page des emails",
-    "chaque_email_porte_qui_l_envoie": "Chaque email porte qui l’envoie, son adresse postale, le lien de désinscription et la mention de la mesure des ouvertures et des clics — composés d’après le profil de ton pays. Rien ne part sans.",
-    "sans_adresse_postale_aucun_envoi": "Sans adresse postale, aucun envoi réel ne peut partir (un test, si).",
-    "pays": "Pays",
-    "le_pays_choisit_les_regles": "Choisit les règles du pied de page — profil appliqué : {profile}.",
-    "profiles": {
-      "eu": "Union européenne",
-      "ch": "Suisse",
-      "gb": "Royaume-Uni",
-      "ca": "Canada",
-      "us": "États-Unis"
-    },
-    "non_renseigne_profil_europeen": "Non renseigné (profil européen)",
-    "politique_de_confidentialite": "Politique de confidentialité",
-    "liee_au_pied_de_page": "Liée au pied de page quand elle est renseignée.",
-    "placeholder_politique": "https://mon-cabinet.fr/confidentialite",
-    "adresse_postale": "Adresse postale",
-    "obligatoire_au_pied": "Obligatoire au pied de chaque email.",
-    "placeholder_adresse": "12 rue des Lilas\n69001 Lyon",
-    "mentions_legales": "Mentions légales",
-    "siren_orias_rcs": "SIREN, ORIAS, RCS… texte libre, tel qu’il s’affichera.",
-    "placeholder_mentions": "SARL au capital de 10 000 € · ORIAS 12 345 678",
-    "enregistrer_le_pied_de_page": "Enregistrer le pied de page"
   }
 }

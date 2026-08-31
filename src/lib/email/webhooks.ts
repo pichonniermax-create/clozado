@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { addSuppression, getSuppression, recordEmailEvent, type EventType } from "@/db/queries/email-events";
 import { getMessageByProviderId } from "@/db/queries/email-sends";
+import type { ReceivedNotice } from "./inbound/ingest";
 
 /**
  * LES WEBHOOKS DU FOURNISSEUR (docs/module-engagement.md §3.5) — vérifiés
@@ -40,8 +41,40 @@ export type ResendWebhookEvent = {
     click?: { link?: string; timestamp?: string };
     bounce?: { type?: string; subType?: string; message?: string };
     failed?: { reason?: string };
+    // `email.received` (Partie 2) : des métadonnées seulement — ni corps, ni en-têtes, ni pièces jointes.
+    from?: string;
+    to?: string[];
+    cc?: string[];
+    bcc?: string[];
+    received_for?: string[];
+    subject?: string;
+    message_id?: string;
   };
 };
+
+export const RECEIVED_EVENT = "email.received";
+
+/**
+ * Ce que l'événement de RÉCEPTION porte, mis en forme pour l'ingestion
+ * (§4.1) : le fournisseur n'envoie que des métadonnées, le contenu se relit
+ * ensuite par son API. `received_for` est essentiel — c'est la seule trace
+ * d'une adresse d'ingestion mise en Cci.
+ */
+export function receivedNoticeOf(event: ResendWebhookEvent): ReceivedNotice | null {
+  const emailId = event.data?.email_id;
+  if (!emailId) return null;
+  return {
+    emailId,
+    from: event.data?.from ?? null,
+    to: event.data?.to ?? [],
+    cc: event.data?.cc ?? [],
+    bcc: event.data?.bcc ?? [],
+    receivedFor: event.data?.received_for ?? [],
+    subject: event.data?.subject ?? null,
+    messageId: event.data?.message_id ?? null,
+    createdAt: event.data?.created_at ?? event.created_at ?? null,
+  };
+}
 
 const EVENT_TYPES: Record<string, EventType> = {
   "email.sent": "sent",
