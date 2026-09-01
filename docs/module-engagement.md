@@ -1150,6 +1150,25 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
 - Les emails reçus restent listables chez le fournisseur
   (`GET /emails/receiving`) : une preuve se rejoue sans renvoyer d'email.
 
+### Déploiement de l'étape 3
+
+- Le déploiement Vercel de `851af29` a ÉCHOUÉ le 2026-08-31 à 18:11 UTC
+  (`dpl_A73oRSrf6X9pstx56i9CFjPcx3d6`) — la production sert toujours
+  `aa6ac8f` (`/emails-recus` y répond 404). Écarté par la reproduction
+  fidèle (worktree du commit poussé + `npm ci` + `.env.local` : build
+  exit 0) : ni le typecheck ni une dépendance manquante, cette fois.
+  Constaté le 2026-09-01 : entre `aa6ac8f` (déployé) et `851af29`, AUCUN
+  fichier de configuration du build n'a changé (`vercel.json`,
+  `package.json`, lockfile, config Next intacts), le code de l'étape 3 ne
+  lit aucune variable d'environnement nouvelle (zéro `process.env` dans
+  ses fichiers), et la page d'état de Vercel ne signale aucun incident le
+  31 août. Hypothèse restante : échec transitoire de la plateforme (ou
+  limite de compte, réinitialisée depuis) → CE COMMIT relance le
+  déploiement. S'il échoue encore, le motif devient nécessaire : les
+  journaux se lisent après connexion (`npx vercel login` puis
+  `npx vercel inspect dpl_A73oRSrf6X9pstx56i9CFjPcx3d6 --logs`) ou sur
+  `vercel.com/s2-c/clozado`.
+
 ## Avancement
 
 - **Étape 0 — état des lieux** (2026-08-27) : `90c34a9`. Cahier reçu
@@ -1209,4 +1228,9 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   tout OK. Deux relectures adverses ont trouvé, et fait corriger avant
   clôture, treize défauts dont quatre exploitables (HELO littéral pris pour
   l'IP de connexion, `Return-Path` forgé, troncature DKIM `l=`, domaines
-  organisationnels trop larges). Voir « Étape 3 » ci-dessus.
+  organisationnels trop larges). Voir « Étape 3 » ci-dessus. Le
+  déploiement Vercel de `851af29` a échoué (voir « Déploiement de
+  l'étape 3 ») ; pour CLORE l'étape, il reste la preuve depuis la
+  production : un email réellement reçu sur `in.clozado.fr`, traité par
+  le webhook `email.received` de la production, visible dans
+  `/emails-recus`.
