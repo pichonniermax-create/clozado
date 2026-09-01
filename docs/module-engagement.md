@@ -1150,6 +1150,35 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
 - Les emails reçus restent listables chez le fournisseur
   (`GET /emails/receiving`) : une preuve se rejoue sans renvoyer d'email.
 
+### Preuve depuis la production (2026-09-01) — étape 3 close
+
+- Préalable : déploiement `4a5d7c8` VERT et SERVI (`/emails-recus` → 307
+  vers `/login` ; les routes cron répondent « Non autorisé » sans secret,
+  et non plus « CRON_SECRET absent »).
+- Fixture `_ingest-test` recréée (jeton neuf), un transfert RÉEL envoyé
+  depuis `preuve@mail.clozado.fr` (domaine d'envoi vérifié, signé DKIM)
+  vers `16cni…@in.clozado.fr` à 01:43:18 UTC. La ligne `inbound_emails`
+  a été posée par LE WEBHOOK DE LA PRODUCTION à 01:43:22 (réception chez
+  le fournisseur 01:43:19,9) — **aucun appel local à
+  `ingestReceivedEmail`** : le script d'attente ne fait que lire la base,
+  et la ligne y était dès la première lecture, quatre secondes après
+  l'envoi. Contenu : `pending`, `dkim_aligned`, mode transfert,
+  contrepartie Camille Roussel, date d'origine 27/08 09:12.
+- Écran de PROD (session forgée, cookie `__Secure-authjs.session-token`) :
+  **17 contrôles TOUT OK** — la carte (badges « Transfert » et « Signature
+  vérifiée », champs proposés, « À vérifier » sous le téléphone à 0,55),
+  la CONFIRMATION par le server action de la prod (fiche créée, envoi
+  automatique arrêté `replied`, interaction email entrante datée du
+  message d'origine), l'onglet « traités », zéro erreur de console.
+  Fixture détruite (0 org, 0 emails, 0 rejets, 0 membres).
+- Observé en production : la proposition vient du REPLI déterministe
+  (`source: "deterministic"`, société et fonction vides) et l'écran le dit
+  — « Proposition établie sans modèle : le téléphone par motif, le nom par
+  l'en-tête ». `ANTHROPIC_API_KEY` n'est donc probablement pas posée en
+  Production (clé absente ou appel en échec : le repli avale les deux,
+  comme conçu). À poser par l'utilisateur si la proposition par le modèle
+  est voulue en prod (+ redéploiement) ; rien à changer au code.
+
 ### Déploiement de l'étape 3
 
 - Le déploiement Vercel de `851af29` a ÉCHOUÉ le 2026-08-31 à 18:11 UTC
@@ -1252,8 +1281,15 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   clôture, treize défauts dont quatre exploitables (HELO littéral pris pour
   l'IP de connexion, `Return-Path` forgé, troncature DKIM `l=`, domaines
   organisationnels trop larges). Voir « Étape 3 » ci-dessus. Le
-  déploiement Vercel de `851af29` a échoué (voir « Déploiement de
-  l'étape 3 ») ; pour CLORE l'étape, il reste la preuve depuis la
-  production : un email réellement reçu sur `in.clozado.fr`, traité par
-  le webhook `email.received` de la production, visible dans
-  `/emails-recus`.
+  déploiement Vercel de `851af29` avait échoué — cause trouvée et
+  corrigée le 2026-09-01 (voir « Déploiement de l'étape 3 »).
+- **Étape 3 — CLOSE** (2026-09-01) : déploiement débloqué (`4a5d7c8` vert
+  et servi) et la preuve depuis la production — un email réellement reçu
+  sur `in.clozado.fr`, ingéré par le webhook `email.received` de la prod
+  en quatre secondes (aucun appel local), visible puis CONFIRMÉ dans le
+  `/emails-recus` de la production (17 contrôles), fixture détruite. Voir
+  « Preuve depuis la production ». Reste hors code : `ANTHROPIC_API_KEY`
+  en Production si la proposition par le modèle y est voulue. Suivant :
+  vérifier que les deux crons TOURNENT réellement (traces d'exécution aux
+  heures planifiées, 05:30 et 06:00 UTC), puis l'étape 4 — Partie 3
+  (règles de relance).
