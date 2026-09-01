@@ -1163,11 +1163,34 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   lit aucune variable d'environnement nouvelle (zéro `process.env` dans
   ses fichiers), et la page d'état de Vercel ne signale aucun incident le
   31 août. Hypothèse restante : échec transitoire de la plateforme (ou
-  limite de compte, réinitialisée depuis) → CE COMMIT relance le
-  déploiement. S'il échoue encore, le motif devient nécessaire : les
-  journaux se lisent après connexion (`npx vercel login` puis
-  `npx vercel inspect dpl_A73oRSrf6X9pstx56i9CFjPcx3d6 --logs`) ou sur
-  `vercel.com/s2-c/clozado`.
+  limite de compte, réinitialisée depuis) → un commit a relancé le
+  déploiement (`107ed0a`).
+- **Cause TROUVÉE et CONFIRMÉE le 2026-09-01** : le retry `107ed0a` a
+  échoué à l'identique (`dpl_9KJHbqpxqzmcRmQcAwnHVioRz37R`, ≤ 35 s après
+  le push — trop tôt pour le build), l'arbre du dépôt a été innocenté
+  pièce par pièce (aucun lien symbolique, aucun mode inhabituel, aucun nom
+  exotique ni collision de casse, plus gros fichier ajouté 401 lignes), et
+  il ne restait qu'un suspect : la SEULE modification du projet Vercel
+  entre le 28/08 (déploiement vert) et le 31/08 (premier échec) —
+  `CRON_SECRET`, posée en Production dans cette fenêtre… en **référence de
+  secret** (`@…`), pas en valeur simple. Une variable d'environnement qui
+  référence un secret inexistant fait échouer tout nouveau déploiement
+  INSTANTANÉMENT, avant même le clonage, quel que soit le commit.
+  L'utilisateur a supprimé et recréé la variable en valeur simple
+  (Production cochée) et son redéploiement dashboard est passé au vert ;
+  la promotion vers `clozado.vercel.app` restait à constater — le commit
+  qui consigne ceci fournit la contre-épreuve : un déploiement déclenché
+  par push, qui doit passer ET être servi (sondes : `/emails-recus` ≠ 404,
+  et les routes cron cessent de dire « CRON_SECRET absent »).
+- **Leçons** : (1) un échec immédiat (< 35 s), déterministe et indépendant
+  du contenu poussé se cherche dans l'ÉTAT DU PROJET Vercel (variables,
+  réglages — modifiés entre le dernier vert et le premier rouge), pas dans
+  le code ; (2) les journaux Vercel se demandent à l'utilisateur, qui les
+  colle — pas d'accès CLI au compte depuis le Codespace (décision du
+  2026-09-01) ; (3) ce diagnostic s'est fait SANS journal : chronologie
+  des statuts GitHub (`gh api …/commits/<sha>/status` et `/deployments`),
+  sondes HTTP sur la production, page d'état de Vercel, diff de la surface
+  de build, et la fenêtre des changements côté projet.
 
 ## Avancement
 
