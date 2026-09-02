@@ -1,0 +1,16 @@
+{
+  "queries": {
+    "evaluation_interrompue_delai_depasse": "Evaluation interrupted: time limit exceeded.",
+    "annule_fiche_supprimee": "Canceled when sending the wave: the contact was deleted.",
+    "annule_arrete": "Canceled when sending the wave: automatic sending is stopped for this contact.",
+    "annule_desinscrit": "Canceled when sending the wave: this address is unsubscribed.",
+    "annule_plafond": "Canceled when sending the wave: this contact’s automatic email cap is reached.",
+    "annule_par_une_personne": "Dismissed by hand.",
+    "envois_automatiques_rearmes": "Automatic sending re-armed.",
+    "envois_automatiques_arretes_a_la_main": "Automatic sending stopped by hand."
+  },
+  "notifications": {
+    "subject": "Rule “{rule}”: {contact}",
+    "body": "The “{rule}” rule of {organization} matched {contact}. The contact page:"
+  }
+}

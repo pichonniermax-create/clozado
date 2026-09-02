@@ -16,6 +16,7 @@ import nav from "./en/nav.json";
 import newsletters from "./en/newsletters.json";
 import partners from "./en/partners.json";
 import profile from "./en/profile.json";
+import rules from "./en/rules.json";
 import settings from "./en/settings.json";
 import shares from "./en/shares.json";
 import shell from "./en/shell.json";
@@ -53,6 +54,7 @@ const en = {
   newsletters,
   partners,
   profile,
+  rules,
   settings,
   shares,
   shell,

@@ -1,0 +1,16 @@
+{
+  "queries": {
+    "evaluation_interrompue_delai_depasse": "Évaluation interrompue : délai dépassé.",
+    "annule_fiche_supprimee": "Annulé à l’envoi de la vague : la fiche a été supprimée.",
+    "annule_arrete": "Annulé à l’envoi de la vague : les envois automatiques de ce contact sont arrêtés.",
+    "annule_desinscrit": "Annulé à l’envoi de la vague : cette adresse est désinscrite.",
+    "annule_plafond": "Annulé à l’envoi de la vague : le plafond d’emails automatiques de ce contact est atteint.",
+    "annule_par_une_personne": "Ignoré à la main.",
+    "envois_automatiques_rearmes": "Envois automatiques réarmés.",
+    "envois_automatiques_arretes_a_la_main": "Envois automatiques arrêtés à la main."
+  },
+  "notifications": {
+    "subject": "Règle « {rule} » : {contact}",
+    "body": "La règle « {rule} » de {organization} a retenu {contact}. La fiche :"
+  }
+}
