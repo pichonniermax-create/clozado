@@ -1309,6 +1309,124 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   chronologie de la fiche** (une activité système), comme l'arrêt manuel ;
   la désinscription, elle, reste sans retour (`email_suppressions`).
 
+### Étape 4 — ce qui est construit (2026-09-02)
+
+- **Les rendez-vous (§5.1)** : `src/db/queries/appointments.ts` (liste par
+  fiche à venir compris, création manuelle, annulation — la ligne reste,
+  les indicateurs l'ignorent), section « Rendez-vous » de la fiche (date
+  vide = maintenant), arrêt d'envoi automatique à la prise (raison
+  `appointment`, jamais par-dessus un arrêt existant), server actions au
+  pattern du journal (`erreurRendezVous`).
+- **Calendly (§5.1)** : `src/lib/crypto.ts` (AES-256-GCM, clé HKDF
+  d'`AUTH_SECRET` par usage, format `v1:iv:tag:chiffré`),
+  `src/lib/calendly/{api,signature,ingest,actions}.ts`,
+  `src/db/queries/calendar-connections.ts`, la carte « Connexion
+  Calendly » de `/profil` (jeton utilisé une fois, jamais conservé ;
+  plans payants dits à l'écran ; déconnexion locale expliquée), et
+  `POST /api/webhooks/calendly` — corps brut, la charge n'est qu'un
+  indice de recherche (email d'hôte → connexion active), le HMAC
+  (`t.corps`, hex, tolérance 5 min, temps constant, s ou ms) tranche ;
+  `invitee.created` → rendez-vous (`external_id` = URI de l'invité,
+  rejeu inerte), fiche retrouvée par email (la vivante la plus ancienne)
+  ou créée (`external`/`calendly`/URI), arrêt d'envoi ;
+  `invitee.canceled` → `canceled`.
+- **Le moteur (§5.2)** : `src/lib/rules/{criteria,template,evaluate,
+  render,wave,window,actions}.ts`, `src/db/queries/rules.ts`. Conditions
+  zod plates (étiquettes, cibles via `memberCondition` — une cible
+  disparue ne rend jamais « tout le monde » —, professions de partenaire,
+  conseillers) ; gabarits versionnés FIGÉS (modifier = version suivante,
+  enregistrer à l'identique n'en crée pas) ; variables fermées, toute
+  autre accolade refusée ; verrou d'évaluation par la base (index partiel
+  + balayage des runs interrompus, transposé de la veille) ; déclencheurs
+  compilés sur `contacts` (au sens du §3.6 ; `email_not_*` sur le DERNIER
+  email remis `newsletter|manual` — jamais un `automatic`, anti-boucle) ;
+  anti-répétition sur les `done` seuls. Actions : `create_task` (une
+  tâche ouverte par règle et contact — ON CONFLICT sur l'index partiel),
+  `notify_owner` (langue du responsable, expéditeur du produit,
+  idempotence par jour), `prepare_draft` et `send_email` qui PRÉPARENT
+  des brouillons rendus — rien ne part de l'évaluation.
+- **La vague (consigne du 2026-09-02)** : `sendAutomaticWave` — les
+  brouillons `automatic` partent d'UN clic humain, chaque garde-fou
+  re-vérifié par message (fiche supprimée, arrêt, désinscrit, plafond →
+  `canceled` avec motif lisible), rendu par le chemin commun (marque,
+  bloc texte, pied de page conforme, désinscription par message, suivi),
+  quota/panne → le message REDEVIENT un brouillon et la vague s'arrête
+  proprement. `sendRuleDraft` envoie UN brouillon depuis la fiche
+  (les garde-fous de l'automatique pour un `automatic` ; un `manual`
+  envoyé sciemment ne vérifie que la désinscription et le fournisseur).
+- **Les écrans (§5.4)** : `/regles` (phrases, état, dernier passage avec
+  compteurs, « Évaluer maintenant » qui répond en chiffres, la VAGUE en
+  tête avec avertissements interrupteur/fenêtre), `/regles/new` et
+  `/regles/[id]` (gabarit et opt-in seulement pour les actions qui
+  écrivent, aperçu rendu en direct), `/regles/journal` (motifs traduits,
+  filtres GET, version du gabarit citée), carte réglages « Envois
+  automatiques », panneau « Relances automatiques » de la fiche (arrêt /
+  réarmement journalisés en note ; brouillons Envoyer · Modifier ·
+  Ignorer), entrée de navigation. Namespace `rules` FR/EN complet.
+- **Greffe cron** : `/api/cron/envois` évalue les organisations à règles
+  actives APRÈS la reprise des envois (§3.7). Le cron horaire
+  `/api/cron/regles` du cahier viendra avec le plan Pro au
+  production-ready — la route s'extraira de la greffe sans toucher au
+  moteur.
+- **Reporté (petit, isolé)** : le bloc bouton prérempli au lien de
+  rendez-vous dans le composer (§5.1) — la table `cta_presets` dort
+  depuis le chantier ciblage, le composer n'a aucun système de préréglage
+  à étendre ; la variable `{lien_rdv}` des gabarits couvre le besoin des
+  règles. À faire en retouche dédiée du composer.
+
+### Étape 4 — les preuves (2026-09-02)
+
+- **À blanc, 35 contrôles TOUT OK** (fixtures détruites) : les cinq
+  déclencheurs en POSITIF ET NÉGATIF (rendez-vous à venir → silencieux ;
+  annulé → matche ; le clic est une interaction ; `email_not_opened`
+  regarde le DERNIER email remis et ignore les `automatic` ;
+  l'ouvert-sans-clic matche `email_not_clicked` ; partage `accepted` →
+  silencieux), conditions (étiquette, profession de partenaire par email
+  commun), gabarit versionné (modifier = v2, v1 intacte ; enregistrer à
+  l'identique n'en crée pas), accolade inconnue refusée, opt-in refusé
+  par la couche d'écriture ET par le CHECK de la base (insert direct
+  rejeté), seuil hors bornes refusé, dédup sur les `done`, tâche unique
+  par (règle, contact) via l'index partiel, garde-fous
+  disabled/no_email/stopped/cap, la vague qui recale un contact arrêté
+  APRÈS préparation (canceled + motif lisible), verrou d'évaluation.
+- **Au navigateur, 41 contrôles TOUT OK** (build de production, session
+  forgée, FR puis EN, zéro erreur de console) : règle créée PAR L'UI
+  (pas de gabarit affiché pour `create_task`), « Évaluer maintenant »
+  répond en chiffres, aperçu rendu ({prenom} → Camille), brouillon sur la
+  fiche (Modifier · relire · Ignorer → canceled motivé), rendez-vous
+  saisi date vide = maintenant qui ARRÊTE l'envoi automatique
+  (« rendez-vous pris »), réarmement journalisé en note, la vague
+  affichée SANS rien envoyer, journal avec version de gabarit, carte
+  réglages, carte Calendly du profil, et le webhook Calendly signé
+  contre le serveur local : created → fiche `external/calendly` +
+  rendez-vous + arrêt, rejeu → inerte, canceled, mauvaise clé → 401,
+  en-tête forgé → 401, connexion déconnectée → 401.
+- **Depuis la PRODUCTION, 15 contrôles TOUT OK** (clozado.vercel.app,
+  session forgée) : la règle d'envoi automatique créée par l'UI DE PROD
+  (opt-in coché), l'évaluation prépare la vague (brouillon `automatic`
+  en base, variables rendues par la prod, RIEN ne part), puis **LE CLIC
+  HUMAIN : « Envoyer les 1 emails » → 1 envoyé, 0 recalé — un email
+  RÉEL parti par la prod** (expéditeur `_rules-prod@mail.clozado.fr`,
+  `provider_message_id` posé, `status=sent` 13:08:08 UTC) **et REMIS une
+  seconde plus tard** (`delivered` 13:08:09, revenu par le webhook
+  Resend de prod — la boucle envoi→remise→événement→base entière) ;
+  le journal de prod cite l'action et le gabarit v1 ; le webhook
+  Calendly DE PROD accepte le signé (fiche + rendez-vous + arrêt),
+  rend le rejeu inerte, annule, et refuse une mauvaise clé (401).
+- **Piège d'outillage consigné** : dans un fragment drizzle,
+  `sql`…${undefined}…`` rend du SQL VIDE (pas une exception) — une ligne
+  relue par `db.execute(...returning *)` est en snake_case, ses champs
+  camelCase valent `undefined` ; toujours passer par les selects mappés
+  de drizzle pour obtenir un objet ligne. Et `pkill -f "next start"`
+  matche la ligne de commande du shell qui le lance (se tue soi-même) —
+  écrire `pkill -f "next[ ]start"`.
+- **EN ATTENTE (03/09 au matin)** : la preuve que le cron de 06:00 UTC
+  évalue AUSSI les règles — appât laissé en prod (`_rules-prod` : une
+  règle `create_task` active + un contact frais) ; le passage doit
+  écrire un `rule_runs` `trigger='cron'` et la tâche. Vérif
+  `_tmp-rules-prod.ts verify`, puis teardown. (Même réveil que la preuve
+  « veille IA au cron » de la fixture `_cron-test`.)
+
 ### Les deux crons tournent — preuve par appâts (2026-09-01 → 02)
 
 Prouver qu'un cron TOURNE, c'est plus que « la route répond 200 » : il
@@ -1423,3 +1541,23 @@ hors dépôt), puis lecture seule :
   rendez-vous et règles de relance ; saisie manuelle par défaut, Calendly
   en confort — question « Calendly payant chez le pilote ? » toujours
   ouverte ; STOP avant toute migration).
+- **`ANTHROPIC_API_KEY` posée et PRISE en Production** (2026-09-02) :
+  variable posée par l'utilisateur (valeur simple), redéploiement vert
+  12:13 UTC ; preuve immédiate par une visite forgée de `/veille` en prod
+  — run `trigger='visit'` 12:16:28→59 UTC, **erreur nulle, 3 éléments
+  trouvés, 2 résumés** (recherche, classement, résumé par le modèle, là
+  où la veille disait « fournisseur IA non configuré »). Reste : la même
+  chose AU PASSAGE DU CRON de 05:30 (fixture `_cron-test` replantée,
+  périmée, sujet à re-chercher) — vérif au matin du 03/09.
+- **Étape 4 — la Partie 3 construite et prouvée** (2026-09-02, commits
+  `f83530d` 4a rendez-vous, `b98da53` 4b Calendly, `3756ef6` 4c moteur,
+  `4b48147` 4d écrans — déploiements verts) : voir « Étape 4 — ce qui
+  est construit » et « les preuves ». 35 contrôles à blanc, 41 au
+  navigateur (FR/EN), 15 depuis la production — dont l'envoi RÉEL d'une
+  vague d'un clic humain (parti ET remis en une seconde, boucle complète
+  par les webhooks de prod) et le webhook Calendly de prod signé.
+  Fixtures détruites sauf les deux appâts du matin. RESTE pour clore :
+  la preuve « le cron de 06:00 évalue les règles » (appât en place),
+  le diff `vercel.json` à décider (montré, jamais poussé sans accord),
+  la question « Calendly payant chez le pilote ? » (preuve réelle
+  Calendly), et la retouche composer reportée (bloc bouton prérempli).
