@@ -1221,6 +1221,94 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   sondes HTTP sur la production, page d'état de Vercel, diff de la surface
   de build, et la fenêtre des changements côté projet.
 
+## Étape 4 — la Partie 3 : rendez-vous, moteur de règles, envoi automatique
+
+### Décisions prises avant de coder (réversibles, notées — 2026-09-02)
+
+- **Le « cron horaire » du §5.2 est IMPOSSIBLE sur ce plan Vercel** : le
+  plan Hobby accepte DEUX crons au plus, quotidiens au plus (appris à
+  l'étape 2 : `*/10` refusé, et les deux emplacements sont pris par la
+  veille 05:30 et les envois 06:00). Il n'y aura donc PAS de
+  `/api/cron/regles` : l'évaluation quotidienne se greffe sur la route
+  `/api/cron/envois` — APRÈS la reprise des envois, ce qui réalise
+  au passage le §3.7 (« les automatiques passent après les newsletters en
+  file ») — plus le bouton « Évaluer maintenant » (`trigger='manual'`,
+  seule autre valeur admise par le CHECK de `rule_runs`).
+  **VALIDÉ par l'utilisateur le 2026-09-02** ; on ne passe pas en plan
+  Pro maintenant — **au production-ready, le plan Pro rendra le cron
+  horaire `/api/cron/regles` possible** (la route s'extraira alors de la
+  greffe sans rien changer au moteur). « Réessayé à l'heure suivante »
+  (§5.3) devient « réessayé au prochain passage » (le lendemain, ou le
+  bouton). Le décalage éventuel de l'heure du cron : diff `vercel.json`
+  montré à part, JAMAIS poussé sans accord explicite.
+- **GARDE-FOU RENFORCÉ (consigne utilisateur du 2026-09-02, non
+  négociable) : validation humaine avant chaque vague — aucun envoi
+  automatique ne part sans qu'un humain ait cliqué.** L'action
+  `send_email` ne REMET donc jamais un email au fournisseur toute seule :
+  l'évaluation PRÉPARE la vague — des `email_messages` `kind='automatic'`
+  `status='draft'` rattachés à la règle — et un écran de revue montre la
+  vague (destinataires, gabarit rendu) avec UN bouton d'envoi ; au clic,
+  chaque garde-fou est RE-VÉRIFIÉ par message (arrêt du contact,
+  désinscription, plafond, interrupteur, quota — l'état a pu changer
+  depuis la préparation ; un message recalé passe `canceled` avec le
+  motif) puis la vague part par le chemin commun (pied de page,
+  désinscription, suivi). Conséquence sur la fenêtre 9–18 (§5.3) : c'est
+  le CLIC humain qui donne l'heure d'envoi — la fenêtre devient un
+  avertissement à l'écran (« hors des heures de bureau »), plus un
+  blocage silencieux. Les cinq garde-fous non négociables rappelés par
+  l'utilisateur : opt-in explicite par règle (CHECK en base), plafond par
+  contact (période de l'organisation, toutes règles confondues), arrêt
+  sur réponse / rendez-vous / désinscription, interrupteur général,
+  validation humaine par vague.
+- **La fenêtre d'envoi s'évalue dans `organizations.timezone`** (colonne
+  du chantier i18n, défaut `Europe/Paris`) : jours ISO 1–5 et heure
+  locale dans `[office_hours_start, office_hours_end)` — aucun fuseau en
+  dur, aucune migration.
+- **Les déclencheurs, précisés là où le cahier laissait un choix** :
+  `email_not_opened` / `email_not_clicked` regardent le DERNIER email
+  remis (`delivered_at` posé) de nature `newsletter` ou `manual` — s'il a
+  été envoyé il y a plus de X jours et n'a jamais été ouvert / cliqué.
+  (Prendre « n'importe quel vieil email non ouvert » relancerait des
+  contacts qui ouvrent tout depuis des mois.) `share_unanswered` : un
+  partage `pending` dont le `sent_at` a plus de X jours — un lien renvoyé
+  ayant révoqué l'ancien, c'est bien l'attente RÉELLE depuis le dernier
+  envoi qui compte ; un partage expiré mais `pending` compte (relancer ou
+  renvoyer le lien est exactement l'objet de la règle).
+- **Les garde-fous du §5.3 s'appliquent à `send_email` ; les autres
+  actions n'en gardent que ce qui a un sens** : l'interrupteur général ne
+  coupe que l'envoi (le cahier le dit), l'arrêt du contact
+  (`auto_send_stopped_at`) ne bloque que l'envoi automatique (une tâche ou
+  un brouillon restent utiles après une réponse — une personne décide),
+  `suppressed`/`no_email` bloquent `send_email` ET `prepare_draft` (un
+  brouillon qu'on ne pourra jamais envoyer serait un mensonge),
+  `no_owner` bloque `create_task` et `notify_owner` quand ni conseiller du
+  contact ni créateur de la règle n'existent encore.
+- **L'anti-répétition ne compte que les `done`** : un contact `skipped`
+  (plafond, arrêt, désinscrit…) est revu au passage suivant — une ligne
+  de journal par passage, honnête et bornée (un passage par jour).
+- **Un contact créé par Calendly** : cherché d'abord par email dans
+  l'organisation ; créé sinon avec `source='external'`,
+  `external_system='calendly'`, `external_id` = l'URI de l'invité chez
+  Calendly (les CHECK de `contacts` exigent la paire, l'URI est un vrai
+  identifiant du système d'origine ; les réservations suivantes retrouvent
+  la fiche par email).
+- **La signature Calendly se vérifie AVANT de croire le contenu** : le
+  corps sert seulement d'indice de recherche (l'email de l'hôte →
+  `users` → `calendar_connections`) ; rien n'est écrit tant que le HMAC
+  (clé déchiffrée AES-256-GCM) n'a pas validé le message ENTIER —
+  la leçon du `Return-Path` de l'étape 3, appliquée telle quelle.
+- **La déconnexion Calendly est locale** : `disconnected_at` posé, le
+  webhook ignore les événements d'une connexion déconnectée ; le jeton
+  n'ayant jamais été conservé, la suppression de l'abonnement chez
+  Calendly reste à la main de l'utilisateur (dit à l'écran). Se
+  reconnecter réutilise la ligne (PK personne+fournisseur).
+- **Les emails automatiques et les brouillons partent par le même chemin
+  que tout le reste** : pied de page conforme, désinscription, suivi —
+  « rien ne part sans » (Partie 1) vaut pour eux aussi.
+- **Le réarmement de l'envoi automatique est journalisé dans la
+  chronologie de la fiche** (une activité système), comme l'arrêt manuel ;
+  la désinscription, elle, reste sans retour (`email_suppressions`).
+
 ### Les deux crons tournent — preuve par appâts (2026-09-01 → 02)
 
 Prouver qu'un cron TOURNE, c'est plus que « la route répond 200 » : il

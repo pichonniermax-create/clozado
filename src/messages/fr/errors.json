@@ -131,6 +131,7 @@
   "payload_invalide_pour_un_bloc": "Payload invalide pour un bloc « {type} » : {detail}",
   "pipeline_introuvable": "Pipeline introuvable.",
   "precise_si_cet_email_vient_du_contact_ou_part_vers_lui": "Précise si cet email vient du contact ou part vers lui.",
+  "rendez_vous_introuvable_ou_deja_annule": "Rendez-vous introuvable, ou déjà annulé.",
   "reserve_a_l_admin_de_l_organisation": "Réservé à l’admin de l’organisation.",
   "reserve_au_super_admin_un_utilisateur_n_8405": "Réservé au super admin : un utilisateur n’a qu’une seule organisation.",
   "source_introuvable": "Source introuvable.",

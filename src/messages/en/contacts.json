@@ -8,6 +8,20 @@
     "connexion_requise": "Sign-in required.",
     "fiche_introuvable": "Record not found."
   },
+  "appointments": {
+    "ajouter_le_rendez_vous": "Add appointment",
+    "annule_le": "Canceled on {when}",
+    "annuler_ce_rendez_vous": "Cancel this appointment",
+    "aucun_rendez_vous_pour_cette_fiche": "No appointments for this contact. Leave the date empty for “now”: one click after a conversation.",
+    "avec": "with {name}",
+    "date_et_heure_du_rendez_vous": "Appointment date and time",
+    "date_vide_le_rendez_vous_est_date_de_maintenant": "Empty date: the appointment is dated now. A booked appointment stops automatic sending for this contact.",
+    "rendez_vous": "Appointments{n}",
+    "source_calendly": "Calendly",
+    "titre_du_rendez_vous": "Appointment title",
+    "titre_facultatif": "Title (optional)",
+    "vide_maintenant": "Empty = now"
+  },
   "contactCreateForm": {
     "ce_contact_ressemble_a_une_fiche_d1ab": "This contact looks like {count, plural, one {an existing record} other {existing records}} — nothing was created.",
     "code_postal": "Postal code",

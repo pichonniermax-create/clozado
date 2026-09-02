@@ -131,6 +131,7 @@
   "payload_invalide_pour_un_bloc": "Invalid payload for a “{type}” block: {detail}",
   "pipeline_introuvable": "Pipeline not found.",
   "precise_si_cet_email_vient_du_contact_ou_part_vers_lui": "Say whether this email comes from the contact or goes to them.",
+  "rendez_vous_introuvable_ou_deja_annule": "Appointment not found, or already canceled.",
   "reserve_a_l_admin_de_l_organisation": "Reserved for the organization’s admin.",
   "reserve_au_super_admin_un_utilisateur_n_8405": "Reserved for the super admin: a user has only one organization.",
   "source_introuvable": "Source not found.",

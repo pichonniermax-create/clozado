@@ -8,6 +8,20 @@
     "connexion_requise": "Connexion requise.",
     "fiche_introuvable": "Fiche introuvable."
   },
+  "appointments": {
+    "ajouter_le_rendez_vous": "Ajouter le rendez-vous",
+    "annule_le": "Annulé le {when}",
+    "annuler_ce_rendez_vous": "Annuler ce rendez-vous",
+    "aucun_rendez_vous_pour_cette_fiche": "Aucun rendez-vous pour cette fiche. La date vide vaut « maintenant » : un clic suffit après un échange.",
+    "avec": "avec {name}",
+    "date_et_heure_du_rendez_vous": "Date et heure du rendez-vous",
+    "date_vide_le_rendez_vous_est_date_de_maintenant": "Date vide : le rendez-vous est daté de maintenant. Un rendez-vous pris arrête les envois automatiques de cette fiche.",
+    "rendez_vous": "Rendez-vous{n}",
+    "source_calendly": "Calendly",
+    "titre_du_rendez_vous": "Titre du rendez-vous",
+    "titre_facultatif": "Titre (facultatif)",
+    "vide_maintenant": "Vide = maintenant"
+  },
   "contactCreateForm": {
     "ce_contact_ressemble_a_une_fiche_d1ab": "Ce contact ressemble à {count, plural, one {une fiche existante} other {des fiches existantes}} — rien n’a été créé.",
     "code_postal": "Code postal",
