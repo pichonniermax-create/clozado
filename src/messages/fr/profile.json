@@ -10,5 +10,22 @@
   "enregistrer": "Enregistrer",
   "l_adresse_de_reponse_ne_semble_pas_valide": "L’adresse de réponse ne semble pas valide.",
   "le_lien_de_rendez_vous_ne_semble_pas_valide": "Le lien de rendez-vous ne semble pas valide (il commence par https://).",
-  "profil_enregistre": "Profil enregistré."
+  "profil_enregistre": "Profil enregistré.",
+  "calendly": {
+    "connexion_calendly": "Connexion Calendly",
+    "connectee": "Connectée",
+    "connectee_le": "Connectée le {when}",
+    "dernier_evenement_le": "dernier événement le {when}",
+    "aucun_evenement_recu_pour_l_instant": "aucun événement reçu pour l’instant",
+    "les_rendez_vous_pris_arrivent_tout_seuls_sur_les_fiches": "Un rendez-vous pris chez Calendly crée la fiche s’il le faut, se pose dessus, et arrête les envois automatiques du contact.",
+    "jeton_d_acces_personnel": "Jeton d’accès personnel Calendly",
+    "cree_le_dans_calendly_integrations_api": "Crée-le dans Calendly → Integrations → API & webhooks → Personal access token. Il sert une fois et n’est jamais conservé.",
+    "placeholder_jeton": "eyJra…",
+    "connecter": "Connecter",
+    "le_jeton_sert_une_fois_webhooks_plans_payants": "Le jeton sert une seule fois (créer l’abonnement webhook) puis est oublié. Les webhooks Calendly sont réservés aux plans payants (Standard, Teams…) — la saisie manuelle sur la fiche marche sans.",
+    "deconnecter": "Déconnecter",
+    "la_deconnexion_est_locale_retire_aussi_le_webhook": "La déconnexion est locale : ton jeton n’ayant jamais été conservé, l’abonnement webhook côté Calendly se retire à la main (Calendly → Integrations → Webhooks).",
+    "connectee_les_rendez_vous_arriveront_tout_seuls": "Calendly connecté : les rendez-vous pris arriveront tout seuls sur les fiches.",
+    "deconnectee_pense_a_retirer_le_webhook": "Connexion Calendly déconnectée : plus rien ne sera écrit. Pense à retirer aussi le webhook côté Calendly (Integrations → Webhooks)."
+  }
 }

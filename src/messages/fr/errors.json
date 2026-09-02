@@ -22,6 +22,9 @@
   "aucune_organisation_selectionnee_choisis_une_organisation_dans_f057": "Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l’écran.",
   "aucune_organisation_selectionnee_choisis_une_organisation_dans_f1fd": "Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l’écran avant de créer un contact.",
   "bytea_format_renvoye_par_le_pilote_inattendu": "bytea : format renvoyé par le pilote inattendu.",
+  "calendly_erreur_du_fournisseur": "Calendly a répondu une erreur ({status}) : {detail}",
+  "calendly_jeton_refuse": "Calendly refuse ce jeton. Vérifie qu’il est copié en entier et toujours actif.",
+  "calendly_webhooks_reserves_aux_plans_payants": "Calendly refuse la création du webhook : les webhooks sont réservés aux plans payants (Standard, Teams…). La saisie manuelle des rendez-vous marche sans.",
   "ce_chiffre_vient_d_un_indicateur_de_9aa2": "Ce chiffre vient d’un indicateur de marché : cesse de suivre l’indicateur pour le retirer.",
   "ce_chiffre_vient_d_un_indicateur_de_e5b0": "Ce chiffre vient d’un indicateur de marché : il est mis à jour par la collecte, pas à la main.",
   "ce_conseiller_n_appartient_pas_a_l_2bd0": "Ce conseiller n’appartient pas à l’organisation de l’affaire.",
@@ -57,6 +60,7 @@
   "choisis_une_origine_existante_ou_donne_un_1573": "Choisis une origine existante, ou donne un nom à la nouvelle.",
   "cible_introuvable": "Cible introuvable.",
   "coche_au_moins_un_contact_a_ajouter": "Coche au moins un contact à ajouter.",
+  "colle_d_abord_ton_jeton_calendly": "Colle d’abord ton jeton d’accès personnel Calendly.",
   "commentaire_vide": "Commentaire vide.",
   "commission_introuvable": "Commission introuvable.",
   "common": {

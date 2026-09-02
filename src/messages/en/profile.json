@@ -10,5 +10,22 @@
   "enregistrer": "Save",
   "l_adresse_de_reponse_ne_semble_pas_valide": "The reply address doesn’t look valid.",
   "le_lien_de_rendez_vous_ne_semble_pas_valide": "The booking link doesn’t look valid (it starts with https://).",
-  "profil_enregistre": "Profile saved."
+  "profil_enregistre": "Profile saved.",
+  "calendly": {
+    "connexion_calendly": "Calendly connection",
+    "connectee": "Connected",
+    "connectee_le": "Connected on {when}",
+    "dernier_evenement_le": "last event on {when}",
+    "aucun_evenement_recu_pour_l_instant": "no events received yet",
+    "les_rendez_vous_pris_arrivent_tout_seuls_sur_les_fiches": "An appointment booked on Calendly creates the contact if needed, lands on their page, and stops automatic sending for that contact.",
+    "jeton_d_acces_personnel": "Calendly personal access token",
+    "cree_le_dans_calendly_integrations_api": "Create it in Calendly → Integrations → API & webhooks → Personal access token. It is used once and never stored.",
+    "placeholder_jeton": "eyJra…",
+    "connecter": "Connect",
+    "le_jeton_sert_une_fois_webhooks_plans_payants": "The token is used once (to create the webhook subscription) then forgotten. Calendly webhooks require a paid plan (Standard, Teams…) — manual appointment entry works without one.",
+    "deconnecter": "Disconnect",
+    "la_deconnexion_est_locale_retire_aussi_le_webhook": "Disconnecting is local: since your token was never stored, remove the webhook subscription on Calendly’s side by hand (Calendly → Integrations → Webhooks).",
+    "connectee_les_rendez_vous_arriveront_tout_seuls": "Calendly connected: booked appointments will now land on contact pages by themselves.",
+    "deconnectee_pense_a_retirer_le_webhook": "Calendly connection disconnected: nothing will be written anymore. Remember to also remove the webhook on Calendly’s side (Integrations → Webhooks)."
+  }
 }

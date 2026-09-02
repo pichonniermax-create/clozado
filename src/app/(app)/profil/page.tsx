@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { CalendlyCard } from "@/components/profile/calendly-card";
+import { getCalendarConnection } from "@/db/queries/calendar-connections";
 import { getUserProfile } from "@/db/queries/users";
 import { getOwnOrganization } from "@/db/queries/organizations";
 import { saveProfileAction } from "@/lib/email/actions";
@@ -20,7 +22,11 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   const t = await getTranslations("profile");
   const session = await requireSessionUser();
   const user = await requireUser();
-  const [profile, org] = await Promise.all([getUserProfile(session.id), getOwnOrganization(user)]);
+  const [profile, org, calendarConnection] = await Promise.all([
+    getUserProfile(session.id),
+    getOwnOrganization(user),
+    getCalendarConnection(session.id),
+  ]);
   const { erreur, info } = await searchParams;
   return (
     <>
@@ -46,6 +52,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           </form>
         </CardContent>
       </Card>
+      <CalendlyCard connection={calendarConnection} />
     </>
   );
 }
