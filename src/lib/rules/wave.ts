@@ -1,9 +1,11 @@
 import { getSuppression } from "@/db/queries/email-events";
 import { markMessagesFailed, markMessagesSent } from "@/db/queries/email-sends";
+import { getContact } from "@/db/queries/contacts";
 import { getOwnOrganizationOrThrow } from "@/db/queries/newsletters";
 import {
   cancelDraft,
   countAutomaticSentInPeriod,
+  getRuleDraft,
   listAutomaticDraftRows,
   markDraftQueued,
   quotaPauseActive,
@@ -94,4 +96,57 @@ export async function sendAutomaticWave(user: OrgScopeUser, origin: string, filt
 
   const remaining = (await listAutomaticDraftRows(org.id, filter)).length;
   return { sent, canceled, failed, remaining };
+}
+
+/**
+ * L'envoi d'UN brouillon depuis la fiche (Envoyer · Modifier · Ignorer,
+ * §5.2) — un geste HUMAIN : les garde-fous de l'automatique (arrêt,
+ * plafond, interrupteur) s'appliquent aux brouillons `automatic` ; un
+ * brouillon `manual`, envoyé sciemment par une personne, ne vérifie que
+ * l'irrévocable — la désinscription — et l'état du fournisseur.
+ */
+export async function sendRuleDraft(user: OrgScopeUser, origin: string, messageId: string): Promise<void> {
+  const org = await getOwnOrganizationOrThrow(user);
+  if (missingFooterFacts(org).length > 0) throw new AppError("l_adresse_postale_manque_au_pied_de_page");
+  if (await quotaPauseActive(org.id)) throw new AppError("une_pause_d_envoi_est_active");
+
+  const draft = await getRuleDraft(user, messageId);
+  const locale = toAppLocale(org.defaultLocale);
+  const t = await translatorFor(locale, "rules.queries");
+  const contact = draft.contactId ? await getContact(user, draft.contactId) : null;
+  if (!contact || contact.deletedAt) {
+    await cancelDraft(draft.id, t("annule_fiche_supprimee"));
+    throw new AppError("ce_contact_a_ete_supprime");
+  }
+  if (await getSuppression(org.id, draft.toEmail)) {
+    await cancelDraft(draft.id, t("annule_desinscrit"));
+    throw new AppError("cette_adresse_est_desinscrite_rien_ne_partira");
+  }
+  if (draft.kind === "automatic") {
+    if (!org.autoSendEnabled) throw new AppError("l_interrupteur_general_est_coupe");
+    if (contact.autoSendStoppedAt) {
+      await cancelDraft(draft.id, t("annule_arrete"));
+      throw new AppError("les_envois_automatiques_de_ce_contact_sont_arretes");
+    }
+    if ((await countAutomaticSentInPeriod(org.id, contact.id, org.autoSendPeriodDays)) > 0) {
+      await cancelDraft(draft.id, t("annule_plafond"));
+      throw new AppError("le_plafond_de_ce_contact_est_atteint");
+    }
+  }
+
+  if (!(await markDraftQueued(draft.id))) throw new AppError("brouillon_introuvable_ou_deja_traite", undefined, 404);
+  const render = await ruleEmailRenderer(org, origin, locale);
+  const content = render(draft.subject, draft.body ?? "");
+  const outcome = await deliverMessages([{ ...draft, status: "queued" }], content, origin);
+  if (outcome.status === "sent") {
+    await markMessagesSent(outcome.results);
+    return;
+  }
+  if (outcome.status === "rejected") {
+    await markMessagesFailed([draft.id], outcome.reason);
+    throw new AppError("le_fournisseur_a_refuse_ce_message", { reason: outcome.reason.slice(0, 120) });
+  }
+  await revertQueuedToDraft(draft.id);
+  if (outcome.status === "quota") throw new AppError("le_quota_du_fournisseur_est_atteint_la_vague_reprendra");
+  throw new AppError("le_fournisseur_d_envoi_ne_repond_pas_reessaie");
 }

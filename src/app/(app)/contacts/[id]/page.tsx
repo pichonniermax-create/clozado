@@ -18,10 +18,12 @@ import { Journal } from "@/components/activities/journal";
 import { JOURNAL_ERROR_PARAM } from "@/components/activities/labels";
 import { AppointmentSection } from "@/components/appointments/appointment-section";
 import { APPOINTMENT_ERROR_PARAM } from "@/components/appointments/labels";
+import { ContactAutoSendPanel, RELANCE_ERROR_PARAM, RELANCE_INFO_PARAM } from "@/components/rules/contact-auto-send";
 import { TaskSection } from "@/components/tasks/task-section";
 import { Textarea } from "@/components/ui/textarea";
 import { listContactJournal } from "@/db/queries/activities";
 import { listContactAppointments } from "@/db/queries/appointments";
+import { listRuleDraftsOfContact } from "@/db/queries/rules";
 import {
   findDuplicateCandidates,
   getContactPageData,
@@ -86,7 +88,7 @@ export default async function ContactPage({
   // à l'heure (exigence données personnelles, docs/module-relationnel.md §C).
   await logContactAccess(contact, user.id, "view");
 
-  const [accessLog, orgUsers, duplicates, journal, mailTargets, contactTargets, received, indicators, suppression, sentMessages, contactAppointments] = await Promise.all([
+  const [accessLog, orgUsers, duplicates, journal, mailTargets, contactTargets, received, indicators, suppression, sentMessages, contactAppointments, ruleDrafts] = await Promise.all([
     listContactAccessLog(user, id),
     listOrgUsers(user),
     contact.deletedAt
@@ -104,6 +106,8 @@ export default async function ContactPage({
     contact.deletedAt ? Promise.resolve([]) : listSentNewslettersOfContact(user, id),
     // Les rendez-vous de la fiche (Partie 3) — à venir compris, annulés visibles.
     contact.deletedAt ? Promise.resolve([]) : listContactAppointments(user, id),
+    // Les brouillons posés par les règles (Envoyer · Modifier · Ignorer).
+    contact.deletedAt ? Promise.resolve([]) : listRuleDraftsOfContact(user, id),
   ]);
   const messageByNewsletter = new Map(sentMessages.map((m) => [m.id, m]));
 
@@ -356,6 +360,14 @@ export default async function ContactPage({
         backTo={`/contacts/${contact.id}`}
         contactId={contact.id}
         erreur={query[APPOINTMENT_ERROR_PARAM]}
+      />
+
+      <ContactAutoSendPanel
+        contact={contact}
+        drafts={ruleDrafts}
+        backTo={`/contacts/${contact.id}`}
+        erreur={query[RELANCE_ERROR_PARAM]}
+        info={query[RELANCE_INFO_PARAM]}
       />
 
       {/* Le journal unifié : ce qui s'est passé avec cette personne — ses

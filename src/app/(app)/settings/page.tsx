@@ -47,6 +47,7 @@ import { normalizeHex } from "@/lib/brand/color";
 import { brandStyle, deriveBrandTokens } from "@/lib/brand/derive";
 import { isPlausibleEmail } from "@/lib/email/address";
 import { EmailDomainCard } from "@/components/settings/email-domain-card";
+import { AutoSendCard } from "@/components/settings/auto-send-card";
 import { IngestAddressCard } from "@/components/settings/ingest-address-card";
 import { LegalFootprintCard } from "@/components/settings/legal-footprint-card";
 import { inboundDomain, sharedSendingDomain } from "@/lib/email/config";
@@ -311,6 +312,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <LegalFootprintCard org={org} readOnly={readOnly} />
 
       <IngestAddressCard org={org} readOnly={readOnly} inboundDomain={receivingDomain} />
+
+      <AutoSendCard org={org} readOnly={readOnly} />
 
       <Card id="langue" className="scroll-mt-24">
         <CardHeader>

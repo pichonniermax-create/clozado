@@ -30,6 +30,7 @@ export const CLIENT_NAMESPACES = [
   "deals",
   "nav",
   "newsletters",
+  "rules",
   "settings",
   "shares",
   "shell",

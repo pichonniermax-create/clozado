@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  contactTags,
   contacts,
   dealShares,
   emailMessages,
@@ -34,6 +35,8 @@ import {
 } from "@/lib/rules/criteria";
 import { invalidTemplateTokens } from "@/lib/rules/template";
 import type { OrgScopeUser } from "@/lib/session";
+import { createActivity } from "./activities";
+import { getContact } from "./contacts";
 import { indicatorSql } from "./engagement";
 import { memberCondition } from "./mail-targets";
 import { getOwnOrganizationOrThrow } from "./newsletters";
@@ -764,4 +767,120 @@ export async function listRuleDraftsOfContact(user: OrgScopeUser, contactId: str
     )
     .orderBy(desc(emailMessages.createdAt))
     .limit(20);
+}
+
+// ---------------------------------------------------------------------------
+// Les écrans — options du formulaire, réglages, arrêt/réarmement, brouillons
+// ---------------------------------------------------------------------------
+
+export type RuleFormOptions = {
+  tags: { id: string; label: string }[];
+  targets: { id: string; label: string }[];
+  owners: { id: string; label: string }[];
+  professions: string[];
+};
+
+/** Ce que l'éditeur de conditions propose — les valeurs de l'organisation, jamais une saisie d'identifiant. */
+export async function listRuleFormOptions(user: OrgScopeUser): Promise<RuleFormOptions> {
+  const [tags, targets, owners, professions] = await Promise.all([
+    db
+      .select({ id: contactTags.id, label: contactTags.label })
+      .from(contactTags)
+      .where(orgScope(user, contactTags.organizationId))
+      .orderBy(asc(contactTags.position), asc(contactTags.label)),
+    db
+      .select({ id: mailTargets.id, label: mailTargets.label })
+      .from(mailTargets)
+      .where(orgScope(user, mailTargets.organizationId))
+      .orderBy(asc(mailTargets.position), asc(mailTargets.label)),
+    db
+      .select({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .where(orgScope(user, users.organizationId))
+      .orderBy(asc(users.name), asc(users.email)),
+    db.execute(sql`
+      select distinct profession from ${partners}
+      where ${orgScope(user, partners.organizationId) ?? sql`true`} and profession is not null and profession <> ''
+      order by profession`),
+  ]);
+  return {
+    tags,
+    targets,
+    owners: owners.map((o) => ({ id: o.id, label: o.name ?? o.email })),
+    professions: (professions.rows as { profession: string }[]).map((r) => r.profession),
+  };
+}
+
+/** L'interrupteur général, la période du plafond et la fenêtre d'heures — la carte « Envois automatiques » des réglages. */
+export async function updateAutoSendSettings(
+  user: OrgScopeUser,
+  input: { autoSendEnabled: boolean; autoSendPeriodDays: number; officeHoursStart: number; officeHoursEnd: number }
+): Promise<void> {
+  const org = await getOwnOrganizationOrThrow(user);
+  if (!Number.isInteger(input.autoSendPeriodDays) || input.autoSendPeriodDays < 1 || input.autoSendPeriodDays > 365) {
+    throw new AppError("le_seuil_doit_etre_entre_1_et_365_jours");
+  }
+  const { officeHoursStart: start, officeHoursEnd: end } = input;
+  if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end > 24 || start >= end) {
+    throw new AppError("la_fenetre_d_heures_est_invalide");
+  }
+  await db
+    .update(organizations)
+    .set({
+      autoSendEnabled: input.autoSendEnabled,
+      autoSendPeriodDays: input.autoSendPeriodDays,
+      officeHoursStart: start,
+      officeHoursEnd: end,
+      updatedAt: new Date(),
+    })
+    .where(eq(organizations.id, org.id));
+}
+
+/**
+ * L'arrêt à la main et le réarmement (§5.3) : réversibles par une personne
+ * et JOURNALISÉS — une note dans la chronologie de la fiche, dans la
+ * langue de l'organisation. La désinscription, elle, vit dans
+ * `email_suppressions`, sans aucun chemin de retour.
+ */
+export async function stopAutoSendByHand(user: OrgScopeUser, sessionUserId: string, contactId: string): Promise<void> {
+  const contact = await getContact(user, contactId);
+  if (contact.deletedAt) throw new AppError("ce_contact_a_ete_supprime");
+  if (contact.autoSendStoppedAt) return;
+  await db
+    .update(contacts)
+    .set({ autoSendStoppedAt: new Date(), autoSendStopReason: "manual", updatedAt: new Date() })
+    .where(and(eq(contacts.id, contact.id), isNull(contacts.autoSendStoppedAt)));
+  const t = await translatorFor(await localeOfOrganization(contact.organizationId), "rules.queries");
+  await createActivity(user, sessionUserId, { type: "note", content: t("envois_automatiques_arretes_a_la_main"), contactId: contact.id });
+}
+
+export async function rearmAutoSend(user: OrgScopeUser, sessionUserId: string, contactId: string): Promise<void> {
+  const contact = await getContact(user, contactId);
+  if (contact.deletedAt) throw new AppError("ce_contact_a_ete_supprime");
+  if (!contact.autoSendStoppedAt) return;
+  await db
+    .update(contacts)
+    .set({ autoSendStoppedAt: null, autoSendStopReason: null, updatedAt: new Date() })
+    .where(eq(contacts.id, contact.id));
+  const t = await translatorFor(await localeOfOrganization(contact.organizationId), "rules.queries");
+  await createActivity(user, sessionUserId, { type: "note", content: t("envois_automatiques_rearmes"), contactId: contact.id });
+}
+
+/** Un brouillon de règle précis — pour Envoyer, Modifier ou Ignorer depuis la fiche ou la vague. */
+export async function getRuleDraft(user: OrgScopeUser, messageId: string): Promise<EmailMessage> {
+  const row = await db.query.emailMessages.findFirst({ where: eq(emailMessages.id, messageId) });
+  if (!row || row.status !== "draft" || !row.ruleId) throw new AppError("brouillon_introuvable_ou_deja_traite", undefined, 404);
+  assertOrgAccess(user, row.organizationId);
+  return row;
+}
+
+export async function updateRuleDraft(user: OrgScopeUser, messageId: string, input: { subject: string; body: string }): Promise<void> {
+  const draft = await getRuleDraft(user, messageId);
+  const subject = input.subject.trim();
+  const body = input.body.trim();
+  if (!subject || !body) throw new AppError("le_gabarit_objet_et_corps_sont_obligatoires");
+  await db
+    .update(emailMessages)
+    .set({ subject, body, updatedAt: new Date() })
+    .where(and(eq(emailMessages.id, draft.id), eq(emailMessages.status, "draft")));
 }
