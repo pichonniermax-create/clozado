@@ -1221,6 +1221,39 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   sondes HTTP sur la production, page d'état de Vercel, diff de la surface
   de build, et la fenêtre des changements côté projet.
 
+### Les deux crons tournent — preuve par appâts (2026-09-01 → 02)
+
+Prouver qu'un cron TOURNE, c'est plus que « la route répond 200 » : il
+faut une trace écrite par la production à l'heure planifiée, sans aucun
+appel de notre part. Deux appâts posés le 2026-09-01 à 01:50 UTC dans une
+organisation-fixture `_cron-test` (script local `_tmp-cron-proof.ts`,
+hors dépôt), puis lecture seule :
+
+- **Veille (`0 5:30 UTC`, `/api/cron/veille`) : EXÉCUTÉE.** L'appât — un
+  indicateur suivi et zéro run, donc une organisation « périmée » en tête
+  de `listStaleOrganizations` — a reçu sa ligne `watch_runs` avec
+  `trigger='cron'` le **2026-09-01 à 05:34:29 UTC** (finie 05:34:30).
+  Personne d'autre que le cron de Vercel n'écrit ce trigger.
+- **Envois (`0 6 UTC`, `/api/cron/envois`) : EXÉCUTÉ.** L'appât — un
+  `newsletter_sends` ouvert (bail et pause libres) avec zéro message en
+  file — a été clôturé par `finishSend` le **2026-09-01 à 06:02:30 UTC**
+  (`queued/sent/failed = 0`, aucun email parti, `error` nul).
+- Le 2026-09-02, la veille n'a PAS re-collecté la fixture : comportement
+  attendu, pas un échec — `WATCH_STALE_HOURS = 24` et le run de la veille
+  avait fini à 05:34:30, soit moins de 24 h avant le passage du cron
+  (~05:31) ; l'organisation n'était pas encore périmée. Piège de mesure à
+  retenir : la fenêtre du `verify` (« runs d'aujourd'hui après 05:00 »)
+  dit « aucune trace » un jour où le cron n'avait simplement RIEN à
+  faire — lire l'historique complet avant de conclure.
+- Le run de veille porte l'erreur « Recherches, classement et résumés
+  impossibles : le fournisseur IA n'est pas configuré » — **confirmation
+  directe, depuis un cron de prod, qu'`ANTHROPIC_API_KEY` est absente en
+  Production** (même constat que la proposition déterministe de l'étape
+  3). Le cron a fait tout le reste (la ligne existe, l'exécution est
+  propre) ; seule la partie IA est dégradée, comme conçu.
+- Fixture détruite après vérification (0 organisation, 0 envoi), scripts
+  de preuve supprimés.
+
 ## Avancement
 
 - **Étape 0 — état des lieux** (2026-08-27) : `90c34a9`. Cahier reçu
@@ -1293,3 +1326,12 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   vérifier que les deux crons TOURNENT réellement (traces d'exécution aux
   heures planifiées, 05:30 et 06:00 UTC), puis l'étape 4 — Partie 3
   (règles de relance).
+- **Les deux crons prouvés en exécution** (2026-09-02) : veille exécutée
+  le 01/09 à 05:34:29 UTC (ligne `watch_runs` `trigger='cron'` sur
+  l'appât), envois exécuté à 06:02:30 UTC (appât clôturé, zéro message) —
+  voir « Les deux crons tournent ». Au passage, la preuve la plus directe
+  que `ANTHROPIC_API_KEY` manque en Production : le run du cron le dit en
+  toutes lettres. Fixture détruite. Suivant : étape 4 — Partie 3 (§5,
+  rendez-vous et règles de relance ; saisie manuelle par défaut, Calendly
+  en confort — question « Calendly payant chez le pilote ? » toujours
+  ouverte ; STOP avant toute migration).
