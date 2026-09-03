@@ -1420,14 +1420,20 @@ dans Resend → Webhooks, URL `https://<APP_URL>/api/webhooks/resend`,
   de drizzle pour obtenir un objet ligne. Et `pkill -f "next start"`
   matche la ligne de commande du shell qui le lance (se tue soi-même) —
   écrire `pkill -f "next[ ]start"`.
-- **EN ATTENTE (03/09 au matin)** : la preuve que le cron de 06:00 UTC
-  évalue AUSSI les règles — appât laissé en prod (`_rules-prod` : une
-  règle `create_task` active + un contact frais) ; le passage doit
-  écrire un `rule_runs` `trigger='cron'` et la tâche. Vérif
-  `_tmp-rules-prod.ts verify`, puis teardown. (Même réveil que la preuve
-  « veille IA au cron » de la fixture `_cron-test`.)
+- **Le cron de 06:00 UTC évalue AUSSI les règles — PROUVÉ le 2026-09-03**
+  (appât `_rules-prod` : une règle `create_task` active « Appât cron
+  règles », seuil 1 jour, plantée par SQL sans créateur, et trois
+  contacts sans interaction) : la production a écrit un `rule_runs`
+  `trigger='cron'` **06:31:05 → 06:31:06 UTC** (`evaluated 1`,
+  `matched 3`, `actions_done 1`, `actions_skipped 2`, `error` nul) et la
+  tâche « Appât cron règles » existe. Le journal dit le reste en clair :
+  `done` pour la fiche qui a un conseiller, `skipped` motif `no_owner`
+  pour les deux autres — la règle n'ayant ni conseiller sur ces fiches ni
+  créateur (SQL), il n'y avait personne à qui donner la tâche, et le
+  moteur l'a dit plutôt que d'inventer un responsable. Aucun appel local.
+  Détail et horaires dans « Les deux crons tournent ». Fixture détruite.
 
-### Les deux crons tournent — preuve par appâts (2026-09-01 → 02)
+### Les deux crons tournent — preuve par appâts (2026-09-01 → 03)
 
 Prouver qu'un cron TOURNE, c'est plus que « la route répond 200 » : il
 faut une trace écrite par la production à l'heure planifiée, sans aucun
@@ -1459,6 +1465,38 @@ hors dépôt), puis lecture seule :
   propre) ; seule la partie IA est dégradée, comme conçu.
 - Fixture détruite après vérification (0 organisation, 0 envoi), scripts
   de preuve supprimés.
+
+**Second passage, le 2026-09-03 — la veille IA AVEC la clé, et les règles
+au cron** (deux appâts replantés le 02/09, lus le 03/09 à 12:47 UTC, zéro
+appel local entre-temps) :
+
+- **Veille IA au cron : EXÉCUTÉE SANS ERREUR.** Fixture `_cron-test`
+  remise « périmée » (runs effacés, `last_searched_at` nul, un sujet
+  « Assurance emprunteur », un indicateur). Ligne `watch_runs`
+  `trigger='cron'` **06:10:41 → 06:10:53 UTC**, `error` NUL — là où le
+  passage du 01/09 disait « fournisseur IA non configuré ». `items_new 0`
+  n'est pas un échec : les trois éléments trouvés par la visite forgée du
+  02/09 (12:16) existent toujours, la recherche du modèle les a retrouvés
+  et la déduplication a fait son travail ; la preuve que la chaîne a bien
+  tourné est `last_searched_at` posé par la prod à 06:10:52 (douze
+  secondes de recherche et de classement). `ANTHROPIC_API_KEY` est donc
+  prise par le cron comme par la visite.
+- **Règles au cron : ÉVALUÉES.** Fixture `_rules-prod` : `rule_runs`
+  `trigger='cron'` 06:31:05 → 06:31:06 UTC, 1 règle évaluée, 3 fiches
+  matchées, 1 tâche créée, 2 sauts motivés `no_owner` (voir « les
+  preuves » de l'étape 4). C'est la greffe §3.7 → §5.2 vue depuis la
+  production : reprise des envois d'abord, puis l'évaluation, dans la
+  même fonction, sous le même `CRON_SECRET`.
+- **L'heure réelle des crons Hobby n'est pas l'heure planifiée** : veille
+  planifiée 05:30, exécutée 05:34 (01/09) puis **06:10** (03/09) ; envois
+  planifiés 06:00, exécutés 06:02 (01/09) puis **06:31** (03/09). C'est
+  documenté par Vercel pour le plan Hobby (déclenchement à un moment
+  quelconque de l'heure planifiée) — rien à corriger, mais à savoir
+  avant de promettre une heure : « la vague est prête avant 09:00
+  (Paris) » est vrai, « à 08:00 » ne l'est pas. Toute fenêtre de mesure
+  du type « après 05:00 » doit rester large.
+- Les deux fixtures sont détruites (0 organisation, 0 membre chacune),
+  la clé de signature locale de l'appât Calendly effacée.
 
 ## Avancement
 
@@ -1561,3 +1599,15 @@ hors dépôt), puis lecture seule :
   le diff `vercel.json` à décider (montré, jamais poussé sans accord),
   la question « Calendly payant chez le pilote ? » (preuve réelle
   Calendly), et la retouche composer reportée (bloc bouton prérempli).
+- **Étape 4 — CLOSE** (2026-09-03) : les deux appâts du matin ont
+  parlé — la veille IA a tourné AU CRON avec la clé (run 06:10 UTC,
+  erreur nulle) et le cron de 06:00 a ÉVALUÉ LES RÈGLES en production
+  (run 06:31 UTC, une tâche créée, deux sauts motivés). Voir « Les deux
+  crons tournent ». Fixtures détruites, dépôt propre. **Le cahier des
+  charges du 2026-08-27 est couvert (Parties 1, 2 et 3)** ; restent trois
+  points qui ne dépendent que de l'utilisateur : le diff `vercel.json`
+  (décalage de l'heure des crons — à décider, jamais poussé sans
+  accord), « Calendly payant chez le pilote ? » (sans quoi la preuve
+  Calendly reste celle du webhook signé, pas d'un vrai rendez-vous), et
+  la retouche composer reportée (bloc bouton prérempli avec `{lien_rdv}`
+  — `cta_presets` dort, aucun système de préréglage à étendre).
