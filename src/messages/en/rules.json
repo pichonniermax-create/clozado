@@ -31,7 +31,8 @@
     "et_n_autres": "… and {n} more.",
     "interrupteur_coupe_rien_ne_partira": "The master switch is off (Settings → Automatic sending): nothing will go out.",
     "hors_heures_de_bureau": "Outside office hours ({start}:00–{end}:00, weekdays, {timezone} time). You can still send: your click decides.",
-    "envoyer_les_n_emails": "Send the {n} emails"
+    "envoyer_les_n_emails": "Send the {n} emails",
+    "demo_envois_simules": "Demo: the wave will be simulated — messages will show as sent, without any email leaving."
   },
   "editor": {
     "regles": "Rules",

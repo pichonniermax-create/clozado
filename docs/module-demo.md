@@ -265,7 +265,10 @@ partagent cette base.** Le script de reconnaissance
   WHERE id = $1 AND is_demo` — même appelé avec un mauvais id, il ne
   supprime rien qui ne soit marqué.
 - Rien n'est renommé ni supprimé ; tout est `IF NOT EXISTS` / bloc `DO`,
-  rejouable, comme 0016. Texte complet au §4. **Montrée, non appliquée.**
+  rejouable, comme 0016. Texte complet au §4. **Rédigée
+  (`src/db/migrations/0017_demo.sql`), rejouée deux fois sur la base
+  LOCALE sans erreur (journal local : 18 entrées), JAMAIS appliquée sur la
+  base partagée.**
 
 ### 1.2 Le blocage au transport
 
@@ -632,8 +635,11 @@ appliquer la migration de fait, ou casser la production. Donc :
 
 ## 4. La migration `0017_demo` — montrée, en attente d'accord
 
-Rédigée à la sous-étape 2 (`src/db/migrations/0017_demo.sql`, instantané
-drizzle-kit régénéré, journal). Contenu prévu, dans l'ordre :
+Rédigée à la sous-étape 2 : `src/db/migrations/0017_demo.sql` (réécrite à
+la main depuis la sortie drizzle-kit : `IF NOT EXISTS`, bloc `DO`, FK dans
+le `CREATE TABLE`, déclencheur), `meta/0017_snapshot.json` et le journal.
+Appliquée deux fois sur la base locale (rejouable), jamais sur la base
+partagée. Le contenu, dans l'ordre :
 
 ```sql
 ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "is_demo" boolean DEFAULT false NOT NULL;
@@ -688,8 +694,94 @@ construire et prouver ; **sur la base partagée, jamais sans accord (D2).**
 
 ## 5. Preuves
 
-À venir, sous-étape par sous-étape (à blanc sur la base locale, au
-navigateur, puis depuis la production à la sous-étape 6).
+### 5.2 Sous-étape 2 — au navigateur, build de production sur la base locale (2026-09-04)
+
+`scripts/_tmp-demo-browser.ts` (local) : `next start` du build de
+production, lancé avec le fichier d'environnement de la base locale (clé
+Resend invalide), session forgée d'un super admin LOCAL (fixture de la base
+Docker), Chromium 1280×900, FR puis EN, `pageerror` et `console.error`
+comptés. Sur ce proxy local, un écran met 10 à 25 s : délais larges, jamais
+`networkidle`. **68 contrôles OK en FR puis EN, 0 erreur navigateur** —
+l'espace gestionnaire (liste avec le badge Démo, carte Démo : démo publique
+fermée, bouton Ouvrir, réinitialisation en attente, dernière opération
+« création, terminée »), « Travailler dans cette organisation » (bandeau
+« Tu travailles dans : Vasseur Courtage », tuiles À faire 16 dont 4 en
+retard / À relancer 3 / Sans suite 5 / À encaisser 3 100 €, en-tête
+« 44 contacts · 17 affaires en cours · 6 partenaires actifs »), puis
+contacts, fiche contact (étiquette, conseiller, interactions), affaires
+(cinq étapes, montants), suivi (partage en attente, commission à
+encaisser), tâches (du jour, en retard), partenaires (les six), newsletters
+(quatre envoyées, un brouillon), newsletter envoyée (remis, ouverts, cliqués
+ET « Démo : l'envoi est simulé »), règles (vague en attente (2) ET « la
+vague sera simulée », les deux règles en phrases, « avant 9h00 »), journal
+(motifs traduits), emails reçus (la demande en attente, proposition
+préremplie dans les champs), veille (éléments résumés, AUCUNE collecte
+lancée : runs inchangés), concurrents, chiffres, cibles, funnel, origines,
+partenariats ; aucune clé brute, accolade, `MISSING_MESSAGE` ni `undefined`
+sur aucun écran. Puis les gestes, depuis l'écran (24 contrôles) : « M'envoyer
+un test » sur le brouillon → un message `kind=test` « sent » avec un
+identifiant `demo:` ; « Envoyer les 2 emails » → les deux brouillons
+« sent » avec `demo:` — zéro appel au fournisseur (clé invalide de toute
+façon) ; le lien magique demandé pour la persona → la page « vérifie ta
+boîte », rien ne part. Faux négatifs du harnais, corrigés en chemin : le
+premier lien `/contacts/…` était l'import ; la proposition d'un email reçu
+vit dans des champs préremplis, pas dans le texte ; un clic met ~20 s à
+revenir sur ce serveur (attendre la base, pas un délai fixe).
+
+### 5.1 Sous-étape 2 — à blanc, sur la base locale (2026-09-04)
+
+`scripts/_tmp-demo-proof.ts` (local, gitignoré ; refuse toute base autre que
+`localhost:4444`), sur un semis frais, avec `fetch` PIÉGÉ : tout appel vers
+`api.resend.com` fait échouer la preuve, et la clé Resend du fichier
+d'environnement local est invalide. **31 contrôles, tout OK** :
+
+- marquage et identifiants (9) : organisation de démo à l'identifiant fixe,
+  `is_demo` posé et démo publique fermée par défaut, `demoId` stable et de
+  forme uuid v4, `isDemoOrganization` oui/non, adresses réservées
+  (`.example`, `example.com`, `.invalid`) reconnues et une adresse
+  ordinaire acceptée, `isSimulatedProviderId` ;
+- la base refuse (3) : `is_demo = false` + `demo_public_enabled = true`
+  (CHECK), une seconde organisation démo (index unique), la démo intacte
+  après les deux refus ; et, au moment de la migration : suppression d'une
+  organisation réelle refusée par `organizations_delete_guard`, fixture
+  `_…` et organisation marquée démo supprimables ;
+- le transport (6) : les deux brouillons de la vague existent ;
+  `deliverMessages` d'un message de démo → `sent`, identifiant `demo:<id>`,
+  zéro appel Resend ; un lot de deux aussi (le chemin `sendBatch`) ;
+  `sendEmail` vers une adresse `.example` → `ResendError
+  reserved_recipient` AVANT tout appel ; hors démo, un lot vers une
+  adresse réservée est « rejeté » par la ceinture, zéro appel ;
+- les crons (3) : la démo absente de `listStaleOrganizations` (veille
+  périmée pourtant), de `listOrganizationsWithActiveRules` (deux règles
+  actives pourtant), de `listResumableSends` (un envoi ouvert planté puis
+  retiré) — la première version du filtre était tombée dans `claimSend`
+  (même début de clause) : l'envoi à la demande y aurait été bloqué, la
+  preuve l'a vu, corrigé ;
+- les travaux à la visite (4) : `scheduleWatchRefresh(démo)` et
+  `refreshWatchNow(démo)` → `status: "demo"` sans run créé, les deux runs
+  du jeu restent seuls, `refreshOrganizationIndicators(démo)` → 0 ;
+- les gestes de l'écran, simulés (3) : `sendTestEmail` → un message
+  `kind=test` « sent » avec `demo:`, zéro appel ; `sendAutomaticWave` →
+  les deux brouillons « sent » avec `demo:`, zéro appel ;
+  `evaluateOrganizationRules` (manuel) → `done`, zéro appel — l'évaluation
+  réelle a produit 16 brouillons de plus (les destinataires qui n'ont pas
+  ouvert la newsletter de rentrée) : le moteur travaille sur le jeu comme
+  sur un vrai cabinet ;
+- la persona et l'isolation (3) : Claire Vasseur admin de la démo sur
+  `.example`, aucune donnée d'une autre organisation dans la base locale,
+  aucune adresse de contact hors domaine réservé.
+
+Rejouer la preuve sur un état muté fait échouer quatre contrôles (vague
+déjà partie, brouillons supplémentaires, test déjà présent) : c'est
+l'état, pas le code — repartir d'un semis frais (`_tmp-local-reset.ts`,
+outil local qui refuse toute autre base, puis `scripts/demo.ts create`).
+Idempotence vérifiée : une seconde création refuse (`demo.deja_creee`,
+journalisée `failed`) ; effacement local puis re-création → même
+identifiant d'organisation, mêmes identifiants de lignes, mêmes comptes
+(44 contacts, 26 affaires, 13 partages, 24 tâches, 64 interactions,
+5 newsletters, 70 messages, 207 événements d'email, 3 emails reçus,
+2 règles, 10 éléments de veille, 18 leads, 597 événements de visite),
+en 17 à 27 s.
 
 ---
 
@@ -700,3 +792,13 @@ navigateur, puis depuis la production à la sous-étape 6).
   refaits — ceux du 03/09 étaient perdus avec les sessions. Base locale de
   preuve remontée (Docker), `DATABASE_HTTP_ENDPOINT` documentée. Décisions
   D1-D5 posées (§3.1). Suivant : sous-étape 2 sur la branche `demo`.
+- **Sous-étape 2 — le jeu de données et les gardes** (2026-09-04, branche
+  `demo`) : migration 0017 rédigée et rejouée EN LOCAL seulement ; Vasseur
+  Courtage semé (≈ 1 200 lignes, identifiants fixes, idempotent) ; blocage
+  au transport (point de passage, deux contournements, ceinture RFC 2606) ;
+  crons et collectes qui ignorent la démo ; carte Démo de l'espace
+  gestionnaire (création, interrupteur — éteint —, réinitialisation en
+  attente d'accord). Preuves §5.1 (31 à blanc) et §5.2 (68 + 24 au
+  navigateur). Les textes du jeu de données vivent dans `dataset.json` :
+  les deux règles ESLint maison restent INTACTES (aucune exception ajoutée).
+  Suivant : sous-étape 3 (réinitialisation, périmètre §1.7 validé), 4 et 5.

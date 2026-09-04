@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import NextAuth from "next-auth";
 import Nodemailer from "next-auth/providers/nodemailer";
 import { createTransport } from "nodemailer";
+import { isReservedExampleAddress } from "@/lib/demo/constants";
+import { isDemoOrganization } from "@/lib/demo/guard";
 import { renderMagicLinkEmail } from "@/lib/email/magic-link";
 import { productSender } from "@/lib/email/sender";
 import { db } from "@/db";
@@ -33,6 +35,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // i18n, étape 4) — à la place du modèle anglais d'Auth.js. Le
       // transport est le même que le sien ; ce qui change, c'est le texte.
       async sendVerificationRequest({ identifier, url, provider }) {
+        // LA DÉMO (docs/module-demo.md §1.2) : jamais d'email vers une adresse réservée aux
+        // exemples, ni vers un membre d'une organisation de démo — la page « vérifie ta
+        // boîte » s'affiche quand même, rien ne le dit à un inconnu.
+        if (isReservedExampleAddress(identifier)) return;
+        const recipient = await db.query.users.findFirst({ where: eq(users.email, identifier), columns: { organizationId: true } });
+        if (await isDemoOrganization(recipient?.organizationId)) return;
         const email = await renderMagicLinkEmail(identifier, url);
         const result: { rejected?: unknown[]; pending?: unknown[] } = await createTransport(provider.server).sendMail({
           to: identifier,

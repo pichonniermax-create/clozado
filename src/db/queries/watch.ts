@@ -710,7 +710,9 @@ export async function describeGapSubject(user: OrgScopeUser, subject: string): P
 export type StartRunResult =
   | { status: "started"; run: WatchRun }
   | { status: "running"; run: WatchRun }
-  | { status: "cooldown"; until: Date };
+  | { status: "cooldown"; until: Date }
+  /** L'organisation de démo ne collecte jamais (docs/module-demo.md §1.3) : contenu fictif et stable, aucun appel HTTP ni modèle. */
+  | { status: "demo" };
 
 /**
  * Démarre une collecte si aucune n'est en cours. Le verrou est GARANTI PAR
@@ -819,7 +821,8 @@ export async function listStaleOrganizations(limit: number): Promise<string[]> {
   const rows = await db.execute(sql`
     SELECT o.id
     FROM organizations o
-    WHERE (
+    WHERE o.is_demo = false
+    AND (
       EXISTS (SELECT 1 FROM ${watchSources} s WHERE s.organization_id = o.id AND s.archived_at IS NULL)
       OR EXISTS (SELECT 1 FROM ${watchTopics} t WHERE t.organization_id = o.id AND t.archived_at IS NULL)
       OR EXISTS (SELECT 1 FROM organization_indicators i WHERE i.organization_id = o.id)

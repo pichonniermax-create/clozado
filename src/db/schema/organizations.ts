@@ -128,6 +128,15 @@ export const organizations = pgTable("organizations", {
   /** La fenêtre d'envoi automatique : heures de bureau (dans le fuseau de l'organisation), jours ouvrés du lundi au vendredi. */
   officeHoursStart: integer("office_hours_start").notNull().default(9),
   officeHoursEnd: integer("office_hours_end").notNull().default(18),
+  // --- Démo (chantier du 2026-09-03, migration 0017, docs/module-demo.md §1.1) ---
+  /**
+   * LA marque de l'organisation de démonstration : données fictives, aucun email ne part
+   * (blocage au transport), les crons l'ignorent, la réinitialisation ne s'exécute que sur elle.
+   * Une seule organisation de démo à la fois (index unique partiel).
+   */
+  isDemo: boolean("is_demo").notNull().default(false),
+  /** La démo publique (session de visite en lecture seule, `/demo`) est-elle ouverte ? Le CHECK exige `is_demo`. */
+  demoPublicEnabled: boolean("demo_public_enabled").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
@@ -144,6 +153,10 @@ export const organizations = pgTable("organizations", {
     "organizations_office_hours_check",
     sql`${table.officeHoursStart} >= 0 AND ${table.officeHoursEnd} <= 24 AND ${table.officeHoursStart} < ${table.officeHoursEnd}`
   ),
+  // La base refuse de rendre publique une organisation qui n'est pas une démo.
+  check("organizations_demo_public_requires_demo", sql`NOT ${table.demoPublicEnabled} OR ${table.isDemo}`),
+  // Une seule organisation de démo.
+  uniqueIndex("organizations_single_demo").on(table.isDemo).where(sql`${table.isDemo}`),
 ]);
 
 export type Organization = typeof organizations.$inferSelect;

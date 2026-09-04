@@ -1,0 +1,1547 @@
+{
+  "ACTIVITY_LINES": {
+    "call": [
+      "Appel de 20 min : le projet se précise, compromis attendu sous quinzaine.",
+      "Point rapide : la banque demande un apport un peu plus élevé, on étudie.",
+      "Appel : rassuré sur le calendrier, rendez-vous fixé.",
+      "Message laissé, rappel prévu demain."
+    ],
+    "emailOut": [
+      "Envoi de la simulation comparée (deux durées, deux taux).",
+      "Récapitulatif des pièces à fournir pour le dossier.",
+      "Transmission de l'offre de délégation d'assurance."
+    ],
+    "emailIn": [
+      "Réponse reçue : pièces jointes envoyées, question sur les frais de dossier.",
+      "Le client confirme la date de signature chez le notaire.",
+      "Demande de report du rendez-vous à la semaine prochaine."
+    ],
+    "meeting": [
+      "Rendez-vous découverte au cabinet : situation, projet, capacité d'emprunt.",
+      "Rendez-vous de restitution : trois offres présentées, choix en cours."
+    ],
+    "note": [
+      "Préfère être contacté le soir après 18h30.",
+      "Deuxième projet envisagé l'an prochain (investissement locatif).",
+      "Recommandé par un client signé en mars."
+    ]
+  },
+  "APPOINTMENTS": [
+    {
+      "contact": 0,
+      "inDays": 1,
+      "hour": 10,
+      "title": "Rendez-vous découverte",
+      "owner": "claire"
+    },
+    {
+      "contact": 10,
+      "inDays": 2,
+      "hour": 14,
+      "title": "Rendez-vous banque — signature",
+      "owner": "claire"
+    },
+    {
+      "contact": 6,
+      "inDays": 4,
+      "hour": 9,
+      "title": "Point plan de financement",
+      "owner": "thomas"
+    },
+    {
+      "contact": 3,
+      "inDays": 3,
+      "hour": 16,
+      "title": "Comparatif assurance",
+      "owner": "thomas",
+      "canceled": true
+    },
+    {
+      "contact": 13,
+      "inDays": -6,
+      "hour": 11,
+      "title": "Rendez-vous de restitution",
+      "owner": "claire"
+    },
+    {
+      "contact": 5,
+      "inDays": -20,
+      "hour": 15,
+      "title": "Rendez-vous découverte",
+      "owner": "claire"
+    }
+  ],
+  "CITIES": [
+    {
+      "city": "Nantes",
+      "postalCode": "44000"
+    },
+    {
+      "city": "Rezé",
+      "postalCode": "44400"
+    },
+    {
+      "city": "Saint-Herblain",
+      "postalCode": "44800"
+    },
+    {
+      "city": "Vertou",
+      "postalCode": "44120"
+    },
+    {
+      "city": "Carquefou",
+      "postalCode": "44470"
+    },
+    {
+      "city": "Orvault",
+      "postalCode": "44700"
+    },
+    {
+      "city": "Bouguenais",
+      "postalCode": "44340"
+    },
+    {
+      "city": "Sainte-Luce-sur-Loire",
+      "postalCode": "44980"
+    },
+    {
+      "city": "La Chapelle-sur-Erdre",
+      "postalCode": "44240"
+    },
+    {
+      "city": "Couëron",
+      "postalCode": "44220"
+    }
+  ],
+  "COMPANIES": [
+    {
+      "name": "Boulangerie Le Fournil de Vertou",
+      "city": "Vertou",
+      "postalCode": "44120",
+      "notes": "Reprise de fonds de commerce en cours — prêt professionnel étudié."
+    },
+    {
+      "name": "Atelier Menuiserie Loire",
+      "city": "Rezé",
+      "postalCode": "44400",
+      "notes": "Deux associés, extension d'atelier."
+    },
+    {
+      "name": "Cabinet infirmier des Dervallières",
+      "city": "Nantes",
+      "postalCode": "44100",
+      "notes": "Rachat de parts, besoin d'un prêt professionnel."
+    },
+    {
+      "name": "SCI Les Tilleuls",
+      "city": "Orvault",
+      "postalCode": "44700",
+      "notes": "Investissement locatif — deux appartements."
+    }
+  ],
+  "COMPETITORS": [
+    {
+      "label": "Prêt Facile Atlantique",
+      "siteUrl": "https://pret-facile-atlantique.example",
+      "feedUrl": "https://pret-facile-atlantique.example/blog/rss"
+    },
+    {
+      "label": "Courtage Ouest",
+      "siteUrl": "https://courtage-ouest.example",
+      "feedUrl": "https://courtage-ouest.example/actualites/feed"
+    }
+  ],
+  "CTA_PRESETS": [
+    {
+      "label": "Prendre rendez-vous",
+      "url": "https://rendez-vous.example/claire-vasseur"
+    },
+    {
+      "label": "Simuler mon prêt",
+      "url": "https://vasseur-courtage.example/simulateur"
+    }
+  ],
+  "DEALS": [
+    {
+      "title": "Premier achat — maison à Vertou",
+      "type": 0,
+      "amount": 285000,
+      "stage": "nouveau",
+      "ageDays": 3,
+      "contact": 0,
+      "owner": "claire",
+      "fromLead": true
+    },
+    {
+      "title": "Appartement T3 — Nantes centre",
+      "type": 0,
+      "amount": 242000,
+      "stage": "nouveau",
+      "ageDays": 5,
+      "contact": 1,
+      "owner": "thomas",
+      "fromLead": true
+    },
+    {
+      "title": "Renégociation prêt 2022",
+      "type": 1,
+      "amount": 198000,
+      "stage": "nouveau",
+      "ageDays": 6,
+      "contact": 2,
+      "owner": "claire"
+    },
+    {
+      "title": "Assurance emprunteur — délégation",
+      "type": 2,
+      "amount": 160000,
+      "stage": "nouveau",
+      "ageDays": 8,
+      "contact": 3,
+      "owner": "thomas"
+    },
+    {
+      "title": "Maison neuve — Carquefou",
+      "type": 0,
+      "amount": 365000,
+      "stage": "nouveau",
+      "ageDays": 11,
+      "contact": 4,
+      "owner": "claire",
+      "fromLead": true
+    },
+    {
+      "title": "Investissement locatif — T2 Rezé",
+      "type": 0,
+      "amount": 175000,
+      "stage": "partagee",
+      "ageDays": 14,
+      "contact": 5,
+      "owner": "claire"
+    },
+    {
+      "title": "Achat résidence principale — Orvault",
+      "type": 0,
+      "amount": 412000,
+      "stage": "partagee",
+      "ageDays": 17,
+      "contact": 6,
+      "owner": "thomas",
+      "fromLead": true
+    },
+    {
+      "title": "Reprise de fonds — Le Fournil",
+      "type": 3,
+      "amount": 120000,
+      "stage": "partagee",
+      "ageDays": 19,
+      "contact": 40,
+      "owner": "claire"
+    },
+    {
+      "title": "Regroupement de crédits",
+      "type": 1,
+      "amount": 145000,
+      "stage": "partagee",
+      "ageDays": 22,
+      "contact": 7,
+      "owner": "thomas"
+    },
+    {
+      "title": "Maison familiale — Saint-Herblain",
+      "type": 0,
+      "amount": 338000,
+      "stage": "partagee",
+      "ageDays": 25,
+      "contact": 8,
+      "owner": "claire",
+      "fromLead": true
+    },
+    {
+      "title": "Terrain + construction — Bouguenais",
+      "type": 0,
+      "amount": 298000,
+      "stage": "partagee",
+      "ageDays": 28,
+      "contact": 9,
+      "owner": "claire"
+    },
+    {
+      "title": "Rachat de parts — cabinet infirmier",
+      "type": 3,
+      "amount": 95000,
+      "stage": "en_negociation",
+      "ageDays": 31,
+      "contact": 42,
+      "owner": "thomas"
+    },
+    {
+      "title": "Appartement T4 — Sainte-Luce",
+      "type": 0,
+      "amount": 268000,
+      "stage": "en_negociation",
+      "ageDays": 35,
+      "contact": 10,
+      "owner": "claire",
+      "fromLead": true
+    },
+    {
+      "title": "Extension d'atelier — Menuiserie Loire",
+      "type": 3,
+      "amount": 180000,
+      "stage": "en_negociation",
+      "ageDays": 40,
+      "contact": 41,
+      "owner": "claire"
+    },
+    {
+      "title": "Deuxième investissement — SCI Les Tilleuls",
+      "type": 0,
+      "amount": 520000,
+      "stage": "en_negociation",
+      "ageDays": 44,
+      "contact": 43,
+      "owner": "thomas"
+    },
+    {
+      "title": "Renégociation + assurance",
+      "type": 1,
+      "amount": 210000,
+      "stage": "en_negociation",
+      "ageDays": 48,
+      "contact": 11,
+      "owner": "claire"
+    },
+    {
+      "title": "Premier achat — La Chapelle-sur-Erdre",
+      "type": 0,
+      "amount": 231000,
+      "stage": "en_negociation",
+      "ageDays": 52,
+      "contact": 12,
+      "owner": "thomas",
+      "fromLead": true
+    },
+    {
+      "title": "Maison avec travaux — Couëron",
+      "type": 0,
+      "amount": 305000,
+      "stage": "acceptee",
+      "ageDays": 60,
+      "contact": 13,
+      "owner": "claire"
+    },
+    {
+      "title": "Appartement neuf — Nantes Île",
+      "type": 0,
+      "amount": 276000,
+      "stage": "acceptee",
+      "ageDays": 75,
+      "contact": 14,
+      "owner": "thomas",
+      "fromLead": true
+    },
+    {
+      "title": "Assurance emprunteur — changement",
+      "type": 2,
+      "amount": 190000,
+      "stage": "acceptee",
+      "ageDays": 90,
+      "contact": 15,
+      "owner": "claire"
+    },
+    {
+      "title": "Investissement locatif — studio",
+      "type": 0,
+      "amount": 118000,
+      "stage": "acceptee",
+      "ageDays": 110,
+      "contact": 16,
+      "owner": "thomas"
+    },
+    {
+      "title": "Maison de ville — Rezé",
+      "type": 0,
+      "amount": 322000,
+      "stage": "acceptee",
+      "ageDays": 140,
+      "contact": 17,
+      "owner": "claire",
+      "fromLead": true
+    },
+    {
+      "title": "Rachat de crédit consommation + immo",
+      "type": 1,
+      "amount": 165000,
+      "stage": "acceptee",
+      "ageDays": 170,
+      "contact": 18,
+      "owner": "thomas"
+    },
+    {
+      "title": "Appartement T2 — Nantes Procé",
+      "type": 0,
+      "amount": 205000,
+      "stage": "perdue",
+      "ageDays": 95,
+      "loss": 0,
+      "contact": 19,
+      "owner": "claire"
+    },
+    {
+      "title": "Maison — Carquefou (projet abandonné)",
+      "type": 0,
+      "amount": 380000,
+      "stage": "perdue",
+      "ageDays": 125,
+      "loss": 1,
+      "contact": 20,
+      "owner": "thomas",
+      "fromLead": true
+    },
+    {
+      "title": "Prêt relais — Vertou",
+      "type": 0,
+      "amount": 450000,
+      "stage": "perdue",
+      "ageDays": 200,
+      "loss": 2,
+      "contact": 21,
+      "owner": "claire"
+    }
+  ],
+  "DEAL_TYPES": [
+    "Crédit immobilier",
+    "Rachat de crédit",
+    "Assurance emprunteur",
+    "Prêt professionnel"
+  ],
+  "FIGURES": [
+    {
+      "label": "Dossiers financés depuis 2019",
+      "value": "640",
+      "sourceName": "Registre interne du cabinet",
+      "asOf": "juin 2026"
+    },
+    {
+      "label": "Délai moyen d'accord de principe",
+      "value": "11 jours",
+      "sourceName": "Suivi des dossiers 2025",
+      "asOf": "décembre 2025"
+    },
+    {
+      "label": "Banques partenaires consultées",
+      "value": "14",
+      "sourceName": "Conventions en cours",
+      "asOf": "septembre 2026"
+    }
+  ],
+  "FIRST_NAMES": [
+    "Camille",
+    "Julie",
+    "Marc",
+    "Sophie",
+    "Éric",
+    "Nadia",
+    "Paul",
+    "Inès",
+    "Hugo",
+    "Léa",
+    "Karim",
+    "Anne",
+    "Louis",
+    "Emma",
+    "Yann",
+    "Sarah",
+    "Nicolas",
+    "Chloé",
+    "Pierre",
+    "Manon"
+  ],
+  "INBOUND": [
+    {
+      "kind": "confirmed",
+      "contact": 13,
+      "subject": "Re: Offre de prêt — signature vendredi",
+      "counterpartName": "Camille Marchand",
+      "body": "Bonjour Claire,\n\nC'est confirmé pour vendredi 10h chez Maître Le Goff. Merci pour votre accompagnement.\n\nCamille Marchand\n06 22 33 44 55",
+      "daysAgo": 2,
+      "proposal": {
+        "name": "Camille Marchand",
+        "phone": "06 22 33 44 55",
+        "company": null,
+        "jobTitle": null
+      }
+    },
+    {
+      "kind": "pending",
+      "contact": null,
+      "subject": "Demande de simulation — achat à Rezé",
+      "counterpartName": "Élodie Vannier",
+      "counterpartEmail": "elodie.vannier@courriel.example",
+      "body": "Bonjour,\n\nVotre newsletter m'a été transmise par une amie. Nous cherchons une maison à Rezé autour de 320 000 €, avec 40 000 € d'apport. Pouvez-vous nous dire ce qui est envisageable ?\n\nÉlodie Vannier\nResponsable RH — Ateliers du Sillon\n06 45 67 89 01",
+      "daysAgo": 1,
+      "proposal": {
+        "name": "Élodie Vannier",
+        "phone": "06 45 67 89 01",
+        "company": "Ateliers du Sillon",
+        "jobTitle": "Responsable RH"
+      }
+    },
+    {
+      "kind": "ignored",
+      "contact": null,
+      "subject": "Votre facture de septembre",
+      "counterpartName": "Comptabilité",
+      "counterpartEmail": "compta@fournisseur-bureautique.example",
+      "body": "Bonjour, veuillez trouver ci-joint la facture du mois.",
+      "daysAgo": 4,
+      "proposal": {
+        "name": null,
+        "phone": null,
+        "company": null,
+        "jobTitle": null
+      }
+    }
+  ],
+  "INDICATOR_KEYS": [
+    "fr_tem_immo_20ans",
+    "fr_usure_immo_20ans",
+    "bce_refinancement"
+  ],
+  "JOB_TITLES": [
+    "Infirmière",
+    "Ingénieur logiciel",
+    "Enseignant",
+    "Artisan plombier",
+    "Cadre commercial",
+    "Pharmacienne",
+    "Kinésithérapeute",
+    "Chef de projet",
+    "Fonctionnaire territoriale",
+    "Consultant indépendant"
+  ],
+  "LAST_NAMES": [
+    "Marchand",
+    "Lefèvre",
+    "Bernard",
+    "Petit",
+    "Robert",
+    "Richard",
+    "Durand",
+    "Moreau",
+    "Laurent",
+    "Simon",
+    "Michel",
+    "Garcia",
+    "Leroy",
+    "Roux",
+    "David",
+    "Bertrand",
+    "Morel",
+    "Fournier",
+    "Girard",
+    "Bonnet"
+  ],
+  "LOSS_REASONS": [
+    "Taux concurrent plus bas",
+    "Projet abandonné",
+    "Dossier refusé par la banque",
+    "Sans réponse"
+  ],
+  "MAIL_PROVIDERS": [
+    "courriel.example",
+    "messagerie.example",
+    "boite.example"
+  ],
+  "NEWSLETTERS": [
+    {
+      "title": "Rentrée : où en sont les taux ?",
+      "subject": "Rentrée : où en sont les taux, et faut-il attendre ?",
+      "preheader": "Trois repères simples avant de vous lancer.",
+      "brief": "Faire le point sur les taux de rentrée pour des primo-accédants, sans promettre un chiffre.",
+      "topics": [
+        "taux",
+        "primo-accédants",
+        "calendrier"
+      ],
+      "target": 0,
+      "sentDaysAgo": 6,
+      "stats": {
+        "opened": 0.52,
+        "clicked": 0.14,
+        "bounced": 1,
+        "unsubscribed": 1
+      },
+      "blocks": [
+        {
+          "type": "titre",
+          "payload": {
+            "text": "Où en sont les taux à la rentrée ?",
+            "level": 1,
+            "eyebrow": "Septembre"
+          }
+        },
+        {
+          "type": "texte",
+          "payload": {
+            "text": "Après un printemps agité, les barèmes se sont stabilisés. Ce qui compte pour votre projet, ce n'est pas le taux affiché, c'est le coût total sur la durée — et la marge de négociation qu'un dossier bien préparé vous donne."
+          }
+        },
+        {
+          "type": "chiffre_cle",
+          "payload": {
+            "value": "11 jours",
+            "label": "délai moyen d'accord de principe",
+            "caption": "Sur les dossiers accompagnés par le cabinet en 2025 (chiffre fictif de démonstration)."
+          }
+        },
+        {
+          "type": "fiches",
+          "payload": {
+            "cards": [
+              {
+                "title": "L'apport",
+                "text": "10 % couvrent en général les frais ; au-delà, chaque euro d'apport pèse sur le taux."
+              },
+              {
+                "title": "La durée",
+                "text": "Vingt ans reste la durée de référence ; vingt-cinq ans élargit l'accès, au prix d'un coût total plus élevé."
+              },
+              {
+                "title": "L'assurance",
+                "text": "Un tiers du coût d'un crédit peut venir de l'assurance : la délégation se négocie dès le départ."
+              }
+            ]
+          }
+        },
+        {
+          "type": "cta",
+          "payload": {
+            "title": "Un projet pour cet automne ?",
+            "text": "Trente minutes suffisent pour savoir où vous en êtes.",
+            "buttonLabel": "Prendre rendez-vous",
+            "url": "https://rendez-vous.example/claire-vasseur"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Investir à Nantes : ce qui change",
+      "subject": "Investir à Nantes en 2026 : ce qui change vraiment",
+      "preheader": "Rendement, financement à 110 %, assurance du second prêt.",
+      "brief": "Un point chiffré pour des investisseurs déjà propriétaires.",
+      "topics": [
+        "investissement locatif",
+        "Nantes",
+        "financement"
+      ],
+      "target": 1,
+      "sentDaysAgo": 16,
+      "stats": {
+        "opened": 0.47,
+        "clicked": 0.18,
+        "bounced": 0,
+        "unsubscribed": 0
+      },
+      "blocks": [
+        {
+          "type": "titre",
+          "payload": {
+            "text": "Investir à Nantes : ce qui change",
+            "level": 1,
+            "eyebrow": "Investisseurs"
+          }
+        },
+        {
+          "type": "texte",
+          "payload": {
+            "text": "Les loyers de l'agglomération progressent moins vite que les prix des petites surfaces : le rendement brut se joue désormais sur le financement. Deux leviers restent ouverts — la durée, et l'assurance du second prêt, souvent surévaluée."
+          }
+        },
+        {
+          "type": "chiffre_cle",
+          "payload": {
+            "value": "14",
+            "label": "banques partenaires consultées",
+            "caption": "Pour chaque dossier d'investissement (chiffre fictif de démonstration)."
+          }
+        },
+        {
+          "type": "separateur",
+          "payload": {}
+        },
+        {
+          "type": "cta",
+          "payload": {
+            "title": "Un second projet ?",
+            "text": "On regarde ensemble votre capacité d'emprunt réelle, prêt en cours compris.",
+            "buttonLabel": "Simuler mon prêt",
+            "url": "https://vasseur-courtage.example/simulateur"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Renégocier : le bon moment",
+      "subject": "Renégocier son crédit : est-ce le bon moment ?",
+      "preheader": "Un calcul simple pour le savoir en deux minutes.",
+      "brief": "Aider les clients signés à savoir s'il faut renégocier.",
+      "topics": [
+        "renégociation",
+        "assurance emprunteur"
+      ],
+      "target": 2,
+      "sentDaysAgo": 30,
+      "stats": {
+        "opened": 0.61,
+        "clicked": 0.22,
+        "bounced": 1,
+        "unsubscribed": 1
+      },
+      "blocks": [
+        {
+          "type": "titre",
+          "payload": {
+            "text": "Renégocier : le bon moment",
+            "level": 1,
+            "eyebrow": "Clients du cabinet"
+          }
+        },
+        {
+          "type": "texte",
+          "payload": {
+            "text": "Une renégociation vaut la peine quand l'écart de taux dépasse un point, que le capital restant dû est encore important et que la durée restante est longue. Sinon, c'est souvent l'assurance qu'il faut regarder : elle se change à tout moment."
+          }
+        },
+        {
+          "type": "fiches",
+          "payload": {
+            "cards": [
+              {
+                "title": "Écart de taux",
+                "text": "Au-delà d'un point, on calcule."
+              },
+              {
+                "title": "Capital restant",
+                "text": "Au-dessus de 100 000 €, l'économie devient visible."
+              }
+            ]
+          }
+        },
+        {
+          "type": "cta",
+          "payload": {
+            "title": "Vous hésitez ?",
+            "text": "Envoyez-nous votre tableau d'amortissement, on vous répond sous 48 h ouvrées.",
+            "buttonLabel": "Prendre rendez-vous",
+            "url": "https://rendez-vous.example/claire-vasseur"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Aides à l'achat 2026",
+      "subject": "Les aides à l'achat en 2026, sans le jargon",
+      "preheader": "Prêt à taux zéro, prêt action logement, aides locales.",
+      "brief": "Vulgariser les aides pour les primo-accédants.",
+      "topics": [
+        "aides",
+        "primo-accédants",
+        "PTZ"
+      ],
+      "target": 0,
+      "sentDaysAgo": 45,
+      "stats": {
+        "opened": 0.44,
+        "clicked": 0.11,
+        "bounced": 0,
+        "unsubscribed": 0
+      },
+      "blocks": [
+        {
+          "type": "titre",
+          "payload": {
+            "text": "Les aides à l'achat en 2026",
+            "level": 1,
+            "eyebrow": "Primo-accédants"
+          }
+        },
+        {
+          "type": "texte",
+          "payload": {
+            "text": "Le prêt à taux zéro reste la première aide à regarder : il finance une partie du projet sans intérêts, sous conditions de ressources et de zone. Le prêt action logement et les aides locales complètent souvent le plan de financement."
+          }
+        },
+        {
+          "type": "cta",
+          "payload": {
+            "title": "Êtes-vous éligible ?",
+            "text": "On vérifie en rendez-vous, pièces en main.",
+            "buttonLabel": "Prendre rendez-vous",
+            "url": "https://rendez-vous.example/claire-vasseur"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Octobre — assurance emprunteur (brouillon)",
+      "subject": "Assurance emprunteur : ce que la loi vous permet",
+      "preheader": "Changer d'assurance à tout moment, mode d'emploi.",
+      "brief": "Expliquer la résiliation à tout moment de l'assurance emprunteur.",
+      "topics": [
+        "assurance emprunteur"
+      ],
+      "target": 2,
+      "sentDaysAgo": null,
+      "stats": {
+        "opened": 0,
+        "clicked": 0,
+        "bounced": 0,
+        "unsubscribed": 0
+      },
+      "blocks": [
+        {
+          "type": "titre",
+          "payload": {
+            "text": "Assurance emprunteur : ce que la loi vous permet",
+            "level": 1,
+            "eyebrow": "Octobre"
+          }
+        },
+        {
+          "type": "texte",
+          "payload": {
+            "text": "Depuis 2022, l'assurance d'un crédit immobilier se change à tout moment, sans frais. Le gain moyen constaté sur les dossiers du cabinet : plusieurs milliers d'euros sur la durée du prêt."
+          }
+        }
+      ]
+    }
+  ],
+  "ORGANIZATION": {
+    "name": "Vasseur Courtage",
+    "tagline": "Le crédit, sans détour.",
+    "toneOfVoice": "Clair, rassurant, concret. On explique, on ne vend pas ; jamais de jargon bancaire sans le traduire.",
+    "editorialGuidelines": "Toujours ancrer une explication dans un projet réel (un premier achat, un investissement locatif, une renégociation). Pas de promesse de taux. Inviter à prendre rendez-vous plutôt qu'à décider seul.",
+    "primaryColor": "#0f766e",
+    "fontFamily": "Inter",
+    "senderName": "Claire Vasseur — Vasseur Courtage",
+    "senderEmail": "claire@vasseur-courtage.example",
+    "country": "FR",
+    "postalAddress": "12 rue de Strasbourg, 44000 Nantes",
+    "legalMention": "SAS Vasseur Courtage (cabinet fictif de démonstration) — ORIAS n° 26 001 234 — RCS Nantes 900 123 456",
+    "privacyPolicyUrl": "https://vasseur-courtage.example/confidentialite",
+    "businessPack": "courtier_credit",
+    "allowedDomains": [
+      "vasseur-courtage.example"
+    ]
+  },
+  "ORIGINS": [
+    "Site web",
+    "Recommandation",
+    "Salon de l'immobilier",
+    "Agence Horizon Immo"
+  ],
+  "PARTNERS": [
+    {
+      "name": "Sophie Guérin",
+      "company": "Horizon Immo",
+      "profession": "Agent immobilier",
+      "email": "sophie.guerin@horizon-immo.example",
+      "phone": "02 40 11 22 33"
+    },
+    {
+      "name": "Mehdi Bouaziz",
+      "company": "Loire Habitat Conseil",
+      "profession": "Agent immobilier",
+      "email": "m.bouaziz@loire-habitat.example",
+      "phone": "02 40 44 55 66"
+    },
+    {
+      "name": "Maître Anne Le Goff",
+      "company": "Office notarial Le Goff & Perrin",
+      "profession": "Notaire",
+      "email": "a.legoff@notaires-legoff.example",
+      "phone": "02 40 77 88 99"
+    },
+    {
+      "name": "Julien Marchal",
+      "company": "Marchal Patrimoine",
+      "profession": "Conseiller en gestion de patrimoine",
+      "email": "julien@marchal-patrimoine.example",
+      "phone": "06 12 34 56 78"
+    },
+    {
+      "name": "Isabelle Roux",
+      "company": "Cabinet Roux Expertise",
+      "profession": "Expert-comptable",
+      "email": "i.roux@roux-expertise.example",
+      "phone": "02 51 00 11 22"
+    },
+    {
+      "name": "Damien Corre",
+      "company": "Maisons Atlantiques",
+      "profession": "Constructeur",
+      "email": "d.corre@maisons-atlantiques.example",
+      "phone": "02 51 33 44 55"
+    }
+  ],
+  "PEOPLE": {
+    "claire": {
+      "name": "Claire Vasseur",
+      "email": "claire@vasseur-courtage.example",
+      "bookingUrl": "https://rendez-vous.example/claire-vasseur"
+    },
+    "thomas": {
+      "name": "Thomas Renard",
+      "email": "thomas@vasseur-courtage.example",
+      "bookingUrl": "https://rendez-vous.example/thomas-renard"
+    }
+  },
+  "RULES": [
+    {
+      "name": "Sans rendez-vous après 7 jours → tâche",
+      "trigger": "no_appointment",
+      "thresholdDays": 7,
+      "action": "create_task",
+      "conditions": {
+        "tags": [
+          0
+        ]
+      }
+    },
+    {
+      "name": "Newsletter non ouverte après 5 jours → brouillon de relance",
+      "trigger": "email_not_opened",
+      "thresholdDays": 5,
+      "action": "prepare_draft",
+      "conditions": {},
+      "templateSubject": "Un point sur votre projet, {prenom} ?",
+      "templateBody": "Bonjour {prenom},\n\nJe vous ai écrit la semaine dernière au sujet des taux de rentrée. Si votre projet avance, je peux vous préparer une simulation à jour en quelques minutes.\n\nVous pouvez réserver un créneau ici : {lien_rdv}\n\nBien à vous,\n{expediteur}\n{organisation}"
+    }
+  ],
+  "SHARES": [
+    {
+      "deal": 5,
+      "partner": 0,
+      "status": "pending",
+      "ageDays": 2,
+      "expiresInDays": 14,
+      "commission": {
+        "basis": "percentage",
+        "rate": 0.6
+      },
+      "commissionState": "prevue",
+      "viewed": true
+    },
+    {
+      "deal": 6,
+      "partner": 1,
+      "status": "pending",
+      "ageDays": 3,
+      "expiresInDays": 14,
+      "commission": {
+        "basis": "percentage",
+        "rate": 0.5
+      },
+      "commissionState": "prevue"
+    },
+    {
+      "deal": 8,
+      "partner": 3,
+      "status": "pending",
+      "ageDays": 9,
+      "expiresInDays": 30,
+      "commission": {
+        "basis": "fixed",
+        "amount": 600
+      },
+      "commissionState": "prevue",
+      "viewed": true
+    },
+    {
+      "deal": 9,
+      "partner": 0,
+      "status": "pending",
+      "ageDays": 13,
+      "expiresInDays": 14,
+      "commission": {
+        "basis": "percentage",
+        "rate": 0.6
+      },
+      "commissionState": "prevue",
+      "viewed": true
+    },
+    {
+      "deal": 11,
+      "partner": 4,
+      "status": "accepted",
+      "ageDays": 20,
+      "expiresInDays": 30,
+      "commission": {
+        "basis": "fixed",
+        "amount": 500
+      },
+      "commissionState": "confirmee",
+      "confirmedDaysAgo": 12,
+      "viewed": true
+    },
+    {
+      "deal": 12,
+      "partner": 0,
+      "status": "accepted",
+      "ageDays": 24,
+      "expiresInDays": 30,
+      "commission": {
+        "basis": "percentage",
+        "rate": 0.7
+      },
+      "commissionState": "prevue",
+      "viewed": true
+    },
+    {
+      "deal": 14,
+      "partner": 3,
+      "status": "accepted",
+      "ageDays": 30,
+      "expiresInDays": null,
+      "commission": {
+        "basis": "percentage",
+        "rate": 0.5
+      },
+      "commissionState": "confirmee",
+      "confirmedDaysAgo": 22,
+      "viewed": true
+    },
+    {
+      "deal": 17,
+      "partner": 1,
+      "status": "accepted",
+      "ageDays": 55,
+      "expiresInDays": 30,
+      "commission": {
+        "basis": "percentage",
+        "rate": 0.6
+      },
+      "commissionState": "reglee",
+      "confirmedDaysAgo": 40,
+      "settledDaysAgo": 15,
+      "viewed": true
+    },
+    {
+      "deal": 18,
+      "partner": 5,
+      "status": "accepted",
+      "ageDays": 70,
+      "expiresInDays": 30,
+      "commission": {
+        "basis": "fixed",
+        "amount": 900
+      },
+      "commissionState": "reglee",
+      "confirmedDaysAgo": 50,
+      "settledDaysAgo": 20,
+      "viewed": true
+    },
+    {
+      "deal": 21,
+      "partner": 0,
+      "status": "accepted",
+      "ageDays": 130,
+      "expiresInDays": 30,
+      "commission": {
+        "basis": "percentage",
+        "rate": 0.6
+      },
+      "commissionState": "reglee",
+      "confirmedDaysAgo": 100,
+      "settledDaysAgo": 80,
+      "viewed": true
+    },
+    {
+      "deal": 23,
+      "partner": 2,
+      "status": "declined",
+      "ageDays": 88,
+      "expiresInDays": 30,
+      "commission": {
+        "basis": "fixed",
+        "amount": 400
+      },
+      "commissionState": "prevue",
+      "viewed": true
+    },
+    {
+      "deal": 10,
+      "partner": 1,
+      "status": "revoked",
+      "ageDays": 26,
+      "expiresInDays": 14,
+      "commission": {
+        "basis": "percentage",
+        "rate": 0.5
+      },
+      "commissionState": "prevue"
+    },
+    {
+      "deal": 10,
+      "partner": 1,
+      "status": "pending",
+      "ageDays": 1,
+      "expiresInDays": 14,
+      "commission": {
+        "basis": "percentage",
+        "rate": 0.5
+      },
+      "commissionState": "prevue",
+      "reissuedFrom": 11
+    }
+  ],
+  "SIGNATORY": {
+    "name": "Claire Vasseur",
+    "jobTitle": "Courtière fondatrice"
+  },
+  "TAGS": [
+    {
+      "label": "Primo-accédant",
+      "color": "#2563eb"
+    },
+    {
+      "label": "Investisseur",
+      "color": "#7c3aed"
+    },
+    {
+      "label": "Renégociation",
+      "color": "#d97706"
+    },
+    {
+      "label": "Professionnel",
+      "color": "#0f766e"
+    },
+    {
+      "label": "Client signé",
+      "color": "#16a34a"
+    }
+  ],
+  "TARGETS": [
+    {
+      "slug": "primo-accedants",
+      "label": "Primo-accédants",
+      "persona": "Un premier achat, entre 28 et 40 ans, qui découvre le crédit et a peur de mal faire.",
+      "audienceLabel": "B2C",
+      "tag": 0,
+      "concerns": "Combien puis-je emprunter ? Quel apport ? Comment se passent les étapes ?",
+      "knowledgeLevel": "Débutant : ne connaît ni le TAEG ni l'assurance emprunteur.",
+      "editorialVoice": "Pédagogue, rassurante, un exemple concret par notion.",
+      "interests": "Aides à l'achat, frais de notaire, calendrier d'un achat.",
+      "avoid": "Jargon bancaire sans traduction, promesses de taux.",
+      "accentColor": "#2563eb"
+    },
+    {
+      "slug": "investisseurs",
+      "label": "Investisseurs",
+      "persona": "Déjà propriétaire, veut un locatif ; raisonne en rendement et en fiscalité.",
+      "audienceLabel": "B2C",
+      "tag": 1,
+      "concerns": "Effet de levier, fiscalité, vacance locative, financement à 110 %.",
+      "knowledgeLevel": "Intermédiaire : connaît les grands principes, veut des cas chiffrés.",
+      "editorialVoice": "Directe, chiffrée, sans emphase.",
+      "interests": "Marché locatif nantais, SCI, assurance emprunteur pour un second prêt.",
+      "avoid": "Conseil fiscal catégorique.",
+      "accentColor": "#7c3aed"
+    },
+    {
+      "slug": "clients-signes",
+      "label": "Clients signés",
+      "persona": "A déjà signé avec le cabinet ; on garde le lien pour les projets suivants et les recommandations.",
+      "audienceLabel": "B2C",
+      "tag": 4,
+      "concerns": "Renégocier au bon moment, assurance, prochain projet.",
+      "knowledgeLevel": "Déjà accompagné : connaît le vocabulaire.",
+      "editorialVoice": "Chaleureuse, de pair à pair, sans redire les bases.",
+      "interests": "Actualité des taux, parrainage, événements du cabinet.",
+      "avoid": "Ton commercial.",
+      "accentColor": "#16a34a"
+    }
+  ],
+  "TASKS": [
+    {
+      "title": "Rappeler pour les justificatifs de revenus",
+      "due": 0,
+      "priority": "high",
+      "contact": 0,
+      "deal": 0,
+      "owner": "claire"
+    },
+    {
+      "title": "Envoyer la simulation à jour",
+      "due": 0,
+      "contact": 1,
+      "deal": 1,
+      "owner": "thomas"
+    },
+    {
+      "title": "Relancer Horizon Immo sur le partage",
+      "due": 0,
+      "deal": 9,
+      "owner": "claire",
+      "priority": "high"
+    },
+    {
+      "title": "Préparer le dossier banque — pièces manquantes",
+      "due": -2,
+      "contact": 12,
+      "deal": 12,
+      "owner": "claire",
+      "priority": "high",
+      "notes": "Il manque l'avis d'imposition et le compromis signé."
+    },
+    {
+      "title": "Point téléphonique renégociation",
+      "due": -1,
+      "contact": 2,
+      "deal": 2,
+      "owner": "claire"
+    },
+    {
+      "title": "Comparer trois délégations d'assurance",
+      "due": 1,
+      "contact": 3,
+      "deal": 3,
+      "owner": "thomas"
+    },
+    {
+      "title": "Rendez-vous banque — accompagner le client",
+      "due": 2,
+      "contact": 10,
+      "deal": 12,
+      "owner": "claire"
+    },
+    {
+      "title": "Revue hebdomadaire du pipeline",
+      "due": 3,
+      "owner": "claire",
+      "recurWeekly": true
+    },
+    {
+      "title": "Demander les bilans 2024-2025",
+      "due": 4,
+      "contact": 41,
+      "deal": 13,
+      "owner": "claire"
+    },
+    {
+      "title": "Relancer le notaire pour l'acte",
+      "due": 5,
+      "contact": 13,
+      "deal": 17,
+      "owner": "claire",
+      "priority": "low"
+    },
+    {
+      "title": "Vérifier l'offre de prêt reçue",
+      "due": 6,
+      "contact": 14,
+      "deal": 18,
+      "owner": "thomas"
+    },
+    {
+      "title": "Appeler la SCI pour le plan de financement",
+      "due": 8,
+      "contact": 43,
+      "deal": 14,
+      "owner": "thomas"
+    },
+    {
+      "title": "Préparer la newsletter d'octobre",
+      "due": 12,
+      "owner": "claire",
+      "priority": "low"
+    },
+    {
+      "title": "Facturer la commission Maisons Atlantiques",
+      "due": 14,
+      "deal": 18,
+      "owner": "claire",
+      "priority": "low"
+    },
+    {
+      "title": "Premier rendez-vous découverte",
+      "due": -20,
+      "done": true,
+      "contact": 5,
+      "deal": 5,
+      "owner": "claire"
+    },
+    {
+      "title": "Envoyer le mandat de recherche",
+      "due": -18,
+      "done": true,
+      "contact": 6,
+      "deal": 6,
+      "owner": "thomas"
+    },
+    {
+      "title": "Collecter les pièces du dossier",
+      "due": -15,
+      "done": true,
+      "contact": 8,
+      "deal": 9,
+      "owner": "claire"
+    },
+    {
+      "title": "Comparer les offres de trois banques",
+      "due": -12,
+      "done": true,
+      "contact": 11,
+      "deal": 15,
+      "owner": "claire"
+    },
+    {
+      "title": "Appeler après réception de l'accord",
+      "due": -9,
+      "done": true,
+      "contact": 13,
+      "deal": 17,
+      "owner": "claire"
+    },
+    {
+      "title": "Transmettre le tableau d'amortissement",
+      "due": -7,
+      "done": true,
+      "contact": 15,
+      "deal": 19,
+      "owner": "claire"
+    },
+    {
+      "title": "Relancer le client silencieux",
+      "due": -5,
+      "done": true,
+      "contact": 19,
+      "deal": 23,
+      "owner": "claire"
+    },
+    {
+      "title": "Point mensuel avec Marchal Patrimoine",
+      "due": -3,
+      "done": true,
+      "owner": "thomas"
+    }
+  ],
+  "WATCH_ITEMS": [
+    {
+      "title": "Taux immobiliers : les barèmes de septembre se stabilisent",
+      "url": "https://actu-credit.example/2026/09/baremes-septembre",
+      "publisher": "Actu Crédit",
+      "daysAgo": 2,
+      "source": 0,
+      "topic": 0,
+      "summary": "Les banques ont stabilisé leurs barèmes de rentrée ; les meilleurs profils obtiennent encore des décotes, la durée de vingt ans reste la référence.",
+      "themes": [
+        "taux",
+        "rentrée"
+      ],
+      "angle": "Un repère de rentrée pour les primo-accédants."
+    },
+    {
+      "title": "Apport personnel : ce que demandent vraiment les banques",
+      "url": "https://courtier-hebdo.example/apport-2026",
+      "publisher": "Le Courtier Hebdo",
+      "daysAgo": 4,
+      "source": 1,
+      "topic": 0,
+      "summary": "Dix pour cent restent la norme, mais l'apport pèse davantage sur le taux que sur l'accord lui-même.",
+      "themes": [
+        "apport",
+        "négociation"
+      ],
+      "angle": "Expliquer l'apport sans décourager."
+    },
+    {
+      "title": "Assurance emprunteur : la résiliation à tout moment, quatre ans après",
+      "url": "https://assurance-magazine.example/lemoine-bilan",
+      "publisher": "Assurance Magazine",
+      "daysAgo": 3,
+      "source": 2,
+      "topic": 1,
+      "summary": "Le changement d'assurance à tout moment est entré dans les usages ; l'économie moyenne reste significative sur la durée d'un prêt.",
+      "themes": [
+        "assurance",
+        "loi"
+      ],
+      "angle": "Un sujet de newsletter pour les clients signés."
+    },
+    {
+      "title": "Nantes : les prix des petites surfaces repartent",
+      "url": "https://ouest-immobilier.example/nantes-petites-surfaces",
+      "publisher": "Ouest Immobilier",
+      "daysAgo": 5,
+      "source": 3,
+      "topic": 2,
+      "summary": "Les studios et T2 du centre progressent à nouveau, tirés par la demande locative étudiante.",
+      "themes": [
+        "Nantes",
+        "locatif"
+      ],
+      "angle": "Utile pour la cible investisseurs."
+    },
+    {
+      "title": "Loyers : l'agglomération nantaise ralentit",
+      "url": "https://observatoire-44.example/loyers-2026",
+      "publisher": "Observatoire Loire-Atlantique",
+      "daysAgo": 7,
+      "source": 4,
+      "topic": 2,
+      "summary": "Les loyers progressent moins vite que les prix ; le rendement brut se resserre dans le centre.",
+      "themes": [
+        "loyers",
+        "rendement"
+      ],
+      "angle": "Nuancer l'enthousiasme locatif."
+    },
+    {
+      "title": "Prêt à taux zéro : les conditions 2026 en clair",
+      "url": "https://actu-credit.example/2026/ptz-conditions",
+      "publisher": "Actu Crédit",
+      "daysAgo": 9,
+      "source": 0,
+      "topic": 0,
+      "summary": "Zones, plafonds de ressources et quotités : ce qui change pour les primo-accédants cette année.",
+      "themes": [
+        "PTZ",
+        "aides"
+      ],
+      "angle": "Matière pour la newsletter des aides."
+    },
+    {
+      "title": "Délégation d'assurance : comment comparer sans se tromper",
+      "url": "https://assurance-magazine.example/comparer-delegation",
+      "publisher": "Assurance Magazine",
+      "daysAgo": 12,
+      "source": 2,
+      "topic": 1,
+      "summary": "Garanties équivalentes, quotités, exclusions : la grille de lecture pour comparer deux contrats.",
+      "themes": [
+        "assurance",
+        "comparaison"
+      ],
+      "angle": "Fiche pratique."
+    },
+    {
+      "title": "Nos taux de septembre : une offre spéciale primo-accédants",
+      "url": "https://pret-facile-atlantique.example/blog/offre-septembre",
+      "publisher": "Prêt Facile Atlantique",
+      "daysAgo": 3,
+      "source": null,
+      "competitor": 0,
+      "topic": null,
+      "summary": "Le concurrent met en avant une offre de rentrée pour les premiers achats, avec frais de courtage réduits.",
+      "themes": [
+        "concurrence",
+        "primo-accédants"
+      ],
+      "angle": "Ils ciblent le même public que notre newsletter de rentrée."
+    },
+    {
+      "title": "Investir à Nantes : notre guide 2026",
+      "url": "https://courtage-ouest.example/actualites/guide-investir-nantes",
+      "publisher": "Courtage Ouest",
+      "daysAgo": 8,
+      "source": null,
+      "competitor": 1,
+      "topic": null,
+      "summary": "Un guide long format sur l'investissement locatif nantais, orienté fiscalité.",
+      "themes": [
+        "concurrence",
+        "investissement"
+      ],
+      "angle": "Un sujet que nous n'avons traité qu'en partie."
+    },
+    {
+      "title": "Reprise d'entreprise : financer un fonds de commerce",
+      "url": "https://courtier-hebdo.example/financer-fonds-commerce",
+      "publisher": "Le Courtier Hebdo",
+      "daysAgo": 15,
+      "source": 1,
+      "topic": 0,
+      "summary": "Apport, garanties et durée : les spécificités d'un prêt professionnel pour une reprise.",
+      "themes": [
+        "professionnel",
+        "reprise"
+      ],
+      "angle": "Pour la cible professionnelle, encore sans newsletter."
+    }
+  ],
+  "WATCH_SOURCES": [
+    {
+      "label": "Actu Crédit",
+      "siteUrl": "https://actu-credit.example",
+      "feedUrl": "https://actu-credit.example/flux.xml",
+      "topic": 0
+    },
+    {
+      "label": "Le Courtier Hebdo",
+      "siteUrl": "https://courtier-hebdo.example",
+      "feedUrl": "https://courtier-hebdo.example/rss",
+      "topic": 0
+    },
+    {
+      "label": "Assurance Magazine",
+      "siteUrl": "https://assurance-magazine.example",
+      "feedUrl": "https://assurance-magazine.example/feed",
+      "topic": 1
+    },
+    {
+      "label": "Ouest Immobilier",
+      "siteUrl": "https://ouest-immobilier.example",
+      "feedUrl": "https://ouest-immobilier.example/rss.xml",
+      "topic": 2
+    },
+    {
+      "label": "Observatoire Loire-Atlantique",
+      "siteUrl": "https://observatoire-44.example",
+      "feedUrl": "https://observatoire-44.example/flux",
+      "topic": 2
+    }
+  ],
+  "WATCH_TOPICS": [
+    {
+      "label": "Taux immobiliers",
+      "searchTerms": [
+        "taux crédit immobilier",
+        "barème banques septembre"
+      ],
+      "position": 0
+    },
+    {
+      "label": "Assurance emprunteur",
+      "searchTerms": [
+        "assurance emprunteur résiliation",
+        "loi Lemoine"
+      ],
+      "position": 1
+    },
+    {
+      "label": "Marché nantais",
+      "searchTerms": [
+        "immobilier Nantes prix",
+        "marché locatif Nantes"
+      ],
+      "position": 2
+    }
+  ],
+  "TEXTS": {
+    "apiKeyLabel": "Simulateur du site",
+    "leadProject": "Achat résidence principale",
+    "termsPercentage": "Commission de {rate} % du montant financé, versée à la signature.",
+    "termsFixed": "Forfait de {amount} € versé à la signature.",
+    "shareMessage": "Bonjour {firstName}, je vous propose de suivre ce dossier ensemble : {title}.",
+    "shareAccepted": "D'accord pour suivre ce dossier ensemble.",
+    "shareDeclined": "Pas disponible sur cette période, désolée.",
+    "commissionConfirmed": "Commission confirmée.",
+    "commissionSettled": "Commission réglée.",
+    "partnerComment": "Le compromis est signé, la banque a le dossier complet.",
+    "audienceSummary": "Étiquette : {tag}",
+    "dealDescription": "Financement : {amount} € — {type}."
+  }
+}

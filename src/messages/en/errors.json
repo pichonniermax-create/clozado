@@ -171,5 +171,9 @@
   "une_pause_d_envoi_est_active": "A sending pause is active (provider quota): the wave will go out once it lifts.",
   "une_recurrence_sans_echeance_ne_veut_rien_3108": "A recurrence without a due date means nothing — set a due date first.",
   "utilisateur_introuvable": "User not found.",
-  "variables_inconnues_dans_le_gabarit": "The template contains forbidden braces: {tokens}. Allowed variables: '{prenom}' '{nom}' '{nom_complet}' '{societe}' '{organisation}' '{expediteur}' '{lien_rdv}'."
+  "variables_inconnues_dans_le_gabarit": "The template contains forbidden braces: {tokens}. Allowed variables: '{prenom}' '{nom}' '{nom_complet}' '{societe}' '{organisation}' '{expediteur}' '{lien_rdv}'.",
+  "demo": {
+    "deja_creee": "The demo organisation already exists: nothing is replaced — use the reset instead.",
+    "statut_introuvable": "The deal stage “{slug}” cannot be found in the demo organisation."
+  }
 }

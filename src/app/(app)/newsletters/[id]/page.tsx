@@ -107,6 +107,7 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
         sender={sender}
         audience={currentTarget ? { total: counts.get(currentTarget.id) ?? 0, sendable } : null}
         footerMissing={missingFooterFacts(org).length > 0}
+        simulated={org.isDemo}
         sentToday={sentToday}
         phase={phase}
         error={typeof sendError === "string" ? sendError : undefined}

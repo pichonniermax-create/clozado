@@ -113,6 +113,7 @@ export default async function RulesPage({ searchParams }: { searchParams: Promis
               ))}
               {drafts.length > 20 && <li className="text-xs text-muted-foreground">{t("wave.et_n_autres", { n: drafts.length - 20 })}</li>}
             </ul>
+            {org.isDemo && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{t("wave.demo_envois_simules")}</p>}
             {!org.autoSendEnabled && (
               <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{t("wave.interrupteur_coupe_rien_ne_partira")}</p>
             )}

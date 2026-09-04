@@ -179,6 +179,8 @@ function escapeHtml(input: string): string {
 async function runNotifyOwner(context: ActionContext, contact: MatchedContact): Promise<ActionResult> {
   const owner = ownerOf(context, contact);
   if (!owner) return { outcome: "skipped", skipReason: "no_owner" };
+  // LA DÉMO (docs/module-demo.md §1.2) : la notification est « faite » sans qu'aucun email ne parte.
+  if (context.org.isDemo) return { outcome: "done" };
   const t = await translatorFor(toAppLocale(owner.locale ?? context.org.defaultLocale), "rules.notifications");
   const subject = t("subject", { rule: context.rule.name, contact: contact.name });
   const intro = t("body", { rule: context.rule.name, contact: contact.name, organization: context.org.name });

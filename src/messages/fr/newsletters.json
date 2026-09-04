@@ -247,7 +247,8 @@
     "test_explication": "Vers ton adresse de connexion, avec le rendu réel et le pied de page réel, marqué comme test.",
     "test_ligne": "{when} · {to} · {status}",
     "teste_d_abord_puis_envoie": "Envoie-toi d’abord un test, puis envoie pour de vrai : l’audience est figée à cet instant, les emails partent par lots.",
-    "tests_envoyes": "Tests envoyés"
+    "tests_envoyes": "Tests envoyés",
+    "simulation_demo": "Démo : l’envoi est simulé — aucun email n’est parti, aucun ne partira depuis cette organisation."
   },
   "unitFrame": {
     "deplacer_ce_bloc": "Déplacer ce bloc",

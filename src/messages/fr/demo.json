@@ -1,0 +1,39 @@
+{
+  "manager": {
+    "titre": "Démo",
+    "description": "L’organisation de démonstration : un cabinet fictif, des données inventées, aucun email ne part (blocage au transport), les crons l’ignorent.",
+    "aucune_demo": "Aucune organisation de démo pour l’instant.",
+    "creer": "Créer l’organisation de démo",
+    "creation_note": "Une vingtaine de secondes : Vasseur Courtage, un cabinet nantais fictif, et sept mois d’histoire.",
+    "creee": "L’organisation de démo est créée — travaille dedans depuis la liste ou le bandeau.",
+    "badge": "Démo",
+    "publique_ouverte": "Démo publique ouverte : n’importe qui peut la visiter à /demo, en lecture seule.",
+    "publique_fermee": "Démo publique fermée : /demo répond « introuvable ».",
+    "ouvrir": "Ouvrir la démo publique",
+    "fermer": "Fermer la démo publique",
+    "visiter": "Visiter la démo",
+    "ouverte_info": "La démo publique est ouverte.",
+    "fermee_info": "La démo publique est fermée.",
+    "derniere_operation": "Dernière opération : {kind} le {when}, {status}.",
+    "kind": {
+      "seed": "création",
+      "reset": "réinitialisation"
+    },
+    "status": {
+      "running": "en cours",
+      "done": "terminée",
+      "failed": "échouée"
+    },
+    "reinitialiser": "Réinitialiser la démo",
+    "reinitialisation_en_attente": "La réinitialisation attend l’accord sur son périmètre exact (voir la doc du chantier, §1.7) : rien ne supprime encore de lignes."
+  },
+  "banner": {
+    "titre": "Démo publique",
+    "texte": "Cabinet fictif, données inventées, lecture seule : rien de ce que tu fais ici n’est enregistré, aucun email ne part.",
+    "texte_avec_persona": "Tu visites à la place de {name} — cabinet fictif, données inventées, lecture seule : rien n’est enregistré, aucun email ne part.",
+    "visite_guidee": "Visite guidée",
+    "creer_mon_compte": "Créer mon compte",
+    "quitter": "Quitter la démo",
+    "lecture_seule_notice": "Dans la démo publique, ce geste n’est pas disponible : tout est en lecture seule, rien ne s’enregistre. Crée ton espace pour l’essayer pour de vrai."
+  }
+}

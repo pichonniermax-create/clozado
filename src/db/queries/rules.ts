@@ -300,8 +300,11 @@ export async function touchRuleLastRun(ruleId: string): Promise<void> {
 
 /** Les organisations qui ont au moins une règle active — celles que le passage quotidien évalue. */
 export async function listOrganizationsWithActiveRules(): Promise<string[]> {
+  // L'organisation de démo n'est jamais évaluée par le cron (docs/module-demo.md §1.3).
   const rows = await db.execute(sql`
-    select distinct organization_id as id from ${rules} where enabled = true and archived_at is null`);
+    select distinct r.organization_id as id from ${rules} r
+    join organizations o on o.id = r.organization_id and o.is_demo = false
+    where r.enabled = true and r.archived_at is null`);
   return (rows.rows as { id: string }[]).map((r) => r.id);
 }
 

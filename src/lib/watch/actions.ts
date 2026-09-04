@@ -200,6 +200,7 @@ async function refreshAndReturnTo(page: string) {
       const result = await scheduleWatchRefresh(user.organizationId, "manual");
       if (result.status === "started") destination = withError(page, t("collecte_lancee_les_nouveautes_apparaissent_au_b885"), "info");
       else if (result.status === "running") destination = withError(page, t("une_collecte_est_deja_en_cours"), "info");
+      else if (result.status === "demo") destination = withError(page, t("demo_la_collecte_est_desactivee_les_elements"), "info");
       else
         destination = withError(
           page,

@@ -171,5 +171,9 @@
   "une_pause_d_envoi_est_active": "Une pause d’envoi est active (quota du fournisseur) : la vague partira quand elle sera levée.",
   "une_recurrence_sans_echeance_ne_veut_rien_3108": "Une récurrence sans échéance ne veut rien dire — pose d’abord une échéance.",
   "utilisateur_introuvable": "Utilisateur introuvable.",
-  "variables_inconnues_dans_le_gabarit": "Le gabarit contient des accolades interdites : {tokens}. Variables permises : '{prenom}' '{nom}' '{nom_complet}' '{societe}' '{organisation}' '{expediteur}' '{lien_rdv}'."
+  "variables_inconnues_dans_le_gabarit": "Le gabarit contient des accolades interdites : {tokens}. Variables permises : '{prenom}' '{nom}' '{nom_complet}' '{societe}' '{organisation}' '{expediteur}' '{lien_rdv}'.",
+  "demo": {
+    "deja_creee": "L’organisation de démo existe déjà : rien n’est remplacé — passe par la réinitialisation.",
+    "statut_introuvable": "Le statut d’affaire « {slug} » est introuvable dans l’organisation de démo."
+  }
 }

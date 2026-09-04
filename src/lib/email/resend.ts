@@ -1,3 +1,4 @@
+import { isReservedExampleAddress } from "@/lib/demo/constants";
 import { resendApiKey } from "./config";
 
 /**
@@ -96,7 +97,20 @@ function toPayload(email: OutgoingEmail) {
 }
 
 /** Un email, avec sa clé d'idempotence : le même appel rejoué ne l'envoie pas deux fois (24 h). */
+/**
+ * La ceinture sous le blocage par organisation (docs/module-demo.md §1.2) :
+ * un destinataire sur un domaine réservé aux exemples (RFC 2606/6761 —
+ * celui du jeu de données de démo) n'est jamais transmis au fournisseur,
+ * quel que soit le chemin d'envoi. Refus = un lot « rejeté » pour
+ * `deliverMessages`, le message passe en échec avec ce motif.
+ */
+function assertDeliverable(emails: OutgoingEmail[]): void {
+  const reserved = emails.flatMap((e) => e.to).find((to) => isReservedExampleAddress(to));
+  if (reserved) throw new ResendError(400, "reserved_recipient", `resend: reserved_recipient ${reserved}`, null);
+}
+
 export async function sendEmail(email: OutgoingEmail, idempotencyKey: string): Promise<{ id: string }> {
+  assertDeliverable([email]);
   return call<{ id: string }>("POST", "/emails", toPayload(email), { "Idempotency-Key": idempotencyKey });
 }
 
@@ -107,6 +121,7 @@ export async function sendBatch(emails: OutgoingEmail[], idempotencyKey: string)
   if (emails.length === 0) return [];
   // eslint-disable-next-line local/no-visible-text -- invariant de programmation, jamais affiché à une personne
   if (emails.length > BATCH_MAX) throw new Error(`resend: un lot ne dépasse pas ${BATCH_MAX} emails`);
+  assertDeliverable(emails);
   const result = await call<{ data: { id: string }[] }>("POST", "/emails/batch", emails.map(toPayload), { "Idempotency-Key": idempotencyKey });
   return result.data;
 }

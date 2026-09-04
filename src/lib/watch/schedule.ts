@@ -1,5 +1,6 @@
 import { after } from "next/server";
 import { getRunningRun, startWatchRun, type StartRunResult } from "@/db/queries/watch";
+import { isDemoOrganization } from "@/lib/demo/guard";
 import { executeWatchRun } from "./refresh";
 
 /**
@@ -19,6 +20,7 @@ import { executeWatchRun } from "./refresh";
  * première, qui lit toutes les sources dues.
  */
 export async function scheduleWatchRefresh(organizationId: string, trigger: "visit" | "manual", opts: { queue?: boolean } = {}): Promise<StartRunResult> {
+  if (await isDemoOrganization(organizationId)) return { status: "demo" };
   const start = await startWatchRun(organizationId, trigger);
   if (start.status === "started") {
     const run = start.run;

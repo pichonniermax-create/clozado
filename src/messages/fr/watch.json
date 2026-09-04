@@ -14,7 +14,8 @@
     "source_ajoutee_sans_flux_elle_sera_c04a": "Source ajoutée sans flux : elle sera cherchée par son domaine à chaque collecte, à condition d’être rattachée à un sujet.",
     "tout_ce_que_propose_ton_metier_1e31": "Tout ce que propose ton métier est déjà suivi — rien à créer.",
     "une_collecte_est_deja_en_cours": "Une collecte est déjà en cours.",
-    "une_collecte_vient_d_avoir_lieu_1eeb": "Une collecte vient d’avoir lieu : la prochaine à la main est possible à partir de {formatDateTime} ({watchManualCooldownMinutes} minutes entre deux)."
+    "une_collecte_vient_d_avoir_lieu_1eeb": "Une collecte vient d’avoir lieu : la prochaine à la main est possible à partir de {formatDateTime} ({watchManualCooldownMinutes} minutes entre deux).",
+    "demo_la_collecte_est_desactivee_les_elements": "Démo : la collecte est désactivée, les éléments de veille sont fictifs et stables."
   },
   "angles": {
     "guide": "guide pratique",

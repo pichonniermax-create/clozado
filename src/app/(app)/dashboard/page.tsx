@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { ArrowRight, Banknote, BellRing, BookUser, Check, ListTodo, PauseCircle, Plus, Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListCard, ListRow, ListRowLink } from "@/components/ui/list-card";
@@ -20,6 +21,9 @@ import { getOwnOrganization, getVisibleOrganizations } from "@/db/queries/organi
 import { listPartners } from "@/db/queries/partners";
 import { generateAutoTasks, getTasksDueSummary } from "@/db/queries/tasks";
 import { setActiveOrganizationAction } from "@/lib/admin/actions";
+import { createDemoAction, setDemoPublicAction } from "@/lib/demo/actions";
+import { listDemoJournal } from "@/lib/demo/journal";
+import { getDemoOrganization } from "@/lib/demo/seed";
 import { completeTaskAction } from "@/lib/tasks/actions";
 import { getFormats } from "@/i18n/formats";
 import { DASHBOARD_PERIOD, hasAnyDeal, openDeals, parseMetricFilters, PERIOD_PRESETS } from "@/lib/metrics";
@@ -42,7 +46,7 @@ const JOURNAL_PREVIEW = 8;
  * de l'URL (`periode`, 90 jours sans paramètre) — jamais une liste figée
  * ici.
  */
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ periode?: string }> }) {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ periode?: string; erreur?: string; info?: string }> }) {
   const t = await getTranslations("dashboard.page");
   const tt = await getTranslations("tasks");
   const fmt = await getFormats();
@@ -58,18 +62,37 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       await setActiveOrganizationAction(String(formData.get("orgId")));
       redirect("/dashboard");
     }
-    const organizations = await getVisibleOrganizations(user);
+    const td = await getTranslations("demo.manager");
+    const [organizations, demo, journal] = await Promise.all([getVisibleOrganizations(user), getDemoOrganization(), listDemoJournal(1)]);
+    const lastOperation = journal[0] ?? null;
+    async function createDemo() {
+      "use server";
+      await createDemoAction();
+    }
+    async function openDemo() {
+      "use server";
+      await setDemoPublicAction(true);
+    }
+    async function closeDemo() {
+      "use server";
+      await setDemoPublicAction(false);
+    }
     return (
       <>
         <PageHeader
           title={t("organisations")}
           description={t("vue_globale_super_admin_choisis_une_36d9")}
         />
+        {raw.erreur && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{raw.erreur}</p>}
+        {raw.info && <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">{raw.info}</p>}
         <ListCard>
           {organizations.map((org) => (
             <ListRow key={org.id}>
               <span className="flex min-w-0 flex-col">
-                <span className="truncate text-sm font-medium">{org.name}</span>
+                <span className="flex items-center gap-2 truncate text-sm font-medium">
+                  {org.name}
+                  {org.isDemo && <Badge variant="secondary">{td("badge")}</Badge>}
+                </span>
                 <span className="text-xs text-muted-foreground">{org.slug}</span>
               </span>
               <form action={workIn}>
@@ -84,6 +107,54 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </ListRow>
           ))}
         </ListCard>
+        {/* L'espace gestionnaire de la démo (docs/module-demo.md §1.9) : création, interrupteur de la démo publique, dernière opération. */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{td("titre")}</CardTitle>
+            <CardDescription>{td("description")}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 text-sm">
+            {demo ? (
+              <>
+                <p>
+                  <span className="font-medium">{demo.name}</span> <span className="text-muted-foreground">({demo.slug})</span>
+                </p>
+                <p className={demo.demoPublicEnabled ? "rounded-lg border border-warning/40 bg-warning/5 px-3 py-2" : "text-muted-foreground"}>
+                  {demo.demoPublicEnabled ? td("publique_ouverte") : td("publique_fermee")}
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {demo.demoPublicEnabled ? (
+                    <>
+                      <form action={closeDemo}>
+                        <Button type="submit" variant="outline">{td("fermer")}</Button>
+                      </form>
+                      <Link href="/demo" className={buttonVariants({ variant: "ghost" })}>{td("visiter")}</Link>
+                    </>
+                  ) : (
+                    <form action={openDemo}>
+                      <Button type="submit" variant="outline">{td("ouvrir")}</Button>
+                    </form>
+                  )}
+                  <Button type="button" variant="destructive" disabled>{td("reinitialiser")}</Button>
+                </div>
+                <p className="text-xs text-muted-foreground">{td("reinitialisation_en_attente")}</p>
+                {lastOperation && (
+                  <p className="text-xs text-muted-foreground">
+                    {td("derniere_operation", { kind: td(`kind.${lastOperation.kind === "reset" ? "reset" : "seed"}`), when: fmt.dateTime(lastOperation.startedAt), status: td(`status.${lastOperation.status === "done" ? "done" : lastOperation.status === "failed" ? "failed" : "running"}`) })}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-muted-foreground">{td("aucune_demo")}</p>
+                <form action={createDemo}>
+                  <Button type="submit">{td("creer")}</Button>
+                </form>
+                <p className="text-xs text-muted-foreground">{td("creation_note")}</p>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </>
     );
   }

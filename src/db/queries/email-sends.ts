@@ -200,6 +200,9 @@ export async function listResumableSends(limit = 20): Promise<{ id: string; orga
     .where(
       and(
         isNull(newsletterSends.finishedAt),
+        // L'organisation de démo n'est jamais reprise par le cron (docs/module-demo.md §1.3) — l'envoi
+        // à la demande, lui, passe (simulé au transport).
+        sql`NOT EXISTS (SELECT 1 FROM organizations o WHERE o.id = ${newsletterSends.organizationId} AND o.is_demo)`,
         sql`(${newsletterSends.leaseUntil} IS NULL OR ${newsletterSends.leaseUntil} < now())`,
         sql`(${newsletterSends.pausedUntil} IS NULL OR ${newsletterSends.pausedUntil} <= now())`
       )

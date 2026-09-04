@@ -1,0 +1,39 @@
+{
+  "manager": {
+    "titre": "Demo",
+    "description": "The demonstration organisation: a fictional firm, invented data, no email ever leaves (blocked at the transport), the crons skip it.",
+    "aucune_demo": "No demo organisation yet.",
+    "creer": "Create the demo organisation",
+    "creation_note": "About twenty seconds: Vasseur Courtage, a fictional brokerage in Nantes, with seven months of history.",
+    "creee": "The demo organisation is created — work inside it from the list or the bar.",
+    "badge": "Demo",
+    "publique_ouverte": "Public demo open: anyone can visit it at /demo, read-only.",
+    "publique_fermee": "Public demo closed: /demo answers “not found”.",
+    "ouvrir": "Open the public demo",
+    "fermer": "Close the public demo",
+    "visiter": "Visit the demo",
+    "ouverte_info": "The public demo is open.",
+    "fermee_info": "The public demo is closed.",
+    "derniere_operation": "Last operation: {kind} on {when}, {status}.",
+    "kind": {
+      "seed": "creation",
+      "reset": "reset"
+    },
+    "status": {
+      "running": "in progress",
+      "done": "finished",
+      "failed": "failed"
+    },
+    "reinitialiser": "Reset the demo",
+    "reinitialisation_en_attente": "The reset is waiting for approval of its exact scope (see the project notes, §1.7): nothing deletes rows yet."
+  },
+  "banner": {
+    "titre": "Public demo",
+    "texte": "Fictional firm, invented data, read-only: nothing you do here is saved, no email leaves.",
+    "texte_avec_persona": "You are visiting as {name} — fictional firm, invented data, read-only: nothing is saved, no email leaves.",
+    "visite_guidee": "Guided tour",
+    "creer_mon_compte": "Create my account",
+    "quitter": "Leave the demo",
+    "lecture_seule_notice": "In the public demo this action is not available: everything is read-only, nothing is saved. Create your workspace to try it for real."
+  }
+}

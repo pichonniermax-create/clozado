@@ -14,7 +14,8 @@
     "source_ajoutee_sans_flux_elle_sera_c04a": "Source added without a feed: it will be searched by its domain at each collection run, provided it is attached to a topic.",
     "tout_ce_que_propose_ton_metier_1e31": "Everything your profession suggests is already followed — nothing to create.",
     "une_collecte_est_deja_en_cours": "A collection run is already in progress.",
-    "une_collecte_vient_d_avoir_lieu_1eeb": "A collection run just took place: the next manual one is possible from {formatDateTime} ({watchManualCooldownMinutes} minutes between runs)."
+    "une_collecte_vient_d_avoir_lieu_1eeb": "A collection run just took place: the next manual one is possible from {formatDateTime} ({watchManualCooldownMinutes} minutes between runs).",
+    "demo_la_collecte_est_desactivee_les_elements": "Demo: collection is disabled; the watch items are fictional and stable."
   },
   "angles": {
     "guide": "practical guide",

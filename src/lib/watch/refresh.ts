@@ -1,3 +1,4 @@
+import { isDemoOrganization } from "@/lib/demo/guard";
 import type { WatchRun, WatchSource, WatchTopic } from "@/db/schema";
 import {
   followIndicators,
@@ -133,6 +134,7 @@ export async function refreshIndicators(keys: readonly string[], opts: { maxAgeH
 
 /** Les indicateurs suivis par une organisation, rafraîchis si besoin, puis copiés datés et sourcés dans ses chiffres vérifiés. */
 export async function refreshOrganizationIndicators(organizationId: string, opts: { force?: boolean } = {}): Promise<number> {
+  if (await isDemoOrganization(organizationId)) return 0;
   const keys = await listFollowedIndicatorKeys(organizationId);
   const read = await refreshIndicators(keys, opts);
   // Les chiffres vérifiés de l'organisation s'écrivent dans SA langue.
@@ -473,6 +475,7 @@ export async function executeWatchRun(run: WatchRun): Promise<WatchRunReport> {
 
 /** Démarre et exécute tout de suite (le cron). */
 export async function refreshWatchNow(organizationId: string, trigger: "visit" | "manual" | "cron"): Promise<StartRunResult & { report?: WatchRunReport }> {
+  if (await isDemoOrganization(organizationId)) return { status: "demo" };
   const start = await startWatchRun(organizationId, trigger);
   if (start.status !== "started") return start;
   const report = await executeWatchRun(start.run);

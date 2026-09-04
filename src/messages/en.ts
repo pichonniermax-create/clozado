@@ -5,6 +5,7 @@ import brand from "./en/brand.json";
 import contacts from "./en/contacts.json";
 import dashboard from "./en/dashboard.json";
 import deals from "./en/deals.json";
+import demo from "./en/demo.json";
 import email from "./en/email.json";
 import errors from "./en/errors.json";
 import figures from "./en/figures.json";
@@ -43,6 +44,7 @@ const en = {
   contacts,
   dashboard,
   deals,
+  demo,
   email,
   errors,
   figures,

@@ -247,7 +247,8 @@
     "test_explication": "To your sign-in address, with the real rendering and the real footer, marked as a test.",
     "test_ligne": "{when} · {to} · {status}",
     "teste_d_abord_puis_envoie": "Send yourself a test first, then send for real: the audience is frozen at that moment and emails go out in batches.",
-    "tests_envoyes": "Tests sent"
+    "tests_envoyes": "Tests sent",
+    "simulation_demo": "Demo: sending is simulated — no email left, none ever will from this organisation."
   },
   "unitFrame": {
     "deplacer_ce_bloc": "Move this block",

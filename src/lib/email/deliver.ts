@@ -1,4 +1,6 @@
 import type { EmailMessage } from "@/db/schema";
+import { DEMO_PROVIDER_PREFIX } from "@/lib/demo/constants";
+import { isDemoOrganization } from "@/lib/demo/guard";
 import { BATCH_MAX, ResendError, sendBatch, sendEmail, type OutgoingEmail } from "./resend";
 
 /**
@@ -58,6 +60,11 @@ function keyFor(messages: EmailMessage[]): string {
 /** Remet un lot (≤ 100) : en lot d'abord ; si la clé d'idempotence du lot ne correspond plus (reprise après un lot partiel), message par message. */
 export async function deliverMessages(messages: EmailMessage[], content: SendContent, origin: string): Promise<DeliveryOutcome> {
   if (messages.length === 0) return { status: "sent", results: [] };
+  // LA DÉMO (docs/module-demo.md §1.2) : aucun appel au fournisseur — le lot est déclaré parti
+  // avec des identifiants « demo:<id> », que les écrans reconnaissent pour dire « simulé ».
+  if (await isDemoOrganization(messages[0].organizationId)) {
+    return { status: "sent", results: messages.map((m) => ({ id: m.id, providerMessageId: `${DEMO_PROVIDER_PREFIX}${m.id}` })) };
+  }
   // eslint-disable-next-line local/no-visible-text -- invariant de programmation, jamais affiché à une personne
   if (messages.length > BATCH_MAX) throw new Error(`deliver: un lot ne dépasse pas ${BATCH_MAX} messages`);
   const emails = messages.map((m) => buildOutgoing(m, content, origin));

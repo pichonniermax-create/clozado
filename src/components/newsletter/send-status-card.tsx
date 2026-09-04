@@ -32,6 +32,8 @@ import type { TranslatorOf } from "@/i18n/translator";
 export type SenderPreview = { from: string; replyTo: string; fallback: boolean; sharedDomain: string };
 
 export type SendCardProps = {
+  /** L'organisation est la démo : l'envoi est simulé, aucun email ne part (docs/module-demo.md §1.2). */
+  simulated?: boolean;
   newsletter: Newsletter;
   send: NewsletterSend | null;
   stats: CampaignStats | null;
@@ -62,7 +64,7 @@ function pauseLabel(reason: string | null, t: SendCardTranslator): string {
 }
 
 export function SendStatusCard(props: SendCardProps) {
-  const { newsletter, send, stats, tests, sender, audience, footerMissing, sentToday, phase, error } = props;
+  const { newsletter, send, stats, tests, sender, audience, footerMissing, sentToday, phase, error, simulated } = props;
   const t = useTranslations("newsletters.sendStatusCard");
   const fmt = use(getFormats());
   const snapshot = parseAudienceSnapshot(newsletter.audienceSnapshot);
@@ -144,6 +146,7 @@ export function SendStatusCard(props: SendCardProps) {
                 <Stat label={t("agregats.non_envoyes")} value={stats.withoutEmail + stats.suppressed} hint={t("agregats.non_envoyes_detail", { withoutEmail: stats.withoutEmail, suppressed: stats.suppressed })} />
               </dl>
               <p className="text-xs text-muted-foreground text-pretty">{t("honnetete")}</p>
+              {simulated && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{t("simulation_demo")}</p>}
               {stats.links.length > 0 && (
                 <div className="flex flex-col gap-1">
                   <p className="text-xs font-medium text-muted-foreground">{t("liens_cliques")}</p>

@@ -31,7 +31,8 @@
     "et_n_autres": "… et {n} autres.",
     "interrupteur_coupe_rien_ne_partira": "L’interrupteur général est coupé (Réglages → Envois automatiques) : rien ne partira.",
     "hors_heures_de_bureau": "Hors des heures de bureau ({start} h – {end} h, jours ouvrés, fuseau {timezone}). Tu peux envoyer quand même : c’est ton clic qui décide.",
-    "envoyer_les_n_emails": "Envoyer les {n} emails"
+    "envoyer_les_n_emails": "Envoyer les {n} emails",
+    "demo_envois_simules": "Démo : la vague sera simulée — les messages passeront « envoyés » sans qu’aucun email ne parte."
   },
   "editor": {
     "regles": "Règles",

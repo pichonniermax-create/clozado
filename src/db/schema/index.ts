@@ -34,3 +34,4 @@ export * from "./email-messages";
 export * from "./inbound-emails";
 export * from "./appointments";
 export * from "./rules";
+export * from "./demo-resets";
