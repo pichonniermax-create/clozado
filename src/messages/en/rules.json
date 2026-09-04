@@ -23,7 +23,7 @@
     "evaluer_maintenant": "Evaluate now",
     "dernier_passage_resultat": "Last pass on {when}: {matched} matched, {done} done, {skipped} skipped.",
     "evaluation_en_cours": "Evaluation in progress…",
-    "le_cron_quotidien_evalue_aussi": "The daily pass (06:00 UTC, with send resumption) also evaluates these rules — it prepares, it never sends."
+    "le_cron_quotidien_evalue_aussi": "The daily pass — before 9:00 am, with send resumption — also evaluates these rules: it prepares, it never sends."
   },
   "wave": {
     "vague_en_attente": "Pending wave ({n})",

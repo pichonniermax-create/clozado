@@ -1604,10 +1604,31 @@ appel local entre-temps) :
   erreur nulle) et le cron de 06:00 a ÉVALUÉ LES RÈGLES en production
   (run 06:31 UTC, une tâche créée, deux sauts motivés). Voir « Les deux
   crons tournent ». Fixtures détruites, dépôt propre. **Le cahier des
-  charges du 2026-08-27 est couvert (Parties 1, 2 et 3)** ; restent trois
-  points qui ne dépendent que de l'utilisateur : le diff `vercel.json`
-  (décalage de l'heure des crons — à décider, jamais poussé sans
-  accord), « Calendly payant chez le pilote ? » (sans quoi la preuve
-  Calendly reste celle du webhook signé, pas d'un vrai rendez-vous), et
-  la retouche composer reportée (bloc bouton prérempli avec `{lien_rdv}`
-  — `cta_presets` dort, aucun système de préréglage à étendre).
+  charges du 2026-08-27 est couvert (Parties 1, 2 et 3).**
+- **Les trois points tranchés par l'utilisateur (2026-09-03) — décisions
+  définitives, ne plus les reposer** :
+  1. **`vercel.json` : on ne décale pas l'heure des crons.** Raison : la
+     vague se PRÉPARE avant la journée de travail (06:00 UTC planifié,
+     exécuté dans l'heure), et c'est le clic humain, aux heures de
+     bureau, qui donne l'heure d'envoi réelle — la fenêtre 9h-18h est
+     tenue par construction (§5.3), pas par l'horloge du cron. Aucun diff
+     poussé, aucun à proposer.
+  2. **Calendly : la saisie manuelle est le chemin par défaut,
+     définitivement.** Le webhook reste un confort pour les cabinets déjà
+     abonnés à un plan Calendly avec webhooks, jamais un prérequis :
+     aucun écran ne doit supposer Calendly actif (la carte du profil dit
+     « déconnectée » sans bloquer quoi que ce soit, le bouton
+     « Rendez-vous pris » de la fiche suffit). La question « Calendly
+     payant chez le pilote ? » est FERMÉE.
+  3. **Retouche composer** (bloc bouton prérempli avec `{lien_rdv}`) :
+     reportée, gardée en réserve — `cta_presets` dort, aucun système de
+     préréglage à étendre ; à faire en retouche dédiée si le besoin
+     revient.
+- **Règle produit issue de la dérive des crons (2026-09-03, à appliquer
+  partout, y compris dans les chantiers suivants)** : aucune interface,
+  aucun texte, aucun gabarit ne promet une heure PRÉCISE d'exécution
+  automatique — le plan Hobby déclenche « dans l'heure » (mesuré :
+  05:30→06:10, 06:00→06:31). La seule formulation autorisée est
+  « avant 9h00 » (« before 9:00 am »). Les textes existants ont été
+  passés en revue le jour même (voir le commit qui suit cette entrée) ;
+  toute nouvelle phrase sur un automatisme se relit à cette aune.

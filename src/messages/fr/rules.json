@@ -23,7 +23,7 @@
     "evaluer_maintenant": "Évaluer maintenant",
     "dernier_passage_resultat": "Dernier passage le {when} : {matched} retenus, {done} faites, {skipped} non faites.",
     "evaluation_en_cours": "Évaluation en cours…",
-    "le_cron_quotidien_evalue_aussi": "Le passage quotidien (06:00 UTC, avec la reprise des envois) évalue aussi ces règles — il prépare, il n’envoie jamais."
+    "le_cron_quotidien_evalue_aussi": "Le passage quotidien — avant 9h00, avec la reprise des envois — évalue aussi ces règles : il prépare, il n’envoie jamais."
   },
   "wave": {
     "vague_en_attente": "Vague en attente ({n})",
