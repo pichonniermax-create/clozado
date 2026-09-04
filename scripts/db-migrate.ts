@@ -12,16 +12,23 @@
  * être rejouable (backfills idempotents), comme 0007.
  *
  * Usage : npm run db:migrate:http
+ *   (base locale : npx tsx --env-file=.env.local-demo scripts/db-migrate.ts)
  */
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
 async function main() {
-  const { neon } = await import("@neondatabase/serverless");
+  const { neon, neonConfig } = await import("@neondatabase/serverless");
   const { drizzle } = await import("drizzle-orm/neon-http");
   const { migrate } = await import("drizzle-orm/neon-http/migrator");
 
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL manquante.");
+  // Base LOCALE de preuve (docs/module-demo.md §1.5) : même aiguillage que src/db/index.ts.
+  if (process.env.DATABASE_HTTP_ENDPOINT) {
+    const endpoint = process.env.DATABASE_HTTP_ENDPOINT;
+    neonConfig.fetchEndpoint = () => endpoint;
+    console.log(`→ base locale via ${endpoint}`);
+  }
   const db = drizzle(neon(process.env.DATABASE_URL));
   await migrate(db, { migrationsFolder: "./src/db/migrations" });
   console.log("✓ migrations appliquées (journal : drizzle.__drizzle_migrations)");
