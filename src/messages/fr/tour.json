@@ -1,0 +1,45 @@
+{
+  "carte": {
+    "visite_guidee": "Visite guidée",
+    "etape_sur": "Étape {n} sur {total}",
+    "precedent": "Précédent",
+    "suivant": "Suivant",
+    "terminer": "Terminer",
+    "fermer": "Fermer la visite",
+    "voir_cet_ecran": "Voir cet écran"
+  },
+  "steps": {
+    "bienvenue": {
+      "titre": "Bienvenue",
+      "texte": "Le tableau de bord réunit ce qui attend aujourd’hui : tâches, partages sans réponse, commissions à encaisser. Chaque tuile mène à l’écran où l’on agit."
+    },
+    "partenaires": {
+      "titre": "Les apporteurs d’affaires",
+      "texte": "Chaque partenaire a sa fiche. Un dossier se partage par un lien à son nom, avec la commission fixée à l’envoi ; sa réponse revient ici, sans compte à créer."
+    },
+    "affaires": {
+      "titre": "Les affaires et le pipeline",
+      "texte": "Les dossiers avancent d’étape en étape, chaque passage est daté. Le suivi signale ce qui traîne : partage sans réponse, affaire acceptée puis silencieuse, commission non réglée."
+    },
+    "contacts": {
+      "titre": "Les contacts",
+      "texte": "Une fiche par personne ou société : étiquettes, conseiller, journal des interactions, rendez-vous, emails reçus rattachés. Le pipeline et les newsletters s’appuient dessus."
+    },
+    "newsletters": {
+      "titre": "Le composeur de newsletters",
+      "texte": "Une newsletter s’écrit à partir de la matière du cabinet — veille, chiffres vérifiés — pour une cible précise, puis part réellement, avec ses ouvertures et ses clics."
+    },
+    "cibles": {
+      "titre": "Le ciblage",
+      "texte": "Une cible, c’est un segment de contacts (étiquettes, ville, affaires…) et une identité éditoriale : à qui l’on parle, sur quel ton, de quoi. Le composeur s’y adapte."
+    },
+    "engagement": {
+      "titre": "Les relances",
+      "texte": "Des règles en phrases : sans rendez-vous après sept jours, newsletter non ouverte… Elles créent des tâches ou préparent des emails ; c’est toujours un clic humain qui envoie. Les emails reçus se rattachent aux fiches."
+    },
+    "analytique": {
+      "titre": "L’analytique",
+      "texte": "Du visiteur du site à l’affaire signée : funnel, délais, pertes, partenariats, origines. Des chiffres qui disent ce qui leur manque plutôt que d’inventer."
+    }
+  }
+}

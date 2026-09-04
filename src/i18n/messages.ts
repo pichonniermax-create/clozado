@@ -28,6 +28,7 @@ export const CLIENT_NAMESPACES = [
   "brand",
   "contacts",
   "deals",
+  "demo",
   "nav",
   "newsletters",
   "rules",
@@ -35,6 +36,7 @@ export const CLIENT_NAMESPACES = [
   "shares",
   "shell",
   "targets",
+  "tour",
   "ui",
   "watch",
 ] as const satisfies readonly (keyof Messages)[];

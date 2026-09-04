@@ -1,11 +1,14 @@
 import { ImportWizard } from "@/components/contacts/import-wizard";
 import { PageHeader } from "@/components/app-shell/page-header";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
 
 export default async function ContactImportPage() {
   const t = await getTranslations("contacts.import");
-  await requireUser();
+  const user = await requireUser();
+  // Un visiteur de la démo publique n'importe rien (le proxy l'a déjà arrêté ; ceinture).
+  if (user.readOnly) redirect("/dashboard");
   return (
     <>
       <PageHeader

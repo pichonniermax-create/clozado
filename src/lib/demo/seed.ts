@@ -89,7 +89,8 @@ export async function getDemoOrganization() {
  * Crée l'organisation de démonstration. Refuse si une démo existe déjà ou si
  * le slug est pris : la création ne remplace jamais rien.
  */
-export async function createDemoOrganization(now = new Date()): Promise<{ organizationId: string; counts: DemoCounts }> {
+export async function createDemoOrganization(options: { now?: Date; demoPublicEnabled?: boolean } = {}): Promise<{ organizationId: string; counts: DemoCounts }> {
+  const now = options.now ?? new Date();
   const existing = await db
     .select({ id: s.organizations.id, slug: s.organizations.slug, isDemo: s.organizations.isDemo })
     .from(s.organizations)
@@ -117,7 +118,7 @@ export async function createDemoOrganization(now = new Date()): Promise<{ organi
       name: D.ORGANIZATION.name,
       slug: DEMO_SLUG,
       isDemo: true,
-      demoPublicEnabled: false,
+      demoPublicEnabled: options.demoPublicEnabled ?? false,
       tagline: D.ORGANIZATION.tagline,
       toneOfVoice: D.ORGANIZATION.toneOfVoice,
       editorialGuidelines: D.ORGANIZATION.editorialGuidelines,

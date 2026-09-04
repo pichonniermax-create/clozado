@@ -17,11 +17,14 @@ import { WorkspaceMark, type WorkspaceMarkProps } from "@/components/app-shell/w
 export function Sidebar({
   mark,
   hasOrganization,
+  readOnly = false,
   badges,
 }: {
   mark: WorkspaceMarkProps;
   /** Faux en vue globale super admin : les écrans propres à une organisation sont masqués. */
   hasOrganization: boolean;
+  /** Un visiteur de la démo publique : pas de lien vers les réglages. */
+  readOnly?: boolean;
   badges: Record<NavBadge, number>;
 }) {
   return (
@@ -29,7 +32,7 @@ export function Sidebar({
       <div className="px-4 py-4">
         <WorkspaceMark {...mark} href="/dashboard" />
       </div>
-      <NavigationList hasOrganization={hasOrganization} badges={badges} />
+      <NavigationList hasOrganization={hasOrganization} readOnly={readOnly} badges={badges} />
     </aside>
   );
 }

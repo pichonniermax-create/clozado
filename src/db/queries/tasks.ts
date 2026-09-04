@@ -480,6 +480,8 @@ export async function deleteTask(user: OrgScopeUser, taskId: string) {
  * suivi montre et ce que les tâches matérialisent ne peuvent pas diverger.
  */
 export async function generateAutoTasks(user: OrgScopeUser, knownBoard?: FollowUpBoard): Promise<void> {
+  // Un visiteur de la démo publique ne matérialise rien : aucune écriture pour lui (docs/module-demo.md §1.4).
+  if (user.readOnly) return;
   const org = await getOwnOrganizationOrThrow(user);
   // Les tâches générées appartiennent à l'organisation : dans SA langue, pas dans celle de la personne qui a ouvert l'écran.
   const t = await translatorFor(toAppLocale(org.defaultLocale), "tasks.queries");

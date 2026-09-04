@@ -86,7 +86,8 @@ export default async function ContactPage({
 
   // Journal des accès : la consultation est tracée côté serveur, dédupliquée
   // à l'heure (exigence données personnelles, docs/module-relationnel.md §C).
-  await logContactAccess(contact, user.id, "view");
+  // Un visiteur de la démo publique ne laisse pas de trace : aucune écriture pour lui (docs/module-demo.md §1.4).
+  if (!user.readOnly) await logContactAccess(contact, user.id, "view");
 
   const [accessLog, orgUsers, duplicates, journal, mailTargets, contactTargets, received, indicators, suppression, sentMessages, contactAppointments, ruleDrafts] = await Promise.all([
     listContactAccessLog(user, id),

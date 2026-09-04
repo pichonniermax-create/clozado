@@ -1,6 +1,7 @@
 import { Search } from "lucide-react";
 import { signOut } from "@/auth";
 import { AccountMenu } from "@/components/app-shell/account-menu";
+import { DemoAccountLinks } from "@/components/demo/demo-account-links";
 import { MobileNav } from "@/components/app-shell/mobile-nav";
 import type { NavBadge } from "@/components/app-shell/navigation";
 import { QuickCreateMenu } from "@/components/app-shell/quick-create-menu";
@@ -24,6 +25,7 @@ export function AppHeader({
   mark,
   organizationName,
   hasOrganization,
+  readOnly = false,
   badges,
   user,
 }: {
@@ -32,6 +34,8 @@ export function AppHeader({
   /** Nom de l'organisation dans laquelle on travaille — null en vue globale super admin. */
   organizationName: string | null;
   hasOrganization: boolean;
+  /** Un visiteur de la démo publique : ni menu « Nouveau », ni menu de compte — des liens de sortie. */
+  readOnly?: boolean;
   /** Les compteurs de la navigation — le panneau replié les affiche comme la barre latérale. */
   badges: Record<NavBadge, number>;
   user: { name: string | null; email: string | null; localeChoice: AppLocale | null };
@@ -52,7 +56,7 @@ export function AppHeader({
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-border bg-background/95 px-3 backdrop-blur md:gap-3 md:px-6">
-      <MobileNav mark={mark} hasOrganization={hasOrganization} badges={badges} />
+      <MobileNav mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} badges={badges} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">
           {organizationName ?? <span className="text-muted-foreground">{t("vue_globale")}</span>}
@@ -75,15 +79,19 @@ export function AppHeader({
         </div>
       </form>
 
-      {hasOrganization && <QuickCreateMenu />}
-      <AccountMenu
-        name={user.name}
-        email={user.email}
-        hasOrganization={hasOrganization}
-        localeChoice={user.localeChoice}
-        signOutAction={signOutAction}
-        setLocaleAction={setLocaleAction}
-      />
+      {hasOrganization && !readOnly && <QuickCreateMenu />}
+      {readOnly ? (
+        <DemoAccountLinks />
+      ) : (
+        <AccountMenu
+          name={user.name}
+          email={user.email}
+          hasOrganization={hasOrganization}
+          localeChoice={user.localeChoice}
+          signOutAction={signOutAction}
+          setLocaleAction={setLocaleAction}
+        />
+      )}
     </header>
   );
 }

@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { cookies } from "next/headers";
 import { AppHeader } from "@/components/app-shell/app-header";
 import { Sidebar } from "@/components/app-shell/sidebar";
 import { SuperAdminBar } from "@/components/app-shell/super-admin-bar";
 import { PRODUCT_MARK, type WorkspaceMarkProps } from "@/components/app-shell/workspace-mark";
 import { BrandStyle } from "@/components/brand/brand-style";
+import { DemoBanner } from "@/components/demo/demo-banner";
+import { TourCard } from "@/components/tour/tour-card";
 import { getFollowUpBoard } from "@/db/queries/deal-follow-up";
 import { getVisibleOrganizations } from "@/db/queries/organizations";
 import { countTasksDueNow } from "@/db/queries/tasks";
 import { getWorkspace } from "@/lib/brand/workspace";
 import { requireSessionUser, requireUser } from "@/lib/session";
 import { getUserLocaleChoice } from "@/db/queries/users";
+import { parseTourState, TOUR_COOKIE } from "@/lib/tour/steps";
 
 /**
  * Coquille commune à tous les écrans internes. Le groupe de routes `(app)`
@@ -46,12 +51,17 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const user = await requireUser();
   const isSuperAdmin = sessionUser.role === "super_admin";
   const hasOrganization = Boolean(user.organizationId);
+  // Un visiteur de la démo publique : bandeau dédié, pas de réglages, pas de menu « Nouveau » (docs/module-demo.md §1.4).
+  const readOnly = sessionUser.readOnly;
 
-  const [workspace, allOrganizations, localeChoice] = await Promise.all([
+  const [workspace, allOrganizations, localeChoice, cookieStore] = await Promise.all([
     getWorkspace(),
     isSuperAdmin ? getVisibleOrganizations(sessionUser) : Promise.resolve([]),
     getUserLocaleChoice(sessionUser.id),
+    cookies(),
   ]);
+  // La visite guidée (docs/module-demo.md §1.8) : son état vit dans un cookie par navigateur, lu ici pour rendre le bon pas sans clignotement.
+  const tourState = parseTourState(cookieStore.get(TOUR_COOKIE)?.value);
   const org = workspace?.organization ?? null;
   const mark: WorkspaceMarkProps = workspace ? { logo: workspace.brand.logo.light, name: workspace.brand.name } : PRODUCT_MARK;
 
@@ -72,15 +82,17 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     <>
       {workspace && <BrandStyle light={workspace.brand.light} dark={workspace.brand.dark} />}
       <div className="flex min-h-screen">
-        <Sidebar mark={mark} hasOrganization={hasOrganization} badges={{ followUp, tasksDue }} />
+        <Sidebar mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} badges={{ followUp, tasksDue }} />
         <div className="flex min-w-0 flex-1 flex-col">
           <AppHeader
             mark={mark}
             organizationName={org?.name ?? null}
             hasOrganization={hasOrganization}
+            readOnly={readOnly}
             badges={{ followUp, tasksDue }}
             user={{ name: sessionUser.name ?? null, email: sessionUser.email ?? null, localeChoice }}
           />
+          {readOnly && <DemoBanner personaName={sessionUser.name} />}
           {isSuperAdmin && (
             <SuperAdminBar
               organizations={allOrganizations.map((o) => ({ id: o.id, name: o.name, slug: o.slug }))}
@@ -92,6 +104,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           </main>
         </div>
       </div>
+      {hasOrganization && (
+        <Suspense fallback={null}>
+          <TourCard initialState={tourState} />
+        </Suspense>
+      )}
     </>
   );
 }

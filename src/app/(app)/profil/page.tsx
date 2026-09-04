@@ -8,6 +8,7 @@ import { getCalendarConnection } from "@/db/queries/calendar-connections";
 import { getUserProfile } from "@/db/queries/users";
 import { getOwnOrganization } from "@/db/queries/organizations";
 import { saveProfileAction } from "@/lib/email/actions";
+import { redirect } from "next/navigation";
 import { requireSessionUser, requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
 
@@ -22,6 +23,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   const t = await getTranslations("profile");
   const session = await requireSessionUser();
   const user = await requireUser();
+  // Un visiteur de la démo publique n'a pas de profil (le proxy l'a déjà arrêté ; ceinture).
+  if (user.readOnly) redirect("/dashboard");
   const [profile, org, calendarConnection] = await Promise.all([
     getUserProfile(session.id),
     getOwnOrganization(user),

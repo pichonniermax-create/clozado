@@ -375,9 +375,43 @@ admin.
 - Aucune organisation réelle n'est visible : le visiteur est `admin` de la
   démo, jamais super admin ; `orgScope` filtre tout ; la liste des
   organisations n'existe que pour un super admin réel.
-- Rien n'est indexé (`robots: noindex` sur `/demo`), et le bandeau dit
-  d'entrée : « Démo publique — cabinet fictif, données inventées, lecture
-  seule ».
+- Rien n'est indexé (`x-robots-tag: noindex` sur `/demo` et
+  `/demo/quitter`), et le bandeau dit d'entrée : « Démo publique — cabinet
+  fictif, données inventées, lecture seule ».
+- **Construit le 2026-09-04** : `src/lib/demo/public.ts` (ce que le proxy
+  partage, sans dépendance Node), `src/lib/demo/session.ts` (le cookie de
+  visite : JWT `next-auth/jwt` avec son propre sel, revérifié en base à
+  chaque requête, `readDemoVisitor` en cache par requête), `src/proxy.ts`
+  (la première couche), `src/app/demo/route.ts` et `/demo/quitter`,
+  `requireSessionUser` qui lit la visite EN PREMIER (type `SessionUser`
+  commun, `readOnly`), `resolveRequestSettings` (langue/devise/fuseau de
+  la démo pour le visiteur), la coquille (`DemoBanner` + notice
+  `?demo=lecture-seule`, liens de sortie à la place du menu de compte, ni
+  « Nouveau » ni « Marque & réglages »), les pages sensibles qui se
+  défendent (`/settings`, `/profil`, `/contacts/import` → tableau de bord),
+  les travaux à la visite court-circuités (`logContactAccess`,
+  `generateAutoTasks`). Entrer dans `/login` ou `/inscription` termine la
+  visite (le proxy efface le cookie).
+- **Piège trouvé au navigateur, le 2026-09-04 — un préchargement n'est pas
+  une entrée.** Les liens de sortie du bandeau (`/demo/quitter`) étaient des
+  `Link` : le routeur client de Next les précharge dès qu'ils sont à
+  l'écran (`GET /demo/quitter?_rsc=… Next-Router-Prefetch: 1`), la route
+  effaçait le cookie, et la visite mourait à la seconde où le tableau de
+  bord apparaissait (la première preuve HTTP, sans navigateur, ne pouvait
+  pas le voir ; au navigateur, `/taches` puis `/settings` renvoyaient sur
+  `/login`). Trois corrections, en couches : les sorties sont des `<a>`
+  sans préchargement (le motif du lien d'export de la fiche contact) ; la
+  route `/demo/quitter` répond 204 sans toucher au cookie à un
+  préchargement (`isRouterPrefetch`, `src/lib/demo/public.ts` — une route
+  reçoit l'en-tête) ; le proxy ne termine la visite sur `/login` ou
+  `/inscription` que pour une VRAIE navigation (`isNavigation` :
+  `Sec-Fetch-Mode: navigate`, ou pas de Fetch Metadata), parce que Next
+  retire les en-têtes « flight » (`rsc`, `next-router-prefetch`, `_rsc`)
+  avant d'appeler le middleware (`server/web/adapter.js`, « Headers should
+  only be stripped for middleware ») — le proxy ne peut pas voir un
+  préchargement autrement. Règle générale à retenir : une route `GET` qui
+  AGIT ne se lie jamais par `Link`, et le proxy ne sait pas distinguer un
+  préchargement d'une transition sans les Fetch Metadata.
 
 ### 1.5 La base locale de preuve
 
@@ -470,10 +504,13 @@ slug existe déjà), `scripts/demo.ts create | status` (le même code depuis
 la ligne de commande, sur la base locale ou, après accord, sur la base
 partagée).
 
-### 1.7 La réinitialisation — le périmètre exact (STOP)
+### 1.7 La réinitialisation — le périmètre exact (validé le 2026-09-04)
 
-**Rien n'est écrit qui supprime une ligne tant que ce périmètre n'est pas
-accepté.** Ce qui est proposé :
+**Périmètre validé par l'utilisateur le 2026-09-04 (« Je valide les
+deux ») et construit le jour même** (`src/lib/demo/reset.ts`,
+`resetDemoAction`, formulaire de la carte Démo avec le slug retapé,
+`scripts/demo.ts reset --confirm=demo`). Ce qui est supprimé, et rien
+d'autre :
 
 - Un seul ordre de suppression : `DELETE FROM organizations WHERE id =
   <id fixe de la démo> AND is_demo = true` — la cascade emporte, et
@@ -501,13 +538,18 @@ accepté.** Ce qui est proposé :
 - Puis `createDemoOrganization()` recrée tout avec les mêmes identifiants
   fixes — idempotence par construction : deux réinitialisations d'affilée
   donnent le même jeu.
-- Garde-fous : rôle super admin RÉEL (pas la substitution), organisation
-  marquée démo (code) et prédicat `is_demo` dans l'ordre (base) —
-  déclencheur `organizations_delete_guard` en plus si D1 est accepté ;
-  confirmation explicite (le slug `demo` retapé dans le dialogue) ; journal
-  `demo_resets` avant/après avec les comptes par table ; un seul
-  `running` à la fois (refus d'une seconde réinitialisation pendant la
-  première).
+- Garde-fous, dans l'ordre : confirmation explicite (le slug `demo`
+  retapé — toute autre saisie est refusée et dite à l'écran, sans ligne de
+  journal) ; rôle super admin RÉEL (pas la substitution) ; organisation
+  MARQUÉE démo (code) ; prédicat `is_demo` dans l'ordre de suppression
+  (base) et déclencheur `organizations_delete_guard` (base, D1) ; un seul
+  `running` à la fois ; journal `demo_resets` avant/après avec les comptes
+  par table. L'interrupteur de la démo publique est conservé : une démo
+  publique le reste après sa remise à zéro. Ce que la réinitialisation
+  efface au passage, et c'est voulu : tout ce qui s'est accumulé depuis le
+  semis (tâches automatiques matérialisées par les visites, tests d'envoi,
+  vagues parties, brouillons produits par une évaluation) — la démo
+  redevient celle du semis, datée d'aujourd'hui.
 
 ### 1.8 Le didacticiel
 
@@ -534,6 +576,12 @@ accepté.** Ce qui est proposé :
   reprend où il en était.
 - Tout par l'i18n : namespace `tour` (FR/EN, client). Aucune promesse
   d'heure sur les automatismes (« chaque jour, avant 9h00 » au plus).
+- **Construit le 2026-09-04** : `src/lib/tour/steps.ts` (le registre des
+  huit étapes, le cookie `clozado-visite` « étape|état »), `TourCard`
+  (client, monté par la coquille `(app)` pour toute personne qui a une
+  organisation, état initial lu du cookie côté serveur), « Visite guidée »
+  dans le menu de compte et dans le bandeau de la démo (`?visite=1`
+  relance depuis le début).
 
 ### 1.9 L'espace gestionnaire — la carte Démo
 
@@ -590,14 +638,17 @@ appliquer la migration de fait, ou casser la production. Donc :
   ne commence pas par `_`. Recommandé (garde-fou en base au sens fort,
   protège aussi `dupont`/`martin` et les futurs clients). Sans lui, le
   garde-fou en base est le prédicat `WHERE is_demo` seul.
-- **D2 — La migration 0017** (§4) : accord pour l'appliquer sur la base
-  partagée, une fois la branche `demo` prête (protocole §2).
-- **D3 — Le périmètre de suppression** (§1.7) : accord avant d'écrire
-  l'action de réinitialisation.
-- **D4 — L'exposition publique** (§1.4, liste exhaustive) : accord avant
-  d'allumer `demo_public_enabled`. Question jointe : la démo publique
-  doit-elle vivre à `/demo` sur `clozado.vercel.app`, ou sur un domaine
-  dédié plus tard ? (`/demo` d'abord ; rien n'empêche l'autre.)
+- **D2 — La migration 0017** (§4) : accord donné le 2026-09-04 avec
+  l'ordre de fusionner `demo` dans `main` (protocole §2 : migrer PUIS
+  fusionner) — appliquée sur la base partagée à la clôture, déclencheur D1
+  compris (réversible d'un `DROP TRIGGER organizations_delete_guard ON
+  organizations` si tu ne le veux pas).
+- **D3 — Le périmètre de suppression** (§1.7) : VALIDÉ le 2026-09-04 ;
+  construit et prouvé le jour même.
+- **D4 — L'exposition publique** (§1.4, liste exhaustive) : VALIDÉE le
+  2026-09-04 ; l'interrupteur est allumé en production à la clôture, depuis
+  la carte Démo. La démo vit à `/demo` sur `clozado.vercel.app` ; un domaine
+  dédié reste possible plus tard, sans rien changer au mécanisme.
 - **D5 — Le composeur dans la démo publique** : fermé au visiteur
   (proposé, §1.3 — aucun jeton brûlé par un inconnu) ; ouvert au super
   admin dans la démo pour la vidéo. Si tu veux que le visiteur puisse
@@ -693,6 +744,78 @@ construire et prouver ; **sur la base partagée, jamais sans accord (D2).**
 ---
 
 ## 5. Preuves
+
+### 5.3 Sous-étape 3 — la réinitialisation depuis l'espace gestionnaire (2026-09-04)
+
+`scripts/_tmp-demo-reset-ui.ts` (local, gitignoré ; refuse toute base
+autre que `localhost:4444`), `next start` du build de production, session
+forgée du super admin LOCAL, Chromium. **10 contrôles OK, 0 échec,
+0 erreur navigateur.** Une trace à faire disparaître est d'abord ajoutée
+(un contact « Trace à effacer », 45 contacts). Carte Démo : le formulaire
+et son explication du périmètre sont là (« Tape « demo » pour confirmer »,
+« Supprime l'organisation de démo … Rien d'autre n'est touché »). Mauvaise
+confirmation (`pas-demo`) : le refus est dit à l'écran (« La confirmation
+ne correspond pas »), rien n'est supprimé (45 contacts), **aucune ligne de
+journal**. Bonne confirmation (`demo`) : « Démo réinitialisée en N s :
+44 contacts recréés » ; l'organisation existe à nouveau avec le MÊME
+identifiant fixe, slug `demo`, marquée démo ; la trace a disparu
+(44 contacts, comme au semis) ; la persona est recréée avec son identifiant
+fixe ; journal `kind=reset`, `status=done`, demandé par le super admin,
+comptes avant (45 contacts) / après (44) ; « dernière opération :
+réinitialisation, terminée » affichée. Durée du geste depuis l'écran :
+32 s sur le proxy local (suppression + semis d'environ 1 200 lignes).
+À blanc, le même chemin par le CLI (`scripts/demo.ts reset --confirm=demo`)
+et, au moment de la migration (§5.1), la base qui refuse la suppression
+d'une organisation réelle par `organizations_delete_guard`.
+
+### 5.4 Sous-étapes 4 et 5 — la démo publique et le didacticiel, HTTP brut puis navigateur (2026-09-04)
+
+`scripts/_tmp-demo-public-proof.ts` (local, gitignoré ; refuse toute base
+autre que `localhost:4444`), `next start` du build de production sur la
+base locale, deux volets. **47 contrôles OK, 0 échec, 0 erreur navigateur**
+(quatrième passage — les trois premiers ont trouvé un bug produit et deux
+faux échecs du harnais, ci-dessous).
+
+- **HTTP brut, sans navigateur (30)** — l'interrupteur : éteint, `GET /demo`
+  → 404 `noindex` ; allumé → 303 vers `/dashboard?visite=1` avec le cookie
+  de visite `httpOnly` `SameSite=Lax`. Le visiteur : `/dashboard` 200 avec
+  le bandeau et la persona Claire Vasseur ; `/settings`, `/profil`,
+  `/contacts/import` → 303 `/dashboard?demo=lecture-seule` ; `/api/…` →
+  403 ; fiche contact, `/taches`, `/veille` 200 — et **aucune écriture** :
+  journal d'accès, tâches automatiques, collectes inchangés. Les écritures
+  forgées : POST de formulaire → 303 vers la même page `?demo=lecture-seule`,
+  action serveur forgée (`Next-Action`) → 200 + `x-action-redirect` (le
+  client navigue), POST/DELETE `/api/…` → 403, cookie de visite + faux
+  cookie Auth.js → toujours refusé, zéro contact créé. Les préchargements
+  (régression, voir §1.4) : `/demo/quitter` préchargé → 204 sans
+  `Set-Cookie`, `/login` préchargé (`Sec-Fetch-Mode: cors`) → cookie
+  conservé, transition client → conservé, la visite vit toujours. Les
+  sorties : `/login` en vraie navigation (`navigate`, par `node:http`) →
+  cookie effacé, sans Fetch Metadata → effacé aussi, `/demo/quitter?vers=
+  /inscription` → 303 cookie effacé, `vers=` extérieur ou `//…` → `/` ;
+  interrupteur éteint → l'ancien cookie ne donne plus rien (→ `/login`).
+- **Au navigateur, FR puis EN (17)** — Chromium 1280×900, `pageerror` et
+  `console.error` comptés : `/demo` mène au tableau de bord de Vasseur
+  Courtage avec le bandeau ; cinq secondes bandeau affiché, aucune requête
+  vers `/demo/quitter`, `/login` ou `/inscription`, cookie toujours là ;
+  visite guidée démarrée (« Étape 1 sur 8 ») ; ni menu « Nouveau », ni lien
+  réglages dans la navigation, ni « Se déconnecter » ; liens « Créer mon
+  compte » / « Quitter la démo » ; aucune clé brute ; « Suivant » mène aux
+  partenaires, étape 2, cookie `clozado-visite = 1|en_cours` ; un clic
+  d'écriture (« Marquer … comme faite » sur `/taches`) → retour sur la page
+  avec la phrase « ce geste n'est pas disponible », rien d'écrit ;
+  `/settings` renvoie au tableau de bord avec la phrase ; après « Quitter la
+  démo », `/dashboard` renvoie à la connexion ; entrer dans `/login` par une
+  vraie navigation termine la visite. Captures : bandeau + carte de visite
+  sur le tableau de bord, notice de lecture seule sur `/taches`.
+- **Ce que les passages 1 à 3 ont trouvé** : (1) le bug produit du
+  préchargement (§1.4) — la preuve HTTP seule ne pouvait pas le voir, le
+  navigateur l'a montré en deux lignes (`/taches` puis `/settings` →
+  `/login`) ; (2) deux faux échecs du harnais : le bouton d'écriture de
+  `/taches` est streamé après `load` (attendre le bouton, pas compter tout
+  de suite) et le `fetch` de Node (undici) pose lui-même
+  `sec-fetch-mode: cors` en ignorant l'en-tête fourni — une vraie
+  navigation se simule par `node:http`.
 
 ### 5.2 Sous-étape 2 — au navigateur, build de production sur la base locale (2026-09-04)
 
@@ -802,3 +925,22 @@ en 17 à 27 s.
   navigateur). Les textes du jeu de données vivent dans `dataset.json` :
   les deux règles ESLint maison restent INTACTES (aucune exception ajoutée).
   Suivant : sous-étape 3 (réinitialisation, périmètre §1.7 validé), 4 et 5.
+- **Sous-étapes 3, 4 et 5 — réinitialisation, démo publique, didacticiel**
+  (2026-09-04, branche `demo`) : D3 et D4 validées par l'utilisateur le
+  matin même. Réinitialisation (§1.7) : un seul ordre de suppression avec
+  le prédicat `is_demo` évalué par la base, re-création à l'identique,
+  slug retapé, journal avant/après ; carte Démo et CLI. Démo publique
+  (§1.4) : `src/proxy.ts` (première couche, toute écriture refusée, chemins
+  sensibles refusés même en lecture), session de visite (JWT à sel propre,
+  revérifiée en base à chaque requête), `/demo` et `/demo/quitter`,
+  `requireSessionUser` qui lit la visite en premier, coquille (bandeau,
+  notice, liens de sortie), pages sensibles qui se défendent, travaux à la
+  visite court-circuités. Didacticiel (§1.8) : huit étapes, cookie par
+  navigateur, `TourCard`, reprise depuis le menu de compte et le bandeau,
+  namespace `tour` FR/EN. Preuves §5.3 (réinitialisation depuis l'écran)
+  et §5.4 (47 contrôles HTTP + navigateur FR/EN). Un bug produit trouvé et
+  corrigé au navigateur (le préchargement `Link` de `/demo/quitter`, §1.4).
+  Suivant : la clôture ordonnée par l'utilisateur — migration 0017 sur la
+  base partagée, fusion `demo` → `main`, démo créée et ouverte depuis la
+  production, preuve depuis la production (§5.6), scripts temporaires
+  supprimés.

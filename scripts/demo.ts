@@ -5,14 +5,17 @@
  *   npx tsx --env-file=.env.local-demo scripts/demo.ts create   # base LOCALE de preuve
  *   npx tsx --env-file=.env.local-demo scripts/demo.ts status
  *   npx tsx --env-file=.env.local scripts/demo.ts create        # base partagée — après l'accord sur la migration 0017
+ *   npx tsx --env-file=.env.local-demo scripts/demo.ts reset --confirm=demo
  *
  * `create` refuse si une démo existe déjà (rien n'est jamais remplacé ici) ;
- * la suppression appartient à la réinitialisation (§1.7).
+ * `reset` (§1.7, périmètre validé) supprime la ligne organizations de la démo
+ * (cascade) puis la recrée — confirmation par le slug, journal avant/après.
  */
 async function main() {
   const command = process.argv[2];
   const { createDemoOrganization, countDemoRows, getDemoOrganization } = await import("../src/lib/demo/seed");
   const { recordDemoSeed } = await import("../src/lib/demo/journal");
+  const { resetDemoOrganization } = await import("../src/lib/demo/reset");
 
   if (command === "status") {
     const org = await getDemoOrganization();
@@ -33,7 +36,15 @@ async function main() {
     return;
   }
 
-  console.error("Usage : scripts/demo.ts create | status");
+  if (command === "reset") {
+    const confirmation = (process.argv.find((a) => a.startsWith("--confirm=")) ?? "").slice("--confirm=".length);
+    const result = await resetDemoOrganization({ requestedBy: null, requestedByEmail: "scripts/demo.ts", confirmation });
+    console.log(`✓ démo réinitialisée en ${Math.round(result.durationMs / 100) / 10} s (journal ${result.journalId})`);
+    console.table(Object.fromEntries(Object.keys(result.created).map((k) => [k, { supprimées: result.deleted[k], recréées: result.created[k] }])));
+    return;
+  }
+
+  console.error("Usage : scripts/demo.ts create | status | reset --confirm=demo");
   process.exit(2);
 }
 

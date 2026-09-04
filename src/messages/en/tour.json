@@ -1,0 +1,45 @@
+{
+  "carte": {
+    "visite_guidee": "Guided tour",
+    "etape_sur": "Step {n} of {total}",
+    "precedent": "Previous",
+    "suivant": "Next",
+    "terminer": "Finish",
+    "fermer": "Close the tour",
+    "voir_cet_ecran": "Open this screen"
+  },
+  "steps": {
+    "bienvenue": {
+      "titre": "Welcome",
+      "texte": "The dashboard gathers what is waiting today: tasks, unanswered shares, commissions to collect. Every tile leads to the screen where you act."
+    },
+    "partenaires": {
+      "titre": "Referral partners",
+      "texte": "Each partner has a record. A deal is shared through a link in their name, with the commission set at sending; their answer comes back here, no account needed."
+    },
+    "affaires": {
+      "titre": "Deals and the pipeline",
+      "texte": "Deals move from stage to stage, every move is dated. The follow-up flags what is stalling: an unanswered share, an accepted deal gone silent, an unpaid commission."
+    },
+    "contacts": {
+      "titre": "Contacts",
+      "texte": "One record per person or company: tags, adviser, interaction log, appointments, attached inbound emails. The pipeline and the newsletters build on it."
+    },
+    "newsletters": {
+      "titre": "The newsletter composer",
+      "texte": "A newsletter is written from the firm’s own material — watch, verified figures — for a precise target, then really sent, with its opens and clicks."
+    },
+    "cibles": {
+      "titre": "Targeting",
+      "texte": "A target is a segment of contacts (tags, city, deals…) and an editorial identity: who you talk to, in what tone, about what. The composer adapts to it."
+    },
+    "engagement": {
+      "titre": "Follow-ups",
+      "texte": "Rules written as sentences: no appointment after seven days, newsletter not opened… They create tasks or prepare emails; a human click always sends. Inbound emails attach to records."
+    },
+    "analytique": {
+      "titre": "Analytics",
+      "texte": "From the website visitor to the signed deal: funnel, delays, losses, partnerships, origins. Figures that say what they lack rather than invent."
+    }
+  }
+}

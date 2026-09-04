@@ -5,7 +5,8 @@
     "se_deconnecter": "Sign out",
     "langue": "Language",
     "celle_de_l_organisation": "The organization’s ({language})",
-    "mon_profil": "My profile"
+    "mon_profil": "My profile",
+    "visite_guidee": "Guided tour"
   },
   "appHeader": {
     "rechercher_un_contact": "Search for a contact…",

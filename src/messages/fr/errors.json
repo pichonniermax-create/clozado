@@ -174,6 +174,10 @@
   "variables_inconnues_dans_le_gabarit": "Le gabarit contient des accolades interdites : {tokens}. Variables permises : '{prenom}' '{nom}' '{nom_complet}' '{societe}' '{organisation}' '{expediteur}' '{lien_rdv}'.",
   "demo": {
     "deja_creee": "L’organisation de démo existe déjà : rien n’est remplacé — passe par la réinitialisation.",
-    "statut_introuvable": "Le statut d’affaire « {slug} » est introuvable dans l’organisation de démo."
+    "statut_introuvable": "Le statut d’affaire « {slug} » est introuvable dans l’organisation de démo.",
+    "confirmation_incorrecte": "La confirmation ne correspond pas : tape exactement le slug de l’organisation de démo.",
+    "introuvable": "Aucune organisation de démo.",
+    "pas_marquee": "Cette organisation n’est pas marquée comme démo : la réinitialisation refuse.",
+    "reinitialisation_en_cours": "Une réinitialisation est déjà en cours — attends qu’elle se termine."
   }
 }

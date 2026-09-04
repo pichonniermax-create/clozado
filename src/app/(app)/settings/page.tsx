@@ -159,7 +159,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const { erreur, info } = await searchParams;
 
   // Le super_admin n'a pas d'organisation propre : cet écran ne le concerne pas.
-  if (!user.organizationId) {
+  // Un visiteur de la démo publique non plus (le proxy l'a déjà arrêté ; ceinture).
+  if (!user.organizationId || user.readOnly) {
     redirect("/dashboard");
   }
 

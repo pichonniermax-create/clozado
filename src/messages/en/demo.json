@@ -25,7 +25,9 @@
       "failed": "failed"
     },
     "reinitialiser": "Reset the demo",
-    "reinitialisation_en_attente": "The reset is waiting for approval of its exact scope (see the project notes, §1.7): nothing deletes rows yet."
+    "reinitialisation_explication": "Deletes the demo organisation “{slug}” — and everything it owns: contacts, deals, shares, newsletters, messages, rules, watch… — then recreates it identically, as of today. Nothing else is touched. Type “{slug}” to confirm.",
+    "confirmation_label": "Confirmation: the demo organisation slug",
+    "reinitialisee": "Demo reset in {seconds} s: {contacts} contacts recreated, history moved to today."
   },
   "banner": {
     "titre": "Public demo",

@@ -1,5 +1,7 @@
 import { createHash } from "crypto";
 
+export * from "./public";
+
 /**
  * L'organisation de démonstration (docs/module-demo.md §1.6) — ses
  * identifiants sont FIXES : une réinitialisation supprime la ligne

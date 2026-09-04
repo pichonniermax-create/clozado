@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Check, LogOut, Settings, UserRound } from "lucide-react";
+import { Check, Compass, LogOut, Settings, UserRound } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useLocale, useTranslations } from "next-intl";
 import { LOCALES, localeDisplayName, type AppLocale } from "@/i18n/locales";
+import { TOUR_PARAM } from "@/lib/tour/steps";
 
 /** « Camille Rousseau » → « CR », « camille@… » → « C ». */
 function initialsOf(name: string | null, email: string | null): string {
@@ -81,6 +82,12 @@ export function AccountMenu({
           <UserRound />
           {t("mon_profil")}
         </DropdownMenuItem>
+        {hasOrganization && (
+          <DropdownMenuItem render={<Link href={`/dashboard?${TOUR_PARAM}=1`} />}>
+            <Compass />
+            {t("visite_guidee")}
+          </DropdownMenuItem>
+        )}
         {hasOrganization && (
           <DropdownMenuItem render={<Link href="/settings" />}>
             <Settings />

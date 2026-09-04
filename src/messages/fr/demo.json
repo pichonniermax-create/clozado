@@ -25,7 +25,9 @@
       "failed": "échouée"
     },
     "reinitialiser": "Réinitialiser la démo",
-    "reinitialisation_en_attente": "La réinitialisation attend l’accord sur son périmètre exact (voir la doc du chantier, §1.7) : rien ne supprime encore de lignes."
+    "reinitialisation_explication": "Supprime l’organisation de démo « {slug} » — et tout ce qui lui appartient : contacts, affaires, partages, newsletters, messages, règles, veille… — puis la recrée à l’identique, aujourd’hui. Rien d’autre n’est touché. Tape « {slug} » pour confirmer.",
+    "confirmation_label": "Confirmation : le slug de l’organisation de démo",
+    "reinitialisee": "Démo réinitialisée en {seconds} s : {contacts} contacts recréés, historique remis à aujourd’hui."
   },
   "banner": {
     "titre": "Démo publique",

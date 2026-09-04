@@ -4,6 +4,7 @@ import { ArrowRight, Banknote, BellRing, BookUser, Check, ListTodo, PauseCircle,
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListCard, ListRow, ListRowLink } from "@/components/ui/list-card";
@@ -21,7 +22,7 @@ import { getOwnOrganization, getVisibleOrganizations } from "@/db/queries/organi
 import { listPartners } from "@/db/queries/partners";
 import { generateAutoTasks, getTasksDueSummary } from "@/db/queries/tasks";
 import { setActiveOrganizationAction } from "@/lib/admin/actions";
-import { createDemoAction, setDemoPublicAction } from "@/lib/demo/actions";
+import { createDemoAction, resetDemoAction, setDemoPublicAction } from "@/lib/demo/actions";
 import { listDemoJournal } from "@/lib/demo/journal";
 import { getDemoOrganization } from "@/lib/demo/seed";
 import { completeTaskAction } from "@/lib/tasks/actions";
@@ -76,6 +77,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     async function closeDemo() {
       "use server";
       await setDemoPublicAction(false);
+    }
+    async function resetDemo(formData: FormData) {
+      "use server";
+      await resetDemoAction(formData);
     }
     return (
       <>
@@ -135,9 +140,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                       <Button type="submit" variant="outline">{td("ouvrir")}</Button>
                     </form>
                   )}
-                  <Button type="button" variant="destructive" disabled>{td("reinitialiser")}</Button>
                 </div>
-                <p className="text-xs text-muted-foreground">{td("reinitialisation_en_attente")}</p>
+                {/* La réinitialisation (§1.7) : confirmation explicite — le slug retapé —, périmètre dit sous le bouton, journal avant/après. */}
+                <form action={resetDemo} className="flex flex-col gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                  <p className="text-sm font-medium">{td("reinitialiser")}</p>
+                  <p className="text-xs text-muted-foreground text-pretty">{td("reinitialisation_explication", { slug: demo.slug })}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Input name="confirmation" required autoComplete="off" placeholder={demo.slug} aria-label={td("confirmation_label")} className="w-40" />
+                    <Button type="submit" variant="destructive">{td("reinitialiser")}</Button>
+                  </div>
+                </form>
                 {lastOperation && (
                   <p className="text-xs text-muted-foreground">
                     {td("derniere_operation", { kind: td(`kind.${lastOperation.kind === "reset" ? "reset" : "seed"}`), when: fmt.dateTime(lastOperation.startedAt), status: td(`status.${lastOperation.status === "done" ? "done" : lastOperation.status === "failed" ? "failed" : "running"}`) })}

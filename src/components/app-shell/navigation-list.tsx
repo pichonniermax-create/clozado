@@ -10,10 +10,13 @@ import { useTranslations } from "next-intl";
  */
 export function NavigationList({
   hasOrganization,
+  readOnly = false,
   badges,
 }: {
   /** Faux en vue globale super admin : les écrans propres à une organisation sont masqués. */
   hasOrganization: boolean;
+  /** Un visiteur de la démo publique : les réglages ne lui sont jamais montrés (le proxy les refuse de toute façon). */
+  readOnly?: boolean;
   badges: Record<NavBadge, number>;
 }) {
   const t = useTranslations("shell.navigationList");
@@ -43,7 +46,7 @@ export function NavigationList({
         })}
       </nav>
 
-      {hasOrganization && (
+      {hasOrganization && !readOnly && (
         <div className="border-t border-sidebar-border px-3 py-3">
           <NavLink href="/settings" label={t("marque_reglages")} icon={<Settings />} />
         </div>

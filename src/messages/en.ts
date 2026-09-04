@@ -23,6 +23,7 @@ import shares from "./en/shares.json";
 import shell from "./en/shell.json";
 import targets from "./en/targets.json";
 import templates from "./en/templates.json";
+import tour from "./en/tour.json";
 import tasks from "./en/tasks.json";
 import ui from "./en/ui.json";
 import watch from "./en/watch.json";
@@ -62,6 +63,7 @@ const en = {
   shell,
   targets,
   templates,
+  tour,
   tasks,
   ui,
   watch,
