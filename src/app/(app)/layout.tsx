@@ -15,6 +15,8 @@ import { getWorkspace } from "@/lib/brand/workspace";
 import { requireSessionUser, requireUser } from "@/lib/session";
 import { getUserLocaleChoice } from "@/db/queries/users";
 import { parseTourState, TOUR_COOKIE } from "@/lib/tour/steps";
+import { DemoStaleVisitNotice } from "@/components/demo/demo-stale-visit";
+import { DEMO_COOKIE } from "@/lib/demo/public";
 
 /**
  * Coquille commune à tous les écrans internes. Le groupe de routes `(app)`
@@ -62,6 +64,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   ]);
   // La visite guidée (docs/module-demo.md §1.8) : son état vit dans un cookie par navigateur, lu ici pour rendre le bon pas sans clignotement.
   const tourState = parseTourState(cookieStore.get(TOUR_COOKIE)?.value);
+  // Le cookie de visite est là mais ne vaut plus rien (interrupteur éteint, démo réinitialisée) : le proxy refuse
+  // encore les écritures tant qu'il existe — on le dit, avec la sortie, plutôt que de laisser un vrai utilisateur bloqué.
+  const staleVisit = !readOnly && cookieStore.has(DEMO_COOKIE);
   const org = workspace?.organization ?? null;
   const mark: WorkspaceMarkProps = workspace ? { logo: workspace.brand.logo.light, name: workspace.brand.name } : PRODUCT_MARK;
 
@@ -93,6 +98,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             user={{ name: sessionUser.name ?? null, email: sessionUser.email ?? null, localeChoice }}
           />
           {readOnly && <DemoBanner personaName={sessionUser.name} />}
+          {staleVisit && <DemoStaleVisitNotice />}
           {isSuperAdmin && (
             <SuperAdminBar
               organizations={allOrganizations.map((o) => ({ id: o.id, name: o.name, slug: o.slug }))}

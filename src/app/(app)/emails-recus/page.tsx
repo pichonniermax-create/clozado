@@ -61,9 +61,12 @@ export default async function EmailsRecusPage({
       ? await Promise.all(rows.map((row) => findContactCandidates(user, { email: row.counterpartEmail, name: row.counterpartName })))
       : [];
 
+  // L'adresse d'ingestion est un secret (le jeton EST l'adresse) : un visiteur de la démo publique ne la voit jamais
+  // (docs/module-demo.md §1.4 — un réglage, comme /settings).
+  const readOnly = Boolean(user.readOnly);
   let address: string | null = null;
   try {
-    address = org?.ingestToken ? ingestAddress(org.ingestToken, inboundDomain()) : null;
+    address = org?.ingestToken && !readOnly ? ingestAddress(org.ingestToken, inboundDomain()) : null;
   } catch {
     address = null;
   }
@@ -78,16 +81,18 @@ export default async function EmailsRecusPage({
         title={t("emails_recus")}
         description={address ? t("transfere_a_ou_mets_en_copie", { address }) : t("ce_que_l_adresse_d_ingestion_a_recu")}
         actions={
-          <Link href="/settings#ingestion" className={buttonVariants({ variant: "outline" })}>
-            {t("l_adresse_d_ingestion")}
-          </Link>
+          readOnly ? undefined : (
+            <Link href="/settings#ingestion" className={buttonVariants({ variant: "outline" })}>
+              {t("l_adresse_d_ingestion")}
+            </Link>
+          )
         }
       />
 
       {params.erreur && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{params.erreur}</p>}
       {params.info && <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">{params.info}</p>}
 
-      {!address && (
+      {!address && !readOnly && (
         <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-pretty">
           {t.rich("aucune_adresse_encore", { link: (chunks) => <Link href="/settings#ingestion" className="underline underline-offset-2">{chunks}</Link> })}
         </p>

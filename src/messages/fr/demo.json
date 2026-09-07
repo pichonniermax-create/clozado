@@ -36,6 +36,7 @@
     "visite_guidee": "Visite guidée",
     "creer_mon_compte": "Créer mon compte",
     "quitter": "Quitter la démo",
-    "lecture_seule_notice": "Dans la démo publique, ce geste n’est pas disponible : tout est en lecture seule, rien ne s’enregistre. Crée ton espace pour l’essayer pour de vrai."
+    "lecture_seule_notice": "Dans la démo publique, ce geste n’est pas disponible : tout est en lecture seule, rien ne s’enregistre. Crée ton espace pour l’essayer pour de vrai.",
+    "visite_terminee": "Ta visite de la démo est terminée, mais son cookie est encore là et bloque tes gestes : <link>quitter la démo</link> pour reprendre la main."
   }
 }

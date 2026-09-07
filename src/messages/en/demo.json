@@ -36,6 +36,7 @@
     "visite_guidee": "Guided tour",
     "creer_mon_compte": "Create my account",
     "quitter": "Leave the demo",
-    "lecture_seule_notice": "In the public demo this action is not available: everything is read-only, nothing is saved. Create your workspace to try it for real."
+    "lecture_seule_notice": "In the public demo this action is not available: everything is read-only, nothing is saved. Create your workspace to try it for real.",
+    "visite_terminee": "Your demo visit has ended, but its cookie is still here and blocks your actions: <link>leave the demo</link> to take back control."
   }
 }

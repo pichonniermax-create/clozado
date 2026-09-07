@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { demoResets, organizations } from "@/db/schema";
 import { AppError } from "@/lib/errors";
@@ -23,6 +23,9 @@ import { countDemoRows, createDemoOrganization, type DemoCounts } from "./seed";
  * réinitialisation à la fois (journal `running`), et le journal avant/après
  * avec les comptes par table.
  */
+/** Au-delà, un « running » est une réinitialisation morte (une fonction Vercel ne dure pas 15 minutes). */
+const RESET_LOCK_MS = 15 * 60_000;
+
 export type DemoResetOutcome = { journalId: string; deleted: DemoCounts; created: DemoCounts; durationMs: number };
 
 export async function resetDemoOrganization(input: { requestedBy: string | null; requestedByEmail: string | null; confirmation: string }): Promise<DemoResetOutcome> {
@@ -30,6 +33,12 @@ export async function resetDemoOrganization(input: { requestedBy: string | null;
   const org = (await db.select().from(organizations).where(eq(organizations.id, DEMO_ORGANIZATION_ID)))[0];
   if (!org) throw new AppError("demo.introuvable", undefined, 404);
   if (!org.isDemo) throw new AppError("demo.pas_marquee", undefined, 403);
+  // Une fonction Vercel ne vit pas plus de quelques minutes : une ligne « running » plus vieille que ça est une
+  // réinitialisation coupée en plein vol (délai, redéploiement) — on la clôt en échec au lieu de bloquer pour toujours.
+  await db
+    .update(demoResets)
+    .set({ status: "failed", finishedAt: new Date(), error: "lock_expired" })
+    .where(and(eq(demoResets.organizationId, org.id), eq(demoResets.status, "running"), lt(demoResets.startedAt, new Date(Date.now() - RESET_LOCK_MS))));
   const running = await db
     .select({ id: demoResets.id })
     .from(demoResets)

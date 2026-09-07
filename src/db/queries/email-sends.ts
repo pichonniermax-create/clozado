@@ -351,8 +351,9 @@ export async function getMessageByProviderId(providerMessageId: string): Promise
 }
 
 /** Les envois du jour et du mois, toutes natures : ce que l'écran annonce face au quota du plan. */
-export async function countSentSince(since: Date): Promise<number> {
-  const result = await db.execute(sql`SELECT count(*)::int AS n FROM ${emailMessages} WHERE sent_at >= ${since}`);
+/** Les messages partis depuis `since` pour UNE organisation — jamais un compte global : ce nombre s'affiche à l'écran. */
+export async function countSentSince(organizationId: string, since: Date): Promise<number> {
+  const result = await db.execute(sql`SELECT count(*)::int AS n FROM ${emailMessages} WHERE organization_id = ${organizationId}::uuid AND sent_at >= ${since}`);
   return Number((result.rows[0] as { n: number }).n);
 }
 

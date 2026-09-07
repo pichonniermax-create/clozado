@@ -404,6 +404,35 @@ admin.
   pour les messages), comme pour une organisation réelle. À retenir : « le
   proxy refuse les écritures du visiteur » ne suffit pas quand l'écriture
   n'a pas besoin du visiteur.
+- **Ce que le visiteur ne voit pas non plus (revue du 2026-09-07, second
+  lot)** : l'adresse d'ingestion sur `/emails-recus` (le jeton EST
+  l'adresse — un réglage, comme `/settings` ; le lien vers le réglage
+  disparaît avec elle), la liste « Tests envoyés » du brouillon (elle porte
+  l'adresse de la personne qui a demandé le test — celle du super admin en
+  production), et le compteur « Envoyés aujourd'hui » qui était GLOBAL,
+  toutes organisations confondues (`countSentSince` sans organisation :
+  un agrégat d'autres clients montré à n'importe qui) — désormais par
+  organisation, pour tout le monde. Deux gestes du super admin substitué
+  dans la démo sont refusés parce qu'ils appellent un fournisseur réel
+  avec des données réelles : connecter un Calendly (les rendez-vous d'un
+  vrai compte deviendraient publics) et déclarer un domaine d'expédition
+  chez Resend (`demo.geste_indisponible`). Le jeu de données n'a plus
+  aucun numéro attribuable (tranches réservées à la fiction par l'ARCEP :
+  `06 39 98 xx xx`, `02 61 91 xx xx`) ni d'adresse postale réelle
+  (« 17 quai de la Démonstration, 44000 Nantes »). Les slugs `demo`, ceux
+  des boîtes du produit (`connexion`, `postmaster`…) et des chemins du
+  produit sont réservés à l'inscription : une inscription nommée « Demo »
+  aurait pris le slug sous lequel la démo se recrée, et un inscrit nommé
+  « Connexion » aurait envoyé depuis l'adresse même du produit sur le
+  sous-domaine mutualisé. Le verrou « une réinitialisation à la fois »
+  expire après 15 minutes (une fonction Vercel coupée laissait une ligne
+  `running` qui bloquait pour toujours). Enfin, un vrai utilisateur dont le
+  navigateur garde un cookie de visite périmé (interrupteur éteint, démo
+  réinitialisée) voit pourquoi ses gestes sont refusés et la sortie
+  (`DemoStaleVisitNotice`), au lieu de subir 8 heures de lecture seule
+  muette. Non traités, consignés : `TRUNCATE` échappe au déclencheur
+  (aucun chemin du produit ne tronque) ; le contrôle du verrou n'est pas
+  atomique (deux clics à la même milliseconde — le journal le montrerait).
 - **Les petites choses de la même revue** : `/demo/quitter?vers=` refusait
   `//hôte` mais pas `/\hôte` (les navigateurs lisent l'antislash comme une
   barre) — un chemin relatif ne commence ni par `//` ni par `/\` ;

@@ -12,6 +12,8 @@ import { requireSessionUser, requireUser } from "@/lib/session";
 import { isPlausibleEmail } from "./address";
 import { checkEmailDomain, declareEmailDomain, forgetEmailDomain } from "./domain";
 import { generateIngestToken } from "./inbound/address";
+import { isDemoOrganization } from "@/lib/demo/guard";
+import { AppError } from "@/lib/errors";
 
 /**
  * Les actions serveur du chantier engagement : étape 2 — le domaine
@@ -28,6 +30,8 @@ export async function declareEmailDomainAction(formData: FormData) {
   const user = await requireUser();
   let destination = SETTINGS_DOMAIN;
   try {
+    // Jamais depuis la démo : déclarer un domaine est un appel au compte Resend réel (docs/module-demo.md §1.2).
+    if (await isDemoOrganization(user.organizationId)) throw new AppError("demo.geste_indisponible");
     await declareEmailDomain(user, String(formData.get("domain") ?? ""));
   } catch (error) {
     destination = withError(SETTINGS_DOMAIN, await errorMessage(error));

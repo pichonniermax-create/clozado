@@ -11,6 +11,7 @@ import { publicOrigin } from "@/lib/email/config";
 import { AppError } from "@/lib/errors";
 import { errorMessage, withError } from "@/lib/form-actions";
 import { requireSessionUser } from "@/lib/session";
+import { isDemoOrganization } from "@/lib/demo/guard";
 
 /**
  * La connexion Calendly d'une personne (§5.1) : son jeton d'accès
@@ -27,6 +28,8 @@ export async function connectCalendlyAction(formData: FormData) {
   let destination = withError("/profil", t("calendly.connectee_les_rendez_vous_arriveront_tout_seuls"), "info");
   try {
     if (!session.organizationId) throw new AppError("aucune_organisation_selectionnee");
+    // Jamais dans la démo : les rendez-vous d'un vrai compte Calendly (noms, emails) seraient visibles de tout visiteur.
+    if (await isDemoOrganization(session.organizationId)) throw new AppError("demo.geste_indisponible");
     const token = String(formData.get("token") ?? "").trim();
     if (!token) throw new AppError("colle_d_abord_ton_jeton_calendly");
     const calendlyUser = await getCalendlyUser(token);

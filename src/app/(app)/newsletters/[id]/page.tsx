@@ -56,7 +56,7 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
     listTestMessages(data.newsletter.id),
     getUserProfile(session.id),
     currentTarget && !data.newsletter.sentAt ? countSendableMembers(currentTarget) : Promise.resolve(0),
-    countSentSince(new Date(new Date().setUTCHours(0, 0, 0, 0))),
+    countSentSince(org.id, new Date(new Date().setUTCHours(0, 0, 0, 0))),
   ]);
   const stats = data.newsletter.sendMode === "sent" ? await getCampaignStats(data.newsletter.id, org.id) : null;
   const phase = sendPhase(send);
@@ -103,7 +103,7 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
         newsletter={data.newsletter}
         send={send}
         stats={stats}
-        tests={tests}
+        tests={session.readOnly ? [] : tests /* les tests portent l'adresse de la personne qui les a demandés : jamais montrés à un visiteur de la démo */}
         sender={sender}
         audience={currentTarget ? { total: counts.get(currentTarget.id) ?? 0, sendable } : null}
         footerMissing={missingFooterFacts(org).length > 0}

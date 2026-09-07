@@ -464,11 +464,11 @@
       "contact": 13,
       "subject": "Re: Offre de prêt — signature vendredi",
       "counterpartName": "Camille Marchand",
-      "body": "Bonjour Claire,\n\nC'est confirmé pour vendredi 10h chez Maître Le Goff. Merci pour votre accompagnement.\n\nCamille Marchand\n06 22 33 44 55",
+      "body": "Bonjour Claire,\n\nC'est confirmé pour vendredi 10h chez Maître Le Goff. Merci pour votre accompagnement.\n\nCamille Marchand\n06 39 98 22 33",
       "daysAgo": 2,
       "proposal": {
         "name": "Camille Marchand",
-        "phone": "06 22 33 44 55",
+        "phone": "06 39 98 22 33",
         "company": null,
         "jobTitle": null
       }
@@ -479,11 +479,11 @@
       "subject": "Demande de simulation — achat à Rezé",
       "counterpartName": "Élodie Vannier",
       "counterpartEmail": "elodie.vannier@courriel.example",
-      "body": "Bonjour,\n\nVotre newsletter m'a été transmise par une amie. Nous cherchons une maison à Rezé autour de 320 000 €, avec 40 000 € d'apport. Pouvez-vous nous dire ce qui est envisageable ?\n\nÉlodie Vannier\nResponsable RH — Ateliers du Sillon\n06 45 67 89 01",
+      "body": "Bonjour,\n\nVotre newsletter m'a été transmise par une amie. Nous cherchons une maison à Rezé autour de 320 000 €, avec 40 000 € d'apport. Pouvez-vous nous dire ce qui est envisageable ?\n\nÉlodie Vannier\nResponsable RH — Ateliers du Sillon\n06 39 98 45 67",
       "daysAgo": 1,
       "proposal": {
         "name": "Élodie Vannier",
-        "phone": "06 45 67 89 01",
+        "phone": "06 39 98 45 67",
         "company": "Ateliers du Sillon",
         "jobTitle": "Responsable RH"
       }
@@ -828,7 +828,7 @@
     "senderName": "Claire Vasseur — Vasseur Courtage",
     "senderEmail": "claire@vasseur-courtage.example",
     "country": "FR",
-    "postalAddress": "12 rue de Strasbourg, 44000 Nantes",
+    "postalAddress": "17 quai de la Démonstration, 44000 Nantes",
     "legalMention": "SAS Vasseur Courtage (cabinet fictif de démonstration) — ORIAS n° 26 001 234 — RCS Nantes 900 123 456",
     "privacyPolicyUrl": "https://vasseur-courtage.example/confidentialite",
     "businessPack": "courtier_credit",
@@ -848,42 +848,42 @@
       "company": "Horizon Immo",
       "profession": "Agent immobilier",
       "email": "sophie.guerin@horizon-immo.example",
-      "phone": "02 40 11 22 33"
+      "phone": "02 61 91 11 22"
     },
     {
       "name": "Mehdi Bouaziz",
       "company": "Loire Habitat Conseil",
       "profession": "Agent immobilier",
       "email": "m.bouaziz@loire-habitat.example",
-      "phone": "02 40 44 55 66"
+      "phone": "02 61 91 44 55"
     },
     {
       "name": "Maître Anne Le Goff",
       "company": "Office notarial Le Goff & Perrin",
       "profession": "Notaire",
       "email": "a.legoff@notaires-legoff.example",
-      "phone": "02 40 77 88 99"
+      "phone": "02 61 91 77 88"
     },
     {
       "name": "Julien Marchal",
       "company": "Marchal Patrimoine",
       "profession": "Conseiller en gestion de patrimoine",
       "email": "julien@marchal-patrimoine.example",
-      "phone": "06 12 34 56 78"
+      "phone": "06 39 98 12 34"
     },
     {
       "name": "Isabelle Roux",
       "company": "Cabinet Roux Expertise",
       "profession": "Expert-comptable",
       "email": "i.roux@roux-expertise.example",
-      "phone": "02 51 00 11 22"
+      "phone": "02 61 91 00 11"
     },
     {
       "name": "Damien Corre",
       "company": "Maisons Atlantiques",
       "profession": "Constructeur",
       "email": "d.corre@maisons-atlantiques.example",
-      "phone": "02 51 33 44 55"
+      "phone": "02 61 91 33 44"
     }
   ],
   "PEOPLE": {

@@ -178,6 +178,7 @@
     "confirmation_incorrecte": "La confirmation ne correspond pas : tape exactement le slug de l’organisation de démo.",
     "introuvable": "Aucune organisation de démo.",
     "pas_marquee": "Cette organisation n’est pas marquée comme démo : la réinitialisation refuse.",
-    "reinitialisation_en_cours": "Une réinitialisation est déjà en cours — attends qu’elle se termine."
+    "reinitialisation_en_cours": "Une réinitialisation est déjà en cours — attends qu’elle se termine.",
+    "geste_indisponible": "Ce geste n’est pas disponible dans l’organisation de démo : il appellerait un service réel avec des données réelles."
   }
 }

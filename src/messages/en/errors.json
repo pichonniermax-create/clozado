@@ -178,6 +178,7 @@
     "confirmation_incorrecte": "The confirmation does not match: type the demo organisation slug exactly.",
     "introuvable": "No demo organisation.",
     "pas_marquee": "This organisation is not marked as a demo: the reset refuses.",
-    "reinitialisation_en_cours": "A reset is already running — wait for it to finish."
+    "reinitialisation_en_cours": "A reset is already running — wait for it to finish.",
+    "geste_indisponible": "This action is not available in the demo organization: it would call a real service with real data."
   }
 }

@@ -46,6 +46,18 @@ function slugify(input: string): string {
  * base tranche alors, et l'appelant reçoit l'erreur — c'est le comportement
  * voulu, mieux vaut échouer que produire deux organisations homonymes.
  */
+/**
+ * Jamais donnés à une inscription : « demo » (l'organisation de démo se recrée sous ce slug fixe, docs/module-demo.md
+ * §1.7), les boîtes du produit sur le sous-domaine mutualisé (`<slug>@mail.…` est l'adresse d'expédition de repli :
+ * « connexion » est celle du produit, « postmaster »/« abuse » celles des normes), et les premiers segments d'URL du
+ * produit — un slug sert aussi de nom public.
+ */
+const RESERVED_SLUGS = new Set([
+  "demo", "clozado", "admin", "root", "system", "api", "app", "www", "mail", "in", "connexion", "login", "inscription",
+  "support", "contact", "hello", "bonjour", "info", "noreply", "no-reply", "postmaster", "abuse", "security", "billing",
+  "dashboard", "settings", "profil", "brand", "partage", "desinscription", "veille", "contacts", "affaires", "partenaires",
+]);
+
 async function availableSlug(name: string): Promise<string> {
   const base = slugify(name);
   const taken = new Set(
@@ -56,7 +68,7 @@ async function availableSlug(name: string): Promise<string> {
         .where(like(organizations.slug, `${base}%`))
     ).map((r) => r.slug)
   );
-  if (!taken.has(base)) return base;
+  if (!taken.has(base) && !RESERVED_SLUGS.has(base)) return base;
   for (let n = 2; n < 1000; n++) {
     const candidate = `${base}-${n}`;
     if (!taken.has(candidate)) return candidate;
