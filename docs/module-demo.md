@@ -888,6 +888,30 @@ revue adversariale de la clôture a trouvé les chemins d'écriture publics,
   guidée), refus en lecture seule sur `/taches`, brouillon avec le test
   simulé, carte après réinitialisation.
 
+**Second lot, même jour (`b0bc7ab`, `e0326df`) — 16 contrôles OK au
+navigateur et en HTTP, 0 erreur navigateur, plus une sonde HTTP.** Le
+visiteur : `/emails-recus` sans l'adresse d'ingestion ni le lien vers son
+réglage ; le brouillon sans la liste « Tests envoyés » rendue ni aucune
+adresse du super admin (la chaîne « Tests envoyés » reste dans le paquet
+de messages i18n embarqué — c'est la liste rendue qui compte) ; aucun slug
+réel. Le super admin dans la démo : Calendly refusé sans rien écrire (le
+super admin n'a pas d'organisation propre : « Aucune organisation
+sélectionnée » vient avant le garde-fou démo, qui reste une ceinture) ;
+déclaration de domaine refusée par « pas disponible dans l'organisation
+de démo », domaine inchangé. Un cookie de visite à signature fausse à
+côté de la vraie session : la notice « Ta visite de la démo est
+terminée » avec la sortie, le super admin reste lui-même ; « quitter la
+démo » efface le cookie. Réinitialisation depuis la carte : les 44
+contacts ont un numéro dans les tranches de fiction (la première passe
+avait montré `06 10 20 00 00`… : les numéros GÉNÉRÉS par `seed.ts`
+n'avaient pas suivi les huit du `dataset.json` — corrigé, `e0326df`),
+adresse postale inventée, aucun jeton de partage dérivé de
+`clozado-demo:share:N`, jeton d'ingestion aléatoire, même identifiant,
+toujours publique, organisations réelles intactes. La fiche contact vue
+par le visiteur porte bien le numéro de fiction (sonde HTTP : le champ
+téléphone de la fiche ; le harnais cherchait un texte là où le produit
+rend un `<input>` — faux échec, pas un défaut).
+
 **Ce que ce passage a appris.** (1) Le piège du préchargement vaut à
 l'entrée comme à la sortie — la preuve locale ne pouvait pas le voir
 (§1.4). (2) « Lecture seule imposée côté serveur » doit se lire « pour
