@@ -32,7 +32,8 @@
       "already_resolved": "You have already replied to this share.",
       "rate_limited": "Too many attempts — try again in a minute.",
       "invalid_action": "An error occurred.",
-      "network": "Connection failed. Try again."
+      "network": "Connection failed. Try again.",
+      "demo_read_only": "This share is part of the demo: you can view it, but it cannot receive an answer."
     },
     "le": "— on {formatDate}",
     "le_partenaire_pourra_commenter_une_fois_6de0": "The partner will be able to comment once the link is sent.",

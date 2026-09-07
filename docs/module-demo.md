@@ -313,6 +313,12 @@ partagent cette base.** Le script de reconnaissance
 - Le composeur (modèle) reste disponible au super admin dans la démo (pour
   la vidéo : la génération est un moment fort) ; il est fermé au visiteur
   public (aucun jeton brûlé par un inconnu).
+- L'ingestion (ajouté le 2026-09-07) : un email reçu sur l'adresse
+  d'ingestion de la démo est ignoré (`demo_ignored`) — l'adresse est
+  visible de tout visiteur sur `/emails-recus`, n'importe qui pourrait lui
+  écrire ; les emails reçus de la démo sont ceux du jeu de données, et
+  rien d'autre. Même règle pour la clé de site (`/api/events`) et la clé
+  d'API (`/api/leads`) : 403 `demo_read_only`, rien d'imputé.
 
 ### 1.4 La démo publique — la session de visite, la lecture seule côté serveur
 
@@ -375,6 +381,36 @@ admin.
 - Aucune organisation réelle n'est visible : le visiteur est `admin` de la
   démo, jamais super admin ; `orgScope` filtre tout ; la liste des
   organisations n'existe que pour un super admin réel.
+- **La lecture seule vaut pour TOUT LE MONDE, pas seulement pour le porteur
+  du cookie (ajouté le 2026-09-07, après la revue adversariale de la
+  clôture).** Le produit a des chemins d'écriture publics, par secret et
+  sans session : la vitrine `/partage/[token]` (accepter, refuser,
+  commenter), la désinscription `/desinscription/[id]` et
+  `/api/unsubscribe/[id]`, l'adresse d'ingestion `<jeton>@in…`, la clé de
+  site (`/api/events`) et la clé d'API (`/api/leads`). Or la démo MONTRE ses
+  secrets au visiteur (le lien d'un partage sur la fiche affaire, l'adresse
+  d'ingestion sur `/emails-recus`, la clé de site dans l'analytique) — et
+  ils étaient dérivés de chaînes connues (`clozado-demo:share:N`,
+  `clozado-demo:ingest`, `demoId("message:i:k")`), donc calculables sans
+  même visiter. N'importe qui pouvait donc accepter un partage de la démo,
+  désinscrire un contact fictif, ou faire apparaître son propre email sur
+  `/emails-recus` de la démo publique. Deux couches : (1) chaque chemin
+  public vérifie `isDemoOrganization` et REFUSE d'écrire (`demo_read_only`
+  → 403 et sa phrase sur la vitrine ; « Démonstration » sur la page de
+  désinscription ; `demo_ignored` à l'ingestion ; 403 sur événements et
+  leads) — même la première consultation d'un partage n'est plus
+  journalisée pour la démo ; (2) les secrets de la démo sont aléatoires à
+  chaque semis (`generateShareToken`, `generateIngestToken`, `randomUUID`
+  pour les messages), comme pour une organisation réelle. À retenir : « le
+  proxy refuse les écritures du visiteur » ne suffit pas quand l'écriture
+  n'a pas besoin du visiteur.
+- **Les petites choses de la même revue** : `/demo/quitter?vers=` refusait
+  `//hôte` mais pas `/\hôte` (les navigateurs lisent l'antislash comme une
+  barre) — un chemin relatif ne commence ni par `//` ni par `/\` ;
+  `/api/auth/*` passe toujours (un lien magique cliqué pendant une visite
+  connecte, et termine la visite) ; le cookie du didacticiel mal encodé vaut
+  « aucun état » au lieu d'une erreur ; le composeur traduit le refus de la
+  démo (`demo_read_only`) au lieu d'afficher la clé.
 - Rien n'est indexé (`x-robots-tag: noindex` sur `/demo` et
   `/demo/quitter`), et le bandeau dit d'entrée : « Démo publique — cabinet
   fictif, données inventées, lecture seule ».
@@ -412,6 +448,21 @@ admin.
   préchargement autrement. Règle générale à retenir : une route `GET` qui
   AGIT ne se lie jamais par `Link`, et le proxy ne sait pas distinguer un
   préchargement d'une transition sans les Fetch Metadata.
+- **Le même piège à l'ENTRÉE, trouvé depuis la production le 2026-09-07.**
+  La carte Démo de l'espace gestionnaire liait `/demo` par un `Link` ;
+  dès l'affichage de la carte (interrupteur allumé), le routeur préchargeait
+  `GET /demo`, la route posait le cookie de visite sur le navigateur du
+  super admin, et comme la visite prime sur la session (§1.4), le super
+  admin devenait visiteur en lecture seule de sa propre production : la
+  page suivante portait `?demo=lecture-seule`, « M'envoyer un test » ne
+  faisait rien, la carte Démo disparaissait. Invisible en local : la preuve
+  §5.3 tournait interrupteur éteint (`/demo` → 404, donc pas de cookie) et
+  la preuve §5.4 n'a pas navigué en super admin après l'ouverture. Trouvé
+  par la preuve §5.6 (le test d'envoi « ne partait pas », le champ de
+  confirmation « manquait » — deux symptômes, une cause). Même parade que
+  la sortie : le lien est un `<a>` sans préchargement, et `/demo` répond
+  204 sans cookie à un `Next-Router-Prefetch: 1`. Règle confirmée, à
+  appliquer à toute route qui agit : `<a>` ET refus du préchargement.
 
 ### 1.5 La base locale de preuve
 

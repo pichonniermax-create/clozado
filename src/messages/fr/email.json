@@ -19,6 +19,8 @@
     "already": "L’adresse {email} était déjà désinscrite des emails de {organization}.",
     "test_title": "Email de test",
     "test": "Cet email était un test envoyé depuis {product} : il n’y a rien à désinscrire.",
+    "demo_title": "Démonstration",
+    "demo": "Cet email fait partie de la démonstration de {product} : un cabinet fictif, des adresses inventées — il n’y a rien à désinscrire.",
     "invalid_title": "Ce lien n’est pas valide",
     "invalid": "Le lien de désinscription est incomplet ou expiré. Vous pouvez répondre à l’email reçu pour demander à ne plus être contacté."
   }

@@ -37,7 +37,13 @@ const STATUSES: readonly TourStatus[] = ["en_cours", "masque", "termine"];
 /** « 3|en_cours » → { step: 3, status: "en_cours" } ; tout ce qui n'a pas cette forme vaut « aucun état ». */
 export function parseTourState(raw: string | undefined | null): TourState | null {
   if (!raw) return null;
-  const [stepText, status] = decodeURIComponent(raw).split("|");
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    return null; // un cookie forgé ou abîmé vaut « aucun état », jamais une erreur
+  }
+  const [stepText, status] = decoded.split("|");
   const step = Number(stepText);
   if (!Number.isInteger(step) || step < 0 || step >= TOUR_STEPS.length) return null;
   if (!STATUSES.includes(status as TourStatus)) return null;

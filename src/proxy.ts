@@ -29,6 +29,13 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const reading = request.method === "GET" || request.method === "HEAD";
   if (pathname === "/demo" || pathname.startsWith("/demo/")) return NextResponse.next();
+  // Auth.js (lien magique demandé, puis cliqué) ne touche à aucune organisation : il passe toujours,
+  // et une vraie navigation vers lui (le clic sur le lien reçu) termine la visite comme /login.
+  if (pathname.startsWith("/api/auth/")) {
+    const response = NextResponse.next();
+    if (isNavigation(request.headers)) response.cookies.delete(DEMO_COOKIE);
+    return response;
+  }
   if (reading && EXIT_PATHS.includes(pathname) && isNavigation(request.headers)) {
     const response = NextResponse.next();
     response.cookies.delete(DEMO_COOKIE);

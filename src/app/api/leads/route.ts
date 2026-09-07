@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authenticateApiKey, receiveLead, recordRejection } from "@/db/queries/acquisition";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { isDemoOrganization } from "@/lib/demo/guard";
 
 /**
  * POST /api/leads — l'entrée des leads, SERVEUR À SERVEUR uniquement :
@@ -73,6 +74,10 @@ export async function POST(request: Request) {
   if (!auth.ok) {
     if (auth.reason === "revoked") await recordRejection(auth.organizationId, "api_key_revoked", auth.keyPrefix);
     return NextResponse.json({ error: "invalid_api_key" }, { status: 401, headers: HEADERS });
+  }
+  // La démo (docs/module-demo.md §1.4) : une clé d'API de la démo n'écrit rien.
+  if (await isDemoOrganization(auth.organizationId)) {
+    return NextResponse.json({ error: "demo_read_only" }, { status: 403, headers: HEADERS });
   }
   if (!checkRateLimit(`leads:key:${auth.apiKeyId}`, { limit: 120, windowMs: 60_000 })) {
     await recordRejection(auth.organizationId, "rate_limited", auth.keyPrefix);

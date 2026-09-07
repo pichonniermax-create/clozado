@@ -7,6 +7,7 @@ import { createOrganizationWithAdmin } from "@/db/queries/signup";
 import { isPlausibleEmail } from "@/lib/email/address";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getTranslations } from "next-intl/server";
+import { isReservedExampleAddress } from "@/lib/demo/constants";
 
 /**
  * Les deux seules actions déclenchables par un anonyme. Elles écrivent en
@@ -80,7 +81,9 @@ export async function signUpAction(
   if (organizationName.length > 120) {
     return { error: t("ce_nom_est_trop_long_120_d600") };
   }
-  if (!isPlausibleEmail(email)) {
+  // Une adresse sur un domaine réservé aux exemples (.example, example.com…) ne recevra jamais de lien :
+  // l'accepter créerait une organisation orpheline, que rien ne peut supprimer.
+  if (!isPlausibleEmail(email) || isReservedExampleAddress(email)) {
     return { error: t("cette_adresse_email_ne_semble_pas_da6f") };
   }
   // Plus strict que la connexion : chaque inscription crée une organisation.

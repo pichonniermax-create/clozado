@@ -32,7 +32,8 @@
       "already_resolved": "Vous avez déjà répondu à ce partage.",
       "rate_limited": "Trop de tentatives — réessayez dans une minute.",
       "invalid_action": "Une erreur est survenue.",
-      "network": "Connexion impossible. Réessayez."
+      "network": "Connexion impossible. Réessayez.",
+      "demo_read_only": "Ce partage fait partie de la démonstration : il se consulte, mais ne peut pas recevoir de réponse."
     },
     "le": "— le {formatDate}",
     "le_partenaire_pourra_commenter_une_fois_6de0": "Le partenaire pourra commenter une fois le lien envoyé.",

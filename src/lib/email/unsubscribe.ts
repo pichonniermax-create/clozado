@@ -14,6 +14,8 @@ import { getMessageById } from "@/db/queries/email-sends";
 export type UnsubscribeOutcome =
   | { kind: "invalid" }
   | { kind: "test"; organizationName: string; locale: string }
+  /** Un message de l'organisation de démo (docs/module-demo.md §1.4) : rien à désinscrire, rien d'écrit. */
+  | { kind: "demo"; organizationName: string; locale: string }
   | { kind: "done" | "already"; organizationName: string; email: string; locale: string };
 
 export async function resolveUnsubscribe(messageId: string): Promise<UnsubscribeOutcome> {
@@ -21,6 +23,7 @@ export async function resolveUnsubscribe(messageId: string): Promise<Unsubscribe
   if (!message) return { kind: "invalid" };
   const org = await db.query.organizations.findFirst({ where: eq(organizations.id, message.organizationId) });
   if (!org) return { kind: "invalid" };
+  if (org.isDemo) return { kind: "demo", organizationName: org.name, locale: org.defaultLocale };
   if (message.kind === "test") return { kind: "test", organizationName: org.name, locale: org.defaultLocale };
   return { kind: "already", organizationName: org.name, email: message.toEmail, locale: org.defaultLocale };
 }
@@ -31,6 +34,7 @@ export async function unsubscribeByMessage(messageId: string, source: Suppressio
   if (!message) return { kind: "invalid" };
   const org = await db.query.organizations.findFirst({ where: eq(organizations.id, message.organizationId) });
   if (!org) return { kind: "invalid" };
+  if (org.isDemo) return { kind: "demo", organizationName: org.name, locale: org.defaultLocale };
   if (message.kind === "test") return { kind: "test", organizationName: org.name, locale: org.defaultLocale };
   const added = await addSuppression({
     organizationId: message.organizationId,

@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+import { randomUUID } from "crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as s from "@/db/schema";
@@ -9,7 +9,8 @@ import { insertWatchItems, type NewWatchItemInput } from "@/db/queries/watch";
 import { DEFAULT_LOCALE } from "@/i18n/locales";
 import { translatorFor } from "@/i18n/translator";
 import { generateApiKey, generateSiteKey } from "@/lib/acquisition/keys";
-import { hashShareToken } from "@/lib/deal-shares/token";
+import { generateShareToken } from "@/lib/deal-shares/token";
+import { generateIngestToken } from "@/lib/email/inbound/address";
 import { resolveSender } from "@/lib/email/sender";
 import { AppError } from "@/lib/errors";
 import { renderRuleTemplate } from "@/lib/rules/template";
@@ -132,7 +133,9 @@ export async function createDemoOrganization(options: { now?: Date; demoPublicEn
       privacyPolicyUrl: D.ORGANIZATION.privacyPolicyUrl,
       businessPack: D.ORGANIZATION.businessPack,
       allowedDomains: [...D.ORGANIZATION.allowedDomains],
-      ingestToken: createHash("sha256").update("clozado-demo:ingest").digest("hex").slice(0, 20),
+      // Un secret par semis, comme pour une organisation réelle : l'adresse d'ingestion de la démo est visible de tout
+      // visiteur, et l'ingestion l'ignore de toute façon (docs/module-demo.md §1.3) — deux couches.
+      ingestToken: generateIngestToken(),
       storeInboundBodies: true,
       autoSendEnabled: true,
       createdAt: at(230),
@@ -432,7 +435,7 @@ export async function createDemoOrganization(options: { now?: Date; demoPublicEn
       organizationId: orgId,
       dealId: dealIds[share.deal],
       partnerId: partnerIds[share.partner],
-      tokenHash: hashShareToken(`clozado-demo:share:${i}`),
+      tokenHash: generateShareToken().tokenHash, // un jeton aléatoire par semis, jamais dérivé — la vitrine se consulte, mais refuse toute réponse (§1.4)
       status: share.status,
       proposedTerms: terms,
       message: D.TEXTS.shareMessage(partner.name.split(" ")[0], deal.title.toLowerCase()),
@@ -585,7 +588,7 @@ export async function createDemoOrganization(options: { now?: Date; demoPublicEn
     let bounces = n.stats.bounced;
     let unsubscribes = n.stats.unsubscribed;
     members.forEach(({ row, i: contactIndex }, k) => {
-      const messageId = demoId(`message:${i}:${k}`);
+      const messageId = randomUUID(); // jamais dérivé : le lien de désinscription d'un message est un secret (et la démo n'y répond de toute façon pas)
       recipientRows.push({ organizationId: orgId, newsletterId: newsletterIds[i], contactId: row.id! });
       const queuedAt = sentAt;
       const msgSentAt = new Date(sentAt.getTime() + 20_000 + k * 700);

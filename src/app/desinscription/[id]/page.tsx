@@ -65,6 +65,14 @@ function Content({ outcome, done, t, confirm }: { outcome: UnsubscribeOutcome; d
       </>
     );
   }
+  if (outcome.kind === "demo") {
+    return (
+      <>
+        <h1 className="mb-3 text-xl font-semibold">{t("demo_title")}</h1>
+        <p className="text-sm leading-relaxed">{t("demo", { product: PRODUCT_NAME })}</p>
+      </>
+    );
+  }
   if (outcome.kind === "invalid") return null;
   const { organizationName, email } = outcome;
   if (done) {

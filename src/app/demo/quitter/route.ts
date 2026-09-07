@@ -15,7 +15,8 @@ export async function GET(request: Request) {
   if (isRouterPrefetch(request.headers)) return new NextResponse(null, { status: 204, headers: { "x-robots-tag": "noindex" } });
   const url = new URL(request.url);
   const wanted = url.searchParams.get("vers") ?? "/";
-  const safe = wanted.startsWith("/") && !wanted.startsWith("//") ? wanted : "/";
+  // Un chemin relatif seulement : ni « //hôte », ni « /\hôte » (les navigateurs lisent l'antislash comme une barre).
+  const safe = /^\/(?![\/\\])/.test(wanted) ? wanted : "/";
   const response = NextResponse.redirect(new URL(safe, request.url), 303);
   response.headers.set("x-robots-tag", "noindex");
   response.cookies.delete(DEMO_COOKIE);

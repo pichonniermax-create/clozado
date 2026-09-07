@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { receiveEvents, recordRejection, resolveSiteKey } from "@/db/queries/acquisition";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { isDemoOrganization } from "@/lib/demo/guard";
 
 /**
  * POST /api/events — visites et simulations, depuis le NAVIGATEUR (extrait
@@ -106,6 +107,10 @@ export async function POST(request: Request) {
     // Clé inconnue : aucune organisation à qui l'imputer, on refuse sans rien compter.
     if (site.reason === "revoked") await recordRejection(site.organizationId, "site_key_revoked", parsed.data.site.slice(0, 8));
     return NextResponse.json({ error: "unknown_site" }, { status: 404, headers: corsHeaders(origin) });
+  }
+  // La démo (docs/module-demo.md §1.4) : sa clé de site est visible de n'importe quel visiteur — elle n'impute rien.
+  if (await isDemoOrganization(site.organizationId)) {
+    return NextResponse.json({ error: "demo_read_only" }, { status: 403, headers: corsHeaders(origin) });
   }
   if (!host) {
     await recordRejection(site.organizationId, "origin_missing", "(absent)");

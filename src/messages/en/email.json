@@ -19,6 +19,8 @@
     "already": "{email} was already unsubscribed from {organization}’s emails.",
     "test_title": "Test email",
     "test": "This email was a test sent from {product}: there is nothing to unsubscribe from.",
+    "demo_title": "Demo",
+    "demo": "This email is part of the {product} demo: a fictional firm, made-up addresses — there is nothing to unsubscribe.",
     "invalid_title": "This link is not valid",
     "invalid": "The unsubscribe link is incomplete or expired. You can reply to the email you received to ask not to be contacted again."
   }

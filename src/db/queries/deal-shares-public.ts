@@ -19,6 +19,7 @@ import { assetUrlsFromMeta } from "@/lib/brand/assets";
 import { hashShareToken } from "@/lib/deal-shares/token";
 import type { RenderBrand } from "@/lib/newsletter/render-email";
 import { AppError } from "@/lib/errors";
+import { isDemoOrganization } from "@/lib/demo/guard";
 
 /**
  * SEULE EXCEPTION À `orgScope` DE TOUT LE PRODUIT.
@@ -112,7 +113,7 @@ export type PublicShareView = {
 
 export type ResolvedShare =
   | { ok: true; view: PublicShareView }
-  | { ok: false; reason: "not_found" | "revoked" | "expired" | "already_resolved" };
+  | { ok: false; reason: "not_found" | "revoked" | "expired" | "already_resolved" | "demo_read_only" };
 
 type DealShareRow = typeof dealShares.$inferSelect;
 
@@ -129,7 +130,8 @@ export async function resolvePublicShare(token: string): Promise<ResolvedShare> 
   const rejection = await checkAccessible(share);
   if (rejection) return rejection;
 
-  await logFirstView(share);
+  // La démo publique (docs/module-demo.md §1.4) : sa vitrine se consulte, mais n'écrit rien — même pas la première consultation.
+  if (!(await isDemoOrganization(share.organizationId))) await logFirstView(share);
   return { ok: true, view: await buildView(share) };
 }
 
@@ -159,6 +161,10 @@ export async function applyPublicShareAction(
 
   const rejection = await checkAccessible(share);
   if (rejection) return rejection;
+
+  // La démo est en lecture seule pour tout le monde, jeton en main ou pas (docs/module-demo.md §1.4) :
+  // ses partages ne s'acceptent, ne se refusent, ne se commentent jamais depuis l'extérieur.
+  if (await isDemoOrganization(share.organizationId)) return { ok: false, reason: "demo_read_only" };
 
   if (action.type === "accept" || action.type === "decline") {
     if (share.status !== "pending") {

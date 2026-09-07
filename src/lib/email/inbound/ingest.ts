@@ -14,6 +14,7 @@ import { authenticateSender } from "./authenticate";
 import { extractEmail, extractEmails, firstHeader, parseRawMessage } from "./mime";
 import { parseInbound } from "./parse";
 import { proposeSignature } from "./signature";
+import { isDemoOrganization } from "@/lib/demo/guard";
 
 /**
  * L'INGESTION D'UN EMAIL REÇU (docs/module-engagement.md §4) — les quatre
@@ -52,7 +53,9 @@ export type IngestOutcome =
   /** Déjà ingéré (même identifiant de fournisseur, ou même `Message-ID` pour cette organisation). */
   | { outcome: "duplicate" }
   | { outcome: "rejected"; reason: RejectionReason; id: string | null }
-  | { outcome: "stored"; id: string };
+  | { outcome: "stored"; id: string }
+  /** L'organisation de démo (docs/module-demo.md §1.3) : son adresse est publique par construction, rien n'y entre. */
+  | { outcome: "demo_ignored" };
 
 /** Ce que le webhook `email.received` porte — des métadonnées seulement (le contenu se relit ensuite). */
 export type ReceivedNotice = {
@@ -95,6 +98,7 @@ export async function ingestReceivedEmail(notice: ReceivedNotice): Promise<Inges
     await recordInboundRejection("unknown_address", token.slice(0, 4));
     return { outcome: "unknown_address" };
   }
+  if (await isDemoOrganization(organization.id)) return { outcome: "demo_ignored" };
 
   const receivedAt = notice.createdAt ? new Date(notice.createdAt) : new Date();
   const at = Number.isNaN(receivedAt.getTime()) ? new Date() : receivedAt;

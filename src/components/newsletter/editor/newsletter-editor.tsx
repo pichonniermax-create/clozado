@@ -127,6 +127,7 @@ export type NewsletterEditorProps = {
 export function NewsletterEditor({ targets, brand, signatory, initialTargetId, initialBrief, sources = [], allowedFigures, initialTopics, initial, lang }: NewsletterEditorProps) {
   const tr = useTranslations("newsletters.newsletterEditor");
   const tb = useTranslations("newsletters");
+  const tDemo = useTranslations("demo.banner");
   const fmt = useFormats();
   const [newsletterId, setNewsletterId] = useState(initial?.id);
   const [targetId, setTargetId] = useState(initial?.targetId ?? initialTargetId ?? targets[0]?.id ?? "");
@@ -277,7 +278,8 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
 
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => null);
-        setError(data?.error ?? tr("la_redaction_a_echoue"));
+        // Le proxy de la démo publique répond par un code technique (docs/module-demo.md §1.4) : on le traduit.
+        setError(data?.error === "demo_read_only" ? tDemo("lecture_seule_notice") : (data?.error ?? tr("la_redaction_a_echoue")));
         return;
       }
 

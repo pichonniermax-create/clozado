@@ -71,7 +71,7 @@ const STATUS_BANNER: Record<
  * cette page. Repli générique pour tout code non prévu ici.
  */
 /** Les codes que la route publique renvoie et qui ont une phrase (`shares.partnerShareView.errors.<code>`) ; tout autre code reçoit la phrase générique. */
-const ACTION_ERROR_CODES = ["not_found", "revoked", "expired", "already_resolved", "rate_limited", "invalid_action", "network"] as const;
+const ACTION_ERROR_CODES = ["not_found", "revoked", "expired", "already_resolved", "rate_limited", "invalid_action", "network", "demo_read_only"] as const;
 type ActionErrorCode = (typeof ACTION_ERROR_CODES)[number];
 
 function actionErrorCode(code: string): ActionErrorCode {

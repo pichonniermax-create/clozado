@@ -51,7 +51,9 @@ function resultToResponse(result: { ok: true; view: unknown } | { ok: false; rea
       ? 404
       : result.reason === "revoked" || result.reason === "expired"
         ? 410
-        : 409; // already_resolved
+        : result.reason === "demo_read_only"
+          ? 403
+          : 409; // already_resolved
   return NextResponse.json({ error: result.reason }, { status, headers: HEADERS });
 }
 

@@ -133,7 +133,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                       <form action={closeDemo}>
                         <Button type="submit" variant="outline">{td("fermer")}</Button>
                       </form>
-                      <Link href="/demo" className={buttonVariants({ variant: "ghost" })}>{td("visiter")}</Link>
+                      {/* Un <a>, pas un Link : /demo AGIT (elle pose le cookie de visite) et un préchargement
+                          faisait du super admin un visiteur en lecture seule dès l'affichage de cette carte (§1.4). */}
+                      <a href="/demo" className={buttonVariants({ variant: "ghost" })}>{td("visiter")}</a>
                     </>
                   ) : (
                     <form action={openDemo}>
