@@ -796,6 +796,72 @@ construire et prouver ; **sur la base partagée, jamais sans accord (D2).**
 
 ## 5. Preuves
 
+### 5.6 Sous-étape 6 — depuis la production (2026-09-07)
+
+`scripts/_tmp-demo-prod-proof.ts` (gitignoré, supprimé à la clôture ;
+refuse toute base autre que Neon), Chromium contre `clozado.vercel.app`
+(`81d13ab` déployé), session forgée du super admin RÉEL (même
+`AUTH_SECRET`, cookie `__Secure-authjs.session-token`), lectures en base
+partagée seulement — chaque écriture passe par l'écran de production.
+**31 contrôles OK, 0 échec, 0 erreur navigateur** (troisième passage ; les
+deux premiers ont trouvé le piège du préchargement à l'entrée, §1.4, et la
+revue adversariale de la clôture a trouvé les chemins d'écriture publics,
+§1.3-1.4 — tout est corrigé et déployé avant ce passage).
+
+- **L'espace gestionnaire (6)** : les trois requêtes de sélection des crons
+  ne renvoient pas la démo (`listStaleOrganizations`,
+  `listOrganizationsWithActiveRules`, `listResumableSends`, exécutées sur la
+  base de production) ; la liste montre Vasseur Courtage avec le badge Démo
+  et les organisations réelles ; l'interrupteur est ouvert (ouvert le
+  2026-09-04 depuis la carte, création journalisée `seed`, 10 s) ; après
+  5 s sur la carte, lien « Visiter la démo » à l'écran, **aucun cookie de
+  visite** dans le navigateur du super admin.
+- **HTTP brut, sans navigateur (12)** : `/demo` préchargé
+  (`Next-Router-Prefetch: 1`) → 204 sans `Set-Cookie` ; `/demo` → 303
+  `/dashboard?visite=1` avec le cookie `httpOnly` + `Secure` ; visiteur :
+  `/settings`, `/profil`, `/contacts/import` → 303
+  `/dashboard?demo=lecture-seule`, `/api/…` → 403, action serveur forgée →
+  200 + `x-action-redirect`, POST de formulaire → 303 ; **sans aucun
+  cookie** : désinscription en un clic d'un message de la démo → `outcome:
+  demo`, aucune ligne dans `email_suppressions` ; la page de désinscription
+  dit « Démonstration » sans bouton ; `/demo/quitter?vers=/\evil.example`
+  → 303 vers `/` ; `POST /api/events` avec la clé de site de la démo → 403
+  `demo_read_only`.
+- **Le visiteur au navigateur (7)** : tableau de bord de Vasseur Courtage,
+  bandeau, « Étape 1 sur 8 » ; cinq secondes sans requête vers
+  `/demo/quitter`, `/login` ni `/inscription`, cookie toujours là ; ni menu
+  « Nouveau », ni réglages, ni « Se déconnecter » ; « Créer mon compte » /
+  « Quitter la démo » ; **aucune organisation réelle visible** (les slugs
+  réels absents du texte) ; « Suivant » → partenaires, étape 2 ; un clic
+  d'écriture sur `/taches` → phrase « lecture seule », `tasks` inchangé ;
+  après « Quitter la démo », `/dashboard` renvoie à la connexion.
+- **Le transport, depuis l'écran (2)** : le super admin dans la démo ouvre
+  le brouillon (pas de `?demo=lecture-seule`, bouton « M'envoyer un test »
+  actif) ; le clic crée en production un message `kind=test` **« sent »
+  avec l'identifiant `demo:<id>`** — aucun appel à Resend, l'écran dit
+  « Partira de … <demo@mail.clozado.fr> » puis la note de simulation.
+- **La réinitialisation, depuis la carte (4)** : « Démo réinitialisée en
+  13 s : 44 contacts recréés » ; journal `reset` `done` demandé par le
+  super admin, 10 s côté serveur, comptes avant/après (26 tables :
+  44 contacts, 26 affaires, 13 partages, 5 newsletters, 71 messages
+  supprimés dont le test / 70 recréés, 207 événements d'email,
+  597 événements de visite…) ; l'organisation existe à nouveau avec le
+  même identifiant, marquée démo, **toujours publique** ; les deux
+  organisations réelles intactes (mêmes identifiants avant/après).
+- Captures : espace gestionnaire, visiteur (tableau de bord + visite
+  guidée), refus en lecture seule sur `/taches`, brouillon avec le test
+  simulé, carte après réinitialisation.
+
+**Ce que ce passage a appris.** (1) Le piège du préchargement vaut à
+l'entrée comme à la sortie — la preuve locale ne pouvait pas le voir
+(§1.4). (2) « Lecture seule imposée côté serveur » doit se lire « pour
+tout le monde » : les chemins par secret (vitrine, désinscription,
+ingestion, clés) n'ont pas besoin de cookie ; une revue adversariale du
+code les a trouvés là où une preuve d'écran ne les cherchait pas. (3) Le
+classificateur de l'outil bloque tout script qui semble écrire sur la
+base partagée : les écritures de preuve passent par l'écran de production,
+et le script se lance par la même commande à chaque fois.
+
 ### 5.3 Sous-étape 3 — la réinitialisation depuis l'espace gestionnaire (2026-09-04)
 
 `scripts/_tmp-demo-reset-ui.ts` (local, gitignoré ; refuse toute base
@@ -995,3 +1061,16 @@ en 17 à 27 s.
   base partagée, fusion `demo` → `main`, démo créée et ouverte depuis la
   production, preuve depuis la production (§5.6), scripts temporaires
   supprimés.
+- **Sous-étape 6 — la clôture, depuis la production** (2026-09-04 → 07) :
+  migration 0017 appliquée sur la base partagée (18 migrations), `demo`
+  fusionnée dans `main` (`79b3ff3`), démo créée depuis la carte en
+  production le 04/09 et ouverte. La preuve du 07/09 a trouvé le piège du
+  préchargement à l'entrée ; la revue adversariale de la clôture, les
+  chemins d'écriture publics par secret et quatre petites choses —
+  corrigés et déployés (`81d13ab`), puis **31 contrôles OK depuis la
+  production** (§5.6). Scripts temporaires supprimés. **Chantier démo
+  TERMINÉ.** Restent, pour un chantier suivant : le composeur ouvert au
+  visiteur avec un plafond (D5, si voulu), un domaine dédié à la démo (D4),
+  le vieillissement du jeu de données sans réinitialisation (les tâches
+  « en retard » s'accumulent : un cron de réinitialisation nocturne serait
+  la réponse — plan Pro).
