@@ -417,9 +417,16 @@ admin.
   avec des données réelles : connecter un Calendly (les rendez-vous d'un
   vrai compte deviendraient publics) et déclarer un domaine d'expédition
   chez Resend (`demo.geste_indisponible`). Le jeu de données n'a plus
-  aucun numéro attribuable (tranches réservées à la fiction par l'ARCEP :
-  `06 39 98 xx xx`, `02 61 91 xx xx`) ni d'adresse postale réelle
-  (« 17 quai de la Démonstration, 44000 Nantes »). Les slugs `demo`, ceux
+  aucun numéro attribuable — ni les huit du `dataset.json`, ni les 44
+  contacts et les correspondants de partenaires que `seed.ts` GÉNÈRE (la
+  première preuve du second lot l'a rappelé : `06 10 20 00 00`… sortaient
+  d'une formule) — tout est dans les tranches réservées à la fiction par
+  l'ARCEP (`06 39 98 xx xx`, `02 61 91 xx xx`), ni d'adresse postale
+  réelle (« 17 quai de la Démonstration, 44000 Nantes »). Le garde-fou
+  Calendly est une ceinture : le super admin substitué n'a pas
+  d'organisation propre et l'action refuse avant lui (« Aucune organisation
+  sélectionnée ») ; il vaut pour un admin réel de la démo, qui n'existe
+  pas (adresse `.example`). Les slugs `demo`, ceux
   des boîtes du produit (`connexion`, `postmaster`…) et des chemins du
   produit sont réservés à l'inscription : une inscription nommée « Demo »
   aurait pris le slug sous lequel la démo se recrée, et un inscrit nommé

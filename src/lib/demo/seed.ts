@@ -230,7 +230,7 @@ export async function createDemoOrganization(options: { now?: Date; demoPublicEn
     const city = D.CITIES[i % D.CITIES.length];
     const provider = D.MAIL_PROVIDERS[i % D.MAIL_PROVIDERS.length];
     const email = i === 38 ? null : `${slugify(firstName)}.${slugify(lastName)}@${provider}`;
-    return { firstName, lastName, city, email, phone: `06 ${String(10 + i).padStart(2, "0")} ${String(20 + ((i * 13) % 80)).padStart(2, "0")} ${String((i * 31) % 100).padStart(2, "0")} ${String((i * 17) % 100).padStart(2, "0")}` };
+    return { firstName, lastName, city, email, phone: `06 39 98 ${String(i).padStart(2, "0")} ${String((i * 37) % 100).padStart(2, "0")}` }; // 06 39 98 xx xx : la tranche réservée à la fiction (ARCEP) — jamais un numéro attribuable
   };
   const contactOwner = (i: number): string => {
     const deal = dealByContact.get(i);
@@ -280,7 +280,7 @@ export async function createDemoOrganization(options: { now?: Date; demoPublicEn
       kind: "company",
       name: c.name,
       email: `contact@${slugify(c.name).slice(0, 24)}.example`,
-      phone: `02 40 ${String(50 + j).padStart(2, "0")} ${String(10 + j * 7).padStart(2, "0")} ${String(30 + j * 3).padStart(2, "0")}`,
+      phone: `02 61 91 ${String(50 + j).padStart(2, "0")} ${String((10 + j * 7) % 100).padStart(2, "0")}`, // 02 61 91 xx xx : fixes de fiction de l'Ouest (ARCEP)
       city: c.city,
       postalCode: c.postalCode,
       country: "FR",
