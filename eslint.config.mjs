@@ -20,10 +20,12 @@ const eslintConfig = defineConfig([
   // Aucune chaîne visible dans le code (chantier marque blanche et
   // internationalisation, étape 4) : la règle et ses exceptions sont
   // documentées dans eslint-rules/no-visible-text.mjs. Les prompts du
-  // modèle (src/lib/ai) ne sont pas des textes d'interface : exclus.
+  // modèle (src/lib/ai) ne sont pas des textes d'interface : exclus. Les
+  // tests unitaires non plus (leurs intitulés et leurs valeurs d'exemple ne
+  // s'affichent nulle part) : exclus aussi.
   {
     files: ["src/**/*.{ts,tsx}"],
-    ignores: ["src/lib/ai/**"],
+    ignores: ["src/lib/ai/**", "src/**/*.test.ts", "src/**/*.test.tsx"],
     plugins: { local },
     rules: { "local/no-visible-text": "error", "local/client-namespaces": "error" },
   },

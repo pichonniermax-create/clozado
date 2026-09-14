@@ -1,0 +1,98 @@
+# L'intégration continue (chantier audit et production-ready, étape 3 — docs/audit-production-ready.md §5 Q1).
+# Jusqu'ici, le build Vercel était le seul contrôle : il vérifie le typage, pas le comportement.
+# Ici, sur chaque pull request et chaque poussée sur main : lint → typecheck → tests unitaires → build
+# avec des variables factices → audit des dépendances de production ; puis, dans un second travail,
+# les migrations rejouées de zéro sur un Postgres jetable et la preuve d'isolation entre organisations
+# (scripts/test-isolation.ts), par le même pilote HTTP que la production (proxy compatible Neon).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verifier:
+    name: Lint, typecheck, tests, build, audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Des valeurs FACTIVES : le build ne se connecte à rien, mais src/db/index.ts refuse de charger sans DATABASE_URL.
+      DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+      AUTH_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+      AUTH_TRUST_HOST: "true"
+      EMAIL_FROM: CI <ci@ci.invalid>
+      EMAIL_SHARED_DOMAIN: ci.invalid
+      EMAIL_INBOUND_DOMAIN: in.ci.invalid
+      APP_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Audit des dépendances de production
+        run: npm audit --omit=dev --audit-level=high
+
+  isolation:
+    name: Migrations et isolation sur base jetable
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: main
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      # Le proxy HTTP compatible Neon (docs/module-demo.md §1.5) : le pilote neon-http du produit ne parle que HTTP.
+      neon-proxy:
+        image: ghcr.io/timowilhelm/local-neon-http-proxy:main
+        env:
+          PG_CONNECTION_STRING: postgres://postgres:postgres@postgres:5432/main
+        ports: ["4444:4444"]
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/main
+      DATABASE_HTTP_ENDPOINT: http://localhost:4444/sql
+      AUTH_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+      AUTH_TRUST_HOST: "true"
+      EMAIL_FROM: CI <ci@ci.invalid>
+      EMAIL_SHARED_DOMAIN: ci.invalid
+      EMAIL_INBOUND_DOMAIN: in.ci.invalid
+      APP_URL: http://localhost:3000
+      # Une clé volontairement invalide : même un envoi qui échapperait aux gardes ne partirait pas.
+      RESEND_API_KEY: re_ci_invalid
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Attendre le proxy
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf -X POST http://localhost:4444/sql -H 'Neon-Connection-String: postgres://postgres:postgres@postgres:5432/main' -H 'Content-Type: application/json' -d '{"query":"select 1","params":[]}' >/dev/null; then echo "proxy prêt"; exit 0; fi
+            sleep 2
+          done
+          echo "proxy indisponible"; exit 1
+      - name: Migrations (de zéro)
+        run: npx tsx scripts/db-migrate.ts
+      - name: Preuve d'isolation
+        run: npx tsx scripts/test-isolation.ts
