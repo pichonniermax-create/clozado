@@ -6,7 +6,7 @@ import type { EmailMessage, NewsletterSend } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import type { OrgScopeUser } from "@/lib/session";
 import { assertOrgAccess } from "@/db/scope";
-import { memberCondition, type TargetLike } from "./mail-targets";
+import { memberCondition, memberConditionStrict, type TargetLike } from "./mail-targets";
 
 /**
  * L'ENVOI RÉEL d'une newsletter, côté base (docs/module-engagement.md §3.3) :
@@ -60,7 +60,7 @@ export async function startNewsletterSend(input: StartSendInput): Promise<{ send
       INSERT INTO ${newsletterRecipients} (organization_id, newsletter_id, contact_id)
       SELECT ${input.organizationId}::uuid, ${input.newsletterId}::uuid, ${contacts.id}
       FROM ${contacts}
-      WHERE EXISTS (SELECT 1 FROM fresh) AND ${memberCondition(input.target)}
+      WHERE EXISTS (SELECT 1 FROM fresh) AND ${memberConditionStrict(input.target)}
       ON CONFLICT DO NOTHING
       RETURNING contact_id
     ),

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { applyPublicShareAction, resolvePublicShare } from "@/db/queries/deal-shares-public";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/client-ip";
 
 /**
  * SEULE ROUTE PUBLIQUE, SANS SESSION, DU PRODUIT — accès par jeton
@@ -24,13 +25,9 @@ const HEADERS = {
 };
 
 function clientKey(request: Request, token: string) {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown";
   // Deux angles cumulés : par IP (abus général) et par jeton (acharnement
   // sur UN partage précis, même depuis des IP différentes).
-  return { ipKey: `ip:${ip}`, tokenKey: `token:${token}` };
+  return { ipKey: `ip:${clientIp(request.headers)}`, tokenKey: `token:${token}` };
 }
 
 function rateLimited(request: Request, token: string): boolean {

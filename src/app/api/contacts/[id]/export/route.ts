@@ -1,24 +1,21 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { exportContactData } from "@/db/queries/contacts";
-import type { OrgScopeUser } from "@/lib/session";
-import { getTranslations } from "next-intl/server";
+import { apiErrorResponse } from "@/lib/api-route";
+import { requireApiUser } from "@/lib/session";
 
 /**
  * GET /api/contacts/[id]/export — l'export réglementaire complet d'une
- * fiche, en JSON téléchargeable. Authentifié et org-scopé comme le reste ;
- * l'export lui-même est tracé dans le journal des accès.
+ * fiche, en JSON téléchargeable. Authentifié et org-scopé comme le reste
+ * (`requireApiUser` : la substitution du super admin comprise) ; l'export
+ * lui-même est tracé dans le journal des accès. Une fiche introuvable ou
+ * d'une autre organisation répond ce que la requête dit (404, 403) ; une
+ * panne technique est journalisée et répond 500 — plus jamais déguisée en
+ * « fiche introuvable » (audit, constat Q5).
  */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const t = await getTranslations("contacts.apiIdExport");
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: t("connexion_requise") }, { status: 401 });
-  }
-  const user = session.user as OrgScopeUser & { id: string };
   const { id } = await params;
-
   try {
+    const user = await requireApiUser();
     const data = await exportContactData(user, id, user.id);
     return new NextResponse(JSON.stringify(data, null, 2), {
       headers: {
@@ -26,7 +23,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         "Content-Disposition": `attachment; filename="contact-${id}.json"`,
       },
     });
-  } catch {
-    return NextResponse.json({ error: t("fiche_introuvable") }, { status: 404 });
+  } catch (err) {
+    return apiErrorResponse(err, { route: "api/contacts/[id]/export" });
   }
 }

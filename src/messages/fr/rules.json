@@ -170,7 +170,8 @@
     "annule_plafond": "Annulé à l’envoi de la vague : le plafond d’emails automatiques de ce contact est atteint.",
     "annule_par_une_personne": "Ignoré à la main.",
     "envois_automatiques_rearmes": "Envois automatiques réarmés.",
-    "envois_automatiques_arretes_a_la_main": "Envois automatiques arrêtés à la main."
+    "envois_automatiques_arretes_a_la_main": "Envois automatiques arrêtés à la main.",
+    "regle_ignoree_conditions_illisibles": "Règle « {name} » ignorée : ses conditions sont illisibles — ouvre-la et enregistre-la à nouveau."
   },
   "notifications": {
     "subject": "Règle « {rule} » : {contact}",

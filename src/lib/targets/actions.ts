@@ -18,6 +18,7 @@ import {
   type SegmentPreview,
 } from "@/db/queries/mail-targets";
 import { errorMessage, withError } from "@/lib/form-actions";
+import { log } from "@/lib/log";
 import { requireUser } from "@/lib/session";
 import { normalizeCriteria, SEGMENT_CRITERIA_SCHEMA, type SegmentCriteria } from "@/lib/targets/criteria";
 import { getTranslations } from "next-intl/server";
@@ -184,7 +185,8 @@ export async function previewSegmentAction(
   if (!parsed.success) return { ok: false, error: t("un_critere_n_est_pas_valide") };
   try {
     return { ok: true, preview: await previewSegment(user.organizationId, normalizeCriteria(parsed.data)) };
-  } catch {
+  } catch (error) {
+    log.error("segment_preview_failed", { organizationId: user.organizationId, error });
     return { ok: false, error: t("l_apercu_n_a_pas_pu_4e50") };
   }
 }

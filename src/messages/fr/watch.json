@@ -81,6 +81,7 @@
     "empty_observation": "observation vide",
     "feed_not_feed": "flux illisible (la page n’est pas un flux)",
     "feed_unreadable": "flux illisible",
+    "forbidden_address": "adresse refusée (réseau interne, port non standard ou schéma inconnu)",
     "http": "réponse {status} ({reason})",
     "metadata_without_observation": "métadonnées sans observation",
     "multiple_series": "plusieurs séries renvoyées",
@@ -89,6 +90,7 @@
     "no_series": "aucune série renvoyée",
     "period_unreadable": "période illisible (« {period} »)",
     "timeout": "délai dépassé ({seconds} s)",
+    "too_many_redirects": "trop de redirections",
     "unexpected_format": "format inattendu (colonnes absentes)",
     "unknown": "erreur inconnue",
     "unreachable": "site injoignable"

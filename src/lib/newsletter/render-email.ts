@@ -1,5 +1,6 @@
 import type { AnyBlock } from "./blocks";
 import { DEFAULT_BRAND_PRIMARY } from "@/lib/brand";
+import { normalizeHex } from "@/lib/brand/color";
 
 /**
  * Rendu HTML email — un seul format, directement email-safe (styles inlinés
@@ -101,7 +102,7 @@ const FALLBACK_HEADING_FONT = "Georgia, 'Times New Roman', serif";
 const FALLBACK_BODY_FONT = "Arial, Helvetica, sans-serif";
 const FALLBACK_RADIUS = 6;
 
-function escapeHtml(input: string): string {
+export function escapeHtml(input: string): string {
   return input
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -247,22 +248,35 @@ type ResolvedBrand = {
   radius: number;
 };
 
+/** Une couleur de marque telle qu'elle entre dans un `style` : un hexadécimal normalisé, sinon le repli — jamais une chaîne libre (audit, constat S2). */
+function brandColor(value: string | null, fallback: string): string {
+  return (value && normalizeHex(value)) || fallback;
+}
+
+/**
+ * Une pile de polices telle qu'elle entre dans un `style` : ÉCHAPPÉE. Les
+ * valeurs de marque viennent de la base, donc d'un formulaire d'admin
+ * d'organisation ; le HTML rendu est posé par `innerHTML` chez toute
+ * personne qui ouvre l'éditeur — dont le super admin qui travaille « dans »
+ * cette organisation. Une police `Arial;"><img onerror=…>` doit rester du
+ * texte, quel que soit le contrôle fait à la saisie.
+ */
+function brandFont(family: string | null, fallback: string | null, defaultFallback: string): string {
+  return escapeHtml([family, fallback || defaultFallback].filter(Boolean).join(", "));
+}
+
 function resolveBrand(brand: RenderBrand): ResolvedBrand {
   return {
     name: brand.name,
     logoUrl: brand.logoUrl,
     logoLockupText: brand.logoLockupText ?? brand.name,
-    primary: brand.primaryColor || FALLBACK_PRIMARY,
-    secondary: brand.secondaryColor || FALLBACK_SECONDARY,
-    ink: brand.inkColor || FALLBACK_INK,
-    background: brand.backgroundColor || FALLBACK_BACKGROUND,
-    headingFont: [brand.headingFontFamily, brand.headingFontFallback || FALLBACK_HEADING_FONT]
-      .filter(Boolean)
-      .join(", "),
-    bodyFont: [brand.fontFamily, brand.bodyFontFallback || FALLBACK_BODY_FONT]
-      .filter(Boolean)
-      .join(", "),
-    radius: brand.borderRadius ?? FALLBACK_RADIUS,
+    primary: brandColor(brand.primaryColor, FALLBACK_PRIMARY),
+    secondary: brandColor(brand.secondaryColor, FALLBACK_SECONDARY),
+    ink: brandColor(brand.inkColor, FALLBACK_INK),
+    background: brandColor(brand.backgroundColor, FALLBACK_BACKGROUND),
+    headingFont: brandFont(brand.headingFontFamily, brand.headingFontFallback, FALLBACK_HEADING_FONT),
+    bodyFont: brandFont(brand.fontFamily, brand.bodyFontFallback, FALLBACK_BODY_FONT),
+    radius: Number.isFinite(brand.borderRadius) ? Math.max(0, Math.min(48, Math.round(brand.borderRadius as number))) : FALLBACK_RADIUS,
   };
 }
 

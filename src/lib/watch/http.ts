@@ -1,3 +1,6 @@
+import { lookup } from "node:dns/promises";
+import { isPublicAddress } from "@/lib/net/address";
+
 /**
  * Les appels HTTP de la veille — un seul endroit pour le délai, l'agent,
  * la taille maximale et la traduction des échecs en une cause LISIBLE,
@@ -6,10 +9,24 @@
  * un CODE et ses valeurs, la phrase vient des messages
  * (`watch.fetchErrors.<code>`, chantier i18n) au moment de l'écrire ou de
  * l'afficher — `readableError` dans refresh.ts.
+ *
+ * Et un seul endroit pour la GARDE CONTRE LE SSRF (audit, constat S6) :
+ * les adresses viennent des membres (sites, flux) et des pages elles-mêmes
+ * (liens découverts, redirections) ; la fonction serverless ne doit jamais
+ * être envoyée sonder le réseau interne de l'hébergeur. Avant CHAQUE
+ * requête — le premier saut comme chacune des redirections, suivies à la
+ * main — l'hôte est résolu et TOUTES ses adresses doivent être publiques
+ * (`isPublicAddress`), le schéma http(s), le port 80 ou 443. Limite
+ * honnête : la résolution faite ici et celle que `fetch` refait ensuite
+ * sont deux résolutions ; un DNS qui répondrait différemment aux deux
+ * (« DNS rebinding ») passerait — s'en prémunir demande un agent HTTP qui
+ * épingle l'adresse résolue, pas construit ici.
  */
 export type WatchFetchCode =
   | "timeout"
   | "unreachable"
+  | "forbidden_address"
+  | "too_many_redirects"
   | "http"
   | "feed_unreadable"
   | "feed_not_feed"
@@ -40,31 +57,83 @@ export class WatchFetchError extends Error {
 
 export const WATCH_USER_AGENT = "Mozilla/5.0 (compatible; Clozado/1.0; veille; +https://clozado.app)";
 
-export async function fetchWithTimeout(url: string, timeoutMs: number, accept: string): Promise<Response> {
-  let response: Response;
+/** Au plus trois redirections suivies ; au-delà, la source est en cause. */
+export const MAX_REDIRECTS = 3;
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+
+/** La forme d'une adresse qu'on accepte de joindre : http(s), port standard, hôte présent. Rend l'URL analysée. */
+function readTarget(url: string): URL {
+  let target: URL;
   try {
-    response = await fetch(url, {
-      headers: {
-        "User-Agent": WATCH_USER_AGENT,
-        Accept: accept,
-        "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
-      },
-      redirect: "follow",
-      signal: AbortSignal.timeout(timeoutMs),
-      cache: "no-store",
-    });
-  } catch (error) {
-    if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
-      throw new WatchFetchError("timeout", { seconds: Math.round(timeoutMs / 1000) });
-    }
+    target = new URL(url);
+  } catch {
+    throw new WatchFetchError("forbidden_address");
+  }
+  if (target.protocol !== "http:" && target.protocol !== "https:") throw new WatchFetchError("forbidden_address");
+  if (target.port && target.port !== "80" && target.port !== "443") throw new WatchFetchError("forbidden_address");
+  if (!target.hostname) throw new WatchFetchError("forbidden_address");
+  return target;
+}
+
+/**
+ * Résout l'hôte et refuse la moindre adresse non publique — toutes les
+ * réponses comptent, pas seulement la première : c'est celle que `fetch`
+ * choisira qu'on ne connaît pas.
+ */
+export async function assertPublicTarget(url: string, resolve: typeof lookup = lookup): Promise<void> {
+  const target = readTarget(url);
+  const host = target.hostname.replace(/^\[|\]$/g, "");
+  let addresses: { address: string }[];
+  try {
+    addresses = await resolve(host, { all: true, order: "verbatim" });
+  } catch {
     throw new WatchFetchError("unreachable");
   }
-  if (!response.ok) {
-    const reason: WatchHttpReason =
-      response.status === 403 ? "forbidden" : response.status === 404 ? "not_found" : response.status === 429 ? "rate_limited" : response.status >= 500 ? "server" : "refused";
-    throw new WatchFetchError("http", { status: response.status, reason });
+  if (addresses.length === 0) throw new WatchFetchError("unreachable");
+  if (addresses.some(({ address }) => !isPublicAddress(address))) throw new WatchFetchError("forbidden_address");
+}
+
+export async function fetchWithTimeout(url: string, timeoutMs: number, accept: string): Promise<Response> {
+  let current = url;
+  for (let hop = 0; ; hop++) {
+    await assertPublicTarget(current);
+    let response: Response;
+    try {
+      response = await fetch(current, {
+        headers: {
+          "User-Agent": WATCH_USER_AGENT,
+          Accept: accept,
+          "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
+        },
+        // Les redirections sont suivies ICI, une par une, chacune revérifiée : `follow` les cacherait à la garde.
+        redirect: "manual",
+        signal: AbortSignal.timeout(timeoutMs),
+        cache: "no-store",
+      });
+    } catch (error) {
+      if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
+        throw new WatchFetchError("timeout", { seconds: Math.round(timeoutMs / 1000) });
+      }
+      throw new WatchFetchError("unreachable");
+    }
+    if (REDIRECT_STATUSES.has(response.status)) {
+      const location = response.headers.get("location");
+      await response.body?.cancel().catch(() => undefined);
+      if (!location || hop >= MAX_REDIRECTS) throw new WatchFetchError("too_many_redirects");
+      try {
+        current = new URL(location, current).toString();
+      } catch {
+        throw new WatchFetchError("forbidden_address");
+      }
+      continue;
+    }
+    if (!response.ok) {
+      const reason: WatchHttpReason =
+        response.status === 403 ? "forbidden" : response.status === 404 ? "not_found" : response.status === 429 ? "rate_limited" : response.status >= 500 ? "server" : "refused";
+      throw new WatchFetchError("http", { status: response.status, reason });
+    }
+    return response;
   }
-  return response;
 }
 
 /** Le corps, décodé selon le jeu de caractères annoncé (ou trouvé dans la page), borné à `maxBytes`. */

@@ -4,10 +4,6 @@
     "la_creation_a_echoue_de_notre_b2e7": "La création a échoué de notre côté — ta saisie n’est pas en cause. Réessaie ; si ça continue, préviens-nous.",
     "le_nom_est_obligatoire": "Le nom est obligatoire."
   },
-  "apiIdExport": {
-    "connexion_requise": "Connexion requise.",
-    "fiche_introuvable": "Fiche introuvable."
-  },
   "appointments": {
     "ajouter_le_rendez_vous": "Ajouter le rendez-vous",
     "annule_le": "Annulé le {when}",
@@ -235,6 +231,8 @@
     },
     "ignoree_apparait_plus_haut_dans_le_de7d": "Ignorée : « {email} » apparaît plus haut dans le fichier.",
     "ignoree_existe_deja_dans_tes_contacts": "Ignorée : « {email} » existe déjà dans tes contacts.",
+    "import_echoue_avant_la_premiere_fiche": "L’import a échoué avant la première fiche — sans doute un incident de notre côté, ta préparation n’est pas en cause. Réessaie.",
+    "import_interrompu_apres": "L’import s’est interrompu après {inserted} création(s) et {completed} complétion(s) — relance le fichier : ce qui est déjà passé sera ignoré ou complété sans dégât.",
     "newsletter_pour": "Newsletter pour {name}",
     "nom_manquant": "Nom manquant.",
     "objectif_de_l_email_a_preciser_2f4d": "Objectif de l’email : (à préciser avant de générer)",

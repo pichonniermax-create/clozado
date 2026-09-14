@@ -1,5 +1,6 @@
 import { getAIProvider } from "@/lib/ai";
 import type { ProposedField } from "@/lib/ai/types";
+import { log } from "@/lib/log";
 
 /**
  * LA SIGNATURE PROPOSÉE (docs/module-engagement.md §4.3) — le déterministe
@@ -67,9 +68,12 @@ export async function proposeSignature(input: {
       source: "model",
       model: extraction.model,
     };
-  } catch {
+  } catch (error) {
     // Pas de clé, quota, panne, réponse illisible : l'ingestion ne s'arrête
-    // pas pour autant — la proposition est simplement plus pauvre.
+    // pas pour autant — la proposition est simplement plus pauvre. Mais la
+    // cause est consignée (audit, constat Q4) : une panne IA qui dure ne
+    // doit pas rester invisible.
+    log.warn("inbound_signature_model_unavailable", { error });
     return deterministic;
   }
 }

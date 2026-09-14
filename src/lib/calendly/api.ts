@@ -16,9 +16,13 @@ type CalendlyUser = {
   organizationUri: string;
 };
 
+/** Le délai d'attente d'un appel Calendly (audit, constat D10) : deux appels à la connexion, une personne qui attend devant l'écran. */
+const CALENDLY_TIMEOUT_MS = 15_000;
+
 async function call(token: string, path: string, init?: RequestInit): Promise<Response> {
   return fetch(`${API}${path}`, {
     ...init,
+    signal: AbortSignal.timeout(CALENDLY_TIMEOUT_MS),
     headers: {
       // eslint-disable-next-line local/no-visible-text -- en-tête HTTP, jamais lu par une personne
       authorization: `Bearer ${token.trim()}`,

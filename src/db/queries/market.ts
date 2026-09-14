@@ -10,6 +10,7 @@ import {
 } from "@/db/schema";
 import { assertOrgAccess } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
+import { isHttpUrl } from "@/lib/validation";
 import { formatIndicatorValue, getIndicator, MARKET_INDICATORS, type MarketIndicator } from "@/lib/watch/indicators";
 import type { Observation } from "@/lib/watch/market-readers";
 import { formatPeriod } from "@/lib/watch/periods";
@@ -251,11 +252,14 @@ function readFigureInput(input: VerifiedFigureInput): VerifiedFigureInput {
   if (!label) throw new AppError("le_libelle_du_chiffre_est_obligatoire");
   if (!value) throw new AppError("la_valeur_du_chiffre_est_obligatoire");
   if (input.asOfDate && !/^\d{4}-\d{2}-\d{2}$/.test(input.asOfDate)) throw new AppError("la_date_est_illisible");
+  // Le lien de la source est posé dans un `href` de l'écran : une page web, http(s) seulement (audit, constat S3) — le message d'erreur dit la même chose.
+  const sourceUrl = input.sourceUrl?.trim() || null;
+  if (sourceUrl && !isHttpUrl(sourceUrl)) throw new AppError("l_adresse_de_la_source_n_est_pas_valide");
   return {
     label,
     value,
     sourceName: input.sourceName?.trim() || null,
-    sourceUrl: input.sourceUrl?.trim() || null,
+    sourceUrl,
     asOf: input.asOf?.trim() || null,
     asOfDate: input.asOfDate || null,
   };

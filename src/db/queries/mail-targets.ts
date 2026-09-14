@@ -25,6 +25,7 @@ import {
   describeCriteria,
   normalizeCriteria,
   parseCriteria,
+  readCriteriaStrict,
   type CriteriaOptions,
   type SegmentCriteria,
 } from "@/lib/targets/criteria";
@@ -161,12 +162,27 @@ export function segmentCondition(organizationId: string, criteria: SegmentCriter
 
 export type TargetLike = Pick<MailTarget, "id" | "organizationId" | "kind" | "criteria">;
 
-/** La condition des MEMBRES d'une cible, segment ou sélection manuelle — le seul point d'entrée des quatre lecteurs. */
+/**
+ * La condition des MEMBRES d'une cible, segment ou sélection manuelle — le
+ * seul point d'entrée des lecteurs d'ÉCRAN (compte, liste, appartenance).
+ * Lecture tolérante des critères : un écran ne casse pas.
+ */
 export function memberCondition(target: TargetLike): SQL {
   if (target.kind === "static") {
     return sql`(${contacts.organizationId} = ${target.organizationId}) AND (${contacts.deletedAt} IS NULL) AND (EXISTS (SELECT 1 FROM ${mailTargetMembers} m WHERE m.target_id = ${target.id} AND m.contact_id = ${contacts.id}))`;
   }
   return segmentCondition(target.organizationId, parseCriteria(target.criteria));
+}
+
+/**
+ * La même condition en lecture STRICTE des critères (audit, constat Q6) —
+ * pour tout ce qui DÉCIDE d'un envoi : les destinataires d'une newsletter,
+ * les cibles visées par une règle. Une cible illisible lève
+ * (`InvalidCriteriaError`) au lieu de valoir « tous les contacts ».
+ */
+export function memberConditionStrict(target: TargetLike): SQL {
+  if (target.kind === "static") return memberCondition(target);
+  return segmentCondition(target.organizationId, readCriteriaStrict(target.criteria));
 }
 
 // ---------------------------------------------------------------------------
@@ -564,7 +580,8 @@ export async function duplicateMailTarget(user: OrgScopeUser, id: string) {
       label,
       position,
       kind: source.kind,
-      criteria: parseCriteria(source.criteria),
+      // Lecture stricte : copier une cible illisible en produirait une qui vise tout le monde.
+      criteria: readCriteriaStrict(source.criteria),
       description: source.description,
       persona: source.persona,
       concerns: source.concerns,

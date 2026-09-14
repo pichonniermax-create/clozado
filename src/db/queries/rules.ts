@@ -29,7 +29,7 @@ import {
   isRuleTrigger,
   needsTemplate,
   normalizeRuleConditions,
-  parseRuleConditions,
+  readRuleConditionsStrict,
   RULE_CONDITIONS_SCHEMA,
   type RuleConditions,
 } from "@/lib/rules/criteria";
@@ -38,7 +38,7 @@ import type { OrgScopeUser } from "@/lib/session";
 import { createActivity } from "./activities";
 import { getContact } from "./contacts";
 import { indicatorSql } from "./engagement";
-import { memberCondition } from "./mail-targets";
+import { memberConditionStrict, type TargetLike } from "./mail-targets";
 import { getOwnOrganizationOrThrow } from "./newsletters";
 
 /**
@@ -372,7 +372,7 @@ function conditionsSql(organizationId: string, conditions: RuleConditions, targe
       found.length === 0
         ? sql`false`
         : sql`(${sql.join(
-            found.map((t) => sql`(${memberCondition(t as Parameters<typeof memberCondition>[0])})`),
+            found.map((t) => sql`(${memberConditionStrict(t as TargetLike)})`),
             sql` OR `
           )})`
     );
@@ -409,7 +409,8 @@ export type MatchedContact = {
  * revu au passage suivant.
  */
 export async function matchingContacts(rule: Rule, limit = RULE_MATCH_LIMIT): Promise<MatchedContact[]> {
-  const conditions = parseRuleConditions(rule.conditions);
+  // Lecture STRICTE (audit, constat Q6) : des conditions illisibles lèvent — l'évaluation saute la règle, elle ne l'élargit pas.
+  const conditions = readRuleConditionsStrict(rule.conditions);
   const targets = conditions.targetIds?.length
     ? await db
         .select({ id: mailTargets.id, organizationId: mailTargets.organizationId, kind: mailTargets.kind, criteria: mailTargets.criteria })

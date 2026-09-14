@@ -36,6 +36,15 @@ export class ResendError extends Error {
   }
 }
 
+/**
+ * Le délai d'attente de chaque appel au fournisseur (audit, constat D10) :
+ * sans lui, un fournisseur muet retenait la fonction jusqu'à sa durée
+ * maximale. Un dépassement lève `TimeoutError` (pas une `ResendError`) :
+ * `deliverMessages` le traite comme « indisponible » — pause puis reprise,
+ * jamais un échec définitif du message.
+ */
+export const RESEND_TIMEOUT_MS = 15_000;
+
 async function call<T>(method: "GET" | "POST" | "PATCH" | "DELETE", path: string, body?: unknown, headers: Record<string, string> = {}): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
     method,
@@ -46,6 +55,7 @@ async function call<T>(method: "GET" | "POST" | "PATCH" | "DELETE", path: string
     },
     body: body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
+    signal: AbortSignal.timeout(RESEND_TIMEOUT_MS),
   });
   const text = await response.text();
   let json: unknown = null;
@@ -216,7 +226,8 @@ export async function getReceivedEmail(id: string): Promise<ReceivedEmail> {
  * mémoire. Le lien est signé (CloudFront) : il ne porte pas la clé d'API.
  */
 export async function downloadRawMessage(url: string, maxBytes: number): Promise<{ raw: Buffer | null; bytes: number; tooLarge: boolean }> {
-  const response = await fetch(url, { cache: "no-store" });
+  // Le même délai que les appels d'API, pour l'ouverture ET la lecture du corps (le signal reste armé pendant le flux).
+  const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(RESEND_TIMEOUT_MS) });
   if (!response.ok) {
     throw new ResendError(response.status, null, `resend: téléchargement du brut ${response.status}`, null);
   }

@@ -28,12 +28,28 @@ function formatNumber(value: number): string {
   return (Math.round(value * 100) / 100).toString().replace(".", ",");
 }
 
+/**
+ * Un texte qui commence par `=`, `+`, `-`, `@`, une tabulation ou un retour
+ * chariot est lu comme une FORMULE par Excel, LibreOffice et Google Sheets
+ * (« injection de formule », audit, constat S7) : un libellé saisi ou une
+ * origine reçue de `/api/leads` pourrait exfiltrer des données ou lancer un
+ * programme chez la personne qui ouvre l'export. L'apostrophe en tête force
+ * le texte — c'est la convention des tableurs eux-mêmes. Elle reste VISIBLE
+ * à l'import d'un CSV : un téléphone international (« +33 6… ») s'afficherait
+ * « '+33 6… ». Assumé plutôt qu'une exception sur « + suivi d'un chiffre » :
+ * `-2+3+cmd|…` commence aussi par un chiffre et reste une charge connue ;
+ * un futur export de contacts formatera ses téléphones sans le « + » ou
+ * acceptera l'apostrophe.
+ */
+const FORMULA_LEAD = /^[=+\-@\t\r]/;
+
 export function csvCell(value: CsvCell): string {
   if (value === null || value === undefined) return "";
   if (typeof value === "number") return formatNumber(value);
   if (typeof value === "boolean") return value ? "oui" : "non";
-  const needsQuotes = /[";\r\n]/.test(value) || value.startsWith(" ") || value.endsWith(" ");
-  return needsQuotes ? `"${value.replace(/"/g, '""')}"` : value;
+  const text = FORMULA_LEAD.test(value) ? `'${value}` : value;
+  const needsQuotes = /[";\r\n]/.test(text) || text.startsWith(" ") || text.endsWith(" ");
+  return needsQuotes ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 export function csvLine(cells: CsvCell[]): string {

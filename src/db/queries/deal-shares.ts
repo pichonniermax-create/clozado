@@ -3,39 +3,17 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { commissions, dealEvents, dealShares, deals, partners } from "@/db/schema";
 import { assertOrgAccess } from "@/db/scope";
+import { CREATE_SHARE_SCHEMA, type CreateShareInput } from "@/lib/deal-shares/input";
 import { generateShareToken } from "@/lib/deal-shares/token";
 import type { OrgScopeUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
+import { readInput } from "@/lib/validation";
 
 /**
  * Côté interne, protégé — org-scopé comme tout le reste du produit. Rien
  * ici n'est exposé à la route publique par jeton (voir deal-shares-public.ts,
  * la seule exception à orgScope).
  */
-
-export type CreateShareCommissionInput = {
-  basis: "percentage" | "fixed";
-  rate?: string | null;
-  fixedAmount?: string | null;
-  baseAmount?: string | null;
-  computedAmount?: string | null;
-};
-
-export type CreateShareInput = {
-  dealId: string;
-  partnerId: string;
-  proposedTerms?: string | null;
-  message?: string | null;
-  expiresAt?: Date | null;
-  /**
-   * C'est le moment où le conseiller fixe une commission qui l'engage
-   * vis-à-vis d'un confrère — formalisée dès l'envoi, pas laissée en texte
-   * libre à interpréter plus tard.
-   */
-  commission?: CreateShareCommissionInput | null;
-  /** Renvoi de lien : le partage que celui-ci remplace (chaîne suivie par l'analytique). */
-  replacesShareId?: string | null;
-};
 
 /**
  * Crée un partage : génère un jeton, ne stocke que son empreinte, renvoie
@@ -48,8 +26,9 @@ export type CreateShareInput = {
 export async function createDealShare(
   user: OrgScopeUser,
   createdBy: string,
-  input: CreateShareInput
+  rawInput: CreateShareInput
 ) {
+  const input = readInput(CREATE_SHARE_SCHEMA, rawInput);
   const deal = await db.query.deals.findFirst({ where: eq(deals.id, input.dealId) });
   if (!deal) throw new AppError("affaire_introuvable", undefined, 404);
   assertOrgAccess(user, deal.organizationId);

@@ -76,7 +76,11 @@ export async function deliverMessages(messages: EmailMessage[], content: SendCon
     const ids = await sendBatch(emails, keyFor(messages));
     return { status: "sent", results: messages.map((m, i) => ({ id: m.id, providerMessageId: ids[i]?.id ?? "" })).filter((r) => r.providerMessageId) };
   } catch (error) {
-    if (!(error instanceof ResendError)) return { status: "unavailable", reason: error instanceof Error ? error.message : String(error) };
+    // Un délai dépassé (`TimeoutError`, `AbortError`), une panne réseau : le
+    // fournisseur est INDISPONIBLE — pause puis reprise, jamais un échec
+    // définitif du message (audit, constat D10). Seule une `ResendError`
+    // porte un verdict du fournisseur.
+    if (!(error instanceof ResendError)) return { status: "unavailable", reason: error instanceof Error ? `${error.name}: ${error.message}` : String(error) };
     if (error.quotaExceeded) return { status: "quota", code: error.code ?? "quota_exceeded" };
     if (error.rateLimited) return { status: "rate_limited", retryAfterSeconds: error.retryAfterSeconds ?? 2 };
     if (error.code === "invalid_idempotent_request" || error.code === "concurrent_idempotent_requests") {

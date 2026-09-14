@@ -6,6 +6,8 @@ import { signIn } from "@/auth";
 import { createOrganizationWithAdmin } from "@/db/queries/signup";
 import { isPlausibleEmail } from "@/lib/email/address";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/client-ip";
+import { log } from "@/lib/log";
 import { getTranslations } from "next-intl/server";
 import { isReservedExampleAddress } from "@/lib/demo/constants";
 
@@ -18,12 +20,9 @@ import { isReservedExampleAddress } from "@/lib/demo/constants";
 export type AuthFormState = { error: string | null };
 
 
-/** Même lecture d'IP que la route publique par jeton (voir /api/partage/[token]). */
+/** La même lecture d'IP que toutes les routes publiques (`clientIp`, audit S8). */
 async function ipKey(prefix: string): Promise<string> {
-  const h = await headers();
-  const ip =
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip") ?? "inconnue";
-  return `${prefix}:${ip}`;
+  return `${prefix}:${clientIp(await headers())}`;
 }
 
 export async function signInAction(
@@ -45,18 +44,21 @@ export async function signInAction(
 /**
  * `signIn` se termine par une redirection LEVÉE, pas retournée : un
  * try/catch nu l'avalerait et la navigation n'aurait jamais lieu. On ne
- * rattrape donc que les `AuthError` (envoi SMTP refusé, adaptateur en
- * échec…) et on relaie tout le reste — dont la redirection.
+ * rattrape donc que les `AuthError` (envoi refusé par le fournisseur,
+ * adaptateur en échec…) et on relaie tout le reste — dont la redirection.
  *
  * Sans ça, un envoi refusé par le fournisseur d'email affichait une page
- * d'erreur brute, juste après avoir créé l'espace de la personne.
+ * d'erreur brute, juste après avoir créé l'espace de la personne. Le refus
+ * est journalisé : « impossible d'envoyer » à l'écran, la cause dans le
+ * journal (audit, constat Q4).
  */
 async function sendMagicLink(email: string): Promise<AuthFormState> {
   const t = await getTranslations("auth.actions");
   try {
-    await signIn("nodemailer", { email, redirectTo: "/dashboard" });
+    await signIn("resend", { email, redirectTo: "/dashboard" });
   } catch (error) {
     if (error instanceof AuthError) {
+      log.error("magic_link_send_failed", { error });
       return {
         error:
           t("impossible_d_envoyer_le_lien_a_58cc"),

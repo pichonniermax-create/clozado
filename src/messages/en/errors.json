@@ -180,5 +180,10 @@
     "pas_marquee": "This organisation is not marked as a demo: the reset refuses.",
     "reinitialisation_en_cours": "A reset is already running — wait for it to finish.",
     "geste_indisponible": "This action is not available in the demo organization: it would call a real service with real data."
-  }
+  },
+  "les_donnees_envoyees_ne_sont_pas_valides": "The submitted data is not valid.",
+  "l_adresse_de_la_source_n_est_pas_valide": "The source address is not valid: it must start with http:// or https://.",
+  "connexion_requise": "Sign-in required.",
+  "trop_de_demandes_reessaie_dans_un_moment": "Too many requests in a short time: try again in a moment.",
+  "les_criteres_de_cette_cible_sont_illisibles": "This audience’s criteria are unreadable: open it and save it again before sending."
 }

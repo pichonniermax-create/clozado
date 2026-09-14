@@ -17,6 +17,7 @@ import { assertOrgAccess, orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
 import { listOpenTasksForContact } from "./tasks";
 import { AppError } from "@/lib/errors";
+import { log } from "@/lib/log";
 import type { TranslatorOf } from "@/i18n/translator";
 
 /** Taille de page de la liste — côté serveur, jamais la table entière en mémoire. */
@@ -756,11 +757,13 @@ export async function importContacts(
         report.completed.push({ line: c.line, contactId: c.contact.id, name: c.contact.name, fields: c.fields });
       }
     }
-  } catch {
+  } catch (error) {
+    // La cause dans le journal (audit, constat Q4), la phrase à l'écran dans la langue de la personne.
+    log.error("contacts_import_interrupted", { organizationId: user.organizationId, inserted: report.inserted, completed: report.completed.length, error });
     report.error =
       report.inserted > 0 || report.completed.length > 0
-        ? `L'import s'est interrompu après ${report.inserted} création(s) et ${report.completed.length} complétion(s) — relance le fichier : ce qui est déjà passé sera ignoré ou complété sans dégât.`
-        : "L'import a échoué avant la première fiche — sans doute un incident de notre côté, ta préparation n'est pas en cause. Réessaie.";
+        ? t("import_interrompu_apres", { inserted: report.inserted, completed: report.completed.length })
+        : t("import_echoue_avant_la_premiere_fiche");
   }
   return report;
 }

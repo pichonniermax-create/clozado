@@ -48,6 +48,7 @@ import {
   writeFromBasketAction,
 } from "@/lib/watch/actions";
 import { SOURCE_COUNTRY_CODES } from "@/lib/watch/countries";
+import { log } from "@/lib/log";
 import { sourceHealth } from "@/lib/watch/health";
 import { scheduleWatchRefresh } from "@/lib/watch/schedule";
 import { useTranslations } from "next-intl";
@@ -115,7 +116,9 @@ export default async function WatchPage({
     try {
       const start = await scheduleWatchRefresh(organizationId, "visit");
       if (start.status === "started" || start.status === "running") running = start.run;
-    } catch {
+    } catch (error) {
+      // La page s'affiche quand même ; la cause est consignée (audit, constat Q4).
+      log.error("watch_refresh_start_failed", { organizationId, error });
       running = null;
     }
   }

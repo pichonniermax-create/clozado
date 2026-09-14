@@ -4,10 +4,6 @@
     "la_creation_a_echoue_de_notre_b2e7": "Creation failed on our side — your input isn’t at fault. Try again; if it keeps happening, let us know.",
     "le_nom_est_obligatoire": "The name is required."
   },
-  "apiIdExport": {
-    "connexion_requise": "Sign-in required.",
-    "fiche_introuvable": "Record not found."
-  },
   "appointments": {
     "ajouter_le_rendez_vous": "Add appointment",
     "annule_le": "Canceled on {when}",
@@ -235,6 +231,8 @@
     },
     "ignoree_apparait_plus_haut_dans_le_de7d": "Skipped: “{email}” appears earlier in the file.",
     "ignoree_existe_deja_dans_tes_contacts": "Skipped: “{email}” already exists in your contacts.",
+    "import_echoue_avant_la_premiere_fiche": "The import failed before the first contact — most likely an incident on our side, your preparation is not at fault. Try again.",
+    "import_interrompu_apres": "The import stopped after {inserted} creation(s) and {completed} completion(s) — run the file again: what already went through will be skipped or completed without harm.",
     "newsletter_pour": "Newsletter for {name}",
     "nom_manquant": "Missing name.",
     "objectif_de_l_email_a_preciser_2f4d": "Email goal: (to be specified before generating)",

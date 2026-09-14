@@ -1,11 +1,10 @@
 {
   "apiAiDesign": {
-    "authentification_requise": "Authentication required.",
     "erreur_de_generation_ia": "AI generation error.",
+    "l_ia_n_est_pas_configuree": "AI is not configured on this server.",
     "requete_invalide": "Invalid request."
   },
   "apiRender": {
-    "authentification_requise": "Authentication required.",
     "requete_invalide": "Invalid request."
   },
   "blockEditor": {

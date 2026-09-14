@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { TranslatorOf } from "@/i18n/translator";
+import { AppError } from "@/lib/errors";
 
 /**
  * LES CRITÈRES D'UN SEGMENT — le format stocké dans `mail_targets.criteria`
@@ -85,10 +86,50 @@ export function normalizeCriteria(input: SegmentCriteria): SegmentCriteria {
   return out as SegmentCriteria;
 }
 
-/** Valide une valeur inconnue (jsonb lu en base, JSON reçu d'un formulaire) ; `{}` si elle est illisible — jamais une cible qui casse un écran. */
+/**
+ * Lecture TOLÉRANTE, pour l'AFFICHAGE (liste des cibles, description en
+ * une phrase, compteurs d'écran) : une valeur illisible vaut `{}` — jamais
+ * une cible qui casse un écran. JAMAIS pour choisir des destinataires :
+ * c'est `readCriteriaStrict` qui sert à l'évaluation.
+ */
 export function parseCriteria(value: unknown): SegmentCriteria {
   const parsed = SEGMENT_CRITERIA_SCHEMA.safeParse(value ?? {});
   return parsed.success ? normalizeCriteria(parsed.data) : {};
+}
+
+/**
+ * Une cible dont les critères sont illisibles, rencontrée là où ils
+ * DÉCIDENT de quelque chose : une `AppError`, pour que l'envoi le dise à la
+ * personne dans sa langue plutôt que d'écrire à toute la base.
+ */
+export class InvalidCriteriaError extends AppError {
+  constructor() {
+    super("les_criteres_de_cette_cible_sont_illisibles");
+    this.name = "InvalidCriteriaError";
+  }
+}
+
+/**
+ * Lecture STRICTE, pour l'ÉVALUATION (audit, constat Q6) : la sélection des
+ * destinataires d'un envoi, les conditions d'une règle, la copie d'une
+ * cible. Une colonne qui n'est pas un objet aux clés connues — JSON
+ * invalide, chaîne, tableau, clé inconnue, valeur hors forme — LÈVE, au
+ * lieu de valoir « tous les contacts ». `{}` reste « tous les contacts » :
+ * c'est la valeur par défaut choisie, pas une corruption.
+ */
+export function readCriteriaStrict(value: unknown): SegmentCriteria {
+  let candidate = value;
+  if (typeof candidate === "string") {
+    try {
+      candidate = JSON.parse(candidate);
+    } catch {
+      throw new InvalidCriteriaError();
+    }
+  }
+  if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) throw new InvalidCriteriaError();
+  const parsed = SEGMENT_CRITERIA_SCHEMA.strict().safeParse(candidate);
+  if (!parsed.success) throw new InvalidCriteriaError();
+  return normalizeCriteria(parsed.data);
 }
 
 export function isEmptyCriteria(criteria: SegmentCriteria): boolean {

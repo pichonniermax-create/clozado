@@ -81,6 +81,7 @@
     "empty_observation": "empty observation",
     "feed_not_feed": "unreadable feed (the page is not a feed)",
     "feed_unreadable": "unreadable feed",
+    "forbidden_address": "address refused (internal network, non-standard port or unknown scheme)",
     "http": "response {status} ({reason})",
     "metadata_without_observation": "metadata without observation",
     "multiple_series": "multiple series returned",
@@ -89,6 +90,7 @@
     "no_series": "no series returned",
     "period_unreadable": "unreadable period (“{period}”)",
     "timeout": "timed out ({seconds} s)",
+    "too_many_redirects": "too many redirects",
     "unexpected_format": "unexpected format (missing columns)",
     "unknown": "unknown error",
     "unreachable": "site unreachable"

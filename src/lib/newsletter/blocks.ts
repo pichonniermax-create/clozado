@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AppError } from "@/lib/errors";
+import { isSafeHttpUrl, safeHttpUrlOrEmpty } from "@/lib/validation";
 
 /**
  * SOURCE UNIQUE du modèle de blocs. Le schéma d'outil transmis à l'IA
@@ -70,6 +71,14 @@ function buildBlockSchemas(required: z.ZodString) {
   });
 
   /**
+   * Un lien posé dans un `href` : `http:`, `https:` ou `mailto:` seulement
+   * (audit, constat S3 — l'échappement HTML ne neutralise pas un schéma
+   * `javascript:`). La chaîne vide reste tolérée au niveau brouillon (le
+   * bloc qu'on vient d'insérer) : c'est `required` qui l'exige remplie.
+   */
+  const link = required.refine((value) => value === "" || isSafeHttpUrl(value));
+
+  /**
    * Une source citée : l'article de la MATIÈRE (son identifiant en base est
    * la liste blanche — jamais un lien de mémoire) et ce qu'on en montre,
    * recopié depuis la base par le serveur après la génération
@@ -78,7 +87,7 @@ function buildBlockSchemas(required: z.ZodString) {
   const sourceItem = z.strictObject({
     id: z.string().min(1),
     title: z.string(),
-    url: z.string(),
+    url: safeHttpUrlOrEmpty,
     publisher: z.string(),
     /** La date telle qu'elle s'affiche (« 12 août 2026 ») ; vide ("") si inconnue. */
     date: z.string(),
@@ -113,12 +122,12 @@ function buildBlockSchemas(required: z.ZodString) {
       title: required,
       text: required,
       buttonLabel: required,
-      url: required,
+      url: link,
     }),
     bouton: z.strictObject({
       type: z.literal("bouton"),
       label: required,
-      url: required,
+      url: link,
     }),
     separateur: z.strictObject({
       type: z.literal("separateur"),

@@ -65,6 +65,9 @@ import { updateOrganizationSettings } from "@/db/queries/organizations";
 
 const SELECT_CLASS = "h-9 w-full rounded-lg border border-input bg-transparent px-2 text-sm";
 
+/** Une pile de polices CSS (« Inter, 'Helvetica Neue', sans-serif », « Söhne ») : lettres et chiffres de toute écriture, espaces, virgules, guillemets, tirets, soulignés — 80 caractères au plus. Le rendu l'échappe de toute façon (render-email.ts) : ceci n'est qu'un contrôle de forme. */
+const FONT_FAMILY_SHAPE = /^[\p{L}\p{N} ,'"_\-]{1,80}$/u;
+
 async function saveBranding(formData: FormData) {
   "use server";
   const t = await getTranslations("settings.page");
@@ -90,10 +93,17 @@ async function saveBranding(formData: FormData) {
   if (senderEmail && !isPlausibleEmail(senderEmail)) {
     redirect(withError("/settings", t("l_adresse_de_reponse_ne_semble_ac1b")));
   }
+  // La police est interpolée dans le `style` des emails et de l'aperçu :
+  // une pile de noms, rien d'autre (audit, constat S2) — jamais un
+  // guillemet fermant suivi d'une balise.
+  const fontFamily = String(formData.get("fontFamily") ?? "").trim() || null;
+  if (fontFamily && !FONT_FAMILY_SHAPE.test(fontFamily)) {
+    redirect(withError("/settings", t("la_police_n_est_pas_valide")));
+  }
   await updateOrganizationBranding(user, {
     name,
     primaryColor,
-    fontFamily: String(formData.get("fontFamily") ?? "").trim() || null,
+    fontFamily,
     senderName,
     senderEmail,
   });

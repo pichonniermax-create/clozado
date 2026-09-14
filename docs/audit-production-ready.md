@@ -1096,3 +1096,42 @@ la région Vercel, nombre exact d'appels du callback `jwt` par rendu.
   mécaniques, sondes de production, réglages GitHub, quatre relectures
   ciblées, recoupement des constats élevés. Aucun fichier de code
   modifié. **STOP** : décisions D1 à D9 (§9), puis étape 2.
+- **Étape 2 — les correctifs immédiats** (2026-09-12 → 2026-09-14, deux
+  commits) : (1/2) `9096133` — Next 16.3.5, `npm audit fix`, Node 24
+  (`engines`, `.nvmrc`, `@types/node@24`), Vitest et premier test, CI GitHub
+  (lint → typecheck → tests → build → audit ; migrations de zéro + isolation
+  sur Postgres jetable derrière le proxy Neon), Dependabot ; puis `f96ac8e`
+  (`next typegen` avant `tsc`). (2/2) — S1 : schémas `z.strictObject` et
+  objets d'écriture explicites sur partenaires, affaires, partages
+  (`src/lib/validation.ts` `readInput`, `src/lib/deal-shares/input.ts`
+  partagé client/serveur), cinq cas ajoutés à `test-isolation` ; S2 :
+  police validée à la saisie, `normalizeHex` et `escapeHtml` dans
+  `resolveBrand`, rayon borné ; S3 : `safeHttpUrl` sur les blocs bouton,
+  CTA et sources, sur la source d'un chiffre, `preventDefault` des liens
+  dans `ShadowHtml` ; S4 : en-têtes de sécurité dans `next.config.ts`
+  (`frame-ancestors 'none'`, nosniff, Referrer-Policy, Permissions-Policy,
+  HSTS) ; S5 : débit par personne sur `/api/newsletters/render` (60/min) et
+  `/api/newsletters/ai/design` (20/h) ; S6 : garde SSRF de la veille
+  (`src/lib/net/address.ts` classe l'adresse résolue, redirections suivies
+  à la main et revérifiées, ports 80/443) ; S7 : neutralisation des
+  formules CSV ; S8 : `src/lib/client-ip.ts` (`x-real-ip` derrière Vercel,
+  dernier `x-forwarded-for` ailleurs) ; S11 : corps `List-Unsubscribe=
+  One-Click` exigé ; Q2/D7 : `nodemailer` retiré — le lien magique part par
+  l'API HTTP Resend (`Resend` d'Auth.js en coquille, `sendEmail` du
+  produit, `AuthError` relayée) ; Q3 : `global-error.tsx` sans fournisseur
+  (textes FR/EN internes, langue du document) ; Q4 : `src/lib/log.ts`
+  (une ligne JSON par événement, erreurs sérialisées), `reportError` dans
+  les trois frontières, `src/instrumentation.ts` (`onRequestError`), les
+  cinq `catch` masquants journalisés, les deux phrases en dur de l'import
+  passées en clés ; Q5 : `requireApiUser` + `apiErrorResponse`
+  (`src/lib/api-route.ts`) sur les trois routes, messages IA filtrés par
+  type ; Q6 : lecture stricte des critères et des conditions
+  (`readCriteriaStrict`, `readRuleConditionsStrict`, `memberConditionStrict`)
+  partout où elles décident d'un envoi, règle sautée et consignée ; D10 :
+  délais Resend (15 s), Calendly (15 s), Anthropic (90 s, un essai) ; D12 :
+  `src/env.ts` validé au démarrage (`register`), `.env.example` réécrit.
+  Douze fichiers de test, 64 cas verts ; eslint 0 ; tsc 0 ; build 57
+  routes. **Reste à l'utilisateur** : D1 (dépôt privé), Dependabot et
+  analyse des secrets activés sur GitHub, Fluid Compute et PITR Neon
+  vérifiés. **STOP** : étape 3 (préproduction, documentation, `readForm`),
+  puis 4.

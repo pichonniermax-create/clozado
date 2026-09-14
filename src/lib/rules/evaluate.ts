@@ -20,7 +20,10 @@ import { toAppLocale } from "@/i18n/locales";
 import { translatorFor } from "@/i18n/translator";
 import { sendEmail } from "@/lib/email/resend";
 import { productSender, resolveSender } from "@/lib/email/sender";
+import { log } from "@/lib/log";
+import { InvalidRuleConditionsError } from "@/lib/rules/criteria";
 import { renderRuleTemplate, templateUsesVariable, type RuleTemplateVariable } from "@/lib/rules/template";
+import { InvalidCriteriaError } from "@/lib/targets/criteria";
 import { todayInTimeZone, toTimeZone } from "@/lib/timezone";
 
 /**
@@ -91,13 +94,29 @@ export async function evaluateOrganizationRules(
 
   const counters: RuleRunCounters = { evaluated: 0, matched: 0, actionsDone: 0, actionsSkipped: 0 };
   let error: string | null = null;
+  /** Les règles SAUTÉES de ce passage (conditions illisibles), une phrase chacune — consignées dans `rule_runs.error`. */
+  const skipped: string[] = [];
   try {
     const active = await listActiveRulesOfOrganization(organizationId);
     const timeZone = toTimeZone(org.timezone);
     for (const { rule, template } of active) {
       if (Date.now() - started > budget) break;
       counters.evaluated += 1;
-      const matched = await matchingContacts(rule);
+      let matched: MatchedContact[];
+      try {
+        matched = await matchingContacts(rule);
+      } catch (caught) {
+        // Des conditions illisibles — ou une cible visée dont les critères le
+        // sont — SAUTENT la règle (audit, constat Q6) : jamais « tous les
+        // contacts ». Le passage continue avec les autres règles et le dit.
+        if (caught instanceof InvalidRuleConditionsError || caught instanceof InvalidCriteriaError) {
+          const t = await translatorFor(toAppLocale(org.defaultLocale), "rules.queries");
+          skipped.push(t("regle_ignoree_conditions_illisibles", { name: rule.name }));
+          log.warn("rule_skipped_unreadable_conditions", { organizationId, ruleId: rule.id, error: caught });
+          continue;
+        }
+        throw caught;
+      }
       counters.matched += matched.length;
       const people = await getRuleUsers(
         matched
@@ -127,9 +146,11 @@ export async function evaluateOrganizationRules(
       await touchRuleLastRun(rule.id);
     }
   } catch (caught) {
+    log.error("rule_run_failed", { organizationId, runId: run.id, error: caught });
     error = (caught instanceof Error ? caught.message : String(caught)).slice(0, 500);
   }
-  await finishRuleRun(run.id, counters, error);
+  const summary = [...skipped, ...(error ? [error] : [])].join(" ");
+  await finishRuleRun(run.id, counters, summary ? summary.slice(0, 500) : null);
   return { status: "done", runId: run.id, counters };
 }
 

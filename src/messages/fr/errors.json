@@ -180,5 +180,10 @@
     "pas_marquee": "Cette organisation n’est pas marquée comme démo : la réinitialisation refuse.",
     "reinitialisation_en_cours": "Une réinitialisation est déjà en cours — attends qu’elle se termine.",
     "geste_indisponible": "Ce geste n’est pas disponible dans l’organisation de démo : il appellerait un service réel avec des données réelles."
-  }
+  },
+  "les_donnees_envoyees_ne_sont_pas_valides": "Les données envoyées ne sont pas valides.",
+  "l_adresse_de_la_source_n_est_pas_valide": "L’adresse de la source n’est pas valide : elle doit commencer par http:// ou https://.",
+  "connexion_requise": "Connexion requise.",
+  "trop_de_demandes_reessaie_dans_un_moment": "Trop de demandes en peu de temps : réessaie dans un moment.",
+  "les_criteres_de_cette_cible_sont_illisibles": "Les critères de cette cible sont illisibles : ouvre-la et enregistre-la à nouveau avant d’envoyer."
 }

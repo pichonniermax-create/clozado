@@ -42,7 +42,11 @@ export class AnthropicProvider implements AIProvider {
   private client: Anthropic;
 
   constructor(apiKey: string) {
-    this.client = new Anthropic({ apiKey });
+    // Délai et nouvel essai bornés (audit, constat D10) : les défauts du SDK
+    // (dix minutes, deux essais) dépassent la durée d'une fonction serverless.
+    // Le délai porte sur l'ouverture de la réponse : un flux entamé n'est pas
+    // coupé au bout de 90 s, il est borné par la génération elle-même.
+    this.client = new Anthropic({ apiKey, timeout: 90_000, maxRetries: 1 });
   }
 
   async designNewsletter(input: DesignNewsletterInput): Promise<NewsletterOutput> {

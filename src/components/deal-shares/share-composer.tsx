@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PartnerShareView } from "@/components/deal-shares/partner-share-view";
 import type { PublicShareView } from "@/db/queries/deal-shares-public";
 import { createDealShareAction } from "@/lib/deals/actions";
+import type { CreateShareCommissionInput } from "@/lib/deal-shares/input";
 import { useFormats } from "@/components/i18n/formats-provider";
 import type { RenderBrand } from "@/lib/newsletter/render-email";
 import { useTranslations } from "next-intl";
@@ -115,17 +116,22 @@ export function ShareComposer({
 
   const selectedPartner = partners.find((p) => p.id === partnerId);
 
-  const draftCommission =
+  // Ce qui part à l'action : exactement les champs du schéma strict de la
+  // requête (`satisfies` refuse ici tout champ en trop — un `state`, par
+  // exemple — que le serveur refuserait de toute façon en 400).
+  const commissionInput =
     withCommission && commissionValid && computedAmount !== null
-      ? {
+      ? ({
           basis,
           rate: basis === "percentage" ? rate : null,
           fixedAmount: basis === "fixed" ? fixedAmount : null,
           baseAmount: basis === "percentage" ? baseAmount : null,
           computedAmount: String(computedAmount),
-          state: "prevue" as const,
-        }
+        } satisfies CreateShareCommissionInput)
       : null;
+  // Ce que l'aperçu montre : la commission telle que le partenaire la verra,
+  // « prévue » dès l'envoi — l'état que la requête pose elle-même.
+  const draftCommission = commissionInput ? { ...commissionInput, state: "prevue" as const } : null;
 
   // Objet simple, recalculé à chaque rendu — pas de useMemo : c'est un
   // aperçu client-only, le coût de reconstruction est négligeable, et ça
@@ -162,7 +168,7 @@ export function ShareComposer({
         proposedTerms: proposedTerms || null,
         message: message || null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
-        commission: draftCommission,
+        commission: commissionInput,
       });
       setSentToken(token);
       setPhase("done");

@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { auth } from "@/auth";
 import { getRenderContext } from "@/db/queries/newsletters";
+import { apiErrorResponse } from "@/lib/api-route";
+import { AppError } from "@/lib/errors";
 import { NEWSLETTER_DRAFT_SCHEMA } from "@/lib/newsletter/blocks";
 import { renderNewsletterHtml } from "@/lib/newsletter/render-email";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { requestOrigin } from "@/lib/request-origin";
-import type { OrgScopeUser } from "@/lib/session";
+import { requireApiUser, type SessionUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
-import { errorMessage } from "@/lib/form-actions";
-import { isAppError } from "@/lib/errors";
+
+const ROUTE = "api/newsletters/render";
 
 const bodySchema = z.object({
   targetId: z.uuid(),
@@ -29,12 +31,21 @@ const bodySchema = z.object({
  * chaque frappe, y compris quand un bloc vient d'être inséré et n'a rien
  * dedans. Les deux niveaux sortent de la même définition de forme (voir
  * `buildBlockSchemas`), ils ne peuvent pas diverger.
+ *
+ * Soixante rendus par personne et par minute (audit, constat S5) : l'éditeur
+ * en demande un par frappe (avec un délai) — bien en dessous ; un script en
+ * rafale, non.
  */
 export async function POST(request: Request) {
   const t = await getTranslations("newsletters.apiRender");
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: t("authentification_requise") }, { status: 401 });
+  let user: SessionUser;
+  try {
+    user = await requireApiUser();
+    if (!checkRateLimit(`render:user:${user.id}`, { limit: 60, windowMs: 60_000 })) {
+      throw new AppError("trop_de_demandes_reessaie_dans_un_moment", undefined, 429);
+    }
+  } catch (err) {
+    return apiErrorResponse(err, { route: ROUTE });
   }
 
   const rawBody = await request.json().catch(() => null);
@@ -46,19 +57,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const user: OrgScopeUser = {
-    role: session.user.role,
-    organizationId: session.user.organizationId,
-  };
-
   let context;
   try {
     // Le logo en adresse absolue : ce HTML est celui de l'email, pas seulement de l'aperçu.
     context = await getRenderContext(user, body.data.targetId, await requestOrigin());
   } catch (err) {
-    const message = await errorMessage(err);
-    const status = isAppError(err) ? err.status : 400;
-    return NextResponse.json({ error: message }, { status });
+    return apiErrorResponse(err, { route: ROUTE, organizationId: user.organizationId });
   }
 
   const html = renderNewsletterHtml({

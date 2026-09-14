@@ -170,7 +170,8 @@
     "annule_plafond": "Canceled when sending the wave: this contact’s automatic email cap is reached.",
     "annule_par_une_personne": "Dismissed by hand.",
     "envois_automatiques_rearmes": "Automatic sending re-armed.",
-    "envois_automatiques_arretes_a_la_main": "Automatic sending stopped by hand."
+    "envois_automatiques_arretes_a_la_main": "Automatic sending stopped by hand.",
+    "regle_ignoree_conditions_illisibles": "Rule “{name}” skipped: its conditions are unreadable — open it and save it again."
   },
   "notifications": {
     "subject": "Rule “{rule}”: {contact}",

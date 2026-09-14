@@ -162,6 +162,7 @@
     "l_adresse_de_reponse_ne_semble_ac1b": "L’adresse de réponse ne semble pas valide.",
     "la_couleur_n_est_pas_un_466e": "La couleur n’est pas un code hexadécimal valide.",
     "la_langue_de_l_espace_par_defaut_1a2b": "La langue de l’espace par défaut, la devise dans laquelle les montants se lisent, le fuseau des dates et des échéances.",
+    "la_police_n_est_pas_valide": "La police n’est pas valide : des noms de polices séparés par des virgules, sans autre caractère (80 caractères au plus).",
     "langue_devise_et_fuseau": "Langue, devise et fuseau",
     "langue_devise_et_fuseau_enregistres": "Langue, devise et fuseau enregistrés.",
     "langue_devise_ou_fuseau_inconnu": "Langue, devise ou fuseau inconnu.",

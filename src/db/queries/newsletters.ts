@@ -12,9 +12,9 @@ import {
 } from "@/db/schema";
 import { assertOrgAccess } from "@/db/scope";
 import { assetUrlsFromMeta } from "@/lib/brand/assets";
-import { parseCriteria, type SegmentCriteria } from "@/lib/targets/criteria";
+import { parseCriteria, readCriteriaStrict, type SegmentCriteria } from "@/lib/targets/criteria";
 import { listOrganizationAssetMeta, type AssetMeta } from "./organization-assets";
-import { describeTarget, loadCriteriaOptions, memberCondition } from "./mail-targets";
+import { describeTarget, loadCriteriaOptions, memberConditionStrict } from "./mail-targets";
 import { listCitableFigures } from "./market";
 import type { RenderBrand, RenderSignatory } from "@/lib/newsletter/render-email";
 import type {
@@ -305,7 +305,8 @@ export async function buildAudienceSnapshot(newsletter: { organizationId: string
     targetId: target.id,
     label: target.label,
     kind: target.kind === "static" ? "static" : "segment",
-    criteria: parseCriteria(target.criteria),
+    // Lecture STRICTE (audit, constat Q6) : la photographie précède un envoi — une cible illisible refuse ici, dans la langue de la personne.
+    criteria: readCriteriaStrict(target.criteria),
     summary: describeTarget(target, options, t),
   };
   return { target, snapshot };
@@ -327,7 +328,7 @@ export async function markNewsletterSent(
       INSERT INTO ${newsletterRecipients} (organization_id, newsletter_id, contact_id)
       SELECT ${newsletter.organizationId}::uuid, ${id}::uuid, ${contacts.id}
       FROM ${contacts}
-      WHERE ${memberCondition(target)}
+      WHERE ${memberConditionStrict(target)}
       ON CONFLICT DO NOTHING
       RETURNING contact_id
     )

@@ -24,6 +24,15 @@ export function ShadowHtml({ html, className }: { html: string; className?: stri
     if (!host) return;
     if (!rootRef.current) {
       rootRef.current = host.attachShadow({ mode: "open" });
+      // Un lien de l'aperçu ne navigue jamais (audit, constat S3) : le clic
+      // sert à sélectionner le bloc, et un `href` saisi dans un bloc — même
+      // refusé par le schéma à l'enregistrement — ne doit pas s'exécuter dans
+      // la session de la personne qui relit. L'événement continue de remonter
+      // vers React : la sélection du bloc fonctionne comme avant.
+      rootRef.current.addEventListener("click", (event) => {
+        const target = event.target as Element | null;
+        if (target?.closest?.("a")) event.preventDefault();
+      });
     }
     rootRef.current.innerHTML = html;
   }, [html]);

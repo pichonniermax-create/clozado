@@ -1,18 +1,22 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { auth } from "@/auth";
 import { getDesignContext } from "@/db/queries/newsletters";
 import { listSourcesForComposer } from "@/db/queries/watch";
 import { AINotConfiguredError, AITruncatedError, getAIProvider } from "@/lib/ai";
 import type { SourceProfile } from "@/lib/ai/types";
+import { apiErrorResponse } from "@/lib/api-route";
+import { AppError, isAppError } from "@/lib/errors";
+import { errorMessage } from "@/lib/form-actions";
+import { log } from "@/lib/log";
 import { normalizeSourcesBlocks, reviewNewsletter, type ReviewIssue } from "@/lib/newsletter/review";
 import { parsePartialNewsletter } from "@/lib/newsletter/stream-parse";
-import type { OrgScopeUser } from "@/lib/session";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { requireApiUser, type SessionUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
-import { errorMessage } from "@/lib/form-actions";
-import { isAppError } from "@/lib/errors";
 import { settingsOfOrganization } from "@/i18n/locale-lookup";
 import { createFormats } from "@/lib/format";
+
+const ROUTE = "api/newsletters/ai/design";
 
 const bodySchema = z.object({
   targetId: z.uuid(),
@@ -37,12 +41,21 @@ const bodySchema = z.object({
  * à mesure de leur rédaction, plutôt qu'un écran figé pendant vingt secondes.
  * Ce qui transite en cours de route est explicitement provisoire — voir le
  * détail du protocole plus bas.
+ *
+ * Un appel = jusqu'à 8 192 jetons de génération : vingt par personne et par
+ * heure (audit, constat S5 — limiteur en mémoire, par instance ; un frein à
+ * l'abus, pas un quota).
  */
 export async function POST(request: Request) {
   const t = await getTranslations("newsletters.apiAiDesign");
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: t("authentification_requise") }, { status: 401 });
+  let user: SessionUser;
+  try {
+    user = await requireApiUser();
+    if (!checkRateLimit(`ai-design:user:${user.id}`, { limit: 20, windowMs: 3_600_000 })) {
+      throw new AppError("trop_de_demandes_reessaie_dans_un_moment", undefined, 429);
+    }
+  } catch (err) {
+    return apiErrorResponse(err, { route: ROUTE });
   }
 
   const rawBody = await request.json().catch(() => null);
@@ -53,11 +66,6 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-
-  const user: OrgScopeUser = {
-    role: session.user.role,
-    organizationId: session.user.organizationId,
-  };
 
   let context;
   let sources: SourceProfile[];
@@ -76,9 +84,7 @@ export async function POST(request: Request) {
       summary: item.summary,
     }));
   } catch (err) {
-    const message = await errorMessage(err);
-    const status = isAppError(err) ? err.status : 400;
-    return NextResponse.json({ error: message }, { status });
+    return apiErrorResponse(err, { route: ROUTE, organizationId: user.organizationId });
   }
 
   let provider;
@@ -86,9 +92,9 @@ export async function POST(request: Request) {
     provider = getAIProvider();
   } catch (err) {
     if (err instanceof AINotConfiguredError) {
-      return NextResponse.json({ error: err.message }, { status: 503 });
+      return NextResponse.json({ error: t("l_ia_n_est_pas_configuree") }, { status: 503 });
     }
-    throw err;
+    return apiErrorResponse(err, { route: ROUTE, organizationId: user.organizationId });
   }
 
   const designInput = {
@@ -103,6 +109,7 @@ export async function POST(request: Request) {
   };
   // Les chiffres autorisés : leurs valeurs et leurs libellés (« sur 20 ans » se cite avec le taux).
   const allowedFigures = context.verifiedFigures.flatMap((f) => [f.value, f.label]);
+  const organizationId = context.organizationId;
 
   /**
    * Réponse en flux de lignes JSON (une par ligne).
@@ -153,12 +160,16 @@ export async function POST(request: Request) {
         const issues: ReviewIssue[] = dropped > 0 ? [{ code: "unknown_source", count: dropped }, ...review.issues] : review.issues;
         send({ type: "done", newsletter, review: { issues } });
       } catch (err) {
-        const message =
-          err instanceof AITruncatedError
-            ? err.message
-            : err instanceof Error
-              ? err.message
-              : t("erreur_de_generation_ia");
+        // Par type (audit, constat Q5) : la troncature et une AppError ont un
+        // message fait pour une personne ; tout le reste (SDK, réseau, zod)
+        // est journalisé et remplacé par la phrase générique.
+        let message: string;
+        if (err instanceof AITruncatedError) message = err.message;
+        else if (isAppError(err)) message = await errorMessage(err);
+        else {
+          log.error("ai_design_stream_error", { route: ROUTE, organizationId, error: err });
+          message = t("erreur_de_generation_ia");
+        }
         send({ type: "error", error: message });
       } finally {
         controller.close();

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { receiveEvents, recordRejection, resolveSiteKey } from "@/db/queries/acquisition";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/client-ip";
 import { isDemoOrganization } from "@/lib/demo/guard";
 
 /**
@@ -45,10 +46,6 @@ const bodySchema = z.object({
   events: z.array(eventSchema).min(1).max(MAX_EVENTS),
 });
 
-function clientIp(request: Request): string {
-  return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip") ?? "inconnue";
-}
-
 function originHost(request: Request): string | null {
   const origin = request.headers.get("origin");
   if (!origin) return null;
@@ -84,7 +81,7 @@ export async function POST(request: Request) {
   const origin = request.headers.get("origin");
   const host = originHost(request);
 
-  if (!checkRateLimit(`events:ip:${clientIp(request)}`, { limit: 120, windowMs: 60_000 })) {
+  if (!checkRateLimit(`events:ip:${clientIp(request.headers)}`, { limit: 120, windowMs: 60_000 })) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: corsHeaders(origin) });
   }
   const body = await request.text();

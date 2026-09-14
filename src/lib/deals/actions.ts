@@ -18,12 +18,8 @@ import {
   updateStage,
   type StageInput,
 } from "@/db/queries/pipelines";
-import {
-  createDealShare,
-  reissueDealShare,
-  revokeDealShare,
-  type CreateShareInput,
-} from "@/db/queries/deal-shares";
+import { createDealShare, reissueDealShare, revokeDealShare } from "@/db/queries/deal-shares";
+import type { CreateShareInput } from "@/lib/deal-shares/input";
 import {
   createPartner,
   updatePartner,

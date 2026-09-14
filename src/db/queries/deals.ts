@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { and, asc, count, desc, eq, sql, type SQL } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "@/db";
 import {
   contacts,
@@ -17,6 +18,7 @@ import { latestLeadBefore } from "./acquisition";
 import { getDefaultDealStatus } from "./deal-statuses";
 import type { OrgScopeUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
+import { readInput } from "@/lib/validation";
 
 /** Affaires de l'organisation de l'appelant, plus récentes d'abord, avec libellé de type/statut pour l'affichage. */
 export async function listDeals(user: OrgScopeUser) {
@@ -54,14 +56,33 @@ export type CreateDealInput = {
   description?: string | null;
 };
 
+/**
+ * La forme STRICTE de ce qu'un client peut envoyer (constat S1 de l'audit) :
+ * les écritures ci-dessous étaient déjà recopiées champ par champ, ce
+ * schéma en fait une règle plutôt qu'une habitude — une clé inconnue
+ * (`organizationId`, `id`, `createdBy`) est refusée avant toute lecture.
+ */
+const optionalText = (max: number) => z.string().max(max).nullable().optional();
+
+export const CREATE_DEAL_SCHEMA = z.strictObject({
+  title: z.string().max(300),
+  clientName: z.string().max(300),
+  typeId: z.uuid(),
+  statusId: z.uuid().optional(),
+  contactId: z.uuid().nullable().optional(),
+  estimatedAmount: optionalText(40),
+  description: optionalText(10_000),
+});
+
 export async function createDeal(
   user: OrgScopeUser,
   createdBy: string,
-  input: CreateDealInput
+  rawInput: CreateDealInput
 ) {
   if (!user.organizationId) {
     throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_a16a");
   }
+  const input = readInput(CREATE_DEAL_SCHEMA, rawInput);
 
   // Le type doit exister ET appartenir à cette organisation — vérifié ici
   // en plus de la FK composite en base (message d'erreur clair côté
@@ -220,7 +241,16 @@ export type DealDetailsInput = {
   lossReasonId?: string | null;
 };
 
-export async function updateDealDetails(user: OrgScopeUser, dealId: string, input: DealDetailsInput) {
+export const DEAL_DETAILS_SCHEMA = z.strictObject({
+  estimatedAmount: optionalText(40),
+  probability: optionalText(10),
+  expectedCloseDate: optionalText(10),
+  ownerId: z.uuid().nullable().optional(),
+  lossReasonId: z.uuid().nullable().optional(),
+});
+
+export async function updateDealDetails(user: OrgScopeUser, dealId: string, rawInput: DealDetailsInput) {
+  const input = readInput(DEAL_DETAILS_SCHEMA, rawInput);
   const deal = await db.query.deals.findFirst({ where: eq(deals.id, dealId) });
   if (!deal) throw new AppError("affaire_introuvable", undefined, 404);
   assertOrgAccess(user, deal.organizationId);

@@ -23,6 +23,7 @@ import { createFigureAction, deleteFigureAction, followIndicatorAction, followPa
 import { getFormats } from "@/i18n/formats";
 import { resolveBusinessPack } from "@/lib/metrics/packs";
 import { requireUser } from "@/lib/session";
+import { isHttpUrl } from "@/lib/validation";
 import { formatIndicatorValue, getIndicator, type MarketIndicator } from "@/lib/watch/indicators";
 import { formatPeriod } from "@/lib/watch/periods";
 import { refreshOrganizationIndicators } from "@/lib/watch/refresh";
@@ -242,7 +243,7 @@ function FigureRow({ figure }: { figure: VerifiedFigure }) {
             <span className="font-medium text-foreground">{figure.value}</span>
             {" · "}
             {figure.sourceName ? (
-              figure.sourceUrl ? (
+              figure.sourceUrl && isHttpUrl(figure.sourceUrl) ? (
                 <a href={figure.sourceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
                   {figure.sourceName}
                 </a>

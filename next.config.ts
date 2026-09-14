@@ -1,8 +1,43 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
+/**
+ * Les EN-TÊTES DE SÉCURITÉ de toutes les réponses (chantier audit et
+ * production-ready, étape 2, constat S4) — posés ici, à la source, pour que
+ * pages, routes et fichiers statiques les portent sans qu'aucun écran n'y
+ * pense :
+ * - `frame-ancestors 'none'` : aucune page du produit ne s'affiche dans une
+ *   iframe d'un autre site — le détournement de clic sur `/partage/<jeton>`
+ *   (un partenaire « accepte » une commission derrière un cadre invisible)
+ *   n'a plus de surface. Une CSP complète (script-src avec nonce) est un
+ *   chantier à part : next-intl et les styles inline de la marque l'exigent
+ *   autrement — pas ici.
+ * - `nosniff` : le navigateur ne devine jamais un type de contenu.
+ * - `Referrer-Policy` : l'adresse complète ne part qu'à notre propre
+ *   origine ; `/api/partage` garde son `no-referrer`, plus strict (le jeton
+ *   est dans l'URL) — la règle spécifique ci-dessous l'emporte, en plus de
+ *   l'en-tête que la route pose elle-même.
+ * - `Permissions-Policy` : ni caméra, ni micro, ni géolocalisation.
+ * - HSTS explicite (deux ans, sous-domaines compris) : Vercel le pose déjà,
+ *   il ne dépend plus de l'hébergeur.
+ * `s.js` (le script posé sur les sites des clients) garde son
+ * `Access-Control-Allow-Origin: *` : ces en-têtes n'y touchent pas.
+ */
+const SECURITY_HEADERS = [
+  { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+];
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  async headers() {
+    return [
+      { source: "/:path*", headers: SECURITY_HEADERS },
+      { source: "/api/partage/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
+    ];
+  },
 };
 
 // La configuration de langue de chaque requête vit dans src/i18n/request.ts.

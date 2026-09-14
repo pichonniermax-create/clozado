@@ -162,6 +162,7 @@
     "l_adresse_de_reponse_ne_semble_ac1b": "The reply-to address doesn’t look valid.",
     "la_couleur_n_est_pas_un_466e": "The color isn’t a valid hex code.",
     "la_langue_de_l_espace_par_defaut_1a2b": "The workspace’s default language, the currency amounts are read in, the time zone for dates and due dates.",
+    "la_police_n_est_pas_valide": "The font is not valid: font names separated by commas, nothing else (80 characters at most).",
     "langue_devise_et_fuseau": "Language, currency and time zone",
     "langue_devise_et_fuseau_enregistres": "Language, currency and time zone saved.",
     "langue_devise_ou_fuseau_inconnu": "Unknown language, currency or time zone.",

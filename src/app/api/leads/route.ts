@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authenticateApiKey, receiveLead, recordRejection } from "@/db/queries/acquisition";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/client-ip";
 import { isDemoOrganization } from "@/lib/demo/guard";
 
 /**
@@ -55,10 +56,6 @@ const leadSchema = z.strictObject({
   payload: z.record(z.string(), z.unknown()).optional().nullable(),
 });
 
-function clientIp(request: Request): string {
-  return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip") ?? "inconnue";
-}
-
 export async function POST(request: Request) {
   const authorization = request.headers.get("authorization") ?? "";
   // eslint-disable-next-line local/no-visible-text -- le schéma d'authentification HTTP, pas un texte
@@ -66,7 +63,7 @@ export async function POST(request: Request) {
   if (!rawKey) {
     return NextResponse.json({ error: "missing_api_key" }, { status: 401, headers: HEADERS });
   }
-  if (!checkRateLimit(`leads:ip:${clientIp(request)}`, { limit: 120, windowMs: 60_000 })) {
+  if (!checkRateLimit(`leads:ip:${clientIp(request.headers)}`, { limit: 120, windowMs: 60_000 })) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: HEADERS });
   }
 

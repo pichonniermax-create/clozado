@@ -1,4 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
+import { log } from "@/lib/log";
 import { WatchFetchError, fetchWithTimeout, readBodyText } from "./http";
 
 /**
@@ -204,7 +205,9 @@ export async function discoverFeed(siteUrl: string, timeoutMs: number): Promise<
   try {
     const response = await fetchWithTimeout(siteUrl, timeoutMs, "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
     html = await readBodyText(response, 1_500_000);
-  } catch {
+  } catch (error) {
+    // Une page d'accueil injoignable n'empêche pas d'essayer les chemins usuels — mais la cause est consignée (audit, constat Q4).
+    log.warn("feed_discovery_page_unreachable", { siteUrl, error });
     html = "";
   }
   const candidates: string[] = [];

@@ -51,9 +51,9 @@ async function main() {
   const sharesQ = await import("../src/db/queries/deal-shares");
   const tasksQ = await import("../src/db/queries/tasks");
   const activitiesQ = await import("../src/db/queries/activities");
-  const { createPartner } = await import("../src/db/queries/partners");
+  const { createPartner, updatePartner } = await import("../src/db/queries/partners");
   const { getFollowUpBoard } = await import("../src/db/queries/deal-follow-up");
-  const { organizations, users, contacts, deals, tasks, activities, dealEvents, dealStageChanges, dealShares, dealTypes, dealStatuses, contactAccessLog } = schema;
+  const { organizations, users, contacts, deals, tasks, activities, dealEvents, dealStageChanges, dealShares, dealTypes, dealStatuses, contactAccessLog, partners, commissions } = schema;
 
   // Jamais deux passages simultanés, et jamais de reliquat d'un passage interrompu.
   const leftovers = await db.select({ id: organizations.id }).from(organizations).where(inArray(organizations.slug, [...SLUGS]));
@@ -210,6 +210,64 @@ async function main() {
     await expectThrow("deleteContact(B, contact de A) refuse", () => contactsQ.deleteContact(b!.admin, a!.contactId, b!.userId, tc));
     await expectThrow("mergeContacts(B : son contact ← contact de A) refuse", () => contactsQ.mergeContacts(b!.admin, b!.contactId, a!.contactId, b!.userId, tc));
 
+    // Affectation de masse (audit, constat S1) : l'entrée d'une action serveur est
+    // du JSON libre — une clé `organizationId` ou `id` glissée dedans ne doit
+    // JAMAIS atterrir dans l'écriture. Refus, ou écriture restée chez A : les
+    // deux sont acceptables ; un partenaire apparu chez B ne l'est pas.
+    console.log("\n--- Affectation de masse : une clé organizationId/id dans l'entrée n'écrit jamais chez l'autre");
+    const forgedCreate = await createPartner(a.admin, { name: "Forgé", organizationId: b.orgId } as never).then(
+      (p) => p,
+      (error: unknown) => error
+    );
+    expect(
+      "createPartner(A, {…, organizationId: B}) refusé ou resté chez A",
+      forgedCreate instanceof Error || (forgedCreate as { organizationId: string }).organizationId === a.orgId,
+      forgedCreate instanceof Error ? undefined : `organizationId=${(forgedCreate as { organizationId: string }).organizationId}`
+    );
+    const forgedUpdate = await updatePartner(a.admin, a.partnerId, { name: "Forgé", organizationId: b.orgId, id: b.partnerId } as never).then(
+      () => null,
+      (error: unknown) => error
+    );
+    const partnerA = await db.query.partners.findFirst({ where: eq(partners.id, a.partnerId) });
+    const partnerB = await db.query.partners.findFirst({ where: eq(partners.id, b.partnerId) });
+    expect(
+      "updatePartner(A, partenaire de A, {organizationId: B, id: partenaire de B}) refusé, rien ne bouge",
+      forgedUpdate instanceof Error && partnerA?.organizationId === a.orgId && partnerA.name === "Confrère A" && partnerB?.name === "Confrère B"
+    );
+    const [foreignPartners] = await db.select({ n: count() }).from(partners).where(and(eq(partners.organizationId, b.orgId), eq(partners.name, "Forgé")));
+    expect("aucun partenaire « Forgé » chez B", foreignPartners.n === 0);
+    await expectThrow("createDeal(A, {…, organizationId: B}) refuse", async () => {
+      const [typeA] = await db.select().from(dealTypes).where(eq(dealTypes.organizationId, a!.orgId));
+      return dealsQ.createDeal(a!.admin, a!.userId, { title: "x", clientName: "x", typeId: typeA.id, organizationId: b!.orgId } as never);
+    });
+    await expectThrow("updateDealDetails(A, affaire de A, {organizationId: B}) refuse", () =>
+      dealsQ.updateDealDetails(a!.admin, a!.dealId, { estimatedAmount: "1", organizationId: b!.orgId } as never)
+    );
+    await expectThrow("createDealShare(A, {…, organizationId: B}) refuse", () =>
+      sharesQ.createDealShare(a!.admin, a!.userId, { dealId: a!.dealId, partnerId: a!.partnerId, organizationId: b!.orgId } as never)
+    );
+
+    console.log("\n--- Le chemin nominal reste ouvert : la forme exacte du composeur (avec commission) passe le schéma strict");
+    const { share: shareWithCommission } = await sharesQ.createDealShare(a.admin, a.userId, {
+      dealId: a.dealId,
+      partnerId: a.partnerId,
+      proposedTerms: null,
+      message: "Bonjour",
+      expiresAt: new Date(Date.now() + 7 * 86_400_000),
+      commission: { basis: "percentage", rate: "10", fixedAmount: null, baseAmount: "1000", computedAmount: "100" },
+    });
+    const commissionRow = await db.query.commissions.findFirst({ where: eq(commissions.shareId, shareWithCommission.id) });
+    expect(
+      "createDealShare(A, avec commission) écrit le partage ET la commission « prévue » chez A",
+      shareWithCommission.organizationId === a.orgId &&
+        commissionRow?.organizationId === a.orgId &&
+        commissionRow.state === "prevue" &&
+        Number(commissionRow.computedAmount) === 100 &&
+        commissionRow.rate !== null &&
+        Number(commissionRow.rate) === 10,
+      commissionRow ? `state=${commissionRow.state} computed=${commissionRow.computedAmount}` : "aucune commission écrite"
+    );
+
     console.log("\n--- La base elle-même : une ligne qui mélange deux organisations est rejetée (FK composites)");
     const fkViolation = async (label: string, statement: Promise<unknown>) => {
       try {
@@ -281,6 +339,7 @@ async function main() {
           db.select({ n: count() }).from(dealEvents).where(inArray(dealEvents.organizationId, orgIds)),
           db.select({ n: count() }).from(dealStageChanges).where(inArray(dealStageChanges.organizationId, orgIds)),
           db.select({ n: count() }).from(contactAccessLog).where(inArray(contactAccessLog.organizationId, orgIds)),
+          db.select({ n: count() }).from(commissions).where(inArray(commissions.organizationId, orgIds)),
         ].map((query) => query.then(([r]) => Number(r.n)))
       );
       const row = {
@@ -294,6 +353,7 @@ async function main() {
         events: counts[7],
         stage_changes: counts[8],
         access_log: counts[9],
+        commissions: counts[10],
       };
       const total = Object.values(row).reduce((s, v) => s + v, 0);
       expect(`zéro reliquat (${Object.entries(row).map(([k, v]) => `${k}=${v}`).join(", ")})`, total === 0);

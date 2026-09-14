@@ -64,8 +64,42 @@ export function normalizeRuleConditions(input: RuleConditions): RuleConditions {
   return out;
 }
 
-/** Lecture TOLÉRANTE (affichage, évaluation) : un JSON illisible vaut « aucune condition » — jamais un écran cassé. */
+/**
+ * Lecture TOLÉRANTE, pour l'AFFICHAGE (liste des règles, formulaire) : un
+ * JSON illisible vaut « aucune condition » — jamais un écran cassé. JAMAIS
+ * pour l'évaluation : là, `{}` voudrait dire « tous les contacts vivants »,
+ * et une colonne corrompue élargirait une règle d'envoi à toute la base.
+ */
 export function parseRuleConditions(value: unknown): RuleConditions {
   const parsed = RULE_CONDITIONS_SCHEMA.safeParse(value ?? {});
   return parsed.success ? normalizeRuleConditions(parsed.data) : {};
+}
+
+/** Des conditions illisibles rencontrées à l'évaluation : la règle est sautée, le passage le consigne (`rule_runs.error`). */
+export class InvalidRuleConditionsError extends Error {
+  constructor() {
+    super("invalid_rule_conditions");
+    this.name = "InvalidRuleConditionsError";
+  }
+}
+
+/**
+ * Lecture STRICTE, pour l'ÉVALUATION (audit, constat Q6) : une valeur qui
+ * n'est pas un objet aux clés connues — JSON invalide, chaîne, tableau,
+ * clé inconnue, valeur hors forme — LÈVE. `{}` reste « tous les contacts
+ * vivants » : c'est ce que la personne a enregistré.
+ */
+export function readRuleConditionsStrict(value: unknown): RuleConditions {
+  let candidate = value;
+  if (typeof candidate === "string") {
+    try {
+      candidate = JSON.parse(candidate);
+    } catch {
+      throw new InvalidRuleConditionsError();
+    }
+  }
+  if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) throw new InvalidRuleConditionsError();
+  const parsed = RULE_CONDITIONS_SCHEMA.safeParse(candidate);
+  if (!parsed.success) throw new InvalidRuleConditionsError();
+  return normalizeRuleConditions(parsed.data);
 }
