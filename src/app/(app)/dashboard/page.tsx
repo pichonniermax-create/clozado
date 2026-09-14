@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowRight, Banknote, BellRing, BookUser, Check, ListTodo, PauseCircle, Plus, Sparkles } from "lucide-react";
+import { ArrowRight, Banknote, BellRing, BookUser, Check, ListTodo, MailPlus, PauseCircle, Plus, Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,11 @@ import { getFollowUpBoard } from "@/db/queries/deal-follow-up";
 import { getOwnOrganization, getVisibleOrganizations } from "@/db/queries/organizations";
 import { listPartners } from "@/db/queries/partners";
 import { generateAutoTasks, getTasksDueSummary } from "@/db/queries/tasks";
+import { countPendingInvitations } from "@/db/queries/workspace-invitations";
+import { getOnboardingFacts } from "@/db/queries/onboarding";
+import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
+import { ONBOARDING_COOKIE, readOnboardingProgress } from "@/lib/onboarding/steps";
+import { cookies } from "next/headers";
 import { setActiveOrganizationAction } from "@/lib/admin/actions";
 import { createDemoAction, resetDemoAction, setDemoPublicAction } from "@/lib/demo/actions";
 import { listDemoJournal } from "@/lib/demo/journal";
@@ -64,7 +69,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       redirect("/dashboard");
     }
     const td = await getTranslations("demo.manager");
-    const [organizations, demo, journal] = await Promise.all([getVisibleOrganizations(user), getDemoOrganization(), listDemoJournal(1)]);
+    const [organizations, demo, journal, pendingInvitations] = await Promise.all([
+      getVisibleOrganizations(user),
+      getDemoOrganization(),
+      listDemoJournal(1),
+      countPendingInvitations(user),
+    ]);
     const lastOperation = journal[0] ?? null;
     async function createDemo() {
       "use server";
@@ -88,8 +98,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           title={t("organisations")}
           description={t("vue_globale_super_admin_choisis_une_36d9")}
         />
-        {raw.erreur && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{raw.erreur}</p>}
-        {raw.info && <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">{raw.info}</p>}
         <ListCard>
           {organizations.map((org) => (
             <ListRow key={org.id}>
@@ -112,6 +120,22 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </ListRow>
           ))}
         </ListCard>
+        {/* Les invitations d'espaces (docs/module-invitations.md §1.3) : le compte des liens en attente, et le geste pour en générer un. */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("invitations_titre")}</CardTitle>
+            <CardDescription>{t("invitations_description", { count: pendingInvitations })}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-2">
+            <Link href="/invitations?nouveau=1" className={buttonVariants({ size: "sm" })}>
+              <MailPlus />
+              {t("nouvelle_invitation")}
+            </Link>
+            <Link href="/invitations" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              {t("gerer_les_invitations")}
+            </Link>
+          </CardContent>
+        </Card>
         {/* L'espace gestionnaire de la démo (docs/module-demo.md §1.9) : création, interrupteur de la démo publique, dernière opération. */}
         <Card>
           <CardHeader>
@@ -180,7 +204,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // tant qu'on n'a pas ouvert /taches. Le tableau déjà calculé est réutilisé.
   await generateAutoTasks(user, board);
 
-  const [org, open, anyDeal, contactsCount, partners, tasksDue, journal] = await Promise.all([
+  const [org, open, anyDeal, contactsCount, partners, tasksDue, journal, onboardingFacts, cookieStore] = await Promise.all([
     getOwnOrganization(user),
     openDeals(user),
     hasAnyDeal(user),
@@ -188,7 +212,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     listPartners(user),
     getTasksDueSummary(user, TASKS_PREVIEW),
     listOrganizationJournal(user, JOURNAL_PREVIEW, await getTranslations("activities.queries")),
+    getOnboardingFacts(user),
+    cookies(),
   ]);
+  // Les premiers pas (chantier UI/UX) : cochés par les données, masqués par un cookie, disparus quand tout est fait.
+  const onboarding = readOnboardingProgress(onboardingFacts);
+  const showOnboarding = !onboarding.complete && cookieStore.get(ONBOARDING_COOKIE)?.value !== "masque";
   // La période des indicateurs : celle de l'URL si c'est un préréglage, sinon celle du tableau de bord (pas celle des écrans analytiques).
   const parsed = parseMetricFilters({ periode: PERIOD_PRESETS.some((p) => p.key === raw.periode) ? raw.periode : DASHBOARD_PERIOD }, fmt.timeZone);
 
@@ -249,7 +278,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         }
       />
 
-      {isFreshSpace && (
+      {showOnboarding && <OnboardingChecklist progress={onboarding} />}
+      {isFreshSpace && !showOnboarding && (
         <EmptyState
           icon={<Sparkles />}
           title={t("bienvenue_dans_ton_espace")}
@@ -274,7 +304,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       )}
 
       {/* Aujourd'hui : ce qui attend une action, tous modules confondus. */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div data-tour="dashboard-tuiles" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
           label={t("a_faire")}
           value={tasksNow}

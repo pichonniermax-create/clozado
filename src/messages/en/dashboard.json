@@ -1,4 +1,31 @@
 {
+  "onboarding": {
+    "titre": "First steps",
+    "description": "{done} of {total} — each step ticks itself as soon as the data exists.",
+    "masquer": "Hide the first steps",
+    "progression": "First steps progress",
+    "visite_guidee": "Guided tour",
+    "etapes": {
+      "marque": "Set your brand (logo, colour)",
+      "contacts": "Add your first contacts",
+      "partenaires": "Register a business introducer",
+      "affaires": "Create your first deal",
+      "cibles": "Define a target",
+      "newsletters": "Compose a newsletter",
+      "regles": "Write a follow-up rule",
+      "domaine": "Verify your sending domain"
+    },
+    "gestes": {
+      "marque": "Set my brand",
+      "contacts": "Import my contacts",
+      "partenaires": "Add a partner",
+      "affaires": "Create a deal",
+      "cibles": "Create a target",
+      "newsletters": "Write a newsletter",
+      "regles": "Write a rule",
+      "domaine": "Verify my domain"
+    }
+  },
   "packIndicators": {
     "a_aujourd_hui": "as of today",
     "aucun_pack_metier_choisi_voici_le_6aac": "No business pack chosen: here is the “{label}” pack, {period}. A wealth advisor tracks assets under management and inflows, a broker tracks volumes and timings — choose yours in",
@@ -33,12 +60,16 @@
     "dont_en_retard_en_retards": "including {overdue, plural, one {# overdue} other {# overdue}}",
     "et_autre_autres_voir_toutes_les_bb29": "And {n, plural, one {# more} other {# more}} — <link>see all tasks</link>.",
     "expire_dans": "expires in {formatDays}",
+    "gerer_les_invitations": "Manage invitations",
     "importer_mes_contacts": "Import my contacts",
     "interactions_etapes_franchies_partages_taches_achevees_b466": "Interactions, stages passed, shares, tasks completed — the whole organization, most recent first.",
+    "invitations_description": "{count, plural, =0 {No pending invitations} one {# pending invitation} other {# pending invitations}} — generate a link so a new company can create its workspace.",
+    "invitations_titre": "Workspace invitations",
     "lien_expire": "link expired",
     "marquer_comme_faite": "Mark “{title}” as done",
     "marquer_comme_faite_bb0d": "Mark as done",
     "nouvelle_affaire": "New deal",
+    "nouvelle_invitation": "New invitation",
     "organisations": "Organizations",
     "par_ou_commencer_importe_tes_contacts_9cbf": "Where to start: import your contacts or create the first records, then create your first deal — and share it with a partner from its record. The dashboard fills in on its own.",
     "partages_sans_reponse": "Shares without a reply",

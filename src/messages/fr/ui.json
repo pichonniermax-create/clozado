@@ -10,5 +10,31 @@
     "copier": "Copier",
     "copie": "Copié",
     "copie_manuelle": "Copie ce texte :"
+  },
+  "dialog": {
+    "fermer": "Fermer"
+  },
+  "toast": {
+    "fermer": "Fermer la notification"
+  },
+  "commandPalette": {
+    "titre": "Palette de commandes",
+    "ouvrir": "Rechercher ou aller à un écran",
+    "rechercher": "Rechercher…",
+    "placeholder": "Un contact, une affaire, un partenaire, un écran…",
+    "placeholder_sans_organisation": "Un écran…",
+    "aucun_resultat": "Rien ne correspond.",
+    "voir_tous_les_contacts_pour": "Tous les contacts pour « {query} »",
+    "groupes": {
+      "navigation": "Écrans",
+      "creer": "Créer",
+      "contacts": "Contacts",
+      "affaires": "Affaires",
+      "partenaires": "Partenaires",
+      "plus": "Plus"
+    },
+    "raccourci_mac": "⌘K",
+    "raccourci_pc": "Ctrl K",
+    "echap": "Échap"
   }
 }

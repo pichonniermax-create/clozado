@@ -1,28 +1,42 @@
 import { DEMO_TOUR_PARAM } from "@/lib/demo/public";
 
 /**
- * LE DIDACTICIEL (docs/module-demo.md §1.8) : huit étapes, dans l'ordre où
- * le produit fait sens — l'accueil, les apporteurs et les partages, les
- * affaires et le suivi, les contacts, le composeur, le ciblage,
- * l'engagement, l'analytique. Chaque étape désigne UN écran ; les textes
- * vivent dans le namespace `tour` (FR/EN), jamais ici.
+ * LE DIDACTICIEL (docs/module-demo.md §1.8, repris par le chantier UI/UX) :
+ * huit étapes, dans l'ordre où le produit fait sens — l'accueil, les
+ * apporteurs et les partages, les affaires et le suivi, les contacts, le
+ * composeur, le ciblage, l'engagement, l'analytique. Chaque étape désigne
+ * UN écran, et sur cet écran UN élément à MONTRER (`target` : un attribut
+ * `data-tour` posé par l'écran — la carte s'ancre dessus et l'éclaire,
+ * dès `md` ; sans lui, ou sur petit écran, la carte reste en bas) et, le
+ * plus souvent, UN geste à FAIRE (`action` : le formulaire déjà déplié, la
+ * page de création). Les textes vivent dans le namespace `tour` (FR/EN),
+ * jamais ici.
  *
  * L'état vit dans un cookie par navigateur, écrit côté client : un
  * visiteur de la démo publique n'a droit à aucune écriture serveur, et un
  * compte réel n'a pas besoin d'une migration pour reprendre une visite.
  */
-export const TOUR_STEPS = [
-  { key: "bienvenue", href: "/dashboard" },
-  { key: "partenaires", href: "/partenaires" },
-  { key: "affaires", href: "/affaires" },
-  { key: "contacts", href: "/contacts" },
-  { key: "newsletters", href: "/newsletters" },
-  { key: "cibles", href: "/cibles" },
-  { key: "engagement", href: "/regles" },
-  { key: "analytique", href: "/analytique/funnel" },
-] as const;
+export type TourStep = {
+  key: "bienvenue" | "partenaires" | "affaires" | "contacts" | "newsletters" | "cibles" | "engagement" | "analytique";
+  href: string;
+  /** La valeur de l'attribut `data-tour` de l'élément à éclairer sur cet écran. */
+  target?: string;
+  /** Le geste proposé par l'étape (un lien) ; son libellé vit dans `tour.steps.<key>.action`. */
+  action?: string;
+};
 
-export type TourStepKey = (typeof TOUR_STEPS)[number]["key"];
+export const TOUR_STEPS: readonly TourStep[] = [
+  { key: "bienvenue", href: "/dashboard", target: "dashboard-tuiles" },
+  { key: "partenaires", href: "/partenaires", target: "partenaires-nouveau", action: "/partenaires?nouveau=1" },
+  { key: "affaires", href: "/affaires", target: "affaires-nouvelle", action: "/affaires?nouveau=1" },
+  { key: "contacts", href: "/contacts", target: "contacts-nouveau", action: "/contacts/import" },
+  { key: "newsletters", href: "/newsletters", target: "newsletters", action: "/newsletters/new" },
+  { key: "cibles", href: "/cibles", target: "cibles", action: "/cibles/new" },
+  { key: "engagement", href: "/regles", target: "regles", action: "/regles/new" },
+  { key: "analytique", href: "/analytique/funnel", target: "analytique" },
+];
+
+export type TourStepKey = TourStep["key"];
 
 export const TOUR_COOKIE = "clozado-visite";
 export const TOUR_PARAM = DEMO_TOUR_PARAM;

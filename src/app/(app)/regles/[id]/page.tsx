@@ -9,19 +9,12 @@ import { getFormats } from "@/i18n/formats";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
 
-export default async function EditRulePage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ erreur?: string }>;
-}) {
+export default async function EditRulePage({ params }: { params: Promise<{ id: string }> }) {
   const t = await getTranslations("rules.editor");
   const fmt = await getFormats();
   const user = await requireUser();
   if (!user.organizationId) redirect("/dashboard");
   const { id } = await params;
-  const { erreur } = await searchParams;
   const data = await getRule(user, id).catch(() => null);
   if (!data) notFound();
   const { rule, template } = data;
@@ -34,7 +27,6 @@ export default async function EditRulePage({
         description={t("une_phrase_un_declencheur_une_action")}
         backTo={{ href: "/regles", label: t("regles") }}
       />
-      {erreur && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{erreur}</p>}
       <p className="text-xs text-muted-foreground">
         {template ? t("gabarit_version_n", { n: template.version }) : t("sans_gabarit")}
         {rule.autoSendConfirmedAt ? ` · ${t("opt_in_donne_le", { when: fmt.date(rule.autoSendConfirmedAt) })}` : ""}

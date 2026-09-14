@@ -12,6 +12,7 @@
     "contacts": "Contacts",
     "dashboard": "Tableau de bord",
     "emails_recus": "Emails reçus",
+    "invitations": "Invitations d’espaces",
     "newsletters": "Newsletters",
     "partenaires": "Partenaires",
     "regles": "Règles de relance",
@@ -29,6 +30,7 @@
     "analytique": "Analytique",
     "aujourd_hui": "Aujourd’hui",
     "dossiers": "Dossiers",
+    "gestion": "Gestion",
     "outils": "Outils"
   }
 }

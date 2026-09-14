@@ -163,3 +163,100 @@ super admin et le conteneur de contenu resserrent leurs marges sur petit
 
 - Des fichiers d'état propres à `/newsletters/*` (voir étape 2).
 - Info-bulle et boîte de dialogue, encore absentes du socle (inventaire §3).
+
+---
+
+## Étape 4 — le niveau produit (chantier UI/UX du 2026-09-14)
+
+Commandé le 2026-09-14 : « fais progresser l'UI/UX global du SaaS ainsi
+que le didacticiel […] augmente le niveau du SaaS vers Lovable, HubSpot,
+Monday, Attio, et améliore le responsive ». Ce que ces produits ont en
+commun et que Clozado n'avait pas : une palette de commandes, des
+notifications à la place d'encadrés, une mise en route guidée par les
+données, une visite qui montre l'écran au lieu d'en parler, une barre
+d'onglets sur mobile, un thème sombre.
+
+### Le socle (composants ajoutés par shadcn sur Base UI)
+
+`tooltip`, `popover`, `dialog`, `alert-dialog`, `toast`, `kbd` dans
+`components/ui/` — les deux manques de l'inventaire §3 sont soldés. Les
+textes anglais des composants générés (« Close », « Close toast ») passent
+par `ui.dialog` / `ui.toast` ; la dépendance parasite `cn` que le
+générateur avait ajoutée est retirée, les imports pointent `@/lib/utils`.
+
+### La palette de commandes — ⌘K / Ctrl K (`app-shell/command-palette.tsx`)
+
+Depuis n'importe quel écran : aller à un écran (le registre `navigation.ts`,
+filtré comme la barre latérale — organisation, super admin, lecture
+seule), créer (les entrées du menu « Nouveau »), la visite guidée, les
+réglages ; et surtout **retrouver une fiche** par son nom — contacts,
+affaires, partenaires — par une action serveur org-scopée
+(`src/lib/search/actions.ts` → `src/db/queries/search.ts`, cinq résultats
+par dossier, motif `ILIKE` échappé, 300 recherches par minute et par
+personne), débouncée à 180 ms, jamais une réponse périmée par-dessus une
+plus récente. Tout au clavier ; le raccourci affiché suit la machine (⌘ ou
+Ctrl, lu au premier rendu client). Elle remplace la recherche de contacts
+de l'en-tête ; « Tous les contacts pour “…” » y mène toujours.
+
+### Les notifications (`app-shell/flash-toaster.tsx`)
+
+La convention du produit — une action revient avec `?erreur=` / `?info=`
+(`withError`, 135 usages) — ne change pas ; ce qui change, c'est l'écran :
+la phrase devient une notification (rouge / verte, fermable, empilée), et
+l'adresse est nettoyée aussitôt par `history.replaceState` natif — que le
+routeur de Next intègre — sans rechargement : un rechargement ne remontre
+plus le message, un lien copié ne l'emporte plus. Les quinze encadrés
+inline des pages sont retirés (les paramètres dédiés `erreurJournal`,
+`erreurRendezVous`, `erreurRelance` restent inline, près de leur
+formulaire). Le `Toaster` vit dans la mise en page racine.
+
+### Le thème (`src/lib/theme.ts`)
+
+Clair, sombre, ou celui du système, depuis le menu de compte. Un cookie
+par navigateur (`clozado-theme`), lu par la mise en page racine pour poser
+`dark` avant le premier rendu ; « système » délègue à un script d'une
+ligne dans `<head>`, d'où `suppressHydrationWarning` sur `<html>`. Les
+jetons sombres existaient (globals.css, jetons de marque dérivés) : ceci
+n'est que l'interrupteur.
+
+### La barre d'onglets mobile (`app-shell/bottom-nav.tsx`)
+
+En dessous de `md` : tableau de bord, contacts, affaires, tâches (avec son
+compteur) sous le pouce, et « Menu » qui ouvre le même panneau que le
+bouton de l'en-tête. Le contenu garde `pb-24` pour elle ; la carte de la
+visite se pose au-dessus (`bottom-14`). Zone de sécurité des encoches
+respectée.
+
+### Les premiers pas (`dashboard/onboarding-checklist.tsx`)
+
+Sur le tableau de bord d'un espace qui n'a pas tout fait : huit gestes
+(marque, contacts, partenaire, affaire, cible, newsletter, règle, domaine
+d'envoi), chacun **coché par les données** (`getOnboardingFacts`, une
+seule requête à sous-requêtes) — rien à stocker, rien qui puisse mentir ;
+le prochain geste est mis en avant, une barre de progression, « Masquer »
+pose un cookie, la carte disparaît d'elle-même quand tout est fait. L'état
+vide « Bienvenue dans ton espace » ne s'affiche plus que si la carte est
+masquée.
+
+### La visite guidée, ancrée (`tour/tour-card.tsx`)
+
+Chaque étape désigne désormais un ÉLÉMENT de son écran (`data-tour`, posé
+par `PageHeader` et `DetailsCard` via une prop `tour`, ou directement) :
+la carte s'ancre dessous, l'élément est éclairé (halo, reste assombri sans
+être bloqué — la page reste cliquable), la page défile jusqu'à lui ; sans
+élément, ou sous `md`, la carte reste en bas. Chaque étape propose aussi
+le geste (« Ajouter un partenaire », le formulaire déjà déplié), une barre
+de progression remplace le seul « 3 / 8 », et terminer la visite le dit en
+notification en renvoyant aux premiers pas. La mesure se fait dans une
+frame d'animation puis au défilement et au redimensionnement — jamais
+pendant le rendu (règle `set-state-in-effect`).
+
+### Le préchargement au survol (`app-shell/nav-link.tsx`)
+
+Par défaut, Next préchargeait chaque lien visible de la barre latérale —
+vingt écrans dynamiques, chacun rendant la coquille et ses requêtes, à
+chaque page ouverte (c'est ce qui saturait le proxy de la base locale de
+preuve ; en production, autant de requêtes Neon pour rien — constat D4 de
+l'audit). Désormais `prefetch={false}` et `router.prefetch` au survol ou au
+focus : la navigation reste immédiate, sans le coût. La barre d'onglets
+mobile ne précharge pas (pas de survol).

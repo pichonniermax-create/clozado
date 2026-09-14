@@ -17,14 +17,17 @@ export function PageHeader({
   description,
   backTo,
   actions,
+  tour,
 }: {
   title: string;
   description?: ReactNode;
   backTo?: { href: string; label: string };
   actions?: ReactNode;
+  /** L'attribut `data-tour` : la visite guidée éclaire cet en-tête (src/lib/tour/steps.ts). */
+  tour?: string;
 }) {
   return (
-    <header className="flex flex-col gap-3 border-b border-border pb-5">
+    <header data-tour={tour} className="flex flex-col gap-3 border-b border-border pb-5">
       {backTo && (
         <Link
           href={backTo.href}

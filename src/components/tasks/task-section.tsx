@@ -25,7 +25,6 @@ export function TaskSection({
   contactId,
   dealId,
   emptyText,
-  erreur,
 }: {
   tasks: TaskRow[];
   /** Chemin de la fiche — les actions y reviennent. */
@@ -33,8 +32,6 @@ export function TaskSection({
   contactId?: string;
   dealId?: string;
   emptyText: string;
-  /** Message d'erreur remonté par une action (paramètre d'URL `erreur`). */
-  erreur?: string;
 }) {
   const t = useTranslations("tasks.taskSection");
   const tt = useTranslations("tasks");
@@ -51,10 +48,6 @@ export function TaskSection({
           {t("toutes_les_taches")}
         </Link>
       </div>
-
-      {erreur && (
-        <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{erreur}</p>
-      )}
 
       {tasks.length === 0 ? (
         <EmptyState>{emptyText}</EmptyState>

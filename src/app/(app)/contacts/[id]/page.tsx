@@ -353,7 +353,6 @@ export default async function ContactPage({
         backTo={`/contacts/${contact.id}`}
         contactId={contact.id}
         emptyText={tr("aucune_tache_pour_ce_contact_l_20ff")}
-        erreur={query.erreur}
       />
 
       <AppointmentSection

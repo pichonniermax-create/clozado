@@ -1,4 +1,31 @@
 {
+  "onboarding": {
+    "titre": "Premiers pas",
+    "description": "{done} sur {total} — chaque geste se coche tout seul, dès que la donnée existe.",
+    "masquer": "Masquer les premiers pas",
+    "progression": "Progression des premiers pas",
+    "visite_guidee": "Visite guidée",
+    "etapes": {
+      "marque": "Poser ta marque (logo, couleur)",
+      "contacts": "Ajouter tes premiers contacts",
+      "partenaires": "Enregistrer un apporteur d’affaires",
+      "affaires": "Créer ta première affaire",
+      "cibles": "Définir une cible",
+      "newsletters": "Composer une newsletter",
+      "regles": "Écrire une règle de relance",
+      "domaine": "Vérifier ton domaine d’envoi"
+    },
+    "gestes": {
+      "marque": "Poser ma marque",
+      "contacts": "Importer mes contacts",
+      "partenaires": "Ajouter un partenaire",
+      "affaires": "Créer une affaire",
+      "cibles": "Créer une cible",
+      "newsletters": "Écrire une newsletter",
+      "regles": "Écrire une règle",
+      "domaine": "Vérifier mon domaine"
+    }
+  },
   "packIndicators": {
     "a_aujourd_hui": "à aujourd’hui",
     "aucun_pack_metier_choisi_voici_le_6aac": "Aucun pack métier choisi : voici le pack « {label} », {period}. Un CGP suit ses encours et sa collecte, un courtier ses volumes et ses délais — choisis le tien dans",
@@ -33,12 +60,16 @@
     "dont_en_retard_en_retards": "dont {overdue, plural, one {# en retard} other {# en retards}}",
     "et_autre_autres_voir_toutes_les_bb29": "Et {n, plural, one {# autre} other {# autres}} — <link>voir toutes les tâches</link>.",
     "expire_dans": "expire dans {formatDays}",
+    "gerer_les_invitations": "Gérer les invitations",
     "importer_mes_contacts": "Importer mes contacts",
     "interactions_etapes_franchies_partages_taches_achevees_b466": "Interactions, étapes franchies, partages, tâches achevées — toute l’organisation, les plus récentes d’abord.",
+    "invitations_description": "{count, plural, =0 {Aucune invitation en attente} one {# invitation en attente} other {# invitations en attente}} — génère un lien pour qu’une nouvelle entreprise crée son espace.",
+    "invitations_titre": "Invitations d’espaces",
     "lien_expire": "lien expiré",
     "marquer_comme_faite": "Marquer « {title} » comme faite",
     "marquer_comme_faite_bb0d": "Marquer comme faite",
     "nouvelle_affaire": "Nouvelle affaire",
+    "nouvelle_invitation": "Nouvelle invitation",
     "organisations": "Organisations",
     "par_ou_commencer_importe_tes_contacts_9cbf": "Par où commencer : importe tes contacts ou crée les premières fiches, puis crée ta première affaire — et partage-la à un confrère depuis sa fiche. Le tableau de bord se remplit tout seul.",
     "partages_sans_reponse": "Partages sans réponse",

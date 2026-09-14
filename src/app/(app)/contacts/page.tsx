@@ -51,7 +51,7 @@ export default async function ContactsPage({
         }
       />
 
-      <DetailsCard summary={t("nouveau_contact")} defaultOpen={params.nouveau === "1"}>
+      <DetailsCard summary={t("nouveau_contact")} defaultOpen={params.nouveau === "1"} tour="contacts-nouveau">
         <ContactCreateForm orgUsers={orgUsers} />
       </DetailsCard>
 

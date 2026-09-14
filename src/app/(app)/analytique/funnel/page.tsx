@@ -373,6 +373,7 @@ export default async function FunnelPage({ searchParams }: { searchParams: Promi
 
   const header = (
     <PageHeader
+      tour="analytique"
       title={t("funnel_de_conversion")}
       description={t("une_seule_chaine_de_la_visite_9a3c")}
     />

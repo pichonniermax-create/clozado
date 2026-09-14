@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   ListTodo,
   Mail,
+  MailPlus,
   Newspaper,
   Radar,
   Route,
@@ -43,6 +44,8 @@ export type NavEntry = {
    * super admin (l'écran se défend quand même si on y arrive par l'URL).
    */
   requiresOrganization?: boolean;
+  /** L'écran n'existe que pour le super admin RÉEL (l'espace gestionnaire) : masqué à tout autre rôle, et à sa substitution. */
+  superAdminOnly?: boolean;
 };
 
 export type NavSection = { key: keyof Messages["nav"]["sections"]; entries: NavEntry[] };
@@ -85,6 +88,10 @@ export const NAVIGATION: NavSection[] = [
       { href: "/chiffres", key: "chiffres", icon: Sigma, requiresOrganization: true },
       { href: "/newsletters", key: "newsletters", icon: Mail },
     ],
+  },
+  {
+    key: "gestion",
+    entries: [{ href: "/invitations", key: "invitations", icon: MailPlus, superAdminOnly: true }],
   },
 ];
 

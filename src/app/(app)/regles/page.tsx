@@ -61,7 +61,7 @@ export default async function RulesPage({ searchParams }: { searchParams: Promis
   const org = await getOwnOrganization(user);
   if (!org) redirect("/dashboard");
 
-  const [{ erreur, info }, rules, latestRun, drafts, options] = await Promise.all([
+  const [, rules, latestRun, drafts, options] = await Promise.all([
     searchParams,
     listRules(user),
     getLatestRuleRun(org.id),
@@ -73,6 +73,7 @@ export default async function RulesPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader
+        tour="regles"
         title={t("list.regles_de_relance")}
         description={t("list.des_phrases_pas_des_automatismes_muets")}
         actions={
@@ -86,8 +87,6 @@ export default async function RulesPage({ searchParams }: { searchParams: Promis
           </span>
         }
       />
-      {erreur && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{erreur}</p>}
-      {info && <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">{info}</p>}
 
       {/* LA VAGUE — rien ne part sans ce clic. */}
       {drafts.length > 0 && (

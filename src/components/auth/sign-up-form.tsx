@@ -9,18 +9,24 @@ import { useTranslations } from "next-intl";
 
 const initialState: AuthFormState = { error: null };
 
-export function SignUpForm() {
+/** Ce qu'une invitation à créer un espace apporte au formulaire (docs/module-invitations.md §1.2) : le jeton, le nom, l'adresse réservée. */
+export type SignUpInvitation = { token: string; organizationName: string; email: string | null };
+
+export function SignUpForm({ invitation = null }: { invitation?: SignUpInvitation | null }) {
   const t = useTranslations("auth.signUpForm");
   const [state, action, pending] = useActionState(signUpAction, initialState);
 
   // Champs contrôlés à dessein : React 19 réinitialise un formulaire non
   // contrôlé une fois l'action terminée. Sur une erreur de validation, tout
   // ce qui venait d'être saisi disparaissait et il fallait le retaper.
-  const [organizationName, setOrganizationName] = useState("");
-  const [email, setEmail] = useState("");
+  const [organizationName, setOrganizationName] = useState(invitation?.organizationName ?? "");
+  const [email, setEmail] = useState(invitation?.email ?? "");
+  // L'adresse réservée par l'invitation ne se change pas ici : le serveur la refuserait de toute façon.
+  const emailLocked = Boolean(invitation?.email);
 
   return (
     <form action={action} className="flex flex-col gap-4">
+      {invitation && <input type="hidden" name="invitation" value={invitation.token} />}
       <Field
         label={t("nom_de_ton_cabinet")}
         htmlFor="organizationName"
@@ -43,7 +49,7 @@ export function SignUpForm() {
         />
       </Field>
 
-      <Field label={t("email_professionnel")} htmlFor="email">
+      <Field label={t("email_professionnel")} htmlFor="email" hint={emailLocked ? t("reserve_a_cette_adresse") : undefined}>
         <Input
           id="email"
           name="email"
@@ -51,6 +57,9 @@ export function SignUpForm() {
           autoComplete="email"
           placeholder={t("toi_cabinet_fr")}
           required
+          readOnly={emailLocked}
+          aria-readonly={emailLocked || undefined}
+          className={emailLocked ? "bg-muted/60 text-muted-foreground" : undefined}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />

@@ -1,9 +1,8 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
-import { auth } from "@/auth";
 import { PRODUCT_FORMATS, type FormatSettings } from "@/lib/format";
 import { readDemoVisitor } from "@/lib/demo/session";
-import { ACTIVE_ORG_COOKIE } from "@/lib/session";
+import { ACTIVE_ORG_COOKIE, getSession } from "@/lib/session";
 import { DEFAULT_LOCALE, type AppLocale } from "./locales";
 import { localeOfUser, settingsOfOrganization } from "./locale-lookup";
 
@@ -24,7 +23,8 @@ export const resolveRequestSettings = cache(async (): Promise<FormatSettings> =>
   // Un visiteur de la démo publique lit dans la langue, la devise et le fuseau de l'organisation de démo.
   const visitor = await readDemoVisitor().catch(() => null);
   if (visitor) return settingsOfOrganization(visitor.organizationId).catch(() => PRODUCT_FORMATS);
-  const session = await auth().catch(() => null);
+  // La même session mémoïsée que `requireUser` : une lecture par requête, pas une par appelant.
+  const session = await getSession().catch(() => null);
   const user = session?.user;
   if (!user?.id) return PRODUCT_FORMATS;
   const locale = await localeOfUser({ id: user.id }).catch(() => DEFAULT_LOCALE);

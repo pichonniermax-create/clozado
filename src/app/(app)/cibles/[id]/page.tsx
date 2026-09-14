@@ -117,9 +117,6 @@ export default async function TargetPage({
         }
       />
 
-      {query.erreur && (
-        <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{query.erreur}</p>
-      )}
 
       {archived && (
         <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">

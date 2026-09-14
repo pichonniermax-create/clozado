@@ -61,17 +61,12 @@ export const maxDuration = 180;
 
 const SELECT_CLASS = "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm";
 
-export default async function WatchPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ erreur?: string; info?: string }>;
-}) {
+export default async function WatchPage() {
   const tr = await getTranslations("watch.page");
   const tm = await getTranslations("metrics");
   const tt = await getTranslations("templates");
   const fmt = await getFormats();
   const user = await requireUser();
-  const params = await searchParams;
 
   if (!user.organizationId) {
     return (
@@ -155,10 +150,6 @@ export default async function WatchPage({
 
       <RefreshWhileRunning active={Boolean(running)} />
 
-      {params.erreur && (
-        <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{params.erreur}</p>
-      )}
-      {params.info && <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">{params.info}</p>}
 
       {hasSetup && <RunStatus running={running} latestFinished={latestFinished} />}
 

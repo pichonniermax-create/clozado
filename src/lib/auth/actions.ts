@@ -3,8 +3,10 @@
 import { headers } from "next/headers";
 import { AuthError } from "next-auth";
 import { signIn } from "@/auth";
-import { createOrganizationWithAdmin } from "@/db/queries/signup";
+import { createOrganizationWithAdmin, type SignUpResult } from "@/db/queries/signup";
+import { attachInvitationOrganization, claimInvitation, releaseInvitation, type PublicInvitation } from "@/db/queries/workspace-invitations";
 import { isPlausibleEmail } from "@/lib/email/address";
+import { isInvitationTokenShape } from "@/lib/invitations/token";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/client-ip";
 import { log } from "@/lib/log";
@@ -76,6 +78,8 @@ export async function signUpAction(
   const t = await getTranslations("auth.actions");
   const organizationName = String(formData.get("organizationName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  // Le jeton d'une invitation à créer un espace (docs/module-invitations.md §1.2), porté par un champ caché du formulaire.
+  const invitationToken = String(formData.get("invitation") ?? "").trim();
 
   if (organizationName.length < 2) {
     return { error: t("indique_le_nom_de_ton_cabinet_8c02") };
@@ -93,17 +97,43 @@ export async function signUpAction(
     return { error: t("rate_limited") };
   }
 
+  // L'invitation est CONSOMMÉE AVANT la création, atomiquement (`claimInvitation`) :
+  // deux soumissions du même lien ne créent jamais deux espaces. Un lien qui
+  // n'est plus valable (servi, expiré, révoqué, inconnu) ou réservé à une
+  // autre adresse arrête ici, avant toute écriture.
+  let claimed: PublicInvitation | null = null;
+  if (invitationToken) {
+    if (!isInvitationTokenShape(invitationToken)) return { error: t("invitation_plus_valable") };
+    const claim = await claimInvitation(invitationToken, email);
+    if (!claim.ok) {
+      return { error: claim.reason === "email_mismatch" ? t("invitation_reservee_a_une_autre_adresse") : t("invitation_plus_valable") };
+    }
+    claimed = claim.invitation;
+  }
+
+  let result: SignUpResult;
   try {
     // Si l'email a déjà un compte, la fonction ne crée RIEN et le signale.
     // On ne le dit pas à l'écran : ce serait un moyen de tester quelles
     // adresses sont inscrites. La personne reçoit simplement un lien de
     // connexion et retrouve son espace existant — issue identique, message
     // identique, aucune organisation en double.
-    await createOrganizationWithAdmin({ organizationName, email });
-  } catch {
+    result = await createOrganizationWithAdmin({ organizationName, email, defaultLocale: claimed?.locale });
+  } catch (error) {
     // Course sur le slug ou sur l'email : on ne détaille pas, et surtout on
-    // ne laisse pas fuiter qu'une organisation homonyme existe déjà.
+    // ne laisse pas fuiter qu'une organisation homonyme existe déjà. La
+    // cause va au journal ; l'invitation, si elle a été consommée, est rendue.
+    log.error("signup_failed", { error, invited: Boolean(claimed) });
+    if (claimed) await releaseInvitation(claimed.id).catch(() => undefined);
     return { error: t("generic_error") };
+  }
+
+  if (claimed) {
+    // L'espace créé est rattaché à son invitation ; une adresse déjà inscrite
+    // ne crée rien — l'invitation reste en attente, la personne retrouve son
+    // espace existant par le lien de connexion.
+    if (result.ok) await attachInvitationOrganization(claimed.id, result.organizationId);
+    else await releaseInvitation(claimed.id).catch(() => undefined);
   }
 
   return sendMagicLink(email);

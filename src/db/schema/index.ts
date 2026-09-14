@@ -35,3 +35,4 @@ export * from "./inbound-emails";
 export * from "./appointments";
 export * from "./rules";
 export * from "./demo-resets";
+export * from "./workspace-invitations";

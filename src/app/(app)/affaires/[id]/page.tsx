@@ -415,7 +415,6 @@ export default async function DealPage({
         backTo={`/affaires/${id}`}
         dealId={id}
         emptyText={tr("aucune_tache_pour_cette_affaire_celles_2ca0")}
-        erreur={query.erreur}
       />
 
       {/* Le journal unifié ferme la page : interactions consignées ici,

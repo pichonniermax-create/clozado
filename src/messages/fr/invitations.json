@@ -1,0 +1,59 @@
+{
+  "page": {
+    "titre": "Invitations d’espaces",
+    "description": "Un lien par entreprise : la personne qui l’ouvre crée son espace en une minute, le nom et la langue déjà remplis. Chaque lien sert une fois et expire.",
+    "nouvelle_invitation": "Nouvelle invitation",
+    "nom_de_l_entreprise": "Nom de l’entreprise",
+    "nom_hint": "Pré-rempli à l’inscription ; la personne pourra le modifier.",
+    "nom_placeholder": "Cabinet Durand",
+    "adresse_reservee": "Adresse email réservée (facultatif)",
+    "adresse_hint": "Si tu la renseignes, seule cette adresse pourra utiliser le lien — et tu pourras l’envoyer par email d’ici.",
+    "adresse_placeholder": "contact@cabinet-durand.fr",
+    "langue_de_l_espace": "Langue de l’espace",
+    "validite": "Validité du lien",
+    "jours": "{days} jours",
+    "note_interne": "Note interne (facultatif)",
+    "note_hint": "Pour toi seulement : où tu as rencontré cette entreprise, ce qui a été convenu…",
+    "generer_le_lien": "Générer le lien",
+    "lien_pret": "Le lien est prêt",
+    "lien_pret_explication": "Copie-le et transmets-le à {name} — ou envoie-le par email d’ici. Il sert une fois et expire le {date}.",
+    "envoyer_par_email_a": "Envoyer par email à {email}",
+    "envoyer_par_email": "Envoyer par email",
+    "renvoyer_l_email": "Renvoyer l’email",
+    "copier_le_lien": "Copier le lien",
+    "revoquer": "Révoquer",
+    "aucune_invitation": "Aucune invitation pour l’instant",
+    "aucune_invitation_explication": "Génère un lien pour une entreprise rencontrée : elle crée son espace sans passer par l’inscription libre, et tu vois ici ce qu’elle en a fait.",
+    "lien_ouvert": "Lien ouvert — aucune adresse réservée",
+    "creee_le_par": "Créée le {date} par {who}",
+    "expire_le": "expire le {date}",
+    "email_envoye_le": "email envoyé le {date}",
+    "espace_cree_le": "Espace créé le {date} par {email}",
+    "revoquee_le": "Révoquée le {date}",
+    "expiree_le": "Expirée le {date}",
+    "en_attente_count": "{count, plural, =0 {Aucune invitation en attente} one {# invitation en attente} other {# invitations en attente}}",
+    "statut": {
+      "en_attente": "En attente",
+      "utilisee": "Utilisée",
+      "expiree": "Expirée",
+      "revoquee": "Révoquée"
+    },
+    "migration_manquante_titre": "Les invitations ne sont pas encore activées sur cette base",
+    "migration_manquante": "La migration 0018 (table des invitations) n’a pas été appliquée : applique-la (npm run db:migrate:http) et cet écran s’ouvre. Rien d’autre n’est touché en attendant."
+  },
+  "actions": {
+    "revoquee": "Invitation révoquée : le lien ne sert plus.",
+    "envoyee": "Email d’invitation envoyé à {email}.",
+    "envoi_refuse": "Le fournisseur d’envoi a refusé l’email. Le lien reste valable : copie-le et transmets-le autrement."
+  },
+  "email": {
+    "subject": "Ton espace {product} t’attend — {name}",
+    "heading": "Crée l’espace de {name}",
+    "intro": "Tu as reçu ce lien pour créer l’espace de {name} sur {product}. Une minute suffit : le nom est déjà rempli, tu recevras ensuite un lien de connexion par email.",
+    "button": "Créer mon espace",
+    "fallback": "Si le bouton ne s’ouvre pas, copie ce lien dans ton navigateur :",
+    "expires": "Ce lien sert une fois et expire le {date}.",
+    "ignore": "Si tu n’attendais pas cet email, ignore-le : rien ne se passera.",
+    "text": "Crée l’espace de {name} sur {product}\n\n{url}\n\nCe lien sert une fois et expire le {date}. Si tu n’attendais pas cet email, ignore-le : rien ne se passera."
+  }
+}

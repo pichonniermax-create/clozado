@@ -23,11 +23,13 @@ export function MobileNav({
   mark,
   hasOrganization,
   readOnly = false,
+  isSuperAdmin = false,
   badges,
 }: {
   mark: WorkspaceMarkProps;
   hasOrganization: boolean;
   readOnly?: boolean;
+  isSuperAdmin?: boolean;
   badges: Record<NavBadge, number>;
 }) {
   const t = useTranslations("shell.mobileNav");
@@ -47,7 +49,7 @@ export function MobileNav({
         <div className="px-4 py-4">
           <WorkspaceMark {...mark} href="/dashboard" />
         </div>
-        <NavigationList hasOrganization={hasOrganization} readOnly={readOnly} badges={badges} />
+        <NavigationList hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={badges} />
       </SheetContent>
     </Sheet>
   );

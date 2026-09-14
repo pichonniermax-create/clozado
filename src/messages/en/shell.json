@@ -1,17 +1,25 @@
 {
   "accountMenu": {
+    "celle_de_l_organisation": "The organization’s ({language})",
+    "langue": "Language",
     "marque_reglages": "Brand & settings",
     "mon_compte": "My account",
-    "se_deconnecter": "Sign out",
-    "langue": "Language",
-    "celle_de_l_organisation": "The organization’s ({language})",
     "mon_profil": "My profile",
+    "se_deconnecter": "Sign out",
+    "theme": "Theme",
+    "theme_dark": "Dark",
+    "theme_light": "Light",
+    "theme_system": "Match the system",
     "visite_guidee": "Guided tour"
   },
   "appHeader": {
     "rechercher_un_contact": "Search for a contact…",
     "rechercher_un_contact_938c": "Search for a contact",
     "vue_globale": "Global view"
+  },
+  "bottomNav": {
+    "menu": "Menu",
+    "navigation_principale": "Main navigation"
   },
   "boundaries": {
     "analytics": {

@@ -6,11 +6,11 @@ import { createRuleAction } from "@/lib/rules/actions";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
 
-export default async function NewRulePage({ searchParams }: { searchParams: Promise<{ erreur?: string }> }) {
+export default async function NewRulePage() {
   const t = await getTranslations("rules.editor");
   const user = await requireUser();
   if (!user.organizationId) redirect("/dashboard");
-  const [{ erreur }, options] = await Promise.all([searchParams, listRuleFormOptions(user)]);
+  const options = await listRuleFormOptions(user);
   return (
     <>
       <PageHeader
@@ -18,7 +18,6 @@ export default async function NewRulePage({ searchParams }: { searchParams: Prom
         description={t("une_phrase_un_declencheur_une_action")}
         backTo={{ href: "/regles", label: t("regles") }}
       />
-      {erreur && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{erreur}</p>}
       <RuleForm
         action={createRuleAction}
         initial={{ name: "", trigger: "no_interaction", thresholdDays: 15, action: "create_task", conditions: {}, autoSendConfirmed: false }}

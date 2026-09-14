@@ -11,12 +11,15 @@ import { useTranslations } from "next-intl";
 export function NavigationList({
   hasOrganization,
   readOnly = false,
+  isSuperAdmin = false,
   badges,
 }: {
   /** Faux en vue globale super admin : les écrans propres à une organisation sont masqués. */
   hasOrganization: boolean;
   /** Un visiteur de la démo publique : les réglages ne lui sont jamais montrés (le proxy les refuse de toute façon). */
   readOnly?: boolean;
+  /** Le super admin RÉEL (rôle de session) : les écrans de l'espace gestionnaire lui sont montrés, en vue globale comme en substitution. */
+  isSuperAdmin?: boolean;
   badges: Record<NavBadge, number>;
 }) {
   const t = useTranslations("shell.navigationList");
@@ -25,7 +28,7 @@ export function NavigationList({
     <>
       <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-2">
         {NAVIGATION.map((section) => {
-          const entries = section.entries.filter((e) => hasOrganization || !e.requiresOrganization);
+          const entries = section.entries.filter((e) => (hasOrganization || !e.requiresOrganization) && (isSuperAdmin || !e.superAdminOnly));
           if (entries.length === 0) return null;
           return (
             <div key={section.key} className="flex flex-col gap-0.5">

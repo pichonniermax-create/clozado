@@ -161,12 +161,11 @@ function rejectionLabel(reason: string, t: TranslatorOf<"settings.page">): strin
   return (REJECTION_REASONS as readonly string[]).includes(reason) ? t(`rejections.${reason as (typeof REJECTION_REASONS)[number]}`) : reason;
 }
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ erreur?: string; info?: string }> }) {
+export default async function SettingsPage() {
   const t = await getTranslations("settings.page");
   const tm = await getTranslations("metrics");
   const fmt = await getFormats();
   const user = await requireUser();
-  const { erreur, info } = await searchParams;
 
   // Le super_admin n'a pas d'organisation propre : cet écran ne le concerne pas.
   // Un visiteur de la démo publique non plus (le proxy l'a déjà arrêté ; ceinture).
@@ -268,8 +267,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         }
       />
 
-      {erreur && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{erreur}</p>}
-      {info && <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">{info}</p>}
 
       <Card id="marque" className="scroll-mt-24">
         <CardHeader>
@@ -551,7 +548,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </Card>
       )}
 
-      {erreur && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{erreur}</p>}
 
       {/* ------------------------------------------------------------------
           Collecte des leads et des visites (module analytique) : clés

@@ -68,15 +68,10 @@ type TargetOption = { id: string; label: string; count: number };
  * sujets, angles), leur santé, ce qu'on sait d'eux. Tout ce qui s'affiche
  * ici vient de titres publics classés ; aucune page de concurrent n'est lue.
  */
-export default async function CompetitorsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ erreur?: string; info?: string }>;
-}) {
+export default async function CompetitorsPage() {
   const tr = await getTranslations("watch.competitors");
   const tp = await getTranslations("watch.page");
   const user = await requireUser();
-  const params = await searchParams;
 
   if (!user.organizationId) {
     return (
@@ -140,10 +135,6 @@ export default async function CompetitorsPage({
 
       <RefreshWhileRunning active={Boolean(running)} />
 
-      {params.erreur && (
-        <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{params.erreur}</p>
-      )}
-      {params.info && <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">{params.info}</p>}
 
       {active.length > 0 && (
         <Status

@@ -12,6 +12,7 @@
     "contacts": "Contacts",
     "dashboard": "Dashboard",
     "emails_recus": "Received emails",
+    "invitations": "Workspace invitations",
     "newsletters": "Newsletters",
     "partenaires": "Partners",
     "regles": "Follow-up rules",
@@ -29,6 +30,7 @@
     "analytique": "Analytics",
     "aujourd_hui": "Today",
     "dossiers": "Records",
+    "gestion": "Management",
     "outils": "Tools"
   }
 }

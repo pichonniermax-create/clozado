@@ -244,6 +244,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
           // Déplié quand on vient pour créer : depuis une fiche contact, ou
           // depuis un état vide (« Créer une affaire »).
           defaultOpen={Boolean(prefillContact) || params.nouveau === "1"}
+          tour="affaires-nouvelle"
         >
           <form action={addDeal} className="flex flex-col gap-4">
             <input type="hidden" name="vue" value={vue} />

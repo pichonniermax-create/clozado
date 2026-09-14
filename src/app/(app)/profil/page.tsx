@@ -19,7 +19,7 @@ import { getTranslations } from "next-intl/server";
  * (insérable dans les emails et les gabarits, Partie 3). Jamais celui
  * d'une autre : l'id vient de la session.
  */
-export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ erreur?: string; info?: string }> }) {
+export default async function ProfilePage() {
   const t = await getTranslations("profile");
   const session = await requireSessionUser();
   const user = await requireUser();
@@ -30,12 +30,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
     getOwnOrganization(user),
     getCalendarConnection(session.id),
   ]);
-  const { erreur, info } = await searchParams;
   return (
     <>
       <PageHeader title={t("mon_profil")} description={t("ce_que_tu_regles_pour_toi")} />
-      {erreur && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{erreur}</p>}
-      {info && <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">{info}</p>}
       <Card>
         <CardHeader>
           <CardTitle>{profile.name ?? profile.email}</CardTitle>

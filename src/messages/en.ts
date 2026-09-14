@@ -12,6 +12,7 @@ import figures from "./en/figures.json";
 import followup from "./en/followup.json";
 import home from "./en/home.json";
 import inbound from "./en/inbound.json";
+import invitations from "./en/invitations.json";
 import metrics from "./en/metrics.json";
 import nav from "./en/nav.json";
 import newsletters from "./en/newsletters.json";
@@ -52,6 +53,7 @@ const en = {
   followup,
   home,
   inbound,
+  invitations,
   metrics,
   nav,
   newsletters,

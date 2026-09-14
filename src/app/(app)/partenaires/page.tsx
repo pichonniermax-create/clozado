@@ -54,7 +54,7 @@ export default async function PartnersPage({
         description={t("les_confreres_vers_qui_tu_partages_8084")}
       />
 
-      <DetailsCard summary={t("ajouter_un_partenaire")} defaultOpen={params.nouveau === "1"}>
+      <DetailsCard summary={t("ajouter_un_partenaire")} defaultOpen={params.nouveau === "1"} tour="partenaires-nouveau">
         <form action={addPartner} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label={t("nom")} htmlFor="name">

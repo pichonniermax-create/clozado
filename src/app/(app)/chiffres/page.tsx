@@ -33,17 +33,12 @@ import { getTranslations } from "next-intl/server";
 /** Les indicateurs périmés sont relus après la réponse (`after`) : une marge sur la durée de la fonction. */
 export const maxDuration = 60;
 
-export default async function FiguresPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ erreur?: string; info?: string }>;
-}) {
+export default async function FiguresPage() {
   const t = await getTranslations("figures.page");
   const tf = await getTranslations("figures");
   const tm = await getTranslations("metrics");
   const fmt = await getFormats();
   const user = await requireUser();
-  const params = await searchParams;
 
   if (!user.organizationId) {
     return (
@@ -94,10 +89,6 @@ export default async function FiguresPage({
         }
       />
 
-      {params.erreur && (
-        <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{params.erreur}</p>
-      )}
-      {params.info && <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">{params.info}</p>}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold tabular-nums">

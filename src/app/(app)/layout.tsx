@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { AppHeader } from "@/components/app-shell/app-header";
+import { BottomNav } from "@/components/app-shell/bottom-nav";
+import { FlashToaster } from "@/components/app-shell/flash-toaster";
 import { Sidebar } from "@/components/app-shell/sidebar";
 import { SuperAdminBar } from "@/components/app-shell/super-admin-bar";
 import { PRODUCT_MARK, type WorkspaceMarkProps } from "@/components/app-shell/workspace-mark";
@@ -14,6 +16,7 @@ import { countTasksDueNow } from "@/db/queries/tasks";
 import { getWorkspace } from "@/lib/brand/workspace";
 import { requireSessionUser, requireUser } from "@/lib/session";
 import { getUserLocaleChoice } from "@/db/queries/users";
+import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 import { parseTourState, TOUR_COOKIE } from "@/lib/tour/steps";
 import { DemoStaleVisitNotice } from "@/components/demo/demo-stale-visit";
 import { DEMO_COOKIE } from "@/lib/demo/public";
@@ -64,6 +67,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   ]);
   // La visite guidée (docs/module-demo.md §1.8) : son état vit dans un cookie par navigateur, lu ici pour rendre le bon pas sans clignotement.
   const tourState = parseTourState(cookieStore.get(TOUR_COOKIE)?.value);
+  const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   // Le cookie de visite est là mais ne vaut plus rien (interrupteur éteint, démo réinitialisée) : le proxy refuse
   // encore les écritures tant qu'il existe — on le dit, avec la sortie, plutôt que de laisser un vrai utilisateur bloqué.
   const staleVisit = !readOnly && cookieStore.has(DEMO_COOKIE);
@@ -87,15 +91,16 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     <>
       {workspace && <BrandStyle light={workspace.brand.light} dark={workspace.brand.dark} />}
       <div className="flex min-h-screen">
-        <Sidebar mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} badges={{ followUp, tasksDue }} />
+        <Sidebar mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={{ followUp, tasksDue }} />
         <div className="flex min-w-0 flex-1 flex-col">
           <AppHeader
             mark={mark}
             organizationName={org?.name ?? null}
             hasOrganization={hasOrganization}
             readOnly={readOnly}
+            isSuperAdmin={isSuperAdmin}
             badges={{ followUp, tasksDue }}
-            user={{ name: sessionUser.name ?? null, email: sessionUser.email ?? null, localeChoice }}
+            user={{ name: sessionUser.name ?? null, email: sessionUser.email ?? null, localeChoice, theme }}
           />
           {readOnly && <DemoBanner personaName={sessionUser.name} />}
           {staleVisit && <DemoStaleVisitNotice />}
@@ -105,11 +110,17 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
               activeOrgId={user.organizationId}
             />
           )}
-          <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+          <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 pt-6 pb-24 md:px-8 md:py-8">
             {children}
           </main>
         </div>
       </div>
+      {/* Les petits écrans : la barre d'onglets en bas (chantier UI/UX) ; `pb-24` sur le contenu lui laisse la place. */}
+      <BottomNav mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={{ followUp, tasksDue }} />
+      {/* Les retours d'action (`?erreur=`, `?info=`) en notification, l'adresse nettoyée — lit les paramètres d'URL, d'où Suspense. */}
+      <Suspense fallback={null}>
+        <FlashToaster />
+      </Suspense>
       {hasOrganization && (
         <Suspense fallback={null}>
           <TourCard initialState={tourState} />

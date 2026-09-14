@@ -16,7 +16,7 @@ export const DEMO_SESSION_MAX_AGE = 8 * 3600;
  * (Calendly, lien de rendez-vous), import de contacts, et toutes les
  * routes API (exports, rendu, modèle, webhooks).
  */
-export const DEMO_FORBIDDEN_PATHS = ["/settings", "/profil", "/contacts/import", "/api"] as const;
+export const DEMO_FORBIDDEN_PATHS = ["/settings", "/profil", "/contacts/import", "/invitations", "/api"] as const;
 
 /** Le paramètre d'URL posé quand une écriture a été refusée : la coquille montre la phrase « lecture seule ». */
 export const DEMO_READ_ONLY_PARAM = "demo";

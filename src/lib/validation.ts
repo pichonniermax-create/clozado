@@ -53,3 +53,27 @@ export const safeHttpUrl = z.string().refine(isSafeHttpUrl);
 
 /** Le même contrôle quand la chaîne vide est un état légitime (un brouillon qu'on vient d'insérer, un champ facultatif). */
 export const safeHttpUrlOrEmpty = z.string().refine((value) => value === "" || isSafeHttpUrl(value));
+
+/**
+ * Un CHEMIN INTERNE du produit, pour une redirection décidée d'après une
+ * valeur reçue (`?vers=`, un `backTo` lié à une action — un argument lié
+ * voyage chez le client et en revient, donc il se forge) : chemin absolu
+ * (`/…`), même origine que la requête une fois interprété par `new URL`
+ * — ce qui rejette `//hôte`, `/\hôte`, `/\t//hôte` (les caractères de
+ * contrôle que les navigateurs ignorent sont retirés AVANT l'analyse) et
+ * toute adresse extérieure. Rend le chemin (avec sa question et son
+ * ancre), ou le repli.
+ */
+export function safeInternalPath(value: string | null | undefined, origin: string, fallback = "/"): string {
+  if (!value) return fallback;
+  const cleaned = value.replace(/[\u0000-\u001f\u007f]/g, "");
+  if (!cleaned.startsWith("/")) return fallback;
+  let parsed: URL;
+  try {
+    parsed = new URL(cleaned, origin);
+  } catch {
+    return fallback;
+  }
+  if (parsed.origin !== new URL(origin).origin) return fallback;
+  return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+}

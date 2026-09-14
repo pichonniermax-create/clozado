@@ -1,8 +1,19 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { readDemoVisitor } from "@/lib/demo/session";
 import { AppError } from "@/lib/errors";
+
+/**
+ * LA SESSION Auth.js, UNE FOIS PAR REQUÊTE (audit, constat D4) : chaque
+ * `auth()` rejoue le callback `jwt`, qui relit la personne en base — et la
+ * coquille, ses métadonnées, la page, les formats et la langue l'appelaient
+ * chacun (cinq à huit lectures identiques par écran). `cache` de React la
+ * mémoïse pour la durée du rendu ; les routes et actions, hors rendu,
+ * l'appellent normalement.
+ */
+export const getSession = cache(async () => auth());
 
 /**
  * Ce dont a besoin le garde-fou d'isolation pour scoper une requête —
@@ -43,7 +54,7 @@ export const ACTIVE_ORG_COOKIE = "clozado-active-org";
 async function readSessionUser(): Promise<SessionUser | null> {
   const visitor = await readDemoVisitor();
   if (visitor) return visitor.user;
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user) return null;
   return {
     id: session.user.id,

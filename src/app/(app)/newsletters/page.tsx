@@ -20,6 +20,7 @@ export default async function NewslettersPage() {
   return (
     <>
       <PageHeader
+        tour="newsletters"
         title={t("newsletters")}
         description={t("les_emails_que_tu_prepares_pour_b188")}
         actions={

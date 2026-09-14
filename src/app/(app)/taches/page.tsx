@@ -95,11 +95,6 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         description={t("ce_qu_il_y_a_a_a973")}
       />
 
-      {params.erreur && (
-        <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">
-          {params.erreur}
-        </p>
-      )}
 
       {orgUsers.length > 1 && (
         <div className="flex flex-wrap items-center gap-1.5">

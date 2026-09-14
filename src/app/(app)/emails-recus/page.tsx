@@ -89,8 +89,6 @@ export default async function EmailsRecusPage({
         }
       />
 
-      {params.erreur && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{params.erreur}</p>}
-      {params.info && <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">{params.info}</p>}
 
       {!address && !readOnly && (
         <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-pretty">

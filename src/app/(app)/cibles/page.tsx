@@ -20,17 +20,12 @@ import { createPackTargetsAction } from "@/lib/targets/actions";
 import { missingIdentityFacets } from "@/lib/targets/criteria";
 import { getTranslations } from "next-intl/server";
 
-export default async function TargetsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ erreur?: string; info?: string }>;
-}) {
+export default async function TargetsPage() {
   const tr = await getTranslations("targets.list");
   const tt = await getTranslations("targets");
   const tm = await getTranslations("metrics");
   const ttpl = await getTranslations("templates");
   const user = await requireUser();
-  const params = await searchParams;
 
   if (!user.organizationId) {
     return (
@@ -57,6 +52,7 @@ export default async function TargetsPage({
   return (
     <>
       <PageHeader
+        tour="cibles"
         title={tr("cibles")}
         description={tr("description")}
         actions={
@@ -67,10 +63,6 @@ export default async function TargetsPage({
         }
       />
 
-      {params.erreur && (
-        <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{params.erreur}</p>
-      )}
-      {params.info && <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">{params.info}</p>}
 
       {active.length === 0 ? (
         <EmptyState

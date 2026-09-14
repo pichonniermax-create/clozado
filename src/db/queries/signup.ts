@@ -5,7 +5,7 @@ import { organizations, siteKeys, users } from "@/db/schema";
 import { generateSiteKey } from "@/lib/acquisition/keys";
 import { buildDefaultPipelineInserts } from "./deal-statuses";
 import { translatorFor } from "@/i18n/translator";
-import { DEFAULT_LOCALE } from "@/i18n/locales";
+import { DEFAULT_LOCALE, type AppLocale } from "@/i18n/locales";
 
 /**
  * Inscription libre : crée une organisation ET son premier utilisateur,
@@ -79,9 +79,12 @@ async function availableSlug(name: string): Promise<string> {
 export async function createOrganizationWithAdmin(input: {
   organizationName: string;
   email: string;
+  /** La langue de l'espace — fixée par une invitation (docs/module-invitations.md) ; celle du produit sinon. */
+  defaultLocale?: AppLocale;
 }): Promise<SignUpResult> {
   const email = input.email.trim().toLowerCase();
   const name = input.organizationName.trim();
+  const locale = input.defaultLocale ?? DEFAULT_LOCALE;
 
   // Vérifié ici EN PLUS de la contrainte d'unicité sur `users.email` : on
   // veut distinguer « cet email a déjà un compte » (l'appelant enverra
@@ -91,14 +94,14 @@ export async function createOrganizationWithAdmin(input: {
 
   const organizationId = randomUUID();
   const slug = await availableSlug(name);
-  // Une organisation neuve parle la langue par défaut du produit (`default_locale` : 'fr').
-  const defaults = await translatorFor(DEFAULT_LOCALE, "deals.queries");
+  // Une organisation neuve parle sa langue (`default_locale`) : les statuts et le pipeline par défaut sont écrits dedans.
+  const defaults = await translatorFor(locale, "deals.queries");
 
   // Un seul lot atomique — comme `createDealShare` : le driver neon-http ne
   // supporte pas `db.transaction()`. Une organisation sans admin, sans son
   // pipeline ou sans ses statuts d'affaire, serait un état inutilisable.
   await db.batch([
-    db.insert(organizations).values({ id: organizationId, name, slug }),
+    db.insert(organizations).values({ id: organizationId, name, slug, defaultLocale: locale }),
     db.insert(users).values({ email, role: "admin", organizationId }),
     ...buildDefaultPipelineInserts(organizationId, defaults),
     // La clé de site publique de l'organisation (collecte des visites) — dès la naissance.

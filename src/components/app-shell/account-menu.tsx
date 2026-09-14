@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Check, Compass, LogOut, Settings, UserRound } from "lucide-react";
+import { Check, Compass, LogOut, Moon, MonitorSmartphone, Settings, Sun, UserRound } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -14,7 +14,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useLocale, useTranslations } from "next-intl";
 import { LOCALES, localeDisplayName, type AppLocale } from "@/i18n/locales";
+import { THEMES, type Theme } from "@/lib/theme";
 import { TOUR_PARAM } from "@/lib/tour/steps";
+
+const THEME_ICONS = { system: MonitorSmartphone, light: Sun, dark: Moon } as const;
+
+/** Le thème s'applique AUSSITÔT côté navigateur (avant le rendu serveur qui le confirme) : un changement de thème ne doit pas attendre un aller-retour. */
+function applyTheme(theme: Theme) {
+  const dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.classList.toggle("dark", dark);
+}
 
 /** « Camille Rousseau » → « CR », « camille@… » → « C ». */
 function initialsOf(name: string | null, email: string | null): string {
@@ -39,16 +48,21 @@ export function AccountMenu({
   email,
   hasOrganization,
   localeChoice,
+  theme,
   signOutAction,
   setLocaleAction,
+  setThemeAction,
 }: {
   name: string | null;
   email: string | null;
   hasOrganization: boolean;
   /** La langue mémorisée de la personne — null quand elle suit celle de l'organisation. */
   localeChoice: AppLocale | null;
+  /** Le thème de ce navigateur (cookie, src/lib/theme.ts). */
+  theme: Theme;
   signOutAction: () => Promise<void>;
   setLocaleAction: (formData: FormData) => Promise<void>;
+  setThemeAction: (formData: FormData) => Promise<void>;
 }) {
   const t = useTranslations("shell.accountMenu");
   const current = useLocale();
@@ -115,6 +129,23 @@ export function AccountMenu({
               </DropdownMenuItem>
             </form>
           )}
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        {/* Le thème (chantier UI/UX) : un cookie par navigateur, jamais un réglage de compte — les jetons sombres existaient, ceci n'est que l'interrupteur. */}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>{t("theme")}</DropdownMenuLabel>
+          {THEMES.map((option) => {
+            const Icon = THEME_ICONS[option];
+            return (
+              <form action={setThemeAction} onSubmit={() => applyTheme(option)} key={option}>
+                <input type="hidden" name="theme" value={option} />
+                <DropdownMenuItem nativeButton render={<button type="submit" className="w-full" />}>
+                  {theme === option ? <Check /> : <Icon />}
+                  {t(`theme_${option}`)}
+                </DropdownMenuItem>
+              </form>
+            );
+          })}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <form action={signOutAction}>

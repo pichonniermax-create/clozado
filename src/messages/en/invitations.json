@@ -1,0 +1,59 @@
+{
+  "page": {
+    "titre": "Workspace invitations",
+    "description": "One link per company: whoever opens it creates their workspace in a minute, with the name and language already filled in. Each link works once and expires.",
+    "nouvelle_invitation": "New invitation",
+    "nom_de_l_entreprise": "Company name",
+    "nom_hint": "Pre-filled at sign-up; the person can change it.",
+    "nom_placeholder": "Durand Brokerage",
+    "adresse_reservee": "Reserved email address (optional)",
+    "adresse_hint": "If you fill it in, only this address can use the link — and you can send it by email from here.",
+    "adresse_placeholder": "contact@durand-brokerage.com",
+    "langue_de_l_espace": "Workspace language",
+    "validite": "Link validity",
+    "jours": "{days} days",
+    "note_interne": "Internal note (optional)",
+    "note_hint": "For you only: where you met this company, what was agreed…",
+    "generer_le_lien": "Generate the link",
+    "lien_pret": "The link is ready",
+    "lien_pret_explication": "Copy it and pass it on to {name} — or send it by email from here. It works once and expires on {date}.",
+    "envoyer_par_email_a": "Send by email to {email}",
+    "envoyer_par_email": "Send by email",
+    "renvoyer_l_email": "Resend the email",
+    "copier_le_lien": "Copy the link",
+    "revoquer": "Revoke",
+    "aucune_invitation": "No invitations yet",
+    "aucune_invitation_explication": "Generate a link for a company you met: they create their workspace without going through open sign-up, and you can see here what they did with it.",
+    "lien_ouvert": "Open link — no reserved address",
+    "creee_le_par": "Created on {date} by {who}",
+    "expire_le": "expires on {date}",
+    "email_envoye_le": "email sent on {date}",
+    "espace_cree_le": "Workspace created on {date} by {email}",
+    "revoquee_le": "Revoked on {date}",
+    "expiree_le": "Expired on {date}",
+    "en_attente_count": "{count, plural, =0 {No pending invitations} one {# pending invitation} other {# pending invitations}}",
+    "statut": {
+      "en_attente": "Pending",
+      "utilisee": "Used",
+      "expiree": "Expired",
+      "revoquee": "Revoked"
+    },
+    "migration_manquante_titre": "Invitations are not enabled on this database yet",
+    "migration_manquante": "Migration 0018 (the invitations table) has not been applied: apply it (npm run db:migrate:http) and this screen opens. Nothing else is affected meanwhile."
+  },
+  "actions": {
+    "revoquee": "Invitation revoked: the link no longer works.",
+    "envoyee": "Invitation email sent to {email}.",
+    "envoi_refuse": "The email provider refused the message. The link is still valid: copy it and pass it on another way."
+  },
+  "email": {
+    "subject": "Your {product} workspace is waiting — {name}",
+    "heading": "Create the {name} workspace",
+    "intro": "You received this link to create the {name} workspace on {product}. It takes a minute: the name is already filled in, and you will then receive a sign-in link by email.",
+    "button": "Create my workspace",
+    "fallback": "If the button does not open, copy this link into your browser:",
+    "expires": "This link works once and expires on {date}.",
+    "ignore": "If you were not expecting this email, ignore it: nothing will happen.",
+    "text": "Create the {name} workspace on {product}\n\n{url}\n\nThis link works once and expires on {date}. If you were not expecting this email, ignore it: nothing will happen."
+  }
+}

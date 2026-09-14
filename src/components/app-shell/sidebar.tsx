@@ -18,6 +18,7 @@ export function Sidebar({
   mark,
   hasOrganization,
   readOnly = false,
+  isSuperAdmin = false,
   badges,
 }: {
   mark: WorkspaceMarkProps;
@@ -25,6 +26,8 @@ export function Sidebar({
   hasOrganization: boolean;
   /** Un visiteur de la démo publique : pas de lien vers les réglages. */
   readOnly?: boolean;
+  /** Le super admin réel : les écrans de l'espace gestionnaire. */
+  isSuperAdmin?: boolean;
   badges: Record<NavBadge, number>;
 }) {
   return (
@@ -32,7 +35,7 @@ export function Sidebar({
       <div className="px-4 py-4">
         <WorkspaceMark {...mark} href="/dashboard" />
       </div>
-      <NavigationList hasOrganization={hasOrganization} readOnly={readOnly} badges={badges} />
+      <NavigationList hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={badges} />
     </aside>
   );
 }

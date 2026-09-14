@@ -670,6 +670,11 @@ d'autre :
   dans le menu de compte et dans le bandeau de la démo (`?visite=1`
   relance depuis le début).
 
+- **Repris le 2026-09-14** par le chantier UI/UX (`docs/refonte-ui.md`,
+  étape 4) : chaque étape désigne un élément de son écran (`data-tour`) que
+  la carte éclaire et sous lequel elle s'ancre, propose le geste à faire,
+  et une barre de progression ; les huit étapes et le cookie sont inchangés.
+
 ### 1.9 L'espace gestionnaire — la carte Démo
 
 Sur la liste des organisations du super admin : une carte « Démo » —

@@ -22,11 +22,10 @@ import { getTranslations } from "next-intl/server";
  * origine dont le contact a pourtant un lead — le cas « créée à la main,
  * lead identifié après coup », qui ne se rattache qu'à la main.
  */
-export default async function OriginsPage({ searchParams }: { searchParams: Promise<{ erreur?: string }> }) {
+export default async function OriginsPage() {
   const t = await getTranslations("analytics.origines");
   const fmt = await getFormats();
   const user = await requireUser();
-  const { erreur } = await searchParams;
 
   if (!user.organizationId) {
     return (
@@ -52,7 +51,6 @@ export default async function OriginsPage({ searchParams }: { searchParams: Prom
         description={t("une_origine_un_simulateur_une_page_9378")}
       />
 
-      {erreur && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{erreur}</p>}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold">{t("a_rapprocher", { n: (unmatched.length > 0 && ` (${unmatched.length})`) || "" })}</h2>
