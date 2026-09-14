@@ -3,6 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { commissions, dealEvents, dealShares, deals, partners } from "@/db/schema";
 import { assertOrgAccess } from "@/db/scope";
+import { isExpiryInPast, reissuedExpiry } from "@/lib/deal-shares/expiry";
 import { CREATE_SHARE_SCHEMA, type CreateShareInput } from "@/lib/deal-shares/input";
 import { generateShareToken } from "@/lib/deal-shares/token";
 import type { OrgScopeUser } from "@/lib/session";
@@ -29,6 +30,8 @@ export async function createDealShare(
   rawInput: CreateShareInput
 ) {
   const input = readInput(CREATE_SHARE_SCHEMA, rawInput);
+  // Un lien qui naîtrait expiré n'est pas un partage : dit tout de suite, avant toute écriture.
+  if (isExpiryInPast(input.expiresAt)) throw new AppError("la_date_d_expiration_est_deja_passee");
   const deal = await db.query.deals.findFirst({ where: eq(deals.id, input.dealId) });
   if (!deal) throw new AppError("affaire_introuvable", undefined, 404);
   assertOrgAccess(user, deal.organizationId);
@@ -167,7 +170,9 @@ export async function reissueDealShare(user: OrgScopeUser, createdBy: string, sh
     partnerId: existing.partnerId,
     proposedTerms: existing.proposedTerms,
     message: existing.message,
-    expiresAt: existing.expiresAt,
+    // Une fenêtre de validité NEUVE, de la même durée, comptée d'aujourd'hui (correctif du 2026-09-14 :
+    // recopier l'ancienne date faisait naître expiré le lien renvoyé d'un partage expiré).
+    expiresAt: reissuedExpiry(existing),
     // La chaîne : pour l'analytique, un lien renvoyé n'est pas un second
     // partage sans réponse, c'est le même, envoyé à la date du premier.
     replacesShareId: existing.id,

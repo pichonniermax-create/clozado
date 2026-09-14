@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PartnerShareView } from "@/components/deal-shares/partner-share-view";
 import type { PublicShareView } from "@/db/queries/deal-shares-public";
 import { createDealShareAction } from "@/lib/deals/actions";
+import { endOfDayFromDateInput, todayInputValue } from "@/lib/deal-shares/expiry";
 import type { CreateShareCommissionInput } from "@/lib/deal-shares/input";
 import { useFormats } from "@/components/i18n/formats-provider";
 import type { RenderBrand } from "@/lib/newsletter/render-email";
@@ -101,6 +102,12 @@ export function ShareComposer({
   const [proposedTerms, setProposedTerms] = useState("");
   const [message, setMessage] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
+  // La borne basse du calendrier : le jour LOCAL de la personne, lu au premier rendu client (au serveur, aucune : le fuseau y diffère).
+  const today = useSyncExternalStore(
+    () => () => undefined,
+    () => todayInputValue(),
+    () => undefined
+  );
 
   // Cochée par défaut : le produit pousse à formaliser la commission dès
   // l'envoi, sans en faire une impasse quand elle n'est pas encore connue.
@@ -148,7 +155,7 @@ export function ShareComposer({
     brand,
     // L'icône d'onglet ne se voit pas dans l'aperçu : il est encadré par la page de l'affaire.
     iconUrl: null,
-    expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+    expiresAt: expiresAt ? (endOfDayFromDateInput(expiresAt)?.toISOString() ?? null) : null,
     respondedAt: null,
     currentDealStatus,
     availableStatuses,
@@ -167,7 +174,8 @@ export function ShareComposer({
         partnerId,
         proposedTerms: proposedTerms || null,
         message: message || null,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        // Le jour saisi vaut la FIN de ce jour (src/lib/deal-shares/expiry.ts) : « aujourd'hui » ne fabrique pas un lien déjà mort.
+        expiresAt: expiresAt ? endOfDayFromDateInput(expiresAt) : null,
         commission: commissionInput,
       });
       setSentToken(token);
@@ -291,6 +299,7 @@ export function ShareComposer({
               <Input
                 id="expiresAt"
                 type="date"
+                min={today}
                 value={expiresAt}
                 onChange={(e) => setExpiresAt(e.target.value)}
                 className="w-48"

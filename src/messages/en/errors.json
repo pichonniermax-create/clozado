@@ -185,5 +185,10 @@
   "l_adresse_de_la_source_n_est_pas_valide": "The source address is not valid: it must start with http:// or https://.",
   "connexion_requise": "Sign-in required.",
   "trop_de_demandes_reessaie_dans_un_moment": "Too many requests in a short time: try again in a moment.",
-  "les_criteres_de_cette_cible_sont_illisibles": "This audience’s criteria are unreadable: open it and save it again before sending."
+  "les_criteres_de_cette_cible_sont_illisibles": "This audience’s criteria are unreadable: open it and save it again before sending.",
+  "invitation_introuvable": "Invitation not found.",
+  "invitation_deja_utilisee_ou_close": "This invitation has already been used, or it is closed: nothing to do on it.",
+  "invitation_sans_adresse": "This invitation has no reserved address: copy the link and pass it on yourself.",
+  "cette_adresse_email_ne_semble_pas_valide": "This email address does not look valid.",
+  "la_date_d_expiration_est_deja_passee": "The expiry date has already passed: pick an upcoming day, or leave the field empty."
 }

@@ -185,5 +185,10 @@
   "l_adresse_de_la_source_n_est_pas_valide": "L’adresse de la source n’est pas valide : elle doit commencer par http:// ou https://.",
   "connexion_requise": "Connexion requise.",
   "trop_de_demandes_reessaie_dans_un_moment": "Trop de demandes en peu de temps : réessaie dans un moment.",
-  "les_criteres_de_cette_cible_sont_illisibles": "Les critères de cette cible sont illisibles : ouvre-la et enregistre-la à nouveau avant d’envoyer."
+  "les_criteres_de_cette_cible_sont_illisibles": "Les critères de cette cible sont illisibles : ouvre-la et enregistre-la à nouveau avant d’envoyer.",
+  "invitation_introuvable": "Invitation introuvable.",
+  "invitation_deja_utilisee_ou_close": "Cette invitation a déjà servi, ou elle est close : rien à faire dessus.",
+  "invitation_sans_adresse": "Cette invitation n’a pas d’adresse réservée : copie le lien et transmets-le toi-même.",
+  "cette_adresse_email_ne_semble_pas_valide": "Cette adresse email ne semble pas valide.",
+  "la_date_d_expiration_est_deja_passee": "La date d’expiration est déjà passée : choisis un jour à venir, ou laisse le champ vide."
 }
