@@ -38,6 +38,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      # Les types de routes (LayoutProps, PageProps) sont générés par Next : sans eux, tsc ne connaît pas les pages.
+      - run: npx next typegen
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
