@@ -1,9 +1,17 @@
 import { promises as dns } from "node:dns";
 import { getOwnOrganizationOrThrow } from "@/db/queries/newsletters";
 import { saveEmailDomainState, type EmailDomainState } from "@/db/queries/organizations";
+import { and, ne, sql } from "drizzle-orm";
+import { db } from "@/db";
+import { organizations } from "@/db/schema";
+import { assertOrgAdmin } from "@/db/scope";
 import { AppError } from "@/lib/errors";
+import { log } from "@/lib/log";
+import { checkRateLimit } from "@/lib/rate-limit";
 import type { OrgScopeUser } from "@/lib/session";
-import { createDomain, getDomain, listDomains, ResendError, verifyDomain, type DomainRecord, type ProviderDomain } from "./resend";
+import { inboundDomain, productMailbox, sharedSendingDomain } from "./config";
+import { bareAddress } from "./address";
+import { createDomain, deleteDomain, getDomain, listDomains, ResendError, verifyDomain, type DomainRecord, type ProviderDomain } from "./resend";
 
 /**
  * LE PARCOURS GUIDÉ DU DOMAINE D'EXPÉDITION (docs/module-engagement.md §3.2) :
@@ -101,16 +109,105 @@ async function stateFrom(domain: string, provider: ProviderDomain, previousVerif
   };
 }
 
+/**
+ * Les domaines de la PLATEFORME — jamais déclarables comme domaine d'envoi d'une organisation (chasse aux
+ * failles du 2026-09-14 : « adopter » le sous-domaine mutualisé, déjà vérifié chez le fournisseur, aurait
+ * donné à une organisation un expéditeur aligné DKIM au nom de tout le monde).
+ */
+function platformDomains(): string[] {
+  const out = new Set<string>();
+  const add = (d: string | null | undefined) => {
+    if (!d) return;
+    const lower = d.trim().toLowerCase();
+    out.add(lower);
+    // Le domaine racine du sous-domaine mutualisé (mail.clozado.fr → clozado.fr).
+    const parts = lower.split(".");
+    if (parts.length > 2) out.add(parts.slice(-2).join("."));
+  };
+  try {
+    add(sharedSendingDomain());
+  } catch {
+    /* non configuré : rien à réserver */
+  }
+  try {
+    add(inboundDomain());
+  } catch {
+    /* idem */
+  }
+  try {
+    add(bareAddress(productMailbox()).split("@")[1]);
+  } catch {
+    /* idem */
+  }
+  return [...out];
+}
+
+function isPlatformDomain(domain: string): boolean {
+  return platformDomains().some((d) => domain === d || domain.endsWith(`.${d}`));
+}
+
+/** Trois créations de domaine par espace et par jour (chasse aux failles du 2026-09-14) : le quota de domaines du compte fournisseur est partagé par tous les clients. */
+const CREATIONS_PER_DAY = 3;
+
+/**
+ * LA PREUVE DE POSSESSION d'un domaine ADOPTÉ — déjà présent chez le
+ * fournisseur, créé par quelqu'un d'autre (chasse aux failles du
+ * 2026-09-14) : un enregistrement TXT `_clozado.<domaine>` qui porte
+ * `clozado-verify=<identifiant de l'organisation>`. Sans lui, adopter le
+ * domaine vérifié d'un autre client donnait un expéditeur aligné DKIM à
+ * son nom. Un domaine créé par nous n'en a pas besoin : ce sont ses
+ * enregistrements SPF/DKIM, posés par l'organisation, qui prouvent la main
+ * sur la zone. L'identifiant n'est pas un secret : la preuve est la main
+ * sur le DNS, pas la connaissance de la valeur.
+ */
+export function ownershipRecord(domain: string, organizationId: string): { name: string; value: string } {
+  return { name: `_clozado.${domain}`, value: `clozado-verify=${organizationId}` };
+}
+
+async function hasOwnershipProof(domain: string, organizationId: string): Promise<boolean> {
+  const expected = ownershipRecord(domain, organizationId).value;
+  try {
+    const records = await dns.resolveTxt(`_clozado.${domain}`);
+    return records.some((chunks) => chunks.join("").trim() === expected);
+  } catch {
+    return false;
+  }
+}
+
 /** Déclare le domaine (ou adopte celui qui existe déjà chez le fournisseur sous ce nom) et rend l'état — enregistrements compris. */
 export async function declareEmailDomain(user: OrgScopeUser, input: string): Promise<EmailDomainState> {
+  // L'admin de l'organisation seulement, AVANT tout appel au fournisseur (chasse aux failles du 2026-09-14).
+  assertOrgAdmin(user);
   const org = await getOwnOrganizationOrThrow(user);
   const domain = normalizeDomain(input);
   if (org.emailDomainProviderId) throw new AppError("un_domaine_est_deja_declare_retire_le_d_abord", { domain: org.emailDomain ?? "" });
+  if (isPlatformDomain(domain)) throw new AppError("domaine_reserve");
+  // Un domaine ne se rattache qu'à UN espace : l'organisation qui l'a déclaré la première le garde.
+  const taken = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(and(sql`lower(${organizations.emailDomain}) = ${domain}`, ne(organizations.id, org.id)))
+    .limit(1);
+  if (taken.length > 0) throw new AppError("domaine_deja_rattache_a_un_autre_espace", undefined, 409);
   let provider: ProviderDomain;
   try {
     const existing = (await listDomains()).find((d) => d.name.toLowerCase() === domain);
-    provider = existing ? await getDomain(existing.id) : await createDomain(domain);
+    if (existing) {
+      // Un domaine ADOPTÉ exige la preuve de possession — lue dans le DNS AVANT de le rattacher.
+      if (!(await hasOwnershipProof(domain, org.id))) {
+        const record = ownershipRecord(domain, org.id);
+        throw new AppError("domaine_existant_preuve_requise", { name: record.name, value: record.value });
+      }
+      provider = await getDomain(existing.id);
+    } else {
+      if (!checkRateLimit(`email-domain:create:${org.id}`, { limit: CREATIONS_PER_DAY, windowMs: 86_400_000 })) {
+        throw new AppError("trop_de_declarations", undefined, 429);
+      }
+      provider = await createDomain(domain);
+      log.info("email_domain_created", { organizationId: org.id, domain, providerId: provider.id });
+    }
   } catch (error) {
+    if (error instanceof AppError) throw error;
     if (error instanceof ResendError && planLimitReached(error)) {
       await saveEmailDomainState(user, {
         emailDomain: domain,
@@ -132,6 +229,7 @@ export async function declareEmailDomain(user: OrgScopeUser, input: string): Pro
 
 /** « Vérifier maintenant » : demande la vérification, relit le statut par enregistrement, lit DMARC, écrit tout. */
 export async function checkEmailDomain(user: OrgScopeUser): Promise<EmailDomainState> {
+  assertOrgAdmin(user);
   const org = await getOwnOrganizationOrThrow(user);
   if (!org.emailDomain || !org.emailDomainProviderId) throw new AppError("aucun_domaine_d_envoi_declare");
   let provider: ProviderDomain;
@@ -160,8 +258,21 @@ export async function checkEmailDomain(user: OrgScopeUser): Promise<EmailDomainS
   return state;
 }
 
-/** Retire le domaine des réglages (le repli reprend aussitôt) ; chez le fournisseur, le domaine reste — le retirer là-bas est un geste d'administration, pas de produit. */
+/**
+ * Retire le domaine des réglages (le repli reprend aussitôt). Un domaine
+ * JAMAIS vérifié est retiré aussi chez le fournisseur (chasse aux failles
+ * du 2026-09-14) : sinon chaque essai laissait une ligne dans un quota
+ * partagé. Un domaine vérifié reste — le retirer là-bas est un geste
+ * d'administration, pas de produit.
+ */
 export async function forgetEmailDomain(user: OrgScopeUser): Promise<void> {
+  assertOrgAdmin(user);
+  const org = await getOwnOrganizationOrThrow(user);
+  if (org.emailDomainProviderId && !org.emailDomainVerifiedAt) {
+    await deleteDomain(org.emailDomainProviderId).catch((error: unknown) => {
+      log.warn("email_domain_delete_failed", { organizationId: org.id, providerId: org.emailDomainProviderId, error });
+    });
+  }
   await saveEmailDomainState(user, {
     emailDomain: null,
     emailDomainProviderId: null,

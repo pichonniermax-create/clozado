@@ -14,6 +14,7 @@ import {
   type MatchedContact,
   type RuleRunCounters,
   type RuleUser,
+  countRuleActionsToday,
 } from "@/db/queries/rules";
 import type { Organization, Rule, RuleRun, RuleTemplate } from "@/db/schema";
 import { toAppLocale } from "@/i18n/locales";
@@ -197,11 +198,15 @@ function escapeHtml(input: string): string {
   return input.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 }
 
+/** Au plus cinq cents notifications par organisation et par jour (chasse aux failles du 2026-09-14) : une règle mal écrite ne vide pas le quota d'envoi. */
+const NOTIFY_OWNER_DAILY_CAP = 500;
+
 async function runNotifyOwner(context: ActionContext, contact: MatchedContact): Promise<ActionResult> {
   const owner = ownerOf(context, contact);
   if (!owner) return { outcome: "skipped", skipReason: "no_owner" };
   // LA DÉMO (docs/module-demo.md §1.2) : la notification est « faite » sans qu'aucun email ne parte.
   if (context.org.isDemo) return { outcome: "done" };
+  if ((await countRuleActionsToday(context.org.id, "notify_owner")) >= NOTIFY_OWNER_DAILY_CAP) return { outcome: "skipped", skipReason: "cap" };
   const t = await translatorFor(toAppLocale(owner.locale ?? context.org.defaultLocale), "rules.notifications");
   const subject = t("subject", { rule: context.rule.name, contact: contact.name });
   const intro = t("body", { rule: context.rule.name, contact: contact.name, organization: context.org.name });

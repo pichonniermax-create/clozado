@@ -31,13 +31,25 @@ export type SerializedError = {
   /** La clé de message d'une `AppError`. */
   key?: string;
   status?: number;
+  /** La requête SQL (tronquée) d'une erreur de requête — jamais ses paramètres. */
+  query?: string;
   cause?: SerializedError;
 };
 
 /** Une erreur (ou n'importe quelle valeur levée) sous une forme plate et sérialisable. */
 export function serializeError(error: unknown, depth = 0): SerializedError {
   if (error instanceof Error) {
-    const extra = error as Error & { digest?: unknown; code?: unknown; key?: unknown; status?: unknown; cause?: unknown };
+    const extra = error as Error & { digest?: unknown; code?: unknown; key?: unknown; status?: unknown; cause?: unknown; query?: unknown; params?: unknown };
+    // Une erreur de requête Drizzle porte la requête ET ses paramètres dans son message (« Failed query: …
+    // params: … ») : des données personnelles dans le journal (chasse aux failles du 2026-09-14). On garde la
+    // requête (tronquée), jamais les paramètres — reconnue par ses propriétés, son nom reste « Error ».
+    if (typeof extra.query === "string" && "params" in extra) {
+      const out: SerializedError = { name: "DrizzleQueryError", message: "drizzle_query_failed", query: extra.query.slice(0, 500) };
+      // eslint-disable-next-line local/no-visible-text -- les marqueurs du message du pilote, jamais un texte pour une personne
+      if (error.stack) out.stack = error.stack.split("\n").filter((line) => !line.startsWith("Failed query") && !line.startsWith("params:")).join("\n");
+      if (extra.cause !== undefined && depth < 3) out.cause = serializeError(extra.cause, depth + 1);
+      return out;
+    }
     const out: SerializedError = { name: error.name, message: error.message };
     if (error.stack) out.stack = error.stack;
     if (typeof extra.digest === "string") out.digest = extra.digest;

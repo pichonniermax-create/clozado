@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { listStaleOrganizations } from "@/db/queries/watch";
-import { refreshAllIndicators, refreshWatchNow } from "@/lib/watch/refresh";
+import { refreshAllIndicators, refreshWatchNow, WATCH_RUN_BUDGET_MS } from "@/lib/watch/refresh";
 
 /**
  * GET /api/cron/veille — le préchauffage quotidien (vercel.json → crons,
@@ -16,6 +16,8 @@ export const maxDuration = 300;
 
 const ORGANIZATIONS_PER_RUN = 20;
 const STOP_AFTER_MS = 240_000;
+/** En dessous, une collecte n'a pas le temps de lire un flux : on s'arrête plutôt que d'en commencer une pour rien. */
+const MIN_RUN_BUDGET_MS = 20_000;
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -33,8 +35,11 @@ export async function GET(request: Request) {
   const organizations = await listStaleOrganizations(ORGANIZATIONS_PER_RUN);
   const results: { id: string; status: string; report?: unknown }[] = [];
   for (const id of organizations) {
-    if (Date.now() - started > STOP_AFTER_MS) break;
-    const result = await refreshWatchNow(id, "cron");
+    // Chaque collecte reçoit le temps qui RESTE à la fonction (chasse aux failles du 2026-09-14) : une collecte
+    // commencée tard ne déborde plus de `maxDuration` en laissant une ligne « en cours » derrière elle.
+    const budgetMs = Math.min(WATCH_RUN_BUDGET_MS, STOP_AFTER_MS - (Date.now() - started));
+    if (budgetMs < MIN_RUN_BUDGET_MS) break;
+    const result = await refreshWatchNow(id, "cron", budgetMs);
     results.push({ id, status: result.status, report: "report" in result ? result.report : undefined });
   }
   return NextResponse.json({

@@ -1,19 +1,26 @@
-import { and, asc, count, desc, eq, gt, ilike, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   activities,
+  appointments,
   contactAccessLog,
   contacts,
   contactTagAssignments,
   contactTags,
   deals,
   dealStatuses,
+  emailEvents,
+  emailMessages,
+  inboundEmails,
   leads,
+  mailTargetMembers,
+  newsletterRecipients,
+  ruleActions,
   tasks,
   users,
   type Contact,
 } from "@/db/schema";
-import { assertOrgAccess, orgScope } from "@/db/scope";
+import { assertOrgAccess, assertUserInOrg, orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
 import { listOpenTasksForContact } from "./tasks";
 import { AppError } from "@/lib/errors";
@@ -259,13 +266,6 @@ export async function updateContact(
   return updated;
 }
 
-async function assertUserInOrg(userId: string, organizationId: string) {
-  const u = await db.query.users.findFirst({ where: eq(users.id, userId) });
-  if (!u || u.organizationId !== organizationId) {
-    throw new AppError("ce_conseiller_n_appartient_pas_a_l_dc88");
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Étiquettes
 // ---------------------------------------------------------------------------
@@ -386,6 +386,21 @@ export async function exportContactData(user: OrgScopeUser, contactId: string, a
     db.select().from(leads).where(eq(leads.contactId, contactId)).orderBy(desc(leads.receivedAt)),
   ]);
 
+  // TOUT ce qui parle de la personne, sans limite (chasse aux failles du 2026-09-14 : l'export réglementaire
+  // dérivait de l'écran, qui tronque les interactions à 50 et ignore rendez-vous, emails, réceptions, envois).
+  const org = data.contact.organizationId;
+  const [allActivities, allAppointments, sentMessages, receivedEmails, newsletterReceipts, targetMemberships, ruleActionRows] = await Promise.all([
+    db.select().from(activities).where(and(eq(activities.contactId, contactId), eq(activities.organizationId, org))).orderBy(desc(activities.createdAt)),
+    db.select().from(appointments).where(and(eq(appointments.contactId, contactId), eq(appointments.organizationId, org))).orderBy(desc(appointments.startsAt)),
+    db.select().from(emailMessages).where(and(eq(emailMessages.contactId, contactId), eq(emailMessages.organizationId, org))).orderBy(desc(emailMessages.createdAt)),
+    db.select().from(inboundEmails).where(and(eq(inboundEmails.contactId, contactId), eq(inboundEmails.organizationId, org))).orderBy(desc(inboundEmails.receivedAt)),
+    db.select().from(newsletterRecipients).where(and(eq(newsletterRecipients.contactId, contactId), eq(newsletterRecipients.organizationId, org))),
+    db.select().from(mailTargetMembers).where(and(eq(mailTargetMembers.contactId, contactId), eq(mailTargetMembers.organizationId, org))),
+    db.select().from(ruleActions).where(and(eq(ruleActions.contactId, contactId), eq(ruleActions.organizationId, org))).orderBy(desc(ruleActions.occurredAt)),
+  ]);
+  const messageIds = sentMessages.map((m) => m.id);
+  const messageEvents = messageIds.length > 0 ? await db.select().from(emailEvents).where(and(inArray(emailEvents.messageId, messageIds), eq(emailEvents.organizationId, org))) : [];
+
   await logContactAccess(data.contact, actorId, "export");
 
   return {
@@ -394,7 +409,14 @@ export async function exportContactData(user: OrgScopeUser, contactId: string, a
     etiquettes: data.tags,
     affairesLiees: data.deals,
     taches: allTasks,
-    interactions: data.activities,
+    interactions: allActivities,
+    rendezVous: allAppointments,
+    emailsEnvoyes: sentMessages,
+    evenementsEmails: messageEvents,
+    emailsRecus: receivedEmails,
+    newslettersRecues: newsletterReceipts,
+    cibles: targetMemberships,
+    actionsDeRegles: ruleActionRows,
     leads: allLeads,
     journalDesAcces: accessLog,
   };
@@ -418,6 +440,14 @@ export async function deleteContact(user: OrgScopeUser, contactId: string, actor
   await db.batch([
     db.delete(activities).where(eq(activities.contactId, contactId)),
     db.delete(tasks).where(eq(tasks.contactId, contactId)),
+    // Ce qui parle encore de la personne (chasse aux failles du 2026-09-14) : ses rendez-vous partent, ses
+    // emails envoyés ou préparés perdent adresse et corps (les événements d'envoi, anonymes, restent : ce sont
+    // les faits de l'organisation), les réceptions perdent leur contrepartie et leur texte, les cibles
+    // manuelles l'oublient. Les suppressions (rebonds, désinscriptions) restent : elles protègent la personne.
+    db.delete(appointments).where(eq(appointments.contactId, contactId)),
+    db.update(emailMessages).set({ toEmail: "supprime@invalid", body: null, updatedAt: new Date() }).where(eq(emailMessages.contactId, contactId)),
+    db.update(inboundEmails).set({ counterpartEmail: null, counterpartName: null, bodyText: null, proposal: null }).where(eq(inboundEmails.contactId, contactId)),
+    db.delete(mailTargetMembers).where(eq(mailTargetMembers.contactId, contactId)),
     // Les leads restent (l'attribution survit à la personne, rattachée à la
     // tombale comme les affaires) ; ce qui parle d'elle part : les réponses
     // de la simulation et le lien vers sa navigation.

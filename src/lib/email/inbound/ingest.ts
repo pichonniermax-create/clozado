@@ -7,6 +7,7 @@ import {
   listMemberEmails,
   recordInboundRejection,
   type RejectionReason,
+  countRejectedFromSenderSince,
 } from "@/db/queries/inbound";
 import { inboundDomain } from "../config";
 import { downloadRawMessage, getReceivedEmail, type ReceivedEmail } from "../resend";
@@ -75,9 +76,14 @@ export type ReceivedNotice = {
  * destinataire — `received_for` compris : quand le membre met l'adresse en
  * Cci (le cas « copie »), c'est la seule trace qu'il en reste.
  */
+/** Cinq traces visibles par jour et par expéditeur inconnu ; au-delà, un compteur seulement. */
+const UNKNOWN_SENDER_TRACES_PER_DAY = 5;
+
 export function findIngestToken(notice: ReceivedNotice, domain: string): string | null {
   const suffix = `@${domain.toLowerCase()}`;
-  const candidates = [...(notice.receivedFor ?? []), ...(notice.to ?? []), ...(notice.cc ?? []), ...(notice.bcc ?? [])];
+  // `cc` n'en fait plus partie (chasse aux failles du 2026-09-14) : une adresse d'ingestion en copie visible se
+  // retrouvait chez tous les destinataires d'un fil — en Cci ou en destinataire direct seulement.
+  const candidates = [...(notice.receivedFor ?? []), ...(notice.to ?? []), ...(notice.bcc ?? [])];
   for (const raw of candidates) {
     const address = raw.trim().toLowerCase();
     if (!address.endsWith(suffix)) continue;
@@ -112,14 +118,14 @@ export async function ingestReceivedEmail(notice: ReceivedNotice): Promise<Inges
       providerEmailId: notice.emailId,
       messageIdHeader,
       receivedAt: at,
-      senderEmail: senderEmail || "?",
+      senderEmail: (senderEmail || "?").slice(0, 254),
       senderUserId: null,
       authResult: "unavailable",
       authDetail: null,
       status: "rejected",
       rejectionReason: reason,
       mode: null,
-      subject: notice.subject ?? null,
+      subject: notice.subject?.slice(0, 500) ?? null,
       counterpartEmail: null,
       counterpartName: null,
       originalDate: null,
@@ -131,22 +137,27 @@ export async function ingestReceivedEmail(notice: ReceivedNotice): Promise<Inges
     return { outcome: "rejected", reason, id: row?.id ?? null };
   };
 
-  // 2. Le débit — avant tout appel au fournisseur : un flot ne coûte qu'un compte.
-  const hour = new Date(at.getTime() - 60 * 60 * 1000);
+  // 2. L'expéditeur est un membre — vérifié AVANT le débit (chasse aux failles du 2026-09-14) : un inconnu
+  //    ne consomme ni le quota ni l'écran « Refusés » au-delà de quelques traces par jour. Le `Return-Path`,
+  //    lui, est vérifié par l'ALIGNEMENT à la couche suivante (§4.2) : une adresse d'enveloppe est écrite par
+  //    le serveur d'envoi, ce n'est jamais celle d'une personne (« bounces+…@… » chez tous les fournisseurs).
   const day = new Date(at.getTime() - 24 * 60 * 60 * 1000);
+  const member = senderEmail ? await findMemberByEmail(organization.id, senderEmail) : null;
+  if (!member) {
+    await recordInboundRejection("sender_not_member", `${organization.id}:${senderEmail.split("@")[1] ?? "?"}`.slice(0, 200));
+    if (!senderEmail || (await countRejectedFromSenderSince(organization.id, senderEmail, day)) >= UNKNOWN_SENDER_TRACES_PER_DAY) {
+      return { outcome: "rejected", reason: "sender_not_member", id: null };
+    }
+    return reject("sender_not_member");
+  }
+
+  // 3. Le débit — avant tout appel au fournisseur : un flot ne coûte qu'un compte.
+  const hour = new Date(at.getTime() - 60 * 60 * 1000);
   const [lastHour, lastDay] = await Promise.all([countInboundSince(organization.id, hour), countInboundSince(organization.id, day)]);
-  if (lastHour >= RATE_PER_HOUR || lastDay >= RATE_PER_DAY) return reject("rate_limited");
+  if (lastHour >= RATE_PER_HOUR || lastDay >= RATE_PER_DAY) return reject("rate_limited", { senderUserId: member.id });
 
   // Un doublon : le même message renvoyé deux fois par le fournisseur.
   if (messageIdHeader && (await inboundExistsByMessageId(organization.id, messageIdHeader))) return { outcome: "duplicate" };
-
-  // 3. L'expéditeur est un membre. Le `Return-Path`, lui, est vérifié par
-  //    l'ALIGNEMENT à la couche suivante (§4.2) : une adresse d'enveloppe
-  //    est écrite par le serveur d'envoi, ce n'est jamais celle d'une
-  //    personne (« bounces+…@… » chez tous les fournisseurs).
-  if (!senderEmail) return reject("sender_not_member");
-  const member = await findMemberByEmail(organization.id, senderEmail);
-  if (!member) return reject("sender_not_member");
 
   // Le contenu lisible et le message brut — jamais les pièces jointes.
   let email: ReceivedEmail;

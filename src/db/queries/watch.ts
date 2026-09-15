@@ -190,9 +190,17 @@ export async function listWatchSources(
     .orderBy(asc(watchSources.position), asc(watchSources.createdAt));
 }
 
+/** Au plus cinquante sources vivantes par espace (chasse aux failles du 2026-09-14) : la collecte reste bornée. */
+const MAX_SOURCES = 50;
+
 export async function createWatchSource(user: OrgScopeUser, input: WatchSourceInput): Promise<WatchSource> {
   const organizationId = requireOrganization(user);
   const data = readSourceInput(input);
+  const [{ n }] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(watchSources)
+    .where(and(eq(watchSources.organizationId, organizationId), isNull(watchSources.archivedAt)));
+  if (Number(n) >= MAX_SOURCES) throw new AppError("trop_de_sources");
   if (data.topicId) {
     const topic = await db.query.watchTopics.findFirst({ where: eq(watchTopics.id, data.topicId) });
     if (!topic || topic.organizationId !== organizationId) throw new AppError("sujet_introuvable", undefined, 404);

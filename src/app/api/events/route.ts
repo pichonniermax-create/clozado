@@ -109,6 +109,12 @@ export async function POST(request: Request) {
   if (await isDemoOrganization(site.organizationId)) {
     return NextResponse.json({ error: "demo_read_only" }, { status: 403, headers: corsHeaders(origin) });
   }
+  // Le débit par clé de site AVANT tout refus écrit (chasse aux failles du 2026-09-14) : la clé est publique par
+  // construction et `Origin` se forge hors navigateur — sans cette borne, un script remplissait sans limite la
+  // table des refus d'une organisation. Au-delà du débit, rien n'est écrit : silence.
+  if (!checkRateLimit(`events:site:${site.siteKeyId}`, { limit: 600, windowMs: 60_000 })) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: corsHeaders(origin) });
+  }
   if (!host) {
     await recordRejection(site.organizationId, "origin_missing", "(absent)");
     return NextResponse.json({ error: "origin_required" }, { status: 403, headers: corsHeaders(null) });
@@ -116,10 +122,6 @@ export async function POST(request: Request) {
   if (!site.allowedDomains.includes(host)) {
     await recordRejection(site.organizationId, "domain_not_allowed", host);
     return NextResponse.json({ error: "domain_not_allowed" }, { status: 403, headers: corsHeaders(null) });
-  }
-  if (!checkRateLimit(`events:site:${site.siteKeyId}`, { limit: 600, windowMs: 60_000 })) {
-    await recordRejection(site.organizationId, "rate_limited", host);
-    return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: corsHeaders(origin) });
   }
 
   const now = Date.now();

@@ -248,13 +248,18 @@ async function main() {
     );
 
     console.log("\n--- Le chemin nominal reste ouvert : la forme exacte du composeur (avec commission) passe le schéma strict");
+    // Un seul partage en attente par (affaire, partenaire) : celui du décor est révoqué d'abord — et le doublon est refusé avant.
+    await expectThrow("createDealShare(A, même affaire, même partenaire, un partage déjà en attente) refuse (409)", () =>
+      sharesQ.createDealShare(a!.admin, a!.userId, { dealId: a!.dealId, partnerId: a!.partnerId })
+    );
+    await sharesQ.revokeDealShare(a.admin, a.shareId, a.userId);
     const { share: shareWithCommission } = await sharesQ.createDealShare(a.admin, a.userId, {
       dealId: a.dealId,
       partnerId: a.partnerId,
       proposedTerms: null,
       message: "Bonjour",
       expiresAt: new Date(Date.now() + 7 * 86_400_000),
-      commission: { basis: "percentage", rate: "10", fixedAmount: null, baseAmount: "1000", computedAmount: "100" },
+      commission: { basis: "percentage", rate: "10", fixedAmount: null, baseAmount: "1000" },
     });
     const commissionRow = await db.query.commissions.findFirst({ where: eq(commissions.shareId, shareWithCommission.id) });
     expect(
@@ -267,6 +272,74 @@ async function main() {
         Number(commissionRow.rate) === 10,
       commissionRow ? `state=${commissionRow.state} computed=${commissionRow.computedAmount}` : "aucune commission écrite"
     );
+
+
+    console.log("\n--- Chasse aux failles (2026-09-14) : responsable étranger, renvoi, montant serveur, affaire close, journal, domaine, rôle");
+    const publicQ = await import("../src/db/queries/deal-shares-public");
+    const pipelinesQ = await import("../src/db/queries/pipelines");
+    const domainQ = await import("../src/lib/email/domain");
+    await expectThrow("createTask(A, assigneeId = admin de B) refuse", () => tasksQ.createTask(a!.admin, a!.userId, { title: "x", assigneeId: b!.userId }));
+    await expectThrow("updateTask(A, tâche de A, assigneeId = admin de B) refuse", () => tasksQ.updateTask(a!.admin, a!.openTaskId, { title: "x", assigneeId: b!.userId }));
+    const ownTask = await tasksQ.createTask(a.admin, a.userId, { title: "à moi", assigneeId: a.userId });
+    expect("createTask(A, assigneeId = admin de A) passe", ownTask.assigneeId === a.userId);
+
+    const partner2 = await createPartner(a.admin, { name: "Confrère A2" });
+    const { share: s2, token: t2 } = await sharesQ.createDealShare(a.admin, a.userId, {
+      dealId: a.dealId,
+      partnerId: partner2.id,
+      commission: { basis: "percentage", rate: "10", fixedAmount: null, baseAmount: "1000" },
+    });
+    const c2 = await db.query.commissions.findFirst({ where: eq(commissions.shareId, s2.id) });
+    expect("montant de commission calculé côté serveur : 10 % de 1000 = 100.00", c2?.computedAmount === "100.00", c2?.computedAmount ?? "aucune");
+    const accepted = await publicQ.applyPublicShareAction(t2, { type: "accept" });
+    expect("le partenaire accepte par son jeton", accepted.ok);
+    await expectThrow("reissueDealShare sur un partage accepté refuse (409)", () => sharesQ.reissueDealShare(a!.admin, a!.userId, s2.id));
+
+    const partner3 = await createPartner(a.admin, { name: "Confrère A3" });
+    const { share: s3 } = await sharesQ.createDealShare(a.admin, a.userId, {
+      dealId: a.dealId,
+      partnerId: partner3.id,
+      commission: { basis: "fixed", rate: null, fixedAmount: "500", baseAmount: null },
+    });
+    const reissued = await sharesQ.reissueDealShare(a.admin, a.userId, s3.id);
+    const [{ n: commissionsOnNew }] = await db.select({ n: count() }).from(commissions).where(eq(commissions.shareId, reissued.share.id));
+    const [{ n: commissionsOnOld }] = await db.select({ n: count() }).from(commissions).where(eq(commissions.shareId, s3.id));
+    expect("renvoi d'un partage en attente : la commission SUIT le nouveau partage, une seule ligne", Number(commissionsOnNew) === 1 && Number(commissionsOnOld) === 0, `nouveau=${commissionsOnNew} ancien=${commissionsOnOld}`);
+    expect("renvoi : nouvelle fenêtre de validité (aucune à l'origine → aucune)", reissued.share.expiresAt === null);
+
+    const openStatus = a.statuses.find((st) => st.outcome === null)!;
+    const wonStatus = a.statuses.find((st) => st.outcome === "won")!;
+    await db.update(deals).set({ statusId: wonStatus.id }).where(eq(deals.id, a.dealId));
+    const closedTry = await publicQ.applyPublicShareAction(t2, { type: "status_change", statusId: openStatus.id });
+    expect("status_change par jeton sur une affaire GAGNÉE → deal_closed, rien ne bouge", !closedTry.ok && closedTry.reason === "deal_closed" && (await db.query.deals.findFirst({ where: eq(deals.id, a.dealId) }))?.statusId === wonStatus.id, closedTry.ok ? "ok?!" : closedTry.reason);
+    await db.update(deals).set({ statusId: a.statuses[1].id }).where(eq(deals.id, a.dealId));
+    const pendingTry = await publicQ.applyPublicShareAction(reissued.token, { type: "status_change", statusId: openStatus.id });
+    expect("status_change par jeton sur un partage EN ATTENTE → already_resolved", !pendingTry.ok && pendingTry.reason === "already_resolved", pendingTry.ok ? "ok?!" : pendingTry.reason);
+    const declined = await publicQ.applyPublicShareAction(reissued.token, { type: "decline" });
+    expect("le partenaire refuse", declined.ok);
+    const commentTry = await publicQ.applyPublicShareAction(reissued.token, { type: "comment", message: "x" });
+    expect("commentaire par jeton sur un partage REFUSÉ → already_resolved", !commentTry.ok && commentTry.reason === "already_resolved");
+
+    const partner4 = await createPartner(a.admin, { name: "Confrère A4" });
+    const { share: s4, token: t4 } = await sharesQ.createDealShare(a.admin, a.userId, { dealId: a.dealId, partnerId: partner4.id, expiresAt: new Date(Date.now() + 86_400_000) });
+    await db.update(dealShares).set({ expiresAt: new Date(Date.now() - 1000) }).where(eq(dealShares.id, s4.id));
+    for (let i = 0; i < 3; i++) await publicQ.resolvePublicShare(t4);
+    const [{ n: expiredEvents }] = await db.select({ n: count() }).from(dealEvents).where(and(eq(dealEvents.shareId, s4.id), eq(dealEvents.type, "share_expired")));
+    expect("trois consultations d'un jeton expiré → UNE ligne share_expired", Number(expiredEvents) === 1, String(expiredEvents));
+
+    await expectThrow("declareEmailDomain(B, mail.clozado.fr) → domaine réservé, avant tout appel au fournisseur", () => domainQ.declareEmailDomain(b!.admin, "mail.clozado.fr"));
+    await db.update(organizations).set({ emailDomain: "cabinet-a.invalid" }).where(eq(organizations.id, a.orgId));
+    await expectThrow("declareEmailDomain(B, domaine déjà rattaché à A) → 409, avant tout appel au fournisseur", () => domainQ.declareEmailDomain(b!.admin, "cabinet-a.invalid"));
+    await expectThrow("declareEmailDomain(membre de B, …) → 403", () => domainQ.declareEmailDomain({ role: "member", organizationId: b!.orgId }, "cabinet-b.invalid"));
+
+    await expectThrow("updateStage(membre de B, étape de B) → 403 : réglage réservé à l'admin", () =>
+      pipelinesQ.updateStage({ role: "member", organizationId: b!.orgId }, b!.statuses[0].id, { label: "x", color: null, probability: null, outcome: null })
+    );
+    await expectThrow("updateStage(admin A, couleur « #fff;position:fixed ») → couleur invalide", () =>
+      pipelinesQ.updateStage(a!.admin, a!.statuses[0].id, { label: "Nouveau", color: "#fff;position:fixed", probability: null, outcome: null })
+    );
+    await pipelinesQ.updateStage(a.admin, a.statuses[0].id, { label: "Nouveau", color: "#AABBCC", probability: null, outcome: null });
+    expect("updateStage(admin A, #AABBCC) normalise en #aabbcc", (await db.query.dealStatuses.findFirst({ where: eq(dealStatuses.id, a.statuses[0].id) }))?.color === "#aabbcc");
 
     console.log("\n--- La base elle-même : une ligne qui mélange deux organisations est rejetée (FK composites)");
     const fkViolation = async (label: string, statement: Promise<unknown>) => {

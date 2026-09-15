@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { safeColor } from "@/lib/brand/color";
 import { Button } from "@/components/ui/button";
 import { DealStatusBadge } from "@/components/deals/deal-status-badge";
 import { ListCard } from "@/components/ui/list-card";
@@ -284,7 +285,7 @@ export default async function DealPage({
                       <span
                         aria-hidden
                         className="size-2 rounded-full"
-                        style={{ backgroundColor: d.color ?? "var(--muted-foreground)" }}
+                        style={{ backgroundColor: safeColor(d.color, "var(--muted-foreground)") }}
                       />
                       <span>{d.label}</span>
                       <span className="tabular-nums text-muted-foreground">
@@ -361,7 +362,8 @@ export default async function DealPage({
                       <ShareStatusBadge status={share.status} />
                       {share.status !== "revoked" && (
                         <>
-                          <ReissueShareButton shareId={share.id} />
+                          {/* Seul un partage en attente se renvoie (la requête le refuse de toute façon). */}
+                          {share.status === "pending" && <ReissueShareButton shareId={share.id} />}
                           <form action={revoke}>
                             <input type="hidden" name="shareId" value={share.id} />
                             <Button type="submit" variant="ghost" size="sm">

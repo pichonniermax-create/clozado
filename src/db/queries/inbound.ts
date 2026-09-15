@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { contacts, inboundEmails, inboundRejections, organizations, users } from "@/db/schema";
 import type { InboundEmail } from "@/db/schema";
@@ -69,10 +69,21 @@ export async function findMemberByEmail(organizationId: string, email: string): 
 
 /** Combien d'emails cette organisation a reçus depuis `since` — refus compris : le débit compte tout ce qui arrive. */
 export async function countInboundSince(organizationId: string, since: Date): Promise<number> {
+  // Seuls les emails de MEMBRES comptent dans le débit (chasse aux failles du 2026-09-14) : un tiers qui
+  // connaît l'adresse ne peut plus épuiser le quota de l'organisation à coups de refus.
   const rows = await db
     .select({ n: count() })
     .from(inboundEmails)
-    .where(and(eq(inboundEmails.organizationId, organizationId), gte(inboundEmails.receivedAt, since)));
+    .where(and(eq(inboundEmails.organizationId, organizationId), gte(inboundEmails.receivedAt, since), isNotNull(inboundEmails.senderUserId)));
+  return rows[0]?.n ?? 0;
+}
+
+/** Les refus déjà consignés pour cet expéditeur inconnu depuis `since` — au-delà de quelques-uns par jour, on ne garde qu'un compteur. */
+export async function countRejectedFromSenderSince(organizationId: string, senderEmail: string, since: Date): Promise<number> {
+  const rows = await db
+    .select({ n: count() })
+    .from(inboundEmails)
+    .where(and(eq(inboundEmails.organizationId, organizationId), eq(inboundEmails.status, "rejected"), sql`lower(${inboundEmails.senderEmail}) = ${senderEmail.toLowerCase()}`, gte(inboundEmails.receivedAt, since)));
   return rows[0]?.n ?? 0;
 }
 

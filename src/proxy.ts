@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { DEMO_COOKIE, DEMO_FORBIDDEN_PATHS, DEMO_READ_ONLY_PARAM, DEMO_READ_ONLY_VALUE, isNavigation } from "@/lib/demo/public";
+import { DEMO_COOKIE, DEMO_EXEMPT_PATHS, DEMO_FORBIDDEN_PATHS, DEMO_READ_ONLY_PARAM, DEMO_READ_ONLY_VALUE, isNavigation } from "@/lib/demo/public";
 
 /**
  * LA LECTURE SEULE de la démo publique, imposée avant tout rendu
@@ -29,6 +29,9 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const reading = request.method === "GET" || request.method === "HEAD";
   if (pathname === "/demo" || pathname.startsWith("/demo/")) return NextResponse.next();
+  // La désinscription et la vitrine de partage ne dépendent d'aucune organisation active : le cookie de visite
+  // ne les bloque jamais (leur lecture seule éventuelle est décidée côté serveur, par l'organisation du partage).
+  if (DEMO_EXEMPT_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return NextResponse.next();
   // Auth.js (lien magique demandé, puis cliqué) ne touche à aucune organisation : il passe toujours,
   // et une vraie navigation vers lui (le clic sur le lien reçu) termine la visite comme /login.
   if (pathname.startsWith("/api/auth/")) {

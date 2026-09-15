@@ -1,8 +1,9 @@
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { dealStatuses, pipelines, type DealStatus, type Pipeline } from "@/db/schema";
-import { assertOrgAccess, orgScope } from "@/db/scope";
+import { assertOrgAccess, assertOrgAdmin, orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
+import { normalizeHex } from "@/lib/brand/color";
 import { AppError } from "@/lib/errors";
 import type { TranslatorOf } from "@/i18n/translator";
 
@@ -38,6 +39,7 @@ function slugify(label: string): string {
 }
 
 export async function createPipeline(user: OrgScopeUser, label: string, t: TranslatorOf<"deals.queries">) {
+  assertOrgAdmin(user);
   if (!user.organizationId) {
     throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_d356");
   }
@@ -61,12 +63,25 @@ export async function createPipeline(user: OrgScopeUser, label: string, t: Trans
 }
 
 export async function updatePipelineLabel(user: OrgScopeUser, pipelineId: string, label: string) {
+  assertOrgAdmin(user);
   const pipeline = await db.query.pipelines.findFirst({ where: eq(pipelines.id, pipelineId) });
   if (!pipeline) throw new AppError("pipeline_introuvable", undefined, 404);
   assertOrgAccess(user, pipeline.organizationId);
   const trimmed = label.trim();
   if (!trimmed) return;
   await db.update(pipelines).set({ label: trimmed, updatedAt: new Date() }).where(eq(pipelines.id, pipelineId));
+}
+
+/**
+ * La couleur d'une étape entre dans un `style` inline rendu par le serveur (kanban, fiche, analytique) : un
+ * hexadécimal à six chiffres normalisé, rien d'autre (chasse aux failles du 2026-09-14 — une chaîne libre
+ * permettait d'injecter du CSS : pixel de suivi, recouvrement de clics).
+ */
+function stageColor(value: string | null): string | null {
+  if (value === null || value.trim() === "") return null;
+  const hex = normalizeHex(value);
+  if (!hex) throw new AppError("couleur_invalide");
+  return hex;
 }
 
 export type StageInput = {
@@ -77,11 +92,13 @@ export type StageInput = {
 };
 
 export async function createStage(user: OrgScopeUser, pipelineId: string, input: StageInput) {
+  assertOrgAdmin(user);
   const pipeline = await db.query.pipelines.findFirst({ where: eq(pipelines.id, pipelineId) });
   if (!pipeline) throw new AppError("pipeline_introuvable", undefined, 404);
   assertOrgAccess(user, pipeline.organizationId);
   const label = input.label.trim();
   if (!label) throw new AppError("le_libelle_de_l_etape_est_obligatoire");
+  const color = stageColor(input.color);
 
   const siblings = await db.select().from(dealStatuses).where(eq(dealStatuses.pipelineId, pipelineId));
   const position = Math.max(-1, ...siblings.map((s) => s.position)) + 1;
@@ -98,7 +115,7 @@ export async function createStage(user: OrgScopeUser, pipelineId: string, input:
       pipelineId,
       slug,
       label,
-      color: input.color,
+      color,
       probability: input.probability,
       outcome: input.outcome,
       position,
@@ -109,16 +126,18 @@ export async function createStage(user: OrgScopeUser, pipelineId: string, input:
 
 /** Libellé, couleur, probabilité, marqueur — jamais le pipeline ni le slug (clés de rattachement). */
 export async function updateStage(user: OrgScopeUser, stageId: string, input: StageInput) {
+  assertOrgAdmin(user);
   const stage = await db.query.dealStatuses.findFirst({ where: eq(dealStatuses.id, stageId) });
   if (!stage) throw new AppError("etape_introuvable", undefined, 404);
   assertOrgAccess(user, stage.organizationId);
   const label = input.label.trim();
   if (!label) return;
+  const color = stageColor(input.color);
   await db
     .update(dealStatuses)
     .set({
       label,
-      color: input.color,
+      color,
       probability: input.probability,
       outcome: input.outcome,
       updatedAt: new Date(),
@@ -128,6 +147,7 @@ export async function updateStage(user: OrgScopeUser, stageId: string, input: St
 
 /** Décale une étape d'un cran vers le haut ou le bas de SON pipeline. */
 export async function moveStage(user: OrgScopeUser, stageId: string, direction: "up" | "down") {
+  assertOrgAdmin(user);
   const stage = await db.query.dealStatuses.findFirst({ where: eq(dealStatuses.id, stageId) });
   if (!stage) throw new AppError("etape_introuvable", undefined, 404);
   assertOrgAccess(user, stage.organizationId);

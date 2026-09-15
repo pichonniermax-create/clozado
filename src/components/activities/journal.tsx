@@ -1,4 +1,5 @@
 import { use } from "react";
+import { safeColor } from "@/lib/brand/color";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
@@ -283,7 +284,7 @@ function StageDot({ color }: { color: string | null }) {
     <span
       aria-hidden
       className="size-2 shrink-0 rounded-full"
-      style={{ backgroundColor: color ?? "var(--muted-foreground)" }}
+      style={{ backgroundColor: safeColor(color, "var(--muted-foreground)") }}
     />
   );
 }

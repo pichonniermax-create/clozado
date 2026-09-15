@@ -1053,6 +1053,21 @@ Fluid Compute et lire la rétention PITR (Neon → Settings) ; poser
 
 ---
 
+Ajoutées par la chasse aux failles du 2026-09-14 (voir §11) :
+
+- **D13** — Poser les index uniques `organizations(lower(email_domain))`
+  et `organizations(email_domain_provider_id)` par migration ? (Le code
+  refuse déjà un domaine rattaché ailleurs ; l'index le garantirait sous
+  concurrence. Une migration = à appliquer sur la base partagée avec ton
+  accord.)
+- **D14** — Compter les créations de domaine en base (table
+  `email_domain_declarations`) plutôt qu'en mémoire par instance ?
+- **D15** — L'identité d'expédition mutualisée (`<slug>@mail.clozado.fr`)
+  : garder le slug (modifiable une fois par l'admin), ou une partie locale
+  non choisie (`org-<8 chiffres>`) ? Conditionner le premier envoi à
+  l'adresse vérifiée de l'admin ? Purger les espaces jamais activés après
+  sept jours ?
+
 ## 10. Chiffres consolidés
 
 | Mesure | Valeur |
@@ -1135,3 +1150,76 @@ la région Vercel, nombre exact d'appels du callback `jwt` par rendu.
   analyse des secrets activés sur GitHub, Fluid Compute et PITR Neon
   vérifiés. **STOP** : étape 3 (préproduction, documentation, `readForm`),
   puis 4.
+- **Chasse aux failles** (2026-09-14 → 2026-09-15, mandat autonome du
+  chantier « invitations + socle UI/UX ») : douze relectures adverses
+  (une par surface : authentification, partages, démo, acquisition,
+  emails, veille, règles, calendrier, RGPD, journal, réglages, isolation),
+  soixante-et-onze constats bruts, chacun vérifié par trois lentilles
+  (exploitabilité, impact, correctif) puis classé ; vingt-sept retenus.
+  **Fermés à la source** (dans l'ordre du classement) : 1 — les `POST`
+  d'Auth.js qui agissent (`signin`, `callback`, `signout`) répondent 405,
+  le lien magique ne part que par `signInAction` (débit par adresse IP ET
+  par adresse email hachée, 3 / 10 min) ; 2 — « Reprendre » un envoi ne
+  casse plus un bail vivant (condition dans l'UPDATE, 409 sinon) et un lot
+  concurrent chez le fournisseur met l'exécutant en pause au lieu de
+  renvoyer un par un ; 3 et 16 — domaine d'envoi : admin seulement, avant
+  tout appel fournisseur ; domaines de la plateforme refusés ; un domaine
+  ne se rattache qu'à un espace ; un domaine déjà présent chez le
+  fournisseur (adopté) exige une PREUVE DE POSSESSION (TXT
+  `_clozado.<domaine>` = `clozado-verify=<id de l'organisation>`, lue dans
+  le DNS) ; trois créations par jour et par espace ; un domaine jamais
+  vérifié est retiré chez le fournisseur quand on l'oublie ; 4 — `/api/
+  events` : débit par clé de site AVANT tout refus écrit, et au plus cent
+  détails distincts par (organisation, motif) puis un compteur
+  « (autres) » ; 5 — brief IA borné (4 000) ; 6 — le cookie de visite de
+  la démo ne touche jamais `/desinscription`, `/api/unsubscribe`,
+  `/partage`, `/api/partage` ; 7 — les gestes par jeton : `status_change`
+  seulement sur un partage ACCEPTÉ et une affaire encore OUVERTE
+  (`deal_closed`), pas de commentaire sur un partage refusé ; 8 — une
+  seule ligne `share_expired` par partage, jamais pour la démo, et 60
+  consultations / min / adresse sur `/partage/<jeton>` ; 9 — un chemin
+  normalisé qui commence par `//` ou `/\` est refusé (`safeInternalPath`,
+  huit cas de test de plus) ; 10 — le responsable d'une tâche appartient
+  à l'organisation (`assertUserInOrg`, partagé avec les fiches) ; 11 — la
+  couleur d'une étape est un hexadécimal normalisé en base ET au rendu
+  (`safeColor` sur les cinq `style` inline) ; 12 — une adresse inconnue
+  au formulaire de connexion mène à « vérifie tes emails » comme une
+  connue ; 13 — une newsletter envoyée ne se supprime pas (409) ;
+  14 — webhook Calendly : débit par adresse, forme de la signature et
+  taille (64 Ko) vérifiées AVANT de lire, dix hôtes au plus,
+  dédoublonnés ; 15 — corps de veille lu en flux et borné (taille
+  annoncée refusée d'emblée, flux annulé au dépassement) ; 17 — l'adresse
+  d'ingestion : expéditeur membre vérifié AVANT le débit, cinq traces par
+  jour et par inconnu puis un compteur, plus de `Cc` ; 18 — un seul
+  partage en attente par (affaire, partenaire) (409), seul un partage en
+  attente se renvoie, la commission SUIT le nouveau partage (une ligne) ;
+  19 — 500 notifications par organisation et par jour, une évaluation
+  manuelle par heure (429), vingt règles actives au plus ; 20 — l'export
+  réglementaire d'une personne dit TOUT (interactions sans limite,
+  rendez-vous, emails envoyés et leurs événements, reçus, newsletters
+  reçues, cibles, actions de règles) ; 21 — la pierre tombale efface aussi
+  rendez-vous, adresse et corps des emails envoyés, contrepartie et texte
+  des reçus, appartenances manuelles aux cibles ; 22 — le journal ne
+  recopie jamais les paramètres d'une requête (`DrizzleQueryError` → requête
+  tronquée, pile nettoyée ; `src/lib/log.test.ts`) ; 23 — montants de
+  commission : taux dans (0, 100], montants décimaux bornés, montant
+  calculé PAR LE SERVEUR (`computeCommissionAmount`) ; 24 — pipelines,
+  étapes, motifs de perte, domaine : `assertOrgAdmin` dans les requêtes ;
+  25 — import CSV lu par schéma strict (5 000 lignes, chaînes bornées, mode
+  connu) et journalisé ; 26 — veille : cinquante sources au plus, délai
+  GLOBAL sur les redirections, sources sautées quand le budget ne tient
+  plus, budget restant de la fonction passé par le cron. Preuves : vingt
+  cas ajoutés à `scripts/test-isolation.ts` (verts sur la base locale),
+  dix-huit sondes HTTP sur le build de production (405, redirections,
+  débit de la vitrine sur un vrai jeton, webhook, énumération), 87 tests
+  unitaires verts, eslint 0, tsc 0. **Restent à décider** (D13-D15, §9) :
+  D13 — index uniques `organizations(lower(email_domain))` et
+  `(email_domain_provider_id)` par migration (le code refuse déjà, la base
+  ne le garantit pas) ; D14 — un compteur de créations de domaine EN BASE
+  (aujourd'hui en mémoire, par instance) ; D15 — le constat 27 :
+  l'identité d'expédition mutualisée dérive d'un slug figé choisi à
+  l'inscription (squattable : « bnp-paribas@mail… »), pas de preuve de
+  possession de l'adresse avant le premier envoi, pas de purge des espaces
+  jamais activés — trois choix produit (partie locale non choisie ou
+  modifiable une fois, envoi conditionné à `email_verified`, cron de
+  purge à 7 jours).

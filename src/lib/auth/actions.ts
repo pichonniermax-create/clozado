@@ -1,6 +1,8 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { signIn } from "@/auth";
 import { createOrganizationWithAdmin, type SignUpResult } from "@/db/queries/signup";
@@ -39,6 +41,12 @@ export async function signInAction(
   if (!checkRateLimit(await ipKey("signin"), { limit: 10, windowMs: 60_000 })) {
     return { error: t("rate_limited") };
   }
+  // Et par ADRESSE (chasse aux failles du 2026-09-14) : trois liens par adresse et par dix minutes, d'où que
+  // viennent les demandes — le bombardement d'une boîte ne dépend pas d'une seule IP. La clé est une empreinte,
+  // jamais l'adresse en clair dans une structure en mémoire.
+  if (!checkRateLimit(`signin:email:${createHash("sha256").update(email).digest("hex").slice(0, 32)}`, { limit: 3, windowMs: 600_000 })) {
+    return { error: t("rate_limited") };
+  }
 
   return sendMagicLink(email);
 }
@@ -49,16 +57,24 @@ export async function signInAction(
  * rattrape donc que les `AuthError` (envoi refusé par le fournisseur,
  * adaptateur en échec…) et on relaie tout le reste — dont la redirection.
  *
- * Sans ça, un envoi refusé par le fournisseur d'email affichait une page
- * d'erreur brute, juste après avoir créé l'espace de la personne. Le refus
- * est journalisé : « impossible d'envoyer » à l'écran, la cause dans le
- * journal (audit, constat Q4).
+ * Une adresse INCONNUE (le callback `signIn` de src/auth.ts refuse : pas
+ * d'auto-inscription) arrive ici en `AccessDenied` : la réponse est LA
+ * MÊME que pour une adresse connue — la page « vérifie tes emails » —
+ * sinon le formulaire disait qui a un compte et qui n'en a pas (chasse aux
+ * failles du 2026-09-14). Un envoi refusé par le fournisseur, lui, est
+ * journalisé : « impossible d'envoyer » à l'écran, la cause dans le
+ * journal (audit, constat Q4) — sans ça, une page d'erreur brute
+ * s'affichait juste après avoir créé l'espace de la personne.
  */
 async function sendMagicLink(email: string): Promise<AuthFormState> {
   const t = await getTranslations("auth.actions");
   try {
     await signIn("resend", { email, redirectTo: "/dashboard" });
   } catch (error) {
+    if (error instanceof AuthError && error.type === "AccessDenied") {
+      log.info("magic_link_unknown_email");
+      redirect("/login/verifier");
+    }
     if (error instanceof AuthError) {
       log.error("magic_link_send_failed", { error });
       return {

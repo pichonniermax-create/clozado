@@ -190,5 +190,18 @@
   "invitation_deja_utilisee_ou_close": "This invitation has already been used, or it is closed: nothing to do on it.",
   "invitation_sans_adresse": "This invitation has no reserved address: copy the link and pass it on yourself.",
   "cette_adresse_email_ne_semble_pas_valide": "This email address does not look valid.",
-  "la_date_d_expiration_est_deja_passee": "The expiry date has already passed: pick an upcoming day, or leave the field empty."
+  "la_date_d_expiration_est_deja_passee": "The expiry date has already passed: pick an upcoming day, or leave the field empty.",
+  "envoi_en_cours": "This send is in progress: another run is working on it. Try again in a few minutes if it does not progress.",
+  "une_newsletter_envoyee_ne_se_supprime_pas": "A sent newsletter cannot be deleted: its messages, their opens and the unsubscribes depend on it.",
+  "domaine_reserve": "This domain belongs to the platform: it cannot be declared as a sending domain.",
+  "domaine_deja_rattache_a_un_autre_espace": "This sending domain is already attached to another workspace.",
+  "couleur_invalide": "The colour is not valid: a six-digit hexadecimal, such as #2563eb.",
+  "seul_un_partage_en_attente_se_renvoie": "Only a pending share can be resent: this one has already received an answer.",
+  "un_partage_est_deja_en_attente_pour_ce_partenaire": "A share of this deal is already pending with this partner: resend it rather than creating a second one.",
+  "trop_de_regles_actives": "At most twenty active rules per workspace: disable one before creating another.",
+  "evaluation_deja_lancee_recemment": "An evaluation was already started by hand less than an hour ago: the next automatic run is enough.",
+  "trop_de_sources": "At most fifty watch sources per workspace: archive one before adding another.",
+  "le_partage_ne_permet_pas_ce_geste": "This share does not allow that action.",
+  "domaine_existant_preuve_requise": "This domain already exists at the sending provider. To prove it is yours, add a TXT record “{name}” with the value “{value}”, then declare it again.",
+  "trop_de_declarations": "At most three domain creations per day: try again tomorrow."
 }

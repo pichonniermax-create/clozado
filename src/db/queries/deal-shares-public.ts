@@ -113,7 +113,7 @@ export type PublicShareView = {
 
 export type ResolvedShare =
   | { ok: true; view: PublicShareView }
-  | { ok: false; reason: "not_found" | "revoked" | "expired" | "already_resolved" | "demo_read_only" };
+  | { ok: false; reason: "not_found" | "revoked" | "expired" | "already_resolved" | "deal_closed" | "demo_read_only" };
 
 type DealShareRow = typeof dealShares.$inferSelect;
 
@@ -187,6 +187,9 @@ export async function applyPublicShareAction(
   }
 
   if (action.type === "status_change") {
+    // Un partenaire ne fait avancer l'affaire qu'après avoir ACCEPTÉ le partage (chasse aux failles du
+    // 2026-09-14) : ni en attente, ni après un refus.
+    if (share.status !== "accepted") return { ok: false, reason: "already_resolved" };
     // Revérifié ici en plus de la FK composite en base : le statut soumis
     // doit appartenir à l'organisation de CE partage, jamais un id d'une
     // autre organisation — même si l'attaquant connaît un id de statut
@@ -199,6 +202,10 @@ export async function applyPublicShareAction(
     }
     const deal = await db.query.deals.findFirst({ where: eq(deals.id, share.dealId) });
     if (!deal) throw new AppError("incoherence_interne_affaire_introuvable_pour_un_partage_6423", undefined, 404);
+    // Une affaire CLOSE par l'organisation (gagnée, perdue) ne se rouvre pas depuis un jeton : le statut
+    // COURANT est relu, pas seulement celui que le partenaire vise.
+    const current = await db.query.dealStatuses.findFirst({ where: eq(dealStatuses.id, deal.statusId) });
+    if (!current || current.outcome !== null) return { ok: false, reason: "deal_closed" };
     // Même pipeline seulement, et JAMAIS une étape gagné/perdu : clore une
     // affaire est un geste de l'organisation, pas d'un tiers via jeton
     // (décision A, docs/module-relationnel.md). Ces étapes ne sont pas
@@ -227,6 +234,8 @@ export async function applyPublicShareAction(
   }
 
   if (action.type === "comment") {
+    // Un partage refusé est clos pour le partenaire : plus de commentaire par ce jeton.
+    if (share.status === "declined") return { ok: false, reason: "already_resolved" };
     const message = action.message.trim().slice(0, 2000);
     if (!message) throw new AppError("commentaire_vide");
     await logEvent(share, "commented", message);
@@ -250,8 +259,15 @@ async function checkAccessible(share: DealShareRow): Promise<ResolvedShare | nul
     return { ok: false, reason: "revoked" };
   }
   if (share.expiresAt && share.expiresAt.getTime() < Date.now()) {
-    // Constat journalisé (trace d'accès), PAS une mutation de `status`.
-    await logEvent(share, "share_expired", null);
+    // Constat journalisé (trace d'accès), PAS une mutation de `status` — UNE fois par partage (chasse aux
+    // failles du 2026-09-14 : chaque GET d'un jeton expiré ajoutait une ligne au journal de l'affaire), et
+    // jamais pour la démo, qui n'écrit rien depuis l'extérieur.
+    const [seen] = await db
+      .select({ id: dealEvents.id })
+      .from(dealEvents)
+      .where(and(eq(dealEvents.shareId, share.id), eq(dealEvents.type, "share_expired")))
+      .limit(1);
+    if (!seen && !(await isDemoOrganization(share.organizationId))) await logEvent(share, "share_expired", null);
     return { ok: false, reason: "expired" };
   }
   return null;

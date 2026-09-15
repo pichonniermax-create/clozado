@@ -44,7 +44,8 @@ export function PageHeader({
             <div className="text-sm text-muted-foreground text-pretty">{description}</div>
           )}
         </div>
-        {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+        {/* Les actions passent à la ligne sur petit écran (elles débordaient de 150 px sur une fiche cible à 390 px). */}
+        {actions && <div className="flex min-w-0 flex-wrap items-center gap-2">{actions}</div>}
       </div>
     </header>
   );

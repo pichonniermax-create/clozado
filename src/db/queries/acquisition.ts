@@ -286,8 +286,26 @@ export type RejectionReason =
   | "invalid_payload";
 
 /** Un compteur par (organisation, motif, détail) — jamais une ligne par requête. */
+/** Au plus cent détails distincts par organisation et par motif ; au-delà, tout se compte sur une ligne « (autres) ». */
+const MAX_REJECTION_DETAILS = 100;
+const OTHER_DETAILS = "(autres)";
+
 export async function recordRejection(organizationId: string, reason: RejectionReason, detail: string) {
-  const d = detail.slice(0, 200) || "(absent)";
+  let d = detail.slice(0, 200) || "(absent)";
+  // Le nombre de lignes distinctes est BORNÉ (chasse aux failles du 2026-09-14) : un tiers qui varie l'en-tête
+  // Origin à chaque requête ne peut plus faire grossir la table sans fin — il n'obtient qu'un compteur « (autres) ».
+  const [known] = await db
+    .select({ id: acquisitionRejections.id })
+    .from(acquisitionRejections)
+    .where(and(eq(acquisitionRejections.organizationId, organizationId), eq(acquisitionRejections.reason, reason), eq(acquisitionRejections.detail, d)))
+    .limit(1);
+  if (!known) {
+    const [{ n }] = await db
+      .select({ n: count() })
+      .from(acquisitionRejections)
+      .where(and(eq(acquisitionRejections.organizationId, organizationId), eq(acquisitionRejections.reason, reason)));
+    if (Number(n) >= MAX_REJECTION_DETAILS) d = OTHER_DETAILS;
+  }
   await db
     .insert(acquisitionRejections)
     .values({ organizationId, reason, detail: d })

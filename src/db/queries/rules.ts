@@ -149,9 +149,26 @@ function validateRuleInput(input: RuleInput): {
   return { name, trigger: input.trigger, thresholdDays: input.thresholdDays, conditions: normalizeRuleConditions(conditions.data), action: input.action, template };
 }
 
+/** Au plus vingt règles actives par espace (chasse aux failles du 2026-09-14) : une évaluation reste bornée. */
+const MAX_ACTIVE_RULES = 20;
+
+/** Les actions d'un type faites aujourd'hui par l'organisation — le plafond quotidien des notifications. */
+export async function countRuleActionsToday(organizationId: string, action: string): Promise<number> {
+  const rows = await db.execute(sql`select count(*)::int as n from ${ruleActions} where organization_id = ${organizationId} and action = ${action} and outcome = 'done' and occurred_at > now() - interval '1 day'`);
+  return Number((rows.rows[0] as { n: number }).n ?? 0);
+}
+
+/** Une évaluation lancée À LA MAIN il y a moins d'une heure ? (Le bouton « Évaluer maintenant » n'est pas un canon à emails.) */
+export async function hasRecentManualRun(organizationId: string): Promise<boolean> {
+  const rows = await db.execute(sql`select 1 from ${ruleRuns} where organization_id = ${organizationId} and trigger = 'manual' and started_at > now() - interval '1 hour' limit 1`);
+  return rows.rows.length > 0;
+}
+
 export async function createRule(user: OrgScopeUser, createdBy: string, input: RuleInput): Promise<Rule> {
   const org = await getOwnOrganizationOrThrow(user);
   const valid = validateRuleInput(input);
+  const active = await db.execute(sql`select count(*)::int as n from ${rules} where organization_id = ${org.id} and enabled and archived_at is null`);
+  if (Number((active.rows[0] as { n: number }).n) >= MAX_ACTIVE_RULES) throw new AppError("trop_de_regles_actives");
   if (valid.action === "send_email" && !input.confirmAutoSend) throw new AppError("l_envoi_automatique_exige_l_opt_in_explicite");
 
   const positionRow = await db.execute(sql`select coalesce(max(position), -1) + 1 as next from ${rules} where organization_id = ${org.id}`);

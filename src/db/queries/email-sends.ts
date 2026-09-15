@@ -218,7 +218,21 @@ export async function unpauseSend(user: OrgScopeUser, sendId: string): Promise<N
   if (!send) throw new AppError("envoi_introuvable", undefined, 404);
   assertOrgAccess(user, send.organizationId);
   if (send.finishedAt) throw new AppError("cet_envoi_est_termine");
-  await db.update(newsletterSends).set({ pausedUntil: null, pauseReason: null, leaseUntil: null }).where(eq(newsletterSends.id, sendId));
+  // « Reprendre » ne casse JAMAIS un bail encore valide (chasse aux failles du 2026-09-14) : un exécutant en
+  // cours (bail vivant, pas de pause) garde la file — effacer son bail lançait un second exécutant sur les mêmes
+  // messages. La condition est dans l'UPDATE lui-même : deux clics simultanés n'y changent rien.
+  const rows2 = await db
+    .update(newsletterSends)
+    .set({ pausedUntil: null, pauseReason: null, leaseUntil: null })
+    .where(
+      and(
+        eq(newsletterSends.id, sendId),
+        isNull(newsletterSends.finishedAt),
+        sql`(${newsletterSends.pausedUntil} > now() OR ${newsletterSends.leaseUntil} IS NULL OR ${newsletterSends.leaseUntil} < now())`
+      )
+    )
+    .returning({ id: newsletterSends.id });
+  if (rows2.length === 0) throw new AppError("envoi_en_cours", undefined, 409);
   return send;
 }
 

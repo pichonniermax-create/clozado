@@ -32,7 +32,8 @@ export default async function RuleJournalPage({
     listRules(user),
   ]);
 
-  const SELECT_CLASS = "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm";
+  // `max-w-full` : la largeur naturelle d'un <select> est celle de sa plus longue option — un nom de règle long débordait de l'écran sur mobile.
+  const SELECT_CLASS = "h-8 max-w-full rounded-lg border border-input bg-transparent px-2.5 text-sm";
   return (
     <>
       <PageHeader
@@ -40,7 +41,7 @@ export default async function RuleJournalPage({
         description={t("journal.fait_ou_pas_fait_et_pourquoi")}
         backTo={{ href: "/regles", label: t("editor.regles") }}
       />
-      <form method="get" className="flex flex-wrap items-center gap-2">
+      <form method="get" className="flex min-w-0 flex-wrap items-center gap-2">
         <select name="regle" defaultValue={regle ?? ""} className={SELECT_CLASS} aria-label={t("journal.filtrer_par_regle")}>
           <option value="">{t("journal.toutes_les_regles")}</option>
           {rules.map(({ rule }) => (

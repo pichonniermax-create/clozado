@@ -120,3 +120,11 @@ export function oklchToRgb(color: Oklch): Rgb {
 export function formatOklch({ l, c, h }: Oklch): string {
   return `oklch(${l.toFixed(3)} ${c.toFixed(3)} ${h.toFixed(0)})`;
 }
+
+/**
+ * Une couleur venue de la base, prête pour un `style` inline : un hexadécimal normalisé, sinon le repli —
+ * jamais une chaîne libre (chasse aux failles du 2026-09-14 : injection CSS par la couleur d'une étape).
+ */
+export function safeColor(value: string | null | undefined, fallback: string): string {
+  return (value ? normalizeHex(value) : null) ?? fallback;
+}

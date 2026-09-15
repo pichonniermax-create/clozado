@@ -30,7 +30,8 @@ export const CALENDLY_EVENT_SCHEMA = z.object({
       name: z.string().nullish(),
       start_time: z.string().min(1),
       end_time: z.string().nullish(),
-      event_memberships: z.array(z.object({ user_email: z.string().nullish() })).default([]),
+      // Dix hôtes au plus (chasse aux failles du 2026-09-14) : un tableau non borné faisait une requête par élément.
+      event_memberships: z.array(z.object({ user_email: z.string().max(254).nullish() })).max(10).default([]),
     }),
   }),
 });
@@ -39,9 +40,11 @@ export type CalendlyEvent = z.infer<typeof CALENDLY_EVENT_SCHEMA>;
 
 /** Les emails d'hôte de la charge — de simples INDICES de recherche de la connexion, jamais crus sans signature. */
 export function hostEmailsOf(event: CalendlyEvent): string[] {
-  return event.payload.scheduled_event.event_memberships
-    .map((m) => m.user_email?.trim() ?? "")
-    .filter((email) => email.length > 0);
+  return [
+    ...new Set(
+      event.payload.scheduled_event.event_memberships.map((m) => m.user_email?.trim().toLowerCase() ?? "").filter((email) => email.length > 0)
+    ),
+  ];
 }
 
 /** La fiche vivante la plus ancienne portant cette adresse — la fiche « principale » quand il y a des doublons. */

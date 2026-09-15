@@ -15,6 +15,7 @@ import {
   updateRule,
   updateRuleDraft,
   type RuleInput,
+  hasRecentManualRun,
 } from "@/db/queries/rules";
 import { localeOfOrganization } from "@/i18n/locale-lookup";
 import { translatorFor } from "@/i18n/translator";
@@ -113,6 +114,8 @@ export async function evaluateNowAction() {
   let destination = RULES_PATH;
   try {
     if (!user.organizationId) throw new AppError("aucune_organisation_selectionnee");
+    // Une évaluation manuelle par heure au plus (chasse aux failles du 2026-09-14) : le bouton n'est pas un canon à emails.
+    if (await hasRecentManualRun(user.organizationId)) throw new AppError("evaluation_deja_lancee_recemment", undefined, 429);
     const summary = await evaluateOrganizationRules(user.organizationId, "manual", {
       origin: await publicOrigin(),
       budgetMs: 120_000,

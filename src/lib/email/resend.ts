@@ -187,6 +187,11 @@ export async function verifyDomain(id: string): Promise<void> {
   await call<{ id: string }>("POST", `/domains/${encodeURIComponent(id)}/verify`);
 }
 
+/** Retire un domaine chez le fournisseur (`DELETE /domains/{id}`) — un domaine jamais vérifié que l'organisation retire ne doit pas rester dans un quota partagé. */
+export async function deleteDomain(id: string): Promise<void> {
+  await call<{ deleted: boolean }>("DELETE", `/domains/${encodeURIComponent(id)}`);
+}
+
 // ---------------------------------------------------------------------------
 // Réception (Partie 2 — l'ingestion, docs/module-engagement.md §4.1)
 // ---------------------------------------------------------------------------

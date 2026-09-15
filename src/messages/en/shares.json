@@ -33,7 +33,8 @@
       "rate_limited": "Too many attempts — try again in a minute.",
       "invalid_action": "An error occurred.",
       "network": "Connection failed. Try again.",
-      "demo_read_only": "This share is part of the demo: you can view it, but it cannot receive an answer."
+      "demo_read_only": "This share is part of the demo: you can view it, but it cannot receive an answer.",
+      "deal_closed": "This deal is closed: the organisation concluded it. The share no longer allows moving it forward."
     },
     "le": "— on {formatDate}",
     "le_partenaire_pourra_commenter_une_fois_6de0": "The partner will be able to comment once the link is sent.",

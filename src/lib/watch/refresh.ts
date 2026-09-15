@@ -152,7 +152,9 @@ export async function refreshAllIndicators(): Promise<number> {
 // Flux
 // ---------------------------------------------------------------------------
 
-async function collectFeed(source: WatchSource, tw: TranslatorOf<"watch">): Promise<{ ok: boolean; itemsNew: number }> {
+type FeedResult = { ok: boolean; itemsNew: number; skipped?: boolean };
+
+async function collectFeed(source: WatchSource, tw: TranslatorOf<"watch">): Promise<FeedResult> {
   if (!source.feedUrl) return { ok: true, itemsNew: 0 };
   try {
     const feed = await fetchFeed(source.feedUrl, SOURCE_TIMEOUT_MS);
@@ -405,9 +407,10 @@ async function classifyCompetitorTitles(
 // La collecte elle-même
 // ---------------------------------------------------------------------------
 
-export async function executeWatchRun(run: WatchRun): Promise<WatchRunReport> {
+export async function executeWatchRun(run: WatchRun, budgetMs: number = WATCH_RUN_BUDGET_MS): Promise<WatchRunReport> {
   const started = Date.now();
-  const deadline = started + WATCH_RUN_BUDGET_MS;
+  // Le budget est BORNÉ par celui de la collecte (jamais plus), et l'appelant peut le réduire (le cron, en fin de fonction).
+  const deadline = started + Math.min(budgetMs, WATCH_RUN_BUDGET_MS);
   const remaining = () => deadline - Date.now();
   const report: WatchRunReport = { sourcesOk: 0, sourcesFailed: 0, itemsNew: 0, itemsSummarized: 0, itemsClassified: 0, searches: 0, indicatorsRead: 0, error: null };
   const organizationId = run.organizationId;
@@ -421,10 +424,14 @@ export async function executeWatchRun(run: WatchRun): Promise<WatchRunReport> {
     const [topics, sources] = await Promise.all([listWatchTopics(organizationId), listWatchSources(organizationId)]);
 
     const dueFeeds = sources.filter((s) => s.feedUrl && isSourceDue(s));
-    const feedResults = await inPool(dueFeeds, FEED_CONCURRENCY, (source) => collectFeed(source, tw));
+    // La phase des flux a un budget elle aussi (chasse aux failles du 2026-09-14) : une source dont le délai ne tient
+    // plus dans le temps restant est SAUTÉE (pas comptée en échec — elle repassera à la collecte suivante).
+    const feedResults = await inPool(dueFeeds, FEED_CONCURRENCY, (source): Promise<FeedResult> =>
+      remaining() < SOURCE_TIMEOUT_MS ? Promise.resolve({ ok: false, itemsNew: 0, skipped: true }) : collectFeed(source, tw)
+    );
     for (const r of feedResults) {
       if (r.ok) report.sourcesOk++;
-      else report.sourcesFailed++;
+      else if (!r.skipped) report.sourcesFailed++;
       report.itemsNew += r.itemsNew;
     }
 
@@ -474,11 +481,11 @@ export async function executeWatchRun(run: WatchRun): Promise<WatchRunReport> {
 }
 
 /** Démarre et exécute tout de suite (le cron). */
-export async function refreshWatchNow(organizationId: string, trigger: "visit" | "manual" | "cron"): Promise<StartRunResult & { report?: WatchRunReport }> {
+export async function refreshWatchNow(organizationId: string, trigger: "visit" | "manual" | "cron", budgetMs: number = WATCH_RUN_BUDGET_MS): Promise<StartRunResult & { report?: WatchRunReport }> {
   if (await isDemoOrganization(organizationId)) return { status: "demo" };
   const start = await startWatchRun(organizationId, trigger);
   if (start.status !== "started") return start;
-  const report = await executeWatchRun(start.run);
+  const report = await executeWatchRun(start.run, budgetMs);
   return { ...start, report };
 }
 

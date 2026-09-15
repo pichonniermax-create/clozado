@@ -1,10 +1,10 @@
 import { randomUUID } from "crypto";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { commissions, dealEvents, dealShares, deals, partners } from "@/db/schema";
 import { assertOrgAccess } from "@/db/scope";
 import { isExpiryInPast, reissuedExpiry } from "@/lib/deal-shares/expiry";
-import { CREATE_SHARE_SCHEMA, type CreateShareInput } from "@/lib/deal-shares/input";
+import { computeCommissionAmount, CREATE_SHARE_SCHEMA, isCommissionComplete, type CreateShareInput } from "@/lib/deal-shares/input";
 import { generateShareToken } from "@/lib/deal-shares/token";
 import type { OrgScopeUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
@@ -46,6 +46,15 @@ export async function createDealShare(
   if (partner.organizationId !== deal.organizationId) {
     throw new AppError("le_partenaire_et_l_affaire_n_appartiennent_47db");
   }
+  // Un seul partage EN ATTENTE par (affaire, partenaire) : un second créerait deux jetons vivants et deux
+  // commissions « prévues » (chasse aux failles du 2026-09-14) — on renvoie le lien, on n'en crée pas un autre.
+  const [pending] = await db
+    .select({ id: dealShares.id })
+    .from(dealShares)
+    .where(and(eq(dealShares.dealId, deal.id), eq(dealShares.partnerId, partner.id), eq(dealShares.status, "pending")))
+    .limit(1);
+  if (pending) throw new AppError("un_partage_est_deja_en_attente_pour_ce_partenaire", undefined, 409);
+  if (input.commission && !isCommissionComplete(input.commission)) throw new AppError("les_donnees_envoyees_ne_sont_pas_valides");
 
   const { token, tokenHash } = generateShareToken();
   const shareId = randomUUID();
@@ -83,7 +92,8 @@ export async function createDealShare(
         rate: commission.basis === "percentage" ? (commission.rate ?? null) : null,
         fixedAmount: commission.basis === "fixed" ? (commission.fixedAmount ?? null) : null,
         baseAmount: commission.baseAmount ?? null,
-        computedAmount: commission.computedAmount ?? null,
+        // Calculé ICI, jamais reçu du client.
+        computedAmount: computeCommissionAmount(commission),
         state: "prevue",
       }),
     ]);
@@ -158,14 +168,13 @@ export async function reissueDealShare(user: OrgScopeUser, createdBy: string, sh
   const existing = await db.query.dealShares.findFirst({ where: eq(dealShares.id, shareId) });
   if (!existing) throw new AppError("partage_introuvable", undefined, 404);
   assertOrgAccess(user, existing.organizationId);
-
-  const existingCommission = await db.query.commissions.findFirst({
-    where: eq(commissions.shareId, shareId),
-  });
+  // Seul un partage EN ATTENTE se renvoie (chasse aux failles du 2026-09-14) : renvoyer un partage accepté ou
+  // refusé fabriquait un second jeton vivant et une seconde commission « prévue » par-dessus la première.
+  if (existing.status !== "pending") throw new AppError("seul_un_partage_en_attente_se_renvoie", undefined, 409);
 
   await revokeDealShare(user, shareId, createdBy);
 
-  return createDealShare(user, createdBy, {
+  const created = await createDealShare(user, createdBy, {
     dealId: existing.dealId,
     partnerId: existing.partnerId,
     proposedTerms: existing.proposedTerms,
@@ -176,14 +185,9 @@ export async function reissueDealShare(user: OrgScopeUser, createdBy: string, sh
     // La chaîne : pour l'analytique, un lien renvoyé n'est pas un second
     // partage sans réponse, c'est le même, envoyé à la date du premier.
     replacesShareId: existing.id,
-    commission: existingCommission
-      ? {
-          basis: existingCommission.basis,
-          rate: existingCommission.rate,
-          fixedAmount: existingCommission.fixedAmount,
-          baseAmount: existingCommission.baseAmount,
-          computedAmount: existingCommission.computedAmount,
-        }
-      : null,
+    commission: null,
   });
+  // La commission SUIT le nouveau partage — une seule ligne, jamais une copie.
+  await db.update(commissions).set({ shareId: created.share.id, updatedAt: new Date() }).where(eq(commissions.shareId, existing.id));
+  return created;
 }

@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { cache } from "react";
+import { headers } from "next/headers";
+import { clientIp } from "@/lib/client-ip";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { BrandStyle } from "@/components/brand/brand-style";
 import { PartnerShareView } from "@/components/deal-shares/partner-share-view";
 import { resolvePublicShare } from "@/db/queries/deal-shares-public";
@@ -23,8 +26,15 @@ import { toTimeZone } from "@/lib/timezone";
 export const dynamic = "force-dynamic";
 
 // Une seule résolution par requête, partagée entre les métadonnées et la
-// page — un partage expiré journalise son accès, pas deux fois.
-const resolveShare = cache(resolvePublicShare);
+// page — un partage expiré journalise son accès, pas deux fois. Et un débit
+// par adresse IP (chasse aux failles du 2026-09-14) : soixante consultations
+// par minute suffisent à toute personne, pas à un script qui teste des jetons.
+const resolveShare = cache(async (token: string) => {
+  if (!checkRateLimit(`share-page:ip:${clientIp(await headers())}`, { limit: 60, windowMs: 60_000 })) {
+    return { ok: false as const, reason: "not_found" as const };
+  }
+  return resolvePublicShare(token);
+});
 
 /**
  * Un lien de partage n'est pas une page publique à découvrir. La page

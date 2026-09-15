@@ -1,7 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { lossReasons } from "@/db/schema";
-import { assertOrgAccess, orgScope } from "@/db/scope";
+import { assertOrgAccess, assertOrgAdmin, orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
 
@@ -13,6 +13,7 @@ export async function listLossReasons(user: OrgScopeUser) {
 }
 
 export async function createLossReason(user: OrgScopeUser, label: string) {
+  assertOrgAdmin(user);
   if (!user.organizationId) {
     throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_643f");
   }
@@ -31,6 +32,7 @@ export async function createLossReason(user: OrgScopeUser, label: string) {
  * (NO ACTION) refuse sinon, et on le dit honnêtement.
  */
 export async function deleteLossReason(user: OrgScopeUser, id: string) {
+  assertOrgAdmin(user);
   const reason = await db.query.lossReasons.findFirst({ where: eq(lossReasons.id, id) });
   if (!reason) return;
   assertOrgAccess(user, reason.organizationId);

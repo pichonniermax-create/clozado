@@ -1,4 +1,5 @@
 import { use } from "react";
+import { safeColor } from "@/lib/brand/color";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Funnel } from "lucide-react";
@@ -210,7 +211,7 @@ function ChainSection({ report, parsed, scopedPipelineId }: { report: FunnelRepo
 }
 
 function StageDot({ color }: { color: string | null }) {
-  return <span aria-hidden className="mr-2 inline-block size-2.5 shrink-0 rounded-full align-middle" style={{ backgroundColor: color ?? "var(--muted-foreground)" }} />;
+  return <span aria-hidden className="mr-2 inline-block size-2.5 shrink-0 rounded-full align-middle" style={{ backgroundColor: safeColor(color, "var(--muted-foreground)") }} />;
 }
 
 function PipelineSection({ funnel, parsed, single }: { funnel: PipelineFunnel; parsed: ParsedMetricFilters; single: boolean }) {

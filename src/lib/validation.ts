@@ -75,5 +75,8 @@ export function safeInternalPath(value: string | null | undefined, origin: strin
     return fallback;
   }
   if (parsed.origin !== new URL(origin).origin) return fallback;
+  // Un chemin normalisé qui COMMENCE par `//` ou `/\` redeviendrait une référence réseau à la prochaine
+  // résolution (`/..//evil.com` → `//evil.com` → `https://evil.com/`) : refusé aussi.
+  if (parsed.pathname.startsWith("//") || parsed.pathname.startsWith("/\\")) return fallback;
   return `${parsed.pathname}${parsed.search}${parsed.hash}`;
 }

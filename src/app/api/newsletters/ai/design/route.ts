@@ -20,7 +20,7 @@ const ROUTE = "api/newsletters/ai/design";
 
 const bodySchema = z.object({
   targetId: z.uuid(),
-  brief: z.string().min(1),
+  brief: z.string().trim().min(1).max(4000),
   lang: z.enum(["fr", "en"]).default("fr"),
   /** La matière : les articles rattachés à l'email (panier, écart) — lus en base, scopés à l'organisation de la cible ; c'est la liste blanche des sources. */
   sourceItemIds: z.array(z.uuid()).max(50).optional(),

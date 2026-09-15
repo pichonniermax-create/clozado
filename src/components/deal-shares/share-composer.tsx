@@ -133,12 +133,12 @@ export function ShareComposer({
           rate: basis === "percentage" ? rate : null,
           fixedAmount: basis === "fixed" ? fixedAmount : null,
           baseAmount: basis === "percentage" ? baseAmount : null,
-          computedAmount: String(computedAmount),
         } satisfies CreateShareCommissionInput)
       : null;
   // Ce que l'aperçu montre : la commission telle que le partenaire la verra,
   // « prévue » dès l'envoi — l'état que la requête pose elle-même.
-  const draftCommission = commissionInput ? { ...commissionInput, state: "prevue" as const } : null;
+  // Le montant calculé de l'aperçu est celui du client ; la requête recalcule le sien (jamais reçu du client).
+  const draftCommission = commissionInput ? { ...commissionInput, computedAmount: String(computedAmount), state: "prevue" as const } : null;
 
   // Objet simple, recalculé à chaque rendu — pas de useMemo : c'est un
   // aperçu client-only, le coût de reconstruction est négligeable, et ça

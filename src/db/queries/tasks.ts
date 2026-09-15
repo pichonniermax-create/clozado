@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, gte, inArray, isNotNull, isNull, lt, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { contacts, deals, tasks, users, type NewTask, type Task } from "@/db/schema";
-import { assertOrgAccess, orgScope } from "@/db/scope";
+import { assertOrgAccess, assertUserInOrg, orgScope } from "@/db/scope";
 import { createFormats } from "@/lib/format";
 import { settingsOfOrganization, timeZoneOfOrganization } from "@/i18n/locale-lookup";
 import type { OrgScopeUser } from "@/lib/session";
@@ -355,6 +355,9 @@ export async function createTask(user: OrgScopeUser, createdBy: string, input: T
 
   const dueAt = parseDueDate(input.dueDate);
   const recurrence = validateRecurrence({ ...input, dueAt });
+  // Le responsable désigné appartient à l'organisation (chasse aux failles du 2026-09-14) : sinon un
+  // identifiant d'un autre espace faisait afficher ici le nom et l'adresse d'une personne étrangère.
+  if (typeof input.assigneeId === "string") await assertUserInOrg(input.assigneeId, org.id);
 
   const [task] = await db
     .insert(tasks)
@@ -393,6 +396,7 @@ export async function updateTask(user: OrgScopeUser, taskId: string, input: Task
 
   const dueAt = parseDueDate(input.dueDate);
   const recurrence = validateRecurrence({ ...input, dueAt });
+  if (typeof input.assigneeId === "string") await assertUserInOrg(input.assigneeId, task.organizationId);
 
   const [updated] = await db
     .update(tasks)

@@ -190,5 +190,18 @@
   "invitation_deja_utilisee_ou_close": "Cette invitation a déjà servi, ou elle est close : rien à faire dessus.",
   "invitation_sans_adresse": "Cette invitation n’a pas d’adresse réservée : copie le lien et transmets-le toi-même.",
   "cette_adresse_email_ne_semble_pas_valide": "Cette adresse email ne semble pas valide.",
-  "la_date_d_expiration_est_deja_passee": "La date d’expiration est déjà passée : choisis un jour à venir, ou laisse le champ vide."
+  "la_date_d_expiration_est_deja_passee": "La date d’expiration est déjà passée : choisis un jour à venir, ou laisse le champ vide.",
+  "envoi_en_cours": "Cet envoi est en cours : un autre passage travaille dessus. Réessaie dans quelques minutes s’il ne progresse pas.",
+  "une_newsletter_envoyee_ne_se_supprime_pas": "Une newsletter envoyée ne se supprime pas : ses messages, leurs ouvertures et les désinscriptions en dépendent.",
+  "domaine_reserve": "Ce domaine appartient à la plateforme : il ne se déclare pas comme domaine d’envoi.",
+  "domaine_deja_rattache_a_un_autre_espace": "Ce domaine d’envoi est déjà rattaché à un autre espace.",
+  "couleur_invalide": "La couleur n’est pas valide : un hexadécimal à six chiffres, comme #2563eb.",
+  "seul_un_partage_en_attente_se_renvoie": "Seul un partage en attente se renvoie : celui-ci a déjà reçu une réponse.",
+  "un_partage_est_deja_en_attente_pour_ce_partenaire": "Un partage de cette affaire est déjà en attente chez ce partenaire : renvoie-le plutôt que d’en créer un second.",
+  "trop_de_regles_actives": "Vingt règles actives au plus par espace : désactive-en une avant d’en créer une autre.",
+  "evaluation_deja_lancee_recemment": "Une évaluation a déjà été lancée à la main il y a moins d’une heure : le prochain passage automatique suffit.",
+  "trop_de_sources": "Cinquante sources de veille au plus par espace : archives-en une avant d’en ajouter une autre.",
+  "le_partage_ne_permet_pas_ce_geste": "Ce partage ne permet pas ce geste.",
+  "domaine_existant_preuve_requise": "Ce domaine existe déjà chez le fournisseur d’envoi. Pour prouver qu’il est à toi, ajoute un enregistrement TXT « {name} » avec la valeur « {value} », puis déclare-le à nouveau.",
+  "trop_de_declarations": "Trois créations de domaine par jour au plus : réessaie demain."
 }

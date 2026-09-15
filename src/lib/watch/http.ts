@@ -95,6 +95,9 @@ export async function assertPublicTarget(url: string, resolve: typeof lookup = l
 
 export async function fetchWithTimeout(url: string, timeoutMs: number, accept: string): Promise<Response> {
   let current = url;
+  // Le délai est GLOBAL : partagé par le premier saut et chaque redirection (chasse aux failles du
+  // 2026-09-14 — une source à trois redirections lentes cumulait quatre délais).
+  const deadline = Date.now() + timeoutMs;
   for (let hop = 0; ; hop++) {
     await assertPublicTarget(current);
     let response: Response;
@@ -107,7 +110,7 @@ export async function fetchWithTimeout(url: string, timeoutMs: number, accept: s
         },
         // Les redirections sont suivies ICI, une par une, chacune revérifiée : `follow` les cacherait à la garde.
         redirect: "manual",
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: AbortSignal.timeout(Math.max(1, deadline - Date.now())),
         cache: "no-store",
       });
     } catch (error) {
@@ -138,12 +141,36 @@ export async function fetchWithTimeout(url: string, timeoutMs: number, accept: s
 
 /** Le corps, décodé selon le jeu de caractères annoncé (ou trouvé dans la page), borné à `maxBytes`. */
 export async function readBodyText(response: Response, maxBytes: number): Promise<string> {
-  const buffer = await response.arrayBuffer();
-  const bytes = new Uint8Array(buffer.byteLength > maxBytes ? buffer.slice(0, maxBytes) : buffer);
+  // Lecture EN FLUX, bornée (chasse aux failles du 2026-09-14) : `arrayBuffer()` chargeait tout le corps en
+  // mémoire avant de tronquer — un flux compressé piégé (quelques Ko qui se déplient en centaines de Mo)
+  // faisait tomber la fonction entière. Ici, la taille annoncée refuse d'emblée, et la lecture s'arrête —
+  // en annulant le flux — dès que la borne est dépassée.
+  const declared = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    await response.body?.cancel().catch(() => undefined);
+    throw new WatchFetchError("content_unreadable", { type: "too_large" });
+  }
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  if (response.body) {
+    const reader = response.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel().catch(() => undefined);
+        throw new WatchFetchError("content_unreadable", { type: "too_large" });
+      }
+      chunks.push(value);
+    }
+  }
+  const bytes = Buffer.concat(chunks.map((c) => Buffer.from(c.buffer, c.byteOffset, c.byteLength)));
   const contentType = response.headers.get("content-type") ?? "";
   let charset = /charset=["']?([\w-]+)/i.exec(contentType)?.[1] ?? null;
   if (!charset) {
-    const head = new TextDecoder("latin1").decode(bytes.slice(0, 4096));
+    const head = new TextDecoder("latin1").decode(bytes.subarray(0, 4096));
     charset = /<meta[^>]+charset=["']?([\w-]+)/i.exec(head)?.[1] ?? /encoding=["']([\w-]+)["']/i.exec(head)?.[1] ?? null;
   }
   try {

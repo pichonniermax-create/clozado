@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { safeColor } from "@/lib/brand/color";
 import type { ReactNode } from "react";
 import { Timer } from "lucide-react";
 import { AnalyticsFiltersBar } from "@/components/analytics/filters-bar";
@@ -57,7 +58,7 @@ function StageLabel({ stage }: { stage: { pipelineId: string; stageId: string; l
       className="inline-flex items-center gap-2 underline-offset-2 hover:underline"
       title={t("voir_les_affaires_actuellement_dans_cette_43a9")}
     >
-      <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: stage.color ?? "var(--muted-foreground)" }} />
+      <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: safeColor(stage.color, "var(--muted-foreground)") }} />
       {stage.label}
     </Link>
   );

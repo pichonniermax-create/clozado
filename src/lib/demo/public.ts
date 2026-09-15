@@ -18,6 +18,16 @@ export const DEMO_SESSION_MAX_AGE = 8 * 3600;
  */
 export const DEMO_FORBIDDEN_PATHS = ["/settings", "/profil", "/contacts/import", "/invitations", "/api"] as const;
 
+/**
+ * Les chemins que le cookie de visite ne touche JAMAIS (chasse aux failles
+ * du 2026-09-14) : la désinscription et la réponse d'un partenaire à un
+ * partage ne dépendent d'aucune organisation active — une personne qui a
+ * visité la démo huit heures plus tôt doit pouvoir se désinscrire d'une
+ * newsletter réelle ou accepter un partage réel. Les partages de
+ * l'organisation de démo restent protégés côté serveur (`demo_read_only`).
+ */
+export const DEMO_EXEMPT_PATHS = ["/desinscription", "/api/unsubscribe", "/partage", "/api/partage"] as const;
+
 /** Le paramètre d'URL posé quand une écriture a été refusée : la coquille montre la phrase « lecture seule ». */
 export const DEMO_READ_ONLY_PARAM = "demo";
 export const DEMO_READ_ONLY_VALUE = "lecture-seule";

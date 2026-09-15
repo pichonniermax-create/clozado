@@ -1,5 +1,7 @@
 "use client";
 
+import { safeColor } from "@/lib/brand/color";
+
 import { useMemo, useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -127,7 +129,7 @@ export function KanbanBoard({
                     <span
                       aria-hidden
                       className="size-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: stage.color ?? "var(--muted-foreground)" }}
+                      style={{ backgroundColor: safeColor(stage.color, "var(--muted-foreground)") }}
                     />
                     <span className="truncate">{stage.label}</span>
                     {stage.outcome && (

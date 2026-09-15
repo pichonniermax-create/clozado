@@ -1,5 +1,7 @@
 "use server";
 
+import { z } from "zod";
+
 import { redirect } from "next/navigation";
 import {
   buildContactNewsletterBrief,
@@ -18,7 +20,9 @@ import {
 } from "@/db/queries/contacts";
 import { errorMessage, withError } from "@/lib/form-actions";
 import { saveNewsletter } from "@/lib/newsletter/actions";
+import { log } from "@/lib/log";
 import { requireUser } from "@/lib/session";
+import { readInput } from "@/lib/validation";
 import { getTranslations } from "next-intl/server";
 import { AppError } from "@/lib/errors";
 
@@ -169,10 +173,35 @@ export async function createNewsletterForContactAction(contactId: string, formDa
 
 export type { ImportField, ImportMode, ImportReport, ImportRowInput } from "@/db/queries/contacts";
 
+/** La forme STRICTE d'un import (chasse aux failles du 2026-09-14) : des chaînes bornées, un mode connu, cinq mille lignes au plus. */
+const IMPORT_VALUES_SCHEMA = z
+  .object({
+    name: z.string().max(200),
+    firstName: z.string().max(160),
+    lastName: z.string().max(160),
+    email: z.string().max(254),
+    phone: z.string().max(40),
+    companyName: z.string().max(200),
+    jobTitle: z.string().max(160),
+    city: z.string().max(160),
+    postalCode: z.string().max(20),
+    country: z.string().max(80),
+    notes: z.string().max(2000),
+  })
+  .partial()
+  .strict();
+const IMPORT_SCHEMA = z.strictObject({
+  rows: z.array(z.strictObject({ line: z.number().int().positive(), values: IMPORT_VALUES_SCHEMA })).min(1).max(5000),
+  mode: z.enum(["skip", "complete"]),
+});
+
 export async function importContactsAction(
   rows: ImportRowInput[],
   mode: ImportMode
 ): Promise<ImportReport> {
   const user = await requireUser();
-  return importContacts(user, user.id, rows, mode, await getTranslations("contacts.queries"));
+  const input = readInput(IMPORT_SCHEMA, { rows, mode });
+  const report = await importContacts(user, user.id, input.rows as ImportRowInput[], input.mode, await getTranslations("contacts.queries"));
+  log.info("contacts_imported", { organizationId: user.organizationId, actorId: user.id, inserted: report.inserted, completed: report.completed.length, mode: input.mode });
+  return report;
 }

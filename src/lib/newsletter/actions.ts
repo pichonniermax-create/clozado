@@ -188,6 +188,12 @@ export async function deleteNewsletter(id: string) {
   if (newsletter.createdBy !== user.id) {
     throw new AppError("acces_refuse_seul_le_createur_peut_supprimer_f0b0", undefined, 403);
   }
+  // Une newsletter ENVOYÉE ne se supprime pas (chasse aux failles du 2026-09-14) : ses messages, leurs
+  // événements et les suppressions (rebonds, plaintes) partaient en cascade avec elle — et les liens de
+  // désinscription reçus par les destinataires devenaient invalides.
+  if (newsletter.sentAt) {
+    throw new AppError("une_newsletter_envoyee_ne_se_supprime_pas", undefined, 409);
+  }
 
   // `newsletter_blocks.newsletter_id` est ON DELETE CASCADE : pas de
   // suppression manuelle des blocs à faire ici.

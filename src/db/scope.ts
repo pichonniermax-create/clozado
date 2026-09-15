@@ -1,5 +1,7 @@
 import { eq, sql, type SQL } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import { db } from "@/db";
+import { users } from "@/db/schema/users";
 import type { OrgScopeUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
 
@@ -47,5 +49,29 @@ export function assertOrgAccess(
   if (user.role === "super_admin") return;
   if (!user.organizationId || recordOrganizationId !== user.organizationId) {
     throw new AppError("acces_refuse_cette_donnee_n_appartient_pas_044a", undefined, 403);
+  }
+}
+
+/**
+ * Un geste RÉSERVÉ À L'ADMIN de l'organisation (réglages, domaine
+ * d'envoi, pipeline) — vérifié dans la requête, pas seulement à l'écran
+ * (chasse aux failles du 2026-09-14). Le super admin substitué porte le
+ * rôle `admin` de l'organisation choisie : il passe.
+ */
+export function assertOrgAdmin(user: OrgScopeUser): asserts user is OrgScopeUser & { organizationId: string } {
+  if (user.role !== "admin" || !user.organizationId) {
+    throw new AppError("acces_refuse_seul_l_admin_de_l_7ac9", undefined, 403);
+  }
+}
+
+/**
+ * Une personne désignée (responsable d'une fiche, d'une tâche) doit
+ * appartenir à l'organisation : sinon un identifiant d'utilisateur d'un
+ * autre espace ferait afficher son nom et son adresse ici.
+ */
+export async function assertUserInOrg(userId: string, organizationId: string): Promise<void> {
+  const u = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { organizationId: true } });
+  if (!u || u.organizationId !== organizationId) {
+    throw new AppError("ce_conseiller_n_appartient_pas_a_l_dc88");
   }
 }

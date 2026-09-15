@@ -83,7 +83,10 @@ export async function deliverMessages(messages: EmailMessage[], content: SendCon
     if (!(error instanceof ResendError)) return { status: "unavailable", reason: error instanceof Error ? `${error.name}: ${error.message}` : String(error) };
     if (error.quotaExceeded) return { status: "quota", code: error.code ?? "quota_exceeded" };
     if (error.rateLimited) return { status: "rate_limited", retryAfterSeconds: error.retryAfterSeconds ?? 2 };
-    if (error.code === "invalid_idempotent_request" || error.code === "concurrent_idempotent_requests") {
+    // Un lot déjà en cours sous la même clé chez le fournisseur = un AUTRE exécutant travaille sur cette file :
+    // on s'efface (pause puis reprise), on ne renvoie pas un par un par-dessus lui (chasse aux failles du 2026-09-14).
+    if (error.code === "concurrent_idempotent_requests") return { status: "unavailable", reason: "concurrent_runner" };
+    if (error.code === "invalid_idempotent_request") {
       return deliverOneByOne(messages, content, origin);
     }
     if (error.status >= 500) return { status: "unavailable", reason: error.message };
