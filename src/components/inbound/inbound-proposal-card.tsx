@@ -121,14 +121,20 @@ export function InboundProposalCard({
             {proposal.source === "model" ? t("proposition_du_modele") : t("proposition_deterministe")}
           </p>
 
+          {/* Les deux issues de la même décision sur une rangée, à la même hauteur — « Ignorer » soumet SON formulaire (`form=`),
+              rendu à part sans autre champ que l'identifiant. */}
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="submit">{t("confirmer")}</Button>
+            <Button type="submit" className="w-full sm:w-auto">
+              {t("confirmer")}
+            </Button>
+            <Button type="submit" variant="ghost" form={`ignore-${email.id}`} className="w-full sm:w-auto">
+              {t("ignorer")}
+            </Button>
           </div>
         </form>
 
-        <form action={ignoreInboundAction}>
+        <form id={`ignore-${email.id}`} action={ignoreInboundAction}>
           <input type="hidden" name="id" value={email.id} />
-          <Button type="submit" variant="ghost" size="sm">{t("ignorer")}</Button>
         </form>
       </CardContent>
     </Card>

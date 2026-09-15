@@ -72,7 +72,7 @@
   },
   "shareComposer": {
     "apercu": "Aperçu",
-    "aucun_partenaire_actif_ajoutez_en_un_de95": "Aucun partenaire actif. Ajoutez-en un depuis l’écran Partenaires.",
+    "aucun_partenaire_actif_ajoutez_en_un_de95": "Aucun partenaire actif — <link>ajoute-en un</link> depuis Partenaires.",
     "ce_lien_ne_sera_plus_jamais_4980": "Ce lien ne sera plus jamais réaffiché. Copie-le maintenant et transmets-le à {name}. Si tu le perds, il faudra renvoyer le partage — ce qui annulera celui-ci et en créera un nouveau.",
     "choisir_un_partenaire": "Choisir un partenaire",
     "choisis_d_abord_un_partenaire": "Choisis d’abord un partenaire.",
@@ -93,7 +93,7 @@
     "j_ai_copie_le_lien_termine": "J’ai copié le lien — Terminé",
     "l_envoi_a_echoue_de_notre_2adc": "L’envoi a échoué de notre côté — rien n’a été créé, réessaie.",
     "la_fixer_maintenant_c_est_ce_9dcd": "La fixer maintenant, c’est ce qui t’engage vis-à-vis du confrère — plutôt que de la laisser en texte libre à interpréter plus tard.",
-    "le_lien_cesse_de_fonctionner_le": "Le lien cesse de fonctionner le",
+    "le_lien_cesse_de_fonctionner_le": "Expiration du lien",
     "le_montant": "le montant",
     "le_taux_et_le_montant_de_fa0e": "le taux et le montant de référence",
     "lien_cree_a_copier_maintenant": "Lien créé — à copier maintenant",
@@ -110,7 +110,8 @@
     "renseigne_pour_voir_le_calcul": "Renseigne {value} pour voir le calcul.",
     "taux": "Taux (%)",
     "tu_partages_avec": "Tu partages <span>{title}</span> avec <span2>{name}</span2>.",
-    "votre_partenaire": "Votre partenaire"
+    "votre_partenaire": "Votre partenaire",
+    "ce_que_le_partenaire_verra": "Ce que le partenaire verra, tel quel."
   },
   "shareStatusBadge": {
     "status": {

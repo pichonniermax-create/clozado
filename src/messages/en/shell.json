@@ -2,7 +2,7 @@
   "accountMenu": {
     "celle_de_l_organisation": "The organization’s ({language})",
     "langue": "Language",
-    "marque_reglages": "Brand & settings",
+    "marque_reglages": "Settings",
     "mon_compte": "My account",
     "mon_profil": "My profile",
     "se_deconnecter": "Sign out",
@@ -67,7 +67,7 @@
     "ouvrir_la_navigation": "Open navigation"
   },
   "navigationList": {
-    "marque_reglages": "Brand & settings"
+    "marque_reglages": "Settings"
   },
   "notFound": {
     "cette_page_n_existe_pas_dans_d28e": "This page doesn’t exist in your workspace.",

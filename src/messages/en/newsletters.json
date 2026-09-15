@@ -101,7 +101,10 @@
   },
   "detail": {
     "desactivee": "{label} (deactivated)",
-    "newsletters": "Newsletters"
+    "newsletters": "Newsletters",
+    "brouillon": "Draft",
+    "envoyee": "Sent",
+    "envoyer": "Send"
   },
   "insertionPoint": {
     "inserer_un_bloc_ici": "Insert a block here"
@@ -120,7 +123,10 @@
     "nouvelle_newsletter": "New newsletter",
     "objet_a_ecrire": "Subject to write",
     "supprimer": "Delete",
-    "marquee_envoyee": "Marked as sent"
+    "marquee_envoyee": "Marked as sent",
+    "supprimer_ce_brouillon": "Delete this draft?",
+    "suppression_definitive": "The draft and its blocks are gone for good. A sent newsletter, on the other hand, cannot be deleted.",
+    "annuler": "Cancel"
   },
   "new": {
     "aucune_cible_pour_l_instant": "No audiences yet",
@@ -171,7 +177,8 @@
     "article_articles_de_la_matiere_non_cites": "{count, plural, one {One article of the material is not cited} other {# articles of the material are not cited}} — if they were used, add them to the Sources block.",
     "source_sources_hors_matiere_retirees": "{count, plural, one {One cited source outside the material was removed} other {# cited sources outside the material were removed}} — only attached articles can be cited.",
     "le_bloc_sources_est_vide": "The Sources block is empty: choose the articles to cite, or delete it.",
-    "sujets_traites_declares": "Topics covered: {join} — editable when marking as sent."
+    "sujets_traites_declares": "Topics covered: {join} — editable when marking as sent.",
+    "deja_recu_n": "Already received by these contacts: {count, plural, one {# newsletter} other {# newsletters}} — don’t repeat"
   },
   "saveIndicator": {
     "enregistre": "Saved {formatSavedAt}",
@@ -259,5 +266,10 @@
   },
   "useAutosave": {
     "enregistrement_impossible": "Could not save."
+  },
+  "detailNotFound": {
+    "cette_newsletter_n_existe_pas": "This newsletter doesn’t exist.",
+    "le_lien_est_peut_etre_perime": "The link may be out of date, or the newsletter was created in another workspace.",
+    "voir_les_newsletters": "View newsletters"
   }
 }

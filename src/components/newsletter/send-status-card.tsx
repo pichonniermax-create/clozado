@@ -235,7 +235,8 @@ export function SendStatusCard(props: SendCardProps) {
           </p>
         )}
         <div className="flex flex-wrap items-start gap-3">
-          <form action={sendTestAction.bind(null, newsletter.id)} className="flex flex-col gap-1">
+          {/* `items-start` : le bouton garde sa largeur naturelle au lieu de s'étirer sur celle de sa note. */}
+          <form action={sendTestAction.bind(null, newsletter.id)} className="flex flex-col items-start gap-1">
             <Button type="submit" variant="outline" disabled={!sender}>{t("m_envoyer_un_test")}</Button>
             <span className="max-w-72 text-xs text-muted-foreground">{t("test_explication")}</span>
           </form>

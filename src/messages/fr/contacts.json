@@ -62,7 +62,7 @@
     "cree_la_premiere_depuis_le_pipeline": "crée la première depuis le pipeline",
     "creee_le": "Créée le {formatDate}",
     "creee_pour_toute_l_organisation_et_98c8": "Créée pour toute l’organisation et posée sur cette fiche.",
-    "dans_les_cibles": "Dans les cibles :",
+    "dans_les_cibles": "Dans les cibles",
     "date_de_naissance": "Date de naissance",
     "doublons_possibles": "Doublons possibles",
     "elles_apparaitront_ici": "elles apparaîtront ici",
@@ -114,11 +114,12 @@
     },
     "indicateurs": {
       "dernier_email_ouvert": "Dernier email ouvert",
-      "approx": "Approximatif — le préchargement compte comme une ouverture",
+      "approx": "Approximatif (le préchargement compte comme une ouverture)",
       "dernier_clic": "Dernier clic",
       "derniere_interaction": "Dernière interaction",
       "interaction_def": "Appel, email, rendez-vous tenu, note, ou clic",
-      "dernier_rendez_vous": "Dernier rendez-vous"
+      "dernier_rendez_vous": "Dernier rendez-vous",
+      "jamais": "Jamais"
     },
     "emailState": {
       "queued": "en attente d’envoi",
@@ -130,7 +131,9 @@
       "failed": "échec d’envoi",
       "opened": "ouvert (approx.)",
       "clicked": "cliqué"
-    }
+    },
+    "nouvelle_affaire": "Nouvelle affaire",
+    "annuler": "Annuler"
   },
   "detailNotFound": {
     "cette_fiche_n_existe_pas": "Cette fiche n’existe pas.",
@@ -184,7 +187,11 @@
     "raison": "Raison",
     "sans_titre": "(sans titre)",
     "si_une_fiche_existe_deja_meme_8c50": "Si une fiche existe déjà (même email)",
-    "voir_les_contacts": "Voir les contacts"
+    "voir_les_contacts": "Voir les contacts",
+    "choisir_un_fichier_csv": "Choisir un fichier CSV",
+    "ou_depose_le_ici": "ou dépose-le ici",
+    "colonnes_reconnues": "Colonnes reconnues d’office — les autres te seront proposées à la correspondance",
+    "telecharger_un_modele": "Télécharger un modèle CSV"
   },
   "list": {
     "aucun_contact_ne_correspond_a_cette_e658": "Aucun contact ne correspond à cette recherche",
@@ -199,13 +206,14 @@
     "pour": "pour « {q} »",
     "precedents": "← Précédents",
     "rechercher": "Rechercher",
-    "rechercher_un_nom_un_email_une_15ed": "Rechercher un nom, un email, une société, un téléphone…",
+    "rechercher_un_nom_un_email_une_15ed": "Nom, email, société, téléphone…",
     "societe": "Société",
     "suivants": "Suivants →",
     "tes_clients_et_prospects_personnes_et_1688": "Tes clients et prospects — personnes et sociétés, avec leurs affaires, tâches et échanges.",
     "tes_clients_et_prospects_personnes_et_e0e9": "Tes clients et prospects, personnes et sociétés : chaque fiche relie ses affaires, ses tâches et ses échanges. Un import CSV depuis ton CRM est le plus rapide.",
     "tous_les_conseillers": "Tous les conseillers",
-    "tout_afficher": "Tout afficher"
+    "tout_afficher": "Tout afficher",
+    "conseiller": "Conseiller"
   },
   "queries": {
     "affaires_en_cours": "Affaires en cours : {join}.",

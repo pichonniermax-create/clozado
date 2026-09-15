@@ -88,7 +88,7 @@ export function CriteriaEditor({
           </div>
         </Row>
         <Row label={tr("adresse_email")}>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex min-h-9 items-center gap-2 text-sm sm:min-h-0">
             <input type="checkbox" checked={c.hasEmail === true} onChange={(e) => set("hasEmail", e.target.checked ? true : undefined)} />
             {tr("seulement_les_fiches_qui_ont_une_0ea2")}
           </label>
@@ -225,9 +225,10 @@ function CheckList({
 }) {
   if (items.length === 0) return <span className="pt-1.5 text-sm text-muted-foreground">—</span>;
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-2 pt-1.5">
+    // 36 px de haut au doigt (une case native fait 13 px) ; rien ne change à la souris.
+    <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1.5 sm:gap-y-2">
       {items.map((item) => (
-        <label key={item.id} className="flex items-center gap-2 text-sm">
+        <label key={item.id} className="flex min-h-9 items-center gap-2 text-sm sm:min-h-0">
           <input type="checkbox" checked={selected.includes(item.id)} onChange={() => onToggle(item.id)} />
           {item.label}
         </label>

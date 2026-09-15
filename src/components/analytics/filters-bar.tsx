@@ -23,7 +23,9 @@ import { NativeSelect } from "@/components/ui/native-select";
  * Un sélecteur n'apparaît que s'il a de quoi choisir (un seul conseiller,
  * un seul pipeline : rien à filtrer).
  */
-const DATE_CLASS = "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm";
+// Les mêmes jetons que l'Input du socle : hauteur, anneau de focus, corps de 16 px sous md (pas de zoom iOS), 40 px au doigt.
+const DATE_CLASS =
+  "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-10 md:text-sm dark:bg-input/30";
 
 export function AnalyticsFiltersBar({
   basePath,
@@ -51,15 +53,16 @@ export function AnalyticsFiltersBar({
 
   return (
     <section aria-label={tr("filtres")} className="flex flex-col gap-3">
+      {/* Sur mobile (audit UI du 2026-09-14) : les préréglages en contrôle segmenté pleine largeur, deux par ligne ; dès sm, une rangée. */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex flex-wrap rounded-lg border border-border p-0.5">
+        <div className="grid w-full grid-cols-2 gap-0.5 rounded-lg border border-border p-0.5 sm:flex sm:w-auto sm:flex-wrap">
           {PERIOD_PRESETS.map((p) => (
             <Link
               key={p.key}
               href={presetHref(p.key)}
               aria-current={period === p.key ? "true" : undefined}
               className={cn(
-                "rounded-md px-2.5 py-1 text-sm transition-colors",
+                "rounded-md px-2.5 py-2 text-center text-sm transition-colors sm:py-1",
                 period === p.key ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -86,18 +89,19 @@ export function AnalyticsFiltersBar({
         </span>
       </div>
 
-      <form method="get" action={basePath} className="flex flex-wrap items-end gap-2">
+      {/* Une grille à deux colonnes sous sm (dates côte à côte, sélecteurs pleine largeur, « Filtrer » sur toute la ligne) ; dès sm, une rangée qui se replie. */}
+      <form method="get" action={basePath} className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-end">
         {params.periode && <input type="hidden" name="periode" value={params.periode} />}
-        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+        <label className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground sm:w-auto">
           {tr("du")}
           <input type="date" name="du" defaultValue={params.du ?? ""} className={DATE_CLASS} aria-label={tr("debut_de_periode")} />
         </label>
-        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+        <label className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground sm:w-auto">
           {tr("au_inclus")}
           <input type="date" name="au" defaultValue={params.au ?? ""} className={DATE_CLASS} aria-label={tr("fin_de_periode")} />
         </label>
         {users.length > 1 && (
-          <NativeSelect name="conseiller" defaultValue={params.conseiller ?? ""} className="w-auto max-w-full max-w-56" aria-label={tr("filtrer_par_conseiller")}>
+          <NativeSelect name="conseiller" defaultValue={params.conseiller ?? ""} className="col-span-2 sm:w-auto sm:max-w-56" aria-label={tr("filtrer_par_conseiller")}>
             <option value="">{tr("tous_les_conseillers")}</option>
             {users.map((u) => (
               <option key={u.id} value={u.id}>
@@ -107,7 +111,7 @@ export function AnalyticsFiltersBar({
           </NativeSelect>
         )}
         {types.length > 0 && (
-          <NativeSelect name="type" defaultValue={params.type ?? ""} className="w-auto max-w-full max-w-56" aria-label={tr("filtrer_par_type_d_affaire")}>
+          <NativeSelect name="type" defaultValue={params.type ?? ""} className="col-span-2 sm:w-auto sm:max-w-56" aria-label={tr("filtrer_par_type_d_affaire")}>
             <option value="">{tr("tous_les_types")}</option>
             {types.map((t) => (
               <option key={t.id} value={t.id}>
@@ -117,7 +121,7 @@ export function AnalyticsFiltersBar({
           </NativeSelect>
         )}
         {pipelines.length > 1 && (
-          <NativeSelect name="pipeline" defaultValue={params.pipeline ?? ""} className="w-auto max-w-full max-w-56" aria-label={tr("filtrer_par_pipeline")}>
+          <NativeSelect name="pipeline" defaultValue={params.pipeline ?? ""} className="col-span-2 sm:w-auto sm:max-w-56" aria-label={tr("filtrer_par_pipeline")}>
             <option value="">{tr("tous_les_pipelines")}</option>
             {pipelines.map((p) => (
               <option key={p.id} value={p.id}>
@@ -127,7 +131,7 @@ export function AnalyticsFiltersBar({
           </NativeSelect>
         )}
         {origins.length > 0 && (
-          <NativeSelect name="origine" defaultValue={params.origine ?? ""} className="w-auto max-w-full max-w-56" aria-label={tr("filtrer_par_origine")}>
+          <NativeSelect name="origine" defaultValue={params.origine ?? ""} className="col-span-2 sm:w-auto sm:max-w-56" aria-label={tr("filtrer_par_origine")}>
             <option value="">{tr("toutes_les_origines")}</option>
             {origins.map((o) => (
               <option key={o.id} value={o.id}>
@@ -138,7 +142,7 @@ export function AnalyticsFiltersBar({
             <option value={ORIGIN_UNKNOWN}>{tr("sans_origine_aucun_lead")}</option>
           </NativeSelect>
         )}
-        <button type="submit" className={buttonVariants({ variant: "outline", size: "sm" })}>
+        <button type="submit" className={cn(buttonVariants({ variant: "outline" }), "col-span-2 sm:col-span-1")}>
           {tr("filtrer")}
         </button>
       </form>

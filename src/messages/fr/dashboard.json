@@ -57,7 +57,7 @@
     "contact_contacts": "{n, plural, one {# contact} other {# contacts}}",
     "contacts": "Contacts",
     "creer_une_affaire": "Créer une affaire",
-    "dont_en_retard_en_retards": "dont {overdue, plural, one {# en retard} other {# en retards}}",
+    "dont_en_retard_en_retards": "dont {overdue, plural, one {# en retard} other {# en retard}}",
     "et_autre_autres_voir_toutes_les_bb29": "Et {n, plural, one {# autre} other {# autres}} — <link>voir toutes les tâches</link>.",
     "expire_dans": "expire dans {formatDays}",
     "gerer_les_invitations": "Gérer les invitations",
@@ -66,8 +66,6 @@
     "invitations_description": "{count, plural, =0 {Aucune invitation en attente} one {# invitation en attente} other {# invitations en attente}} — génère un lien pour qu’une nouvelle entreprise crée son espace.",
     "invitations_titre": "Invitations d’espaces",
     "lien_expire": "lien expiré",
-    "marquer_comme_faite": "Marquer « {title} » comme faite",
-    "marquer_comme_faite_bb0d": "Marquer comme faite",
     "nouvelle_affaire": "Nouvelle affaire",
     "nouvelle_invitation": "Nouvelle invitation",
     "organisations": "Organisations",
@@ -83,7 +81,7 @@
     "taches_du_jour": "Tâches du jour",
     "tout_le_suivi": "Tout le suivi",
     "toutes_les_taches": "Toutes les tâches",
-    "travailler_dans_cette_organisation": "Travailler dans cette organisation",
-    "vue_globale_super_admin_choisis_une_36d9": "Vue globale super admin — choisis une organisation (ici ou dans le bandeau) pour travailler dedans."
+    "vue_globale_super_admin_choisis_une_36d9": "Les espaces clients, la démo et les invitations.",
+    "entrer": "Entrer"
   }
 }

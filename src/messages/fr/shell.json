@@ -2,7 +2,7 @@
   "accountMenu": {
     "celle_de_l_organisation": "Celle de l’organisation ({language})",
     "langue": "Langue",
-    "marque_reglages": "Marque & réglages",
+    "marque_reglages": "Réglages",
     "mon_compte": "Mon compte",
     "mon_profil": "Mon profil",
     "se_deconnecter": "Se déconnecter",
@@ -67,7 +67,7 @@
     "ouvrir_la_navigation": "Ouvrir la navigation"
   },
   "navigationList": {
-    "marque_reglages": "Marque & réglages"
+    "marque_reglages": "Réglages"
   },
   "notFound": {
     "cette_page_n_existe_pas_dans_d28e": "Cette page n’existe pas dans ton espace.",

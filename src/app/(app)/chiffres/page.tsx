@@ -8,7 +8,10 @@ import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { ListCard } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
+import { InlineDetails } from "@/components/ui/inline-details";
 import {
   getIndicatorStatuses,
   getLatestObservations,
@@ -115,19 +118,30 @@ export default async function FiguresPage() {
             )}
           </EmptyState>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          // Deux tuiles par ligne dès 390 px, comme les tuiles du tableau de bord.
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
             {followedKeys.map((key) => {
               const indicator = getIndicator(key);
               if (!indicator) return null;
               const obs = observations.get(key);
               const status = statuses.get(key);
+              const period = obs ? formatPeriod(obs.period, tf, fmt) : "";
               return (
-                <div key={key} className="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-4 shadow-xs">
-                  <span className="text-sm font-medium text-muted-foreground">{tf(`indicators.${indicator.key}.label`)}</span>
-                  <p className="text-3xl font-semibold tracking-tight">{obs ? formatIndicatorValue(obs.valueText, indicator.unit, fmt.tag) : "—"}</p>
+                <div key={key} className="flex min-w-0 flex-col gap-1.5 rounded-xl border border-border bg-card p-3 shadow-xs sm:p-4">
+                  <span className="text-xs leading-tight font-medium text-muted-foreground sm:text-sm">{tf(`indicators.${indicator.key}.label`)}</span>
+                  {obs ? (
+                    <p className="min-w-0 text-2xl font-semibold tracking-tight [overflow-wrap:anywhere] sm:text-3xl">{formatIndicatorValue(obs.valueText, indicator.unit, fmt.tag)}</p>
+                  ) : (
+                    // Pas encore de valeur : une place réservée, discrète — un grand « — » en encre pleine se lisait comme une valeur cassée (audit UI du 2026-09-14).
+                    <span aria-hidden className="my-1.5 block h-7 w-20 rounded-md bg-muted sm:h-8" />
+                  )}
                   <p className="text-xs tabular-nums text-muted-foreground">
                     {obs
-                      ? `${indicator.periodicity === "on_change" ? "depuis le" : indicator.periodicity === "daily" ? "au" : ""} ${formatPeriod(obs.period, tf, fmt)}`.trim()
+                      ? indicator.periodicity === "on_change"
+                        ? t("depuis_le_periode", { period })
+                        : indicator.periodicity === "daily"
+                          ? t("au_periode", { period })
+                          : period
                       : status?.lastError
                         ? t("source_muette_aucune_valeur_encore_lue", { lastError: status.lastError })
                         : t("pas_encore_lu_a_la_prochaine_a1d1")}
@@ -139,11 +153,18 @@ export default async function FiguresPage() {
                     {status?.lastOkAt && t("lu", { formatRelativeTime: fmt.relative(status.lastOkAt) })}
                     {obs && status?.lastError && t("source_muette_depuis_derniere_valeur_conservee", { lastError: status.lastError })}
                   </p>
-                  <form action={unfollowIndicatorAction.bind(null, key)} className="pt-1">
-                    <Button type="submit" variant="ghost" size="sm">
+                  {/* `-ml-2.5` : le libellé du bouton fantôme s'aligne sur le texte de la tuile, pas sur son padding. */}
+                  <div className="-ml-2.5 pt-1">
+                    <ConfirmSubmit
+                      action={unfollowIndicatorAction.bind(null, key)}
+                      title={t("ne_plus_suivre_cet_indicateur")}
+                      description={t("ne_plus_suivre_description")}
+                      confirmLabel={t("ne_plus_suivre")}
+                      cancelLabel={t("annuler")}
+                    >
                       {t("ne_plus_suivre")}
-                    </Button>
-                  </form>
+                    </ConfirmSubmit>
+                  </div>
                 </div>
               );
             })}
@@ -157,7 +178,7 @@ export default async function FiguresPage() {
       </section>
 
       {(proposals.pack.length > 0 || proposals.others.length > 0) && (
-        <DetailsCard variant="archive" summary={t("autres_indicateurs_disponibles", { n: proposals.pack.length + proposals.others.length })} flush>
+        <DetailsCard summary={t("autres_indicateurs_disponibles", { n: proposals.pack.length + proposals.others.length })} flush>
           <ul className="divide-y divide-border">
             {[...proposals.pack.map((i) => ({ indicator: i, pack: true })), ...proposals.others.map((i) => ({ indicator: i, pack: false }))].map(
               ({ indicator, pack: fromPack }) => (
@@ -178,11 +199,11 @@ export default async function FiguresPage() {
             {t("tes_propres_chiffres_dossiers_finances_clients_673b")}
           </EmptyState>
         ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+          <ListCard>
             {internal.map((figure) => (
               <FigureRow key={figure.id} figure={figure} />
             ))}
-          </ul>
+          </ListCard>
         )}
         <DetailsCard summary={t("ajouter_un_chiffre")}>
           <FigureForm action={createFigureAction} submitLabel={t("ajouter_le_chiffre")} />
@@ -226,13 +247,13 @@ function FigureRow({ figure }: { figure: VerifiedFigure }) {
     <li id={`chiffre-${figure.id}`} className="flex flex-col gap-2 px-4 py-3 scroll-mt-24">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="min-w-0 flex flex-col">
-          <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
-            {figure.label}
+          {/* Le chiffre sur la première ligne, à côté de son libellé (audit UI du 2026-09-14 : sur un écran nommé « Chiffres », la valeur était la donnée la moins visible). */}
+          <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">
+            <span className="font-medium">{figure.label}</span>
+            <span className="font-semibold tabular-nums">{figure.value}</span>
             {!complete && <Badge variant="outline">{t("a_completer_b061")}</Badge>}
           </span>
           <span className="text-xs tabular-nums text-muted-foreground">
-            <span className="font-medium text-foreground">{figure.value}</span>
-            {" · "}
             {figure.sourceName ? (
               figure.sourceUrl && isHttpUrl(figure.sourceUrl) ? (
                 <a href={figure.sourceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
@@ -249,18 +270,22 @@ function FigureRow({ figure }: { figure: VerifiedFigure }) {
             {figure.updatedAt && t("modifie_le", { formatDate: fmt.date(figure.updatedAt) })}
           </span>
         </span>
-        <form action={deleteFigureAction.bind(null, figure.id)}>
-          <Button type="submit" variant="ghost" size="sm">
-            {t("supprimer")}
-          </Button>
-        </form>
+        <ConfirmSubmit
+          action={deleteFigureAction.bind(null, figure.id)}
+          title={t("supprimer_ce_chiffre")}
+          description={t("le_composer_ne_pourra_plus", { label: figure.label })}
+          confirmLabel={t("supprimer")}
+          cancelLabel={t("annuler")}
+          className="ml-auto"
+        >
+          {t("supprimer")}
+        </ConfirmSubmit>
       </div>
-      <details className="group text-sm">
-        <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">{complete ? t("modifier") : t("completer")}</summary>
+      <InlineDetails summary={complete ? t("modifier") : t("completer")}>
         <div className="pt-3">
           <FigureForm figure={figure} action={updateFigureAction.bind(null, figure.id)} submitLabel={t("enregistrer_le_chiffre")} />
         </div>
-      </details>
+      </InlineDetails>
     </li>
   );
 }
@@ -290,7 +315,7 @@ function FigureForm({ figure, action, submitLabel }: { figure?: VerifiedFigure; 
           <Input id={`figure-asofdate-${id}`} name="asOfDate" type="date" defaultValue={figure?.asOfDate ?? ""} className="w-fit" />
         </Field>
       </div>
-      <Button type="submit" variant={figure ? "outline" : "default"} className="w-fit">
+      <Button type="submit" variant={figure ? "outline" : "default"} className="w-full sm:w-fit">
         {submitLabel}
       </Button>
     </form>

@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/app-shell/page-header";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
@@ -30,19 +32,32 @@ export default async function ProfilePage() {
     getOwnOrganization(user),
     getCalendarConnection(session.id),
   ]);
+  const displayName = profile.name ?? profile.email;
+  // L'aide dit le VRAI repli, et l'admin peut aller le changer d'un clic (audit UI du 2026-09-14).
+  const replyHint = org?.senderEmail
+    ? user.role === "admin"
+      ? t.rich("sinon_celle_de_l_organisation_lien", { email: org.senderEmail, link: (chunks) => <Link href="/settings#marque" className="underline underline-offset-2">{chunks}</Link> })
+      : t("sinon_celle_de_l_organisation", { email: org.senderEmail })
+    : t("sinon_ton_adresse_de_connexion");
   return (
     <>
       <PageHeader title={t("mon_profil")} description={t("ce_que_tu_regles_pour_toi")} />
       <Card>
-        <CardHeader>
-          <CardTitle>{profile.name ?? profile.email}</CardTitle>
-          <CardDescription>{profile.email}</CardDescription>
+        <CardHeader className="flex items-center gap-3">
+          <Avatar className="size-10">
+            <AvatarFallback>{initialsOf(displayName)}</AvatarFallback>
+          </Avatar>
+          <div className="flex min-w-0 flex-col gap-1">
+            <CardTitle>{displayName}</CardTitle>
+            <CardDescription className="truncate">{profile.email}</CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <form action={saveProfileAction} className="flex flex-col gap-5">
             <div className="grid max-w-xl grid-cols-1 gap-4">
-              <Field label={t("adresse_de_reponse")} htmlFor="replyToEmail" hint={org?.senderEmail ? t("sinon_celle_de_l_organisation", { email: org.senderEmail }) : t("sinon_ton_adresse_de_connexion")}>
-                <Input id="replyToEmail" name="replyToEmail" type="email" defaultValue={profile.replyToEmail ?? ""} placeholder={profile.email} />
+              {/* Sans placeholder : il montrait l'adresse de connexion alors que l'aide annonce un autre repli — le champ paraissait rempli. */}
+              <Field label={t("adresse_de_reponse")} htmlFor="replyToEmail" hint={replyHint}>
+                <Input id="replyToEmail" name="replyToEmail" type="email" defaultValue={profile.replyToEmail ?? ""} />
               </Field>
               <Field label={t("lien_de_prise_de_rendez_vous")} htmlFor="bookingUrl" hint={t("calendly_ou_autre")}>
                 <Input id="bookingUrl" name="bookingUrl" type="url" defaultValue={profile.bookingUrl ?? ""} placeholder={t("placeholder_lien")} />
@@ -55,4 +70,10 @@ export default async function ProfilePage() {
       <CalendlyCard connection={calendarConnection} />
     </>
   );
+}
+
+/** « Claire Vasseur » → « CV », « claire@… » → « C ». */
+function initialsOf(name: string): string {
+  const parts = name.split("@")[0].split(/[\s.\-_]+/).filter(Boolean);
+  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("");
 }

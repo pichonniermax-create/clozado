@@ -1,18 +1,21 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowRight, Banknote, BellRing, BookUser, Check, ListTodo, MailPlus, PauseCircle, Plus, Sparkles } from "lucide-react";
+import { ArrowRight, Banknote, BellRing, BookUser, ListTodo, MailPlus, PauseCircle, Plus, Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailsCard } from "@/components/ui/details-card";
 import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListCard, ListRow, ListRowLink } from "@/components/ui/list-card";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { SkeletonTiles } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { StatTile } from "@/components/stat-tile";
 import { Journal } from "@/components/activities/journal";
 import { PackIndicators } from "@/components/dashboard/pack-indicators";
+import { CompleteTaskButton } from "@/components/tasks/complete-task-button";
 import { autoRuleLabel } from "@/components/tasks/labels";
 import { TaskMetaLine } from "@/components/tasks/task-section";
 import { listOrganizationJournal } from "@/db/queries/activities";
@@ -25,12 +28,12 @@ import { countPendingInvitations } from "@/db/queries/workspace-invitations";
 import { getOnboardingFacts } from "@/db/queries/onboarding";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { ONBOARDING_COOKIE, readOnboardingProgress } from "@/lib/onboarding/steps";
+import { parseTourState, TOUR_COOKIE, TOUR_PARAM } from "@/lib/tour/steps";
 import { cookies } from "next/headers";
 import { setActiveOrganizationAction } from "@/lib/admin/actions";
 import { createDemoAction, resetDemoAction, setDemoPublicAction } from "@/lib/demo/actions";
 import { listDemoJournal } from "@/lib/demo/journal";
 import { getDemoOrganization } from "@/lib/demo/seed";
-import { completeTaskAction } from "@/lib/tasks/actions";
 import { getFormats } from "@/i18n/formats";
 import { DASHBOARD_PERIOD, hasAnyDeal, openDeals, parseMetricFilters, PERIOD_PRESETS } from "@/lib/metrics";
 import { requireUser } from "@/lib/session";
@@ -52,7 +55,7 @@ const JOURNAL_PREVIEW = 8;
  * de l'URL (`periode`, 90 jours sans paramètre) — jamais une liste figée
  * ici.
  */
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ periode?: string; erreur?: string; info?: string }> }) {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ periode?: string; erreur?: string; info?: string } & Record<string, string | undefined>> }) {
   const t = await getTranslations("dashboard.page");
   const tt = await getTranslations("tasks");
   const fmt = await getFormats();
@@ -101,21 +104,24 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <ListCard>
           {organizations.map((org) => (
             <ListRow key={org.id}>
-              <span className="flex min-w-0 flex-col">
-                <span className="flex items-center gap-2 truncate text-sm font-medium">
-                  {org.name}
-                  {org.isDemo && <Badge variant="secondary">{td("badge")}</Badge>}
+              {/* L'ellipse sur le TEXTE, pas sur le conteneur flex (où elle n'agit pas et écrasait le badge « Démo ») ; un
+                  bouton court à droite, pas un lien de deux lignes qui mangeait le nom (audit UI du 2026-09-14). */}
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate text-sm font-medium">{org.name}</span>
+                  {org.isDemo && (
+                    <Badge variant="secondary" className="shrink-0">
+                      {td("badge")}
+                    </Badge>
+                  )}
                 </span>
-                <span className="text-xs text-muted-foreground">{org.slug}</span>
+                <span className="truncate text-xs text-muted-foreground">{org.slug}</span>
               </span>
-              <form action={workIn}>
+              <form action={workIn} className="shrink-0">
                 <input type="hidden" name="orgId" value={org.id} />
-                <button
-                  type="submit"
-                  className="text-sm font-medium text-primary-ink underline-offset-2 hover:underline"
-                >
-                  {t("travailler_dans_cette_organisation")}
-                </button>
+                <Button type="submit" variant="outline" size="sm">
+                  {t("entrer")}
+                </Button>
               </form>
             </ListRow>
           ))}
@@ -167,15 +173,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                     </form>
                   )}
                 </div>
-                {/* La réinitialisation (§1.7) : confirmation explicite — le slug retapé —, périmètre dit sous le bouton, journal avant/après. */}
-                <form action={resetDemo} className="flex flex-col gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-                  <p className="text-sm font-medium">{td("reinitialiser")}</p>
-                  <p className="text-xs text-muted-foreground text-pretty">{td("reinitialisation_explication", { slug: demo.slug })}</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Input name="confirmation" required autoComplete="off" placeholder={demo.slug} aria-label={td("confirmation_label")} className="w-40" />
-                    <Button type="submit" variant="destructive">{td("reinitialiser")}</Button>
-                  </div>
-                </form>
+                {/* La réinitialisation (§1.7) : confirmation explicite — le slug retapé —, périmètre dit sous le bouton, journal
+                    avant/après. Repliée : un geste rare et irréversible n'a rien à faire déplié à chaque ouverture de l'accueil. */}
+                <DetailsCard variant="archive" summary={td("reinitialiser")}>
+                  <form action={resetDemo} className="flex flex-col gap-2">
+                    <p className="text-xs text-muted-foreground text-pretty">{td("reinitialisation_explication", { slug: demo.slug })}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Input name="confirmation" required autoComplete="off" placeholder={demo.slug} aria-label={td("confirmation_label")} className="w-40" />
+                      <Button type="submit" variant="destructive">{td("reinitialiser")}</Button>
+                    </div>
+                  </form>
+                </DetailsCard>
                 {lastOperation && (
                   <p className="text-xs text-muted-foreground">
                     {td("derniere_operation", { kind: td(`kind.${lastOperation.kind === "reset" ? "reset" : "seed"}`), when: fmt.dateTime(lastOperation.startedAt), status: td(`status.${lastOperation.status === "done" ? "done" : lastOperation.status === "failed" ? "failed" : "running"}`) })}
@@ -218,6 +226,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // Les premiers pas (chantier UI/UX) : cochés par les données, masqués par un cookie, disparus quand tout est fait.
   const onboarding = readOnboardingProgress(onboardingFacts);
   const showOnboarding = !onboarding.complete && cookieStore.get(ONBOARDING_COOKIE)?.value !== "masque";
+  // La visite guidée tourne (cookie, ou l'URL qui vient de la lancer) : la carte des premiers pas ne la propose pas une seconde fois.
+  const tourRunning = raw[TOUR_PARAM] === "1" || parseTourState(cookieStore.get(TOUR_COOKIE)?.value)?.status === "en_cours";
   // La période des indicateurs : celle de l'URL si c'est un préréglage, sinon celle du tableau de bord (pas celle des écrans analytiques).
   const parsed = parseMetricFilters({ periode: PERIOD_PRESETS.some((p) => p.key === raw.periode) ? raw.periode : DASHBOARD_PERIOD }, fmt.timeZone);
 
@@ -270,7 +280,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <BookUser />
               {t("contacts")}
             </Link>
-            <Link href="/affaires" className={buttonVariants()}>
+            {/* Le formulaire déplié, comme le menu « Nouveau » et l'état vide — pas la liste. */}
+            <Link href="/affaires?nouveau=1" className={buttonVariants()}>
               <Plus />
               {t("nouvelle_affaire")}
             </Link>
@@ -278,7 +289,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         }
       />
 
-      {showOnboarding && <OnboardingChecklist progress={onboarding} />}
+      {showOnboarding && <OnboardingChecklist progress={onboarding} tourRunning={tourRunning} />}
       {isFreshSpace && !showOnboarding && (
         <EmptyState
           icon={<Sparkles />}
@@ -343,22 +354,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         />
       </div>
 
-      {/* Les indicateurs du pack métier : la matière, pas l'urgence — ton neutre. Ils arrivent après le reste (streaming) : l'analytique n'attend pas le travail du jour. */}
-      <Suspense fallback={<SkeletonTiles count={8} />}>
-        <PackIndicators user={user} businessPack={org?.businessPack ?? null} parsed={parsed} />
-      </Suspense>
-
       <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">{t("a_faire_aujourd_hui")}</h2>
-          <Link
-            href="/taches"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {t("toutes_les_taches")}
-            <ArrowRight className="size-3.5" />
-          </Link>
-        </div>
+        <SectionHeading
+          title={t("a_faire_aujourd_hui")}
+          trailing={
+            <Link href="/taches" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              {t("toutes_les_taches")}
+              <ArrowRight />
+            </Link>
+          }
+        />
 
         {tasksDue.rows.length === 0 ? (
           <EmptyState className="py-8">{t("rien_d_echu_ni_de_prevu_3031")}</EmptyState>
@@ -367,20 +372,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <ListCard>
               {tasksDue.rows.map((task) => (
                 <li key={task.id} className="flex items-center gap-3 px-4 py-3">
-                  <form action={completeTaskAction.bind(null, { taskId: task.id, backTo: "/dashboard" })}>
-                    <Button
-                      type="submit"
-                      variant="outline"
-                      size="icon-sm"
-                      className="rounded-full"
-                      aria-label={t("marquer_comme_faite", { title: task.title })}
-                      title={t("marquer_comme_faite_bb0d")}
-                    >
-                      <Check />
-                    </Button>
-                  </form>
+                  <CompleteTaskButton taskId={task.id} backTo="/dashboard" title={task.title} />
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-sm font-medium">{task.title}</span>
+                    <span className="line-clamp-2 text-sm font-medium sm:line-clamp-1">{task.title}</span>
                     <TaskMetaLine task={task} />
                   </div>
                   {task.autoRule && (
@@ -401,16 +395,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </section>
 
       <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">{t("a_traiter_en_priorite")}</h2>
-          <Link
-            href="/suivi"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {t("tout_le_suivi")}
-            <ArrowRight className="size-3.5" />
-          </Link>
-        </div>
+        <SectionHeading
+          title={t("a_traiter_en_priorite")}
+          trailing={
+            <Link href="/suivi" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              {t("tout_le_suivi")}
+              <ArrowRight />
+            </Link>
+          }
+        />
 
         {priority.length === 0 ? (
           <EmptyState className="py-8">{t("rien_qui_attende_une_relance_tout_3bf4")}</EmptyState>
@@ -439,6 +432,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </ListCard>
         )}
       </section>
+
+      {/* Les indicateurs du pack métier : la matière, pas l'urgence — ton neutre, et APRÈS le travail du jour (audit UI du
+          2026-09-14 : huit tuiles analytiques repoussaient les tâches en retard sous la ligne de flottaison). Ils arrivent en
+          flux (Suspense) : l'analytique n'attend pas le reste. */}
+      <Suspense fallback={<SkeletonTiles count={8} />}>
+        <PackIndicators user={user} businessPack={org?.businessPack ?? null} parsed={parsed} />
+      </Suspense>
 
       <Journal
         journal={journal}

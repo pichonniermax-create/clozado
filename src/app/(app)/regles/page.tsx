@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Archive, Pencil, Play, Send } from "lucide-react";
+import { Archive, Pencil, Play, Plus, ScrollText, Send, Workflow } from "lucide-react";
 import { PageHeader } from "@/components/app-shell/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListCard } from "@/components/ui/list-card";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { getOwnOrganization } from "@/db/queries/organizations";
 import {
   getLatestRuleRun,
@@ -77,14 +77,18 @@ export default async function RulesPage({ searchParams }: { searchParams: Promis
         title={t("list.regles_de_relance")}
         description={t("list.des_phrases_pas_des_automatismes_muets")}
         actions={
-          <span className="flex items-center gap-2">
-            <Link href="/regles/journal" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+          <>
+            {/* Le journal est une destination, pas une étiquette : un bouton, à la hauteur de « Nouvelle règle ». */}
+            <Link href="/regles/journal" className={buttonVariants({ variant: "outline" })}>
+              <ScrollText />
               {t("list.journal")}
             </Link>
-            <Link href="/regles/new" className={buttonVariants({ variant: "default" })}>
+            {/* Un seul bouton plein par écran : quand une vague attend, c'est son envoi qui compte. */}
+            <Link href="/regles/new" className={buttonVariants({ variant: drafts.length > 0 ? "outline" : "default" })}>
+              <Plus />
               {t("list.nouvelle_regle")}
             </Link>
-          </span>
+          </>
         }
       />
 
@@ -98,7 +102,7 @@ export default async function RulesPage({ searchParams }: { searchParams: Promis
           <CardContent className="flex flex-col gap-3">
             <ul className="flex flex-col gap-1.5 text-sm">
               {drafts.slice(0, 20).map((draft) => (
-                <li key={draft.id} className="flex flex-wrap items-center gap-2">
+                <li key={draft.id} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
                   {draft.contactId ? (
                     <Link href={`/contacts/${draft.contactId}`} className="font-medium underline underline-offset-2">
                       {draft.contactName ?? draft.toEmail}
@@ -106,8 +110,9 @@ export default async function RulesPage({ searchParams }: { searchParams: Promis
                   ) : (
                     <span className="font-medium">{draft.toEmail}</span>
                   )}
-                  <span className="text-muted-foreground">{draft.subject}</span>
-                  {draft.ruleName && <Badge variant="secondary">{draft.ruleName}</Badge>}
+                  <span className="min-w-0 text-muted-foreground">{draft.subject}</span>
+                  {/* Le nom de la règle n'est pas un statut : un texte, pas un badge — un libellé long sortait de la carte. */}
+                  {draft.ruleName && <span className="min-w-0 text-xs text-muted-foreground">{draft.ruleName}</span>}
                 </li>
               ))}
               {drafts.length > 20 && <li className="text-xs text-muted-foreground">{t("wave.et_n_autres", { n: drafts.length - 20 })}</li>}
@@ -132,73 +137,92 @@ export default async function RulesPage({ searchParams }: { searchParams: Promis
       )}
 
       {rules.length === 0 ? (
-        <EmptyState>{t("list.aucune_regle_pour_l_instant")}</EmptyState>
+        <EmptyState
+          icon={<Workflow />}
+          title={t("list.aucune_regle_titre")}
+          action={
+            <Link href="/regles/new" className={buttonVariants()}>
+              <Plus />
+              {t("list.nouvelle_regle")}
+            </Link>
+          }
+        >
+          {t("list.aucune_regle_pour_l_instant")}
+        </EmptyState>
       ) : (
         <ListCard>
           {rules.map(({ rule }) => (
-            <li key={rule.id} className="flex items-center gap-3 px-4 py-3">
-              <div className="flex min-w-0 flex-1 flex-col">
+            // Sous sm, les actions passent SOUS le texte, qui garde toute la largeur (avant : trois boutons à droite
+            // comprimaient le nom dans 150 px). Le texte est le lien vers la fiche — ouvrir n'est plus « trouver le crayon ».
+            <li key={rule.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
+              <Link href={`/regles/${rule.id}`} className="group/rule flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="flex flex-wrap items-center gap-2">
-                  <span className="truncate text-sm font-medium">{rule.name}</span>
-                  {!rule.enabled && <Badge variant="outline">{t("list.desactivee")}</Badge>}
-                  {rule.action === "send_email" && <Badge variant="secondary">{t("list.envoi_automatique")}</Badge>}
+                  <span className="line-clamp-2 text-sm font-medium underline-offset-2 group-hover/rule:underline">{rule.name}</span>
+                  {!rule.enabled && <StatusBadge>{t("list.desactivee")}</StatusBadge>}
+                  {rule.action === "send_email" && <StatusBadge tone="info">{t("list.envoi_automatique")}</StatusBadge>}
                 </span>
                 <span className="text-xs text-muted-foreground">{describeRule(rule, options, t)}</span>
                 <span className="text-xs text-muted-foreground">
                   {rule.lastRunAt ? t("list.dernier_passage_le", { when: fmt.dateTime(rule.lastRunAt) }) : t("list.jamais_evaluee")}
                 </span>
-              </div>
-              <form action={setRuleEnabledAction.bind(null, { ruleId: rule.id, enabled: !rule.enabled })}>
-                <Button type="submit" variant="outline" size="sm">
-                  {rule.enabled ? t("list.desactiver") : t("list.activer")}
-                </Button>
-              </form>
-              <Link
-                href={`/regles/${rule.id}`}
-                className={buttonVariants({ variant: "outline", size: "icon-sm" })}
-                aria-label={t("list.modifier_la_regle", { name: rule.name })}
-                title={t("list.modifier")}
-              >
-                <Pencil />
               </Link>
-              <form action={archiveRuleAction.bind(null, { ruleId: rule.id })}>
-                <Button
-                  type="submit"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={t("list.archiver_la_regle", { name: rule.name })}
-                  title={t("list.archiver_le_journal_reste")}
+              <div className="flex shrink-0 items-center gap-1 sm:ml-auto">
+                {/* Basculer l'état est un geste secondaire : en fantôme, pas en contour comme une action principale. */}
+                <form action={setRuleEnabledAction.bind(null, { ruleId: rule.id, enabled: !rule.enabled })}>
+                  <Button type="submit" variant="ghost" size="sm">
+                    {rule.enabled ? t("list.desactiver") : t("list.activer")}
+                  </Button>
+                </form>
+                <Link
+                  href={`/regles/${rule.id}`}
+                  className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+                  aria-label={t("list.modifier_la_regle", { name: rule.name })}
+                  title={t("list.modifier")}
                 >
-                  <Archive />
-                </Button>
-              </form>
+                  <Pencil />
+                </Link>
+                <form action={archiveRuleAction.bind(null, { ruleId: rule.id })}>
+                  <Button
+                    type="submit"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={t("list.archiver_la_regle", { name: rule.name })}
+                    title={t("list.archiver_le_journal_reste")}
+                  >
+                    <Archive />
+                  </Button>
+                </form>
+              </div>
             </li>
           ))}
         </ListCard>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <form action={evaluateNowAction}>
-          <Button type="submit" variant="outline" disabled={rules.every(({ rule }) => !rule.enabled)}>
-            <Play />
-            {t("list.evaluer_maintenant")}
-          </Button>
-        </form>
-        {latestRun && (
-          <span className="text-xs text-muted-foreground">
-            {latestRun.finishedAt
-              ? t("list.dernier_passage_resultat", {
-                  when: fmt.dateTime(latestRun.startedAt),
-                  matched: latestRun.matched,
-                  done: latestRun.actionsDone,
-                  skipped: latestRun.actionsSkipped,
-                })
-              : t("list.evaluation_en_cours")}
-            {latestRun.error ? ` — ${latestRun.error}` : ""}
-          </span>
-        )}
+      {/* Le pied de section : le geste, son dernier résultat et la note sur le passage quotidien — un seul cadre, pas trois lignes flottantes. */}
+      <div className="flex flex-col gap-3 rounded-xl border border-dashed border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1.5">
+          <form action={evaluateNowAction}>
+            <Button type="submit" variant="outline" disabled={rules.every(({ rule }) => !rule.enabled)}>
+              <Play />
+              {t("list.evaluer_maintenant")}
+            </Button>
+          </form>
+          {latestRun && (
+            <span className="text-xs text-muted-foreground">
+              {latestRun.finishedAt
+                ? t("list.dernier_passage_resultat", {
+                    when: fmt.dateTime(latestRun.startedAt),
+                    matched: latestRun.matched,
+                    done: latestRun.actionsDone,
+                    skipped: latestRun.actionsSkipped,
+                  })
+                : t("list.evaluation_en_cours")}
+              {latestRun.error ? ` — ${latestRun.error}` : ""}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground text-pretty sm:max-w-sm sm:text-right">{t("list.le_cron_quotidien_evalue_aussi")}</p>
       </div>
-      <p className="text-xs text-muted-foreground">{t("list.le_cron_quotidien_evalue_aussi")}</p>
     </>
   );
 }

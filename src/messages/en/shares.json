@@ -72,7 +72,7 @@
   },
   "shareComposer": {
     "apercu": "Preview",
-    "aucun_partenaire_actif_ajoutez_en_un_de95": "No active partner. Add one from the Partners screen.",
+    "aucun_partenaire_actif_ajoutez_en_un_de95": "No active partner — <link>add one</link> from Partners.",
     "ce_lien_ne_sera_plus_jamais_4980": "This link will never be shown again. Copy it now and pass it on to {name}. If you lose it, you’ll have to resend the share — which will cancel this one and create a new one.",
     "choisir_un_partenaire": "Choose a partner",
     "choisis_d_abord_un_partenaire": "First choose a partner.",
@@ -93,7 +93,7 @@
     "j_ai_copie_le_lien_termine": "I’ve copied the link — Done",
     "l_envoi_a_echoue_de_notre_2adc": "Sending failed on our side — nothing was created, try again.",
     "la_fixer_maintenant_c_est_ce_9dcd": "Setting it now is what commits you to your fellow professional — rather than leaving it as free text to interpret later.",
-    "le_lien_cesse_de_fonctionner_le": "The link stops working on",
+    "le_lien_cesse_de_fonctionner_le": "Link expiry",
     "le_montant": "the amount",
     "le_taux_et_le_montant_de_fa0e": "the rate and the reference amount",
     "lien_cree_a_copier_maintenant": "Link created — copy it now",
@@ -110,7 +110,8 @@
     "renseigne_pour_voir_le_calcul": "Enter {value} to see the calculation.",
     "taux": "Rate (%)",
     "tu_partages_avec": "You’re sharing <span>{title}</span> with <span2>{name}</span2>.",
-    "votre_partenaire": "Your partner"
+    "votre_partenaire": "Your partner",
+    "ce_que_le_partenaire_verra": "What the partner will see, as is."
   },
   "shareStatusBadge": {
     "status": {

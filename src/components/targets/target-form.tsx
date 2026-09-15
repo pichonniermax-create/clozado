@@ -86,13 +86,14 @@ export function TargetForm({
             </Field>
           </div>
 
-          <div className="flex flex-wrap gap-4 text-sm">
-            <label className="flex items-center gap-2">
-              <input type="radio" name="kindChoice" checked={v.kind === "segment"} onChange={() => setV((p) => ({ ...p, kind: "segment" }))} />
+          {/* Le bouton radio reste sur la première ligne du libellé quand il se replie ; 40 px au doigt. */}
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <label className="flex min-h-10 items-start gap-2 py-1 sm:min-h-0">
+              <input type="radio" name="kindChoice" className="mt-0.5" checked={v.kind === "segment"} onChange={() => setV((p) => ({ ...p, kind: "segment" }))} />
               {t("segment_vivant_defini_par_des_criteres")}
             </label>
-            <label className="flex items-center gap-2">
-              <input type="radio" name="kindChoice" checked={v.kind === "static"} onChange={() => setV((p) => ({ ...p, kind: "static" }))} />
+            <label className="flex min-h-10 items-start gap-2 py-1 sm:min-h-0">
+              <input type="radio" name="kindChoice" className="mt-0.5" checked={v.kind === "static"} onChange={() => setV((p) => ({ ...p, kind: "static" }))} />
               {t("selection_manuelle_des_fiches_choisies_une_fb4d")}
             </label>
           </div>
@@ -141,15 +142,18 @@ export function TargetForm({
         </CardContent>
       </Card>
 
-      {state.error && (
-        <p role="alert" className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">
-          {state.error}
-        </p>
-      )}
-
-      <Button type="submit" className="w-fit" disabled={pending}>
-        {pending ? t("enregistrement") : submitLabel}
-      </Button>
+      {/* La barre d'action COLLANTE : le bouton reste visible sous un formulaire de deux écrans (au-dessus de la barre
+          d'onglets sous md). L'erreur y vit aussi : elle se voit au clic, pas trois écrans plus haut. */}
+      <div className="sticky bottom-16 z-10 -mx-4 flex flex-wrap items-center gap-3 border-t border-border bg-background/95 px-4 py-3 backdrop-blur md:bottom-0">
+        <Button type="submit" disabled={pending}>
+          {pending ? t("enregistrement") : submitLabel}
+        </Button>
+        {state.error && (
+          <p role="alert" className="min-w-0 flex-1 text-sm text-destructive text-pretty">
+            {state.error}
+          </p>
+        )}
+      </div>
     </form>
   );
 }

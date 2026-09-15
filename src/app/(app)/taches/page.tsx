@@ -1,16 +1,17 @@
 import Link from "next/link";
-import { Check, RotateCcw } from "lucide-react";
+import { Check, Pencil, RotateCcw, X } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ListCard } from "@/components/ui/list-card";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Textarea } from "@/components/ui/textarea";
+import { CompleteTaskButton } from "@/components/tasks/complete-task-button";
 import { autoRuleLabel, TASK_PRIORITIES } from "@/components/tasks/labels";
 import { TaskMetaLine } from "@/components/tasks/task-section";
 import { listOrgUsers } from "@/db/queries/contacts";
@@ -22,7 +23,6 @@ import {
   type TaskRow,
 } from "@/db/queries/tasks";
 import {
-  completeTaskAction,
   createTaskFromBoardAction,
   deleteTaskAction,
   reopenTaskAction,
@@ -39,6 +39,8 @@ type Params = {
   conseiller?: string;
   page?: string;
   erreur?: string;
+  /** `?nouveau=1` : le formulaire de création arrive déplié (menu « Nouveau » de l'en-tête). */
+  nouveau?: string;
 };
 
 type OrgUser = { id: string; name: string | null; email: string | null };
@@ -98,7 +100,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
 
 
       {orgUsers.length > 1 && (
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           <FilterPill href="/taches" label={t("tout_le_monde")} active={!params.conseiller} />
           {orgUsers.map((u) => (
             <FilterPill
@@ -111,44 +113,42 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         </div>
       )}
 
-      <Card id="nouvelle-tache">
-        <CardHeader>
-          <CardTitle>{t("nouvelle_tache")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form action={createTaskFromBoardAction.bind(null, { backTo })} className="flex flex-col gap-4">
-            <Field label={t("titre")} htmlFor="new-title">
-              <Input
-                id="new-title"
-                name="title"
-                required
-                placeholder={t("rappeler_le_notaire_preparer_le_dossier")}
-              />
+      {/* Repliée, comme la création des contacts, affaires et partenaires (audit UI du 2026-09-14) : on consulte la liste bien
+          plus souvent qu'on ne crée — le formulaire ouvert repoussait la première tâche en retard sous ~850 px sur mobile. Dépliée
+          quand il n'y a rien à faire (l'état vide y envoie) ou depuis le menu « Nouveau » (`?nouveau=1`). */}
+      <DetailsCard id="nouvelle-tache" summary={t("nouvelle_tache")} defaultOpen={openCount === 0 || params.nouveau === "1"}>
+        <form action={createTaskFromBoardAction.bind(null, { backTo })} className="flex flex-col gap-4">
+          <Field label={t("titre")} htmlFor="new-title">
+            <Input
+              id="new-title"
+              name="title"
+              required
+              placeholder={t("rappeler_le_notaire_preparer_le_dossier")}
+            />
+          </Field>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Field label={t("echeance")} htmlFor="new-dueDate">
+              <Input id="new-dueDate" name="dueDate" type="date" />
             </Field>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label={t("echeance")} htmlFor="new-dueDate">
-                <Input id="new-dueDate" name="dueDate" type="date" />
-              </Field>
-              <Field label={t("priorite")} htmlFor="new-priority">
-                <PrioritySelect id="new-priority" defaultValue="normal" />
-              </Field>
-              <Field label={t("responsable")} htmlFor="new-assignee">
-                <AssigneeSelect id="new-assignee" orgUsers={orgUsers} defaultValue={user.id} />
-              </Field>
-              <Field
-                label={t("recurrence")}
-                htmlFor="new-recurUnit"
-                hint={t("a_l_achevement_l_occurrence_suivante_b9b7")}
-              >
-                <RecurrenceFields idPrefix="new" />
-              </Field>
-            </div>
-            <Button type="submit" className="w-fit">
-              {t("creer_la_tache")}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+            <Field label={t("priorite")} htmlFor="new-priority">
+              <PrioritySelect id="new-priority" defaultValue="normal" />
+            </Field>
+            <Field label={t("responsable")} htmlFor="new-assignee">
+              <AssigneeSelect id="new-assignee" orgUsers={orgUsers} defaultValue={user.id} />
+            </Field>
+            <Field
+              label={t("recurrence")}
+              htmlFor="new-recurUnit"
+              hint={t("a_l_achevement_l_occurrence_suivante_b9b7")}
+            >
+              <RecurrenceFields idPrefix="new" />
+            </Field>
+          </div>
+          <Button type="submit" className="w-full sm:w-fit">
+            {t("creer_la_tache")}
+          </Button>
+        </form>
+      </DetailsCard>
 
       {openCount === 0 ? (
         <EmptyState
@@ -228,7 +228,8 @@ function FilterPill({ href, label, active }: { href: string; label: string; acti
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "rounded-full border px-3 py-1 text-sm transition-colors",
+        // 36 px de haut sous sm (cible tactile), la pastille fine dès sm.
+        "inline-flex min-h-9 items-center rounded-full border px-3 py-1.5 text-sm transition-colors sm:min-h-0 sm:py-1",
         active
           ? "border-transparent bg-accent font-medium text-accent-foreground"
           : "border-border text-muted-foreground hover:text-foreground"
@@ -260,12 +261,12 @@ function TaskPile({
   if (tasks.length === 0) return null;
   return (
     <section className="flex flex-col gap-3">
-      <h2 className={cn("text-sm font-semibold", tone === "destructive" && "text-destructive")}>
-        {label} ({total})
-        {tasks.length < total && (
-          <span className="font-normal text-muted-foreground"> {t("sur_cette_page", { count: tasks.length })}</span>
-        )}
-      </h2>
+      <SectionHeading
+        title={label}
+        count={total}
+        description={tasks.length < total ? t("sur_cette_page", { count: tasks.length }) : undefined}
+        className={cn(tone === "destructive" && "[&_h2]:text-destructive")}
+      />
       <ListCard>
         {tasks.map((task) => (
           <TaskItem key={task.id} task={task} backTo={backTo} orgUsers={orgUsers} />
@@ -287,36 +288,38 @@ function TaskItem({
   const t = useTranslations("tasks.page");
   const tt = useTranslations("tasks");
   return (
-    <li className="flex flex-col px-4 py-3">
-      <div className="flex items-center gap-3">
-        <form action={completeTaskAction.bind(null, { taskId: task.id, backTo })}>
-          <Button
-            type="submit"
-            variant="outline"
-            size="icon-sm"
-            className="rounded-full"
-            aria-label={t("marquer_comme_faite", { title: task.title })}
-            title={t("marquer_comme_faite_bb0d")}
-          >
-            <Check />
-          </Button>
-        </form>
+    <li className="group/row relative flex flex-col px-4 py-3">
+      {/* `pr-10` : la place du crayon, posé en absolu en fin de ligne. */}
+      <div className="flex items-center gap-3 pr-10">
+        <CompleteTaskButton taskId={task.id} backTo={backTo} title={task.title} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-sm font-medium">{task.title}</span>
+          <span className="line-clamp-2 text-sm font-medium sm:line-clamp-1">{task.title}</span>
           <TaskMetaLine task={task} />
         </div>
         {task.autoRule && (
-          <Badge variant="secondary" className="shrink-0">
+          <Badge variant="secondary" className="shrink-0" title={t("tache_automatique_explication")}>
             {autoRuleLabel(task.autoRule, tt)}
           </Badge>
         )}
       </div>
 
-      <details className="group mt-1 pl-10">
-        <summary className="w-fit cursor-pointer list-none text-xs text-muted-foreground transition-colors hover:text-foreground">
-          {t.rich("modifier_refermer", { span: (chunks) => <span className="group-open:hidden">{chunks}</span>, span2: (chunks) => <span className="hidden group-open:inline">{chunks}</span> })}
+      {/* L'édition derrière un crayon en fin de ligne (audit UI du 2026-09-14) : avant, une ligne « Modifier… » sous chacune
+          des tâches — quatorze fois à l'écran. La rangée reste HORS du <details> : un formulaire et des liens dans un
+          <summary> seraient du contenu interactif imbriqué. À la souris, le crayon n'apparaît qu'au survol, au clavier ou
+          une fois ouvert ; au doigt, toujours. */}
+      <details className="group">
+        <summary
+          aria-label={t("modifier_la_tache")}
+          title={t("modifier_la_tache")}
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "icon-sm" }),
+            "absolute top-2.5 right-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden sm:opacity-0 sm:group-hover/row:opacity-100 sm:group-open:opacity-100 sm:focus-visible:opacity-100"
+          )}
+        >
+          <Pencil aria-hidden className="group-open:hidden" />
+          <X aria-hidden className="hidden group-open:block" />
         </summary>
-        <div className="mt-3 flex flex-col gap-4 rounded-lg border border-border bg-muted/30 p-4">
+        <div className="mt-3 flex flex-col gap-4 rounded-lg border border-border bg-muted/30 p-4 sm:ml-10">
           {task.notes && task.autoRule && (
             <p className="text-xs text-muted-foreground">{task.notes}</p>
           )}
@@ -365,7 +368,7 @@ function TaskItem({
               </Field>
             )}
             {task.autoRule && <input type="hidden" name="notes" value={task.notes ?? ""} />}
-            <Button type="submit" variant="outline" size="sm" className="w-fit">
+            <Button type="submit" size="sm" className="w-fit">
               {t("enregistrer")}
             </Button>
           </form>

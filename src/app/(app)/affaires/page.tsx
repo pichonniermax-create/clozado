@@ -175,7 +175,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
             <Link
               href={baseQuery({ vue: "kanban", page: undefined, ...clearSelection })}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm transition-colors",
+                "inline-flex min-h-10 items-center gap-1.5 rounded-md px-3 py-1 text-sm transition-colors md:min-h-7 md:px-2.5",
                 vue === "kanban" ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:text-foreground"
               )}
               aria-current={vue === "kanban" ? "page" : undefined}
@@ -186,7 +186,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
             <Link
               href={baseQuery({ vue: "liste", page: undefined })}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm transition-colors",
+                "inline-flex min-h-10 items-center gap-1.5 rounded-md px-3 py-1 text-sm transition-colors md:min-h-7 md:px-2.5",
                 vue === "liste" ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:text-foreground"
               )}
               aria-current={vue === "liste" ? "page" : undefined}
@@ -205,7 +205,8 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
               key={p.id}
               href={`/affaires?vue=${vue}&pipeline=${p.id}`}
               className={cn(
-                "-mb-px border-b-2 px-3 py-2 text-sm transition-colors",
+                // 44 px au doigt, 36 px à la souris (audit UI du 2026-09-14).
+                "-mb-px inline-flex min-h-11 items-center border-b-2 px-3 text-sm transition-colors md:min-h-9",
                 p.id === pipeline.id
                   ? "border-primary font-medium text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -440,6 +441,7 @@ async function ListeView({
     );
   };
 
+  const todayIso = new Date().toISOString().slice(0, 10);
   return (
     <section className="flex flex-col gap-3">
       {sel.analytic && (
@@ -532,14 +534,15 @@ async function ListeView({
         )
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full text-sm">
+          {/* Une largeur minimale : à 390 px, `w-full` écrasait sept colonnes au lieu de faire défiler le tableau. */}
+          <table className="w-full min-w-[56rem] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
                 <th className="px-4 py-2 font-medium">{sortLink("title", t("affaire"))}</th>
                 <th className="px-4 py-2 font-medium">{t("client")}</th>
                 <th className="px-4 py-2 font-medium">{sortLink("stage", t("etape"))}</th>
                 <th className="px-4 py-2 text-right font-medium">{sortLink("amount", t("montant"))}</th>
-                <th className="px-4 py-2 text-right font-medium">{t("prob")}</th>
+                <th className="hidden px-4 py-2 text-right font-medium md:table-cell">{t("prob")}</th>
                 <th className="px-4 py-2 font-medium">{sortLink("close", t("cloture_prevue"))}</th>
                 <th className="px-4 py-2 font-medium">{t("responsable")}</th>
               </tr>
@@ -547,6 +550,8 @@ async function ListeView({
             <tbody className="divide-y divide-border">
               {rows.map(({ deal, stageLabel, stageColor, stageProbability, stageOutcome, typeLabel, ownerName, lossReasonLabel }) => {
                 const probability = deal.probability ?? stageProbability;
+                // Une clôture prévue dépassée sur une affaire encore ouverte se signale (même règle que le kanban).
+                const overdue = !stageOutcome && Boolean(deal.expectedCloseDate) && deal.expectedCloseDate! < todayIso;
                 return (
                   <tr key={deal.id} className="transition-colors hover:bg-accent/40">
                     <td className="max-w-64 px-4 py-2.5">
@@ -565,10 +570,10 @@ async function ListeView({
                     <td className="px-4 py-2.5 text-right font-medium tabular-nums">
                       {deal.estimatedAmount ? fmt.money(deal.estimatedAmount) : "—"}
                     </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
+                    <td className="hidden px-4 py-2.5 text-right tabular-nums text-muted-foreground md:table-cell">
                       {probability != null ? fmt.percent(probability) : "—"}
                     </td>
-                    <td className="px-4 py-2.5 tabular-nums">
+                    <td className={cn("px-4 py-2.5 tabular-nums", overdue && "font-medium text-destructive")} title={overdue ? t("cloture_depassee") : undefined}>
                       {deal.expectedCloseDate ? fmt.date(deal.expectedCloseDate) : "—"}
                     </td>
                     <td className="max-w-32 truncate px-4 py-2.5">{ownerName ?? "—"}</td>

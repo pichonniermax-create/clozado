@@ -78,7 +78,7 @@
     "ajouter_un_chiffre": "Add a figure",
     "aucun_indicateur_suivi_pour_l_instant": "No indicator tracked yet",
     "aucun_pack_metier_n_est_choisi_757c": "No business pack is chosen: these are the “Any profession” indicators. <link>Choose my business</link>.",
-    "autres_indicateurs_disponibles": "Other available indicators ({n})",
+    "autres_indicateurs_disponibles": "Follow other indicators ({n})",
     "cabinet_dupont_bilan_2025": "Dupont Advisors — 2025 review",
     "chaque_indicateur_suivi_est_copie_dans_659c": "Each tracked indicator is copied into the verified figures with its period and its source, updated by each collection run — never by hand. A silent source leaves the last value displayed, with its date.",
     "chiffre_chiffres_de_l_organisation": "{count} organization {count, plural, one {figure} other {figures}}",
@@ -115,7 +115,14 @@
     "tu_es_en_vue_globale_choisis_d645": "You’re in global view: choose an organization in the super admin banner at the top of the screen to see its figures.",
     "un_chiffre_sans_source_ou_sans_0ada": "A figure without a source or a date is marked “to complete” and isn’t passed to the composer as long as it stays that way — the rule “no figure without its date and its source” applies to internal figures too.",
     "valeur_telle_qu_elle_se_cite": "Value, as it’s cited",
-    "description": "The single source of the figures the composer is allowed to cite — each with its source and its date. Market indicators copy themselves in, dated and sourced."
+    "description": "The single source of the figures the composer is allowed to cite — each with its source and its date. Market indicators copy themselves in, dated and sourced.",
+    "supprimer_ce_chiffre": "Delete this figure?",
+    "le_composer_ne_pourra_plus": "“{label}” leaves the verified figures: the composer will no longer be able to quote it.",
+    "ne_plus_suivre_cet_indicateur": "Stop following this indicator?",
+    "ne_plus_suivre_description": "Its value will no longer be read or copied into the verified figures.",
+    "annuler": "Cancel",
+    "depuis_le_periode": "since {period}",
+    "au_periode": "as of {period}"
   },
   "periods": {
     "quarter": "{quarter, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} quarter {year}"

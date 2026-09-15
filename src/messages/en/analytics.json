@@ -1,7 +1,10 @@
 {
   "breakdownTable": {
     "part": "Share",
-    "sans_montant": "{withoutAmount} without an amount"
+    "sans_montant": "{withoutAmount} without an amount",
+    "affaires": "Deals",
+    "montant": "Amount",
+    "part_masquee": "Share of the total hidden: {missing, plural, one {# more loss} other {# more losses}} needed to compute it."
   },
   "delais": {
     "aucun_indicateur_n_atteint_observations_sur_a750": "No metric reaches {minObservations} observations on this selection — widen the period or remove a filter.",
@@ -36,14 +39,17 @@
       "stage_reconstructed": "{n, plural, one {# reconstructed stay excluded} other {# reconstructed stays excluded}}"
     },
     "cycle_pending": ", {n, plural, one {# in progress} other {# in progress}}",
-    "cycle_excluded": ", {n, plural, one {# excluded} other {# excluded}}"
+    "cycle_excluded": ", {n, plural, one {# excluded} other {# excluded}}",
+    "indicateur": "Indicator"
   },
   "durationTable": {
     "masked_missing": "hidden: {missing, plural, one {# more observation} other {# more observations}} needed to show a number",
     "mediane": "Median",
     "moyenne": "Average",
     "no_observation": "no observations — it takes {missing} to show a number",
-    "observations": "Observations"
+    "observations": "Observations",
+    "indicateur": "Indicator",
+    "obs_abrege": "Obs."
   },
   "filtersBar": {
     "au_inclus": "To (inclusive)",
@@ -117,13 +123,18 @@
     "visites_et_simulations_sans_objet_par_d74a": " Visits and simulations: not applicable per advisor.",
     "visiteurs": "Visitors",
     "voir_la_liste_de_ces_affaires": "See the list of these deals",
-    "voir_les_affaires_qui_ont_atteint_f2c3": "See the deals that reached this stage"
+    "voir_les_affaires_qui_ont_atteint_f2c3": "See the deals that reached this stage",
+    "lead_affaire": "Lead → deal",
+    "simulations_demarrees": "Simulations started",
+    "simulations_terminees": "Simulations completed"
   },
   "funnelSteps": {
     "deperdition": "Drop-off",
     "nombre": "Count",
     "plus_que_le_pas_precedent": "—<span>more than the previous step</span>",
-    "taux_de_passage": "Conversion rate"
+    "taux_de_passage": "Conversion rate",
+    "etape": "Step",
+    "masked_missing": "hidden: {missing, plural, one {# more observation} other {# more observations}} needed at the previous step"
   },
   "metricDefinitions": {
     "ce_qui_compte": "What counts",
@@ -132,11 +143,10 @@
     "donnees_insuffisantes": "Insufficient data",
     "ecarte": "Excludes",
     "filtres": "Filters",
-    "mesure": "Measures"
+    "mesure": "Measures",
+    "voir_la_definition": "See the definition"
   },
   "origines": {
-    "a_rapprocher": "To match{n}",
-    "affaires_sans_origine_chez_des_contacts_f2d8": "Deals without an origin on contacts who have a lead{n}",
     "ajouter": "Add",
     "aucune_chaque_affaire_d_un_contact_2ec0": "None — every deal of a contact who came through a lead carries its origin.",
     "aucune_origine_configuree": "No origin set up",
@@ -151,15 +161,18 @@
     "nouvelle_origine": "New origin",
     "origine_existante": "Existing origin",
     "origines": "Origins",
-    "origines_configurees": "Configured origins{n}",
     "ou_nouvelle_origine": "…or a new origin",
     "rattacher": "Attach",
-    "rien_a_rapprocher": "Nothing to match",
     "simulateur_credit": "Mortgage simulator",
-    "tout_ce_qui_est_arrive_porte_5717": "Everything that came in carries a known origin — or nothing has come in yet. Unknown texts sent by your sites and simulators will show up here.",
     "tu_es_en_vue_globale": "You’re in global view",
     "une_affaire_creee_avant_l_arrivee_0df8": "A deal created before the lead arrived never attaches on its own: it’s an action on the deal record, logged.",
-    "une_origine_un_simulateur_une_page_9378": "An origin = a simulator, a page, a campaign. Leads and visits that arrive with an unknown text wait here to be attached — attaching applies to the whole history."
+    "une_origine_un_simulateur_une_page_9378": "An origin = a simulator, a page, a campaign. Leads and visits that arrive with an unknown text wait here to be attached — attaching applies to the whole history.",
+    "a_rapprocher_titre": "To reconcile",
+    "rien_a_rapprocher_ligne": "Nothing to reconcile — everything that came in carries a known origin.",
+    "origines_configurees_titre": "Configured origins",
+    "creee_le_texte": "created on {formatDate}",
+    "voir_le_funnel": "See the funnel",
+    "affaires_sans_origine_titre": "Deals without an origin"
   },
   "partenaires": {
     "acceptation": "Acceptance",
@@ -196,7 +209,7 @@
     "partages": "Shares",
     "partenaire": "Partner",
     "partenaire_partenaires": "{label} — <span>{sent}</span> ({count} {count, plural, one {partner} other {partners}})",
-    "partenaires_et_commissions": "Partners and commissions",
+    "partenaires_et_commissions": "Partnerships and commissions",
     "pour": "for <span>{formatEuros}</span>",
     "refuses": "Declined",
     "retirer_les_filtres": "Clear filters",
@@ -208,20 +221,22 @@
     "un_etat_pas_une_periode_la_12b8": "A status, not a period: the period doesn’t apply here (advisor, type, pipeline and origin do). Settlement is declared from the “commissions to collect” pile in <link>Follow-up</link>.",
     "un_taux_calcule_sur_moins_de_e7e1": "A rate computed on fewer than {minObservations} observations is hidden; counts and amounts are always shown. Reply times bounded on the reply date are read in <link>Analytics → Timings</link>; reminder thresholds are set in <link2>Brand & settings</link2>.",
     "vieillissement_des_commissions_confirmees_non_reglees": "Aging of confirmed, unsettled commissions",
-    "voir_les_partenaires_ouvrir_le_pipeline": "<link>See partners</link><link2>Open the pipeline</link2>"
+    "voir_les_partenaires_ouvrir_le_pipeline": "<link>See partners</link><link2>Open the pipeline</link2>",
+    "inactif": "inactive",
+    "n_en_attente": "{n} pending",
+    "n_expires": "{n} expired",
+    "n_revoques": "{n} revoked",
+    "n_sans_montant": "{n} without an amount"
   },
   "pertes": {
-    "affaire_perdue_affaires_perdues": "{n, plural, one {# deal lost} other {# deals lost}}",
     "analyse_des_pertes": "Loss analysis",
     "aucune_affaire_perdue_a_cette_date_185c": "No deal lost on these dates, for this advisor, type, pipeline or origin — widen the period or remove a filter.",
     "aucune_affaire_perdue_pour_l_instant": "No deals lost yet",
     "aucune_perte_sur_cette_selection": "No losses on this selection",
     "choisis_une_organisation_dans_le_bandeau_593c": "Choose an organization in the super admin banner at the top of the screen to see its losses — an aggregate never crosses the boundary between two organizations.",
     "conseiller": "Advisor",
-    "de_montant_estime_perdu": "<span>{formatEuros}</span> in estimated lost amount",
     "etape": "Stage",
     "filtre_sur_un_pipeline_pour_ouvrir_614b": "Filter on a pipeline to open the list of deals for each row.",
-    "gagnee_gagnees_sur_la_meme_periode": "· <span>{won, plural, one {# won} other {# won}}</span> over the same period ·",
     "gagnees_sur_la_periode": "Won over the period — <span>{won}</span>",
     "jamais_datees_par_une_valeur_plausible": "— never dated with a plausible value.",
     "l_etape_d_ou_l_affaire_baa2": "The stage the deal fell from. “At creation”: born lost.",
@@ -229,7 +244,6 @@
     "le_responsable_de_l_affaire_aujourd_701f": "The deal’s owner today (reassignments are not kept in history).",
     "le_type_de_l_affaire_aujourd_f9d6": "The deal’s type today.",
     "masque_il_manque_affaire_affaires_close_3720": "(hidden: {missing} more {missing, plural, one {closed deal} other {closed deals}} needed)",
-    "montant_estime_perdu_inconnu_sans_montant": "estimated lost amount unknown <span>({n} without an amount)</span>",
     "montant_inconnu": "unknown amount",
     "montant_perdu": "Amount lost",
     "motif": "Reason",
@@ -244,12 +258,16 @@
     "rien_a_repartir_sur_cette_selection": "Nothing to break down on this selection.",
     "sans_montant": "({withoutAmount} without an amount)",
     "sur_la_periode": "Over the period",
-    "taux_de_perte": "loss rate",
     "tu_es_en_vue_globale": "You’re in global view",
     "type": "Type",
     "une_part_calculee_sur_moins_de_19ce": "A share computed on fewer than {minObservations} losses is hidden; counts and amounts are always shown. Reasons are set up in <link>Brand & settings</link>; the funnel shows which stage deals are lost from, in volume, in <link2>Analytics → Funnel</link2>.",
     "une_perte_se_compte_quand_une_1fd0": "A loss counts when a deal is moved into the stage marked “lost”, with its reason: that action is what feeds this screen.",
     "voir_ces_affaires": "See these deals",
-    "pertes_anterieures_ecartees": ", {n, plural, one {# loss predating the log excluded (date unknown)} other {# losses predating the log excluded (date unknown)}}"
+    "pertes_anterieures_ecartees": ", {n, plural, one {# loss predating the log excluded (date unknown)} other {# losses predating the log excluded (date unknown)}}",
+    "affaires_perdues": "Lost deals",
+    "montant_estime_perdu": "Estimated lost amount",
+    "montant_inconnu_n_sans_montant": "{n, plural, one {# deal without an amount} other {# deals without an amount}}",
+    "gagnees_sur_la_meme_periode": "Won over the same period",
+    "taux_de_perte_titre": "Loss rate"
   }
 }

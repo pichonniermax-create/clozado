@@ -5,7 +5,8 @@ import { AlarmClock, Banknote, CheckCircle2, PauseCircle } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ListCard, ListRow } from "@/components/ui/list-card";
+import { ListCard, ListRow, ListRowLink } from "@/components/ui/list-card";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { MarkCommissionSettledButton } from "@/components/deal-shares/mark-commission-settled-button";
 import { ReissueShareButton } from "@/components/deal-shares/reissue-share-button";
@@ -190,24 +191,13 @@ function Pile({
 }) {
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              "[&_svg]:size-4",
-              count === 0 ? "text-muted-foreground" : "text-foreground"
-            )}
-          >
-            {icon}
-          </span>
-          <h2 className="text-sm font-semibold">{title}</h2>
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
-            {count}
-          </span>
-        </div>
-        {aside && <span className="text-sm font-semibold tabular-nums">{aside}</span>}
-      </div>
-      <p className="-mt-1 text-xs text-muted-foreground">{subtitle}</p>
+      <SectionHeading
+        icon={icon}
+        title={title}
+        count={count}
+        description={subtitle}
+        trailing={aside && <span className="text-sm font-semibold tabular-nums">{aside}</span>}
+      />
 
       {count === 0 ? (
         <EmptyState icon={<CheckCircle2 className="size-4 text-success" />}>{empty}</EmptyState>
@@ -240,16 +230,18 @@ function ActionRow({
 }) {
   return (
     <ListRow
-      className={cn("flex-wrap gap-3", critical && "border-l-2 border-l-destructive")}
+      className={cn("min-w-0 flex-wrap gap-3", critical && "border-l-2 border-l-destructive")}
     >
-      <div className="flex min-w-0 flex-col">
+      {/* Sous sm, le détail se replie au lieu d'être tronqué : « expire dans … » et « rien depuis … » sont précisément la
+          raison d'agir (audit UI du 2026-09-14) ; l'ellipse reprend dès sm. */}
+      <div className="flex min-w-0 flex-1 flex-col">
         <Link
           href={`/affaires/${dealId}`}
-          className="truncate text-sm font-medium hover:underline"
+          className="text-sm font-medium underline-offset-2 hover:underline focus-visible:underline sm:truncate"
         >
           {dealTitle}
         </Link>
-        <span className="truncate text-xs tabular-nums text-muted-foreground">
+        <span className="text-xs tabular-nums text-muted-foreground sm:truncate">
           {partnerName} · {detail}
         </span>
       </div>
@@ -287,26 +279,27 @@ function PendingAlertRow({ row }: { row: PendingAlert }) {
 function AcceptedStaleRow({ row }: { row: AcceptedStale }) {
   const t = useTranslations("followup.page");
   const fmt = use(getFormats());
+  // Pas de bouton : rien à déclencher automatiquement sur du relationnel.
+  // Toute la ligne ouvre l'affaire (chevron) — une pile sans action visible
+  // paraissait inerte à côté des deux autres (audit UI du 2026-09-14).
   return (
-    <ActionRow
-      dealTitle={row.dealTitle}
-      partnerName={row.partnerName}
-      dealId={row.dealId}
-      detail={t("acceptee_le_rien_depuis", { formatDate: fmt.date(row.respondedAt ?? row.sentAt), formatDays: fmt.days(row.daysSinceActivity) })}
-      // Pas de bouton : rien à déclencher automatiquement sur du
-      // relationnel. Le titre est déjà le lien vers l'affaire.
+    <ListRowLink
+      href={`/affaires/${row.dealId}`}
+      title={row.dealTitle}
+      subtitle={`${row.partnerName} · ${t("acceptee_le_rien_depuis", { formatDate: fmt.date(row.respondedAt ?? row.sentAt), formatDays: fmt.days(row.daysSinceActivity) })}`}
     />
   );
 }
 
 function UnpaidCommissionRow({ row }: { row: UnpaidCommission }) {
+  const t = useTranslations("followup.page");
   const fmt = use(getFormats());
   return (
     <ActionRow
       dealTitle={row.dealTitle}
       partnerName={row.partnerName}
       dealId={row.dealId}
-      detail={`${fmt.commission(row)} · ${row.confirmedAt ? `confirmée le ${fmt.date(row.confirmedAt)}` : "date de confirmation inconnue"}`}
+      detail={`${fmt.commission(row)} · ${row.confirmedAt ? t("confirmee_le", { formatDate: fmt.date(row.confirmedAt) }) : t("date_de_confirmation_inconnue")}`}
       action={<MarkCommissionSettledButton commissionId={row.commissionId} />}
     />
   );

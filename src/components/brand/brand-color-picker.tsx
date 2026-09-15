@@ -119,7 +119,8 @@ export function BrandColorPicker({ initialHex, name, disabled }: { initialHex: s
               aria-label={`${tb(`palettes.${p.key}`)} (${p.hex})`}
               aria-pressed={hex === p.hex}
               className={cn(
-                "flex items-center gap-2 rounded-lg border px-2 py-1.5 text-xs transition-colors hover:bg-muted disabled:opacity-50",
+                // 40 px au doigt (les pastilles Bleu nuit / Bleu se touchaient), inchangé à la souris.
+                "flex items-center gap-2 rounded-lg border px-2 py-1.5 text-xs transition-colors hover:bg-muted disabled:opacity-50 pointer-coarse:min-h-10 pointer-coarse:px-3",
                 hex === p.hex ? "border-foreground" : "border-border"
               )}
             >
@@ -131,7 +132,7 @@ export function BrandColorPicker({ initialHex, name, disabled }: { initialHex: s
       </div>
 
       <details className="group text-sm">
-        <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">{t("saisir_un_code_hexadecimal")}</summary>
+        <summary className="flex cursor-pointer items-center text-xs text-muted-foreground hover:text-foreground pointer-coarse:min-h-10">{t("saisir_un_code_hexadecimal")}</summary>
         <div className="flex items-center gap-2 pt-2">
           <Input
             id={`${id}-hex`}
@@ -161,7 +162,7 @@ export function BrandColorPicker({ initialHex, name, disabled }: { initialHex: s
       <BrandPreview style={brandStyle(derived.tokens)} />
 
       <details className="text-xs text-muted-foreground">
-        <summary className="cursor-pointer hover:text-foreground">{t("contrastes_verifies", { count: derived.pairs.length })}</summary>
+        <summary className="flex cursor-pointer items-center hover:text-foreground pointer-coarse:min-h-10">{t("contrastes_verifies", { count: derived.pairs.length })}</summary>
         <table className="mt-2 w-full text-left tabular-nums">
           <tbody>
             {derived.pairs.map((p) => (
@@ -185,30 +186,36 @@ export function BrandColorPicker({ initialHex, name, disabled }: { initialHex: s
  */
 export function BrandPreview({ style, className }: { style: Record<string, string>; className?: string }) {
   const t = useTranslations("brand.brandColorPicker");
+  // Un APERÇU, annoncé comme tel et INERTE (audit UI du 2026-09-14) : ses boutons factices prenaient le focus clavier et
+  // un « Enregistrer » sans effet se trouvait 300 px au-dessus du vrai.
   return (
-    <div style={style} className={cn("grid grid-cols-1 gap-3 rounded-xl border border-border bg-background p-4 md:grid-cols-[14rem_1fr]", className)}>
-      <div className="flex flex-col gap-0.5 rounded-lg border border-sidebar-border bg-sidebar p-2">
-        <NavRow icon={<LayoutDashboard />} label={t("tableau_de_bord")} />
-        <NavRow icon={<Users />} label={t("contacts")} active badge={3} />
-        <NavRow icon={<Target />} label={t("suivi")} />
-      </div>
-      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button type="button">{t("enregistrer")}</Button>
-          <Button type="button" variant="outline">
-            {t("annuler")}
-          </Button>
-          <Badge>{t("nouveau")}</Badge>
-          <Badge variant="secondary">{t("en_cours")}</Badge>
+    <figure className={cn("flex flex-col gap-2", className)}>
+      <figcaption className="text-xs font-medium text-muted-foreground">{t("apercu")}</figcaption>
+      <div inert style={style} className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-background p-4 md:grid-cols-[14rem_1fr]">
+        <div className="flex flex-col gap-0.5 rounded-lg border border-sidebar-border bg-sidebar p-2">
+          <NavRow icon={<LayoutDashboard />} label={t("tableau_de_bord")} />
+          <NavRow icon={<Users />} label={t("contacts")} active badge={3} />
+          <NavRow icon={<Target />} label={t("suivi")} />
         </div>
-        <p className="text-sm">
-          {t.rich("un_texte_courant_avec_un_lien_ba9e", { a: (chunks) => <a href="#apercu" onClick={(e) => e.preventDefault()} className="font-medium text-primary-ink underline underline-offset-4">{chunks}</a> })}
-        </p>
-        <div className="flex items-center gap-2 rounded-lg bg-primary-soft px-3 py-2 text-sm text-primary-ink">
-          {t.rich("ligne_selectionnee_un_fond_leger_un_1f9a", { span: (chunks) => <span className="font-medium">{chunks}</span>, span2: (chunks) => <span className="text-xs">{chunks}</span> })}
+        <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" tabIndex={-1}>{t("enregistrer")}</Button>
+            <Button type="button" variant="outline" tabIndex={-1}>
+              {t("annuler")}
+            </Button>
+            <Badge>{t("nouveau")}</Badge>
+            <Badge variant="secondary">{t("en_cours")}</Badge>
+          </div>
+          <p className="text-sm">
+            {t.rich("un_texte_courant_avec_un_lien_ba9e", { a: (chunks) => <a href="#apercu" onClick={(e) => e.preventDefault()} tabIndex={-1} className="font-medium text-primary-ink underline underline-offset-4">{chunks}</a> })}
+          </p>
+          {/* À 390 px, la ligne se replie en phrase, pas en deux colonnes. */}
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 rounded-lg bg-primary-soft px-3 py-2 text-sm text-primary-ink">
+            {t.rich("ligne_selectionnee_un_fond_leger_un_1f9a", { span: (chunks) => <span className="font-medium">{chunks}</span>, span2: (chunks) => <span className="text-xs">{chunks}</span> })}
+          </div>
         </div>
       </div>
-    </div>
+    </figure>
   );
 }
 

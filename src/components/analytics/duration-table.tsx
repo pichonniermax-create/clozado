@@ -25,46 +25,55 @@ export type DurationRow = {
 
 const MASKED = <span className="text-muted-foreground">—</span>;
 
-function Cell({ stat, value }: { stat: DurationStat; value: number | null }) {
+function Cell({ stat, value, className }: { stat: DurationStat; value: number | null; className?: string }) {
   const fmt = use(getFormats());
   return (
-    <td className="px-4 py-3 text-right tabular-nums">
+    <td className={cn("px-2 py-3 text-right whitespace-nowrap tabular-nums sm:px-4", className)}>
       {stat.hidden || value === null ? MASKED : fmt.duration(value)}
     </td>
   );
 }
 
-export function DurationTable({ rows, labelHeader = "Indicateur" }: { rows: DurationRow[]; labelHeader?: string }) {
+/**
+ * Sur mobile (audit UI du 2026-09-14) : plus de largeur minimale — le
+ * libellé se replie ; la moyenne passe sous `sm:` (la médiane reste le
+ * chiffre de tête) et « Observations » s'abrège, pour que le nombre
+ * d'observations — celui qui dit si le chiffre est fiable — reste visible
+ * à 390 px. `caption` nomme le tableau pour un lecteur d'écran.
+ */
+export function DurationTable({ rows, labelHeader, caption }: { rows: DurationRow[]; labelHeader?: string; caption?: string }) {
   const t = useTranslations("analytics.durationTable");
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-card">
-      <table className="w-full min-w-[32rem] text-sm">
+      <table className="w-full text-sm">
+        {caption && <caption className="sr-only">{caption}</caption>}
         <thead>
           <tr className="border-b border-border text-xs text-muted-foreground">
-            <th scope="col" className="px-4 py-2.5 text-left font-medium">
-              {labelHeader}
+            <th scope="col" className="px-3 py-2.5 text-left font-medium sm:px-4">
+              {labelHeader ?? t("indicateur")}
             </th>
-            <th scope="col" className="px-4 py-2.5 text-right font-medium">
+            <th scope="col" className="px-2 py-2.5 text-right font-medium whitespace-nowrap sm:w-24 sm:px-4">
               {t("mediane")}
             </th>
-            <th scope="col" className="px-4 py-2.5 text-right font-medium">
+            <th scope="col" className="hidden px-2 py-2.5 text-right font-medium whitespace-nowrap sm:table-cell sm:w-24 sm:px-4">
               {t("moyenne")}
             </th>
-            <th scope="col" className="px-4 py-2.5 text-right font-medium">
-              {t("observations")}
+            <th scope="col" className="px-2 py-2.5 text-right font-medium whitespace-nowrap sm:w-28 sm:px-4">
+              <span className="sm:hidden">{t("obs_abrege")}</span>
+              <span className="hidden sm:inline">{t("observations")}</span>
             </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {rows.map((row) => (
             <tr key={row.key} className={cn(row.stat.hidden && "text-muted-foreground")}>
-              <th scope="row" className="px-4 py-3 text-left font-normal">
+              <th scope="row" className="min-w-0 px-3 py-3 text-left font-normal sm:px-4">
                 <span className={cn("block text-sm", !row.stat.hidden && "font-medium text-foreground")}>{row.label}</span>
                 {row.note && <span className="block text-xs text-muted-foreground text-pretty">{row.note}</span>}
               </th>
               <Cell stat={row.stat} value={row.stat.medianDays} />
-              <Cell stat={row.stat} value={row.stat.meanDays} />
-              <td className="px-4 py-3 text-right tabular-nums">
+              <Cell stat={row.stat} value={row.stat.meanDays} className="hidden sm:table-cell" />
+              <td className="px-2 py-3 text-right whitespace-nowrap tabular-nums sm:px-4">
                 {row.stat.unavailable ? MASKED : row.stat.n}
               </td>
             </tr>

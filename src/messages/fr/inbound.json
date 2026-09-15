@@ -33,8 +33,8 @@
     "le_sens": "Le sens de cet email",
     "le_sens_decide_de_l_arret_automatique": "Un email venant du contact arrête l’envoi automatique vers lui.",
     "nom": "Nom",
-    "proposition_deterministe": "Proposition établie sans modèle : le téléphone par motif, le nom par l’en-tête.",
-    "proposition_du_modele": "Proposition d’un modèle, à partir des dernières lignes du message : rien n’est écrit avant ta confirmation.",
+    "proposition_deterministe": "Champs repérés automatiquement dans l’email (le téléphone dans le texte, le nom d’après l’expéditeur) — vérifie avant de confirmer.",
+    "proposition_du_modele": "Champs proposés par l’assistant à partir de la signature du message — rien n’est écrit avant ta confirmation.",
     "rattacher_ne_modifie_pas_la_fiche": "Rattacher ne modifie pas la fiche existante : seule l’interaction s’y ajoute.",
     "recu_de_le": "Reçu de {sender} le {when}",
     "sans_objet": "Sans objet",
@@ -75,7 +75,10 @@
       "rejected": "Refusés ({count})",
       "treated": "Traités ({count})"
     },
-    "transfere_a_ou_mets_en_copie": "Transfère un email à {address}, ou mets cette adresse en copie cachée : la proposition arrive ici."
+    "transfere_a_ou_mets_en_copie": "Transfère un email à {address}, ou mets cette adresse en copie cachée : la proposition arrive ici.",
+    "transfere_ou_mets_en_copie_cachee": "Transfère un email à ton adresse d’ingestion, ou mets-la en copie cachée : la proposition arrive ici.",
+    "ton_adresse_d_ingestion": "Ton adresse d’ingestion",
+    "regler_l_adresse": "Régler l’adresse"
   },
   "rejection": {
     "rate_limited": "Trop d’emails reçus",

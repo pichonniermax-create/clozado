@@ -11,7 +11,7 @@ import { useTranslations } from "next-intl";
  * (contexte non sécurisé), le bouton sélectionne le texte voisin : rien
  * n'échoue en silence.
  */
-export function CopyButton({ value, label }: { value: string; label?: string }) {
+export function CopyButton({ value, label, size = "xs" }: { value: string; label?: string; size?: "xs" | "sm" }) {
   const t = useTranslations("ui.copyButton");
   const [copied, setCopied] = useState(false);
   async function copy() {
@@ -24,7 +24,7 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
     }
   }
   return (
-    <Button type="button" variant="ghost" size="xs" onClick={copy} aria-label={label ?? t("copier")}>
+    <Button type="button" variant="ghost" size={size} onClick={copy} aria-label={label ?? t("copier")}>
       {copied ? <Check /> : <Copy />}
       {copied ? t("copie") : t("copier")}
     </Button>

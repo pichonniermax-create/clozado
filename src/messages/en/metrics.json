@@ -490,5 +490,11 @@
     "partenaires": "Partners and commissions",
     "pertes": "Loss analysis",
     "tableau-de-bord": "Dashboard — the business pack’s metrics"
+  },
+  "periodsShort": {
+    "30j": "30 d",
+    "90j": "90 d",
+    "12m": "12 mo",
+    "tout": "All"
   }
 }

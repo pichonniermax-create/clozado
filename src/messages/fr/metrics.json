@@ -490,5 +490,11 @@
     "partenaires": "Partenaires et commissions",
     "pertes": "Analyse des pertes",
     "tableau-de-bord": "Tableau de bord — les indicateurs du pack métier"
+  },
+  "periodsShort": {
+    "30j": "30 j",
+    "90j": "90 j",
+    "12m": "12 mois",
+    "tout": "Tout"
   }
 }

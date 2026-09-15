@@ -107,7 +107,7 @@
     "desactivee_le_elle_n_est_plus_159e": "Deactivated on {formatDate}: it’s no longer offered in the composer or on contact records, but the newsletters sent to it keep it in their history.",
     "desactiver": "Deactivate",
     "dupliquer": "Duplicate",
-    "ecrire_une_newsletter_pour_cette_cible": "Write a newsletter for this audience",
+    "ecrire_une_newsletter_pour_cette_cible": "Write a newsletter",
     "enregistrer_la_cible": "Save audience",
     "identite_editoriale_incomplete_le_composer_ecrit_efd3": "Editorial identity incomplete: {toLowerCase}. The composer writes with what’s filled in.",
     "newsletter_a_s_ont_ete_marquee_5a1f": "<span>{sentCount}</span> {sentCount, plural, one {newsletter has} other {newsletters have}} been marked as sent to this audience. Their history — the recipients and the criteria of the day — doesn’t change if you edit the audience. For a new segmentation, duplicate it instead.",
@@ -118,7 +118,11 @@
     "rechercher_des_contacts_a_ajouter": "Search for contacts to add",
     "retirer": "Remove",
     "societe": "Company",
-    "suivants": "Next →"
+    "suivants": "Next →",
+    "envoi_recap": "Sent on {date} to {recipients, plural, one {# contact} other {# contacts}} · {overlap} in the current audience{percent, select, none {} other { ({percent}%)}}{topics, select, none {} other { · topics: {topics}}}",
+    "plus_d_actions": "More actions",
+    "modifier_les_criteres": "Edit the criteria and the editorial identity",
+    "contacts_dans_cette_cible": "Contacts in this audience today"
   },
   "detailNotFound": {
     "cette_cible_n_existe_pas": "This audience doesn’t exist.",
@@ -167,7 +171,9 @@
     "selection_manuelle": "Manual selection",
     "tu_es_en_vue_globale_choisis_599b": "You’re in the global view: choose an organization in the super admin banner at the top of the screen to see its audiences.",
     "une_cible_c_est_un_segment_d9ec": "An audience is a segment of your contacts (tags, city, open deals…) plus the identity of the person you’re writing to. Your profession suggests {count} to start with — each can be edited afterwards.",
-    "description": "Who you write to: living segments of your contact base, recalculated every time you look, each with its own editorial identity."
+    "description": "Who you write to: living segments of your contact base, recalculated every time you look, each with its own editorial identity.",
+    "cibles_actives": "Active audiences",
+    "contacts_mot": "{n, plural, one {contact} other {contacts}}"
   },
   "new": {
     "cibles": "Audiences",
@@ -194,7 +200,7 @@
     "etiquette_d_audience": "Audience tag",
     "identite_editoriale": "Editorial identity",
     "investisseurs_a_lyon": "Investors in Lyon",
-    "la_newsletter_mensuelle_des_clients_locatifs": "The monthly newsletter for rental-property clients",
+    "la_newsletter_mensuelle_des_clients_locatifs": "E.g. the monthly newsletter",
     "les_fiches_se_choisissent_sur_la_f8d6": "Records are chosen on the audience page, {value} — by search, one or several at a time.",
     "nom_de_la_cible": "Audience name",
     "plus_bas": "further down",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Plus, Sparkles, Trash2, TriangleAlert, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -381,15 +381,16 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
   return (
     <div className="flex flex-col gap-4">
       {/* Barre de l'éditeur : à qui — avec le nombre réel de personnes — et l'action d'enregistrement. */}
+      {/* Sous sm, le sélecteur prend toute la largeur et le groupe de droite passe dessous, aligné à droite — « Annuler » ne tombe plus seul, indenté à gauche. */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
           <span className="text-muted-foreground">{tr("pour")}</span>
           <Select
             value={targetId}
             onValueChange={(v) => setTargetId(String(v))}
             items={targets.map((t) => ({ label: targetLabel(t), value: t.id }))}
           >
-            <SelectTrigger className="h-8 w-72">
+            <SelectTrigger className="h-8 w-full sm:w-72">
               <SelectValue placeholder={tr("choisir_la_cible")} />
             </SelectTrigger>
             <SelectContent>
@@ -401,7 +402,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
           {/* Le raccourci existe, mais il ne se devine pas : le bouton le
               rend visible et donne son équivalent clavier. */}
           <Button
@@ -493,7 +494,8 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
 
       {/* Le document. Fond de page et feuille repris du gabarit email lui-même. */}
       <div
-        className="flex justify-center rounded-xl border border-border py-8"
+        // Une marge autour de la feuille à 390 px : elle touchait les bords du cadre.
+        className="flex justify-center rounded-xl border border-border px-3 py-6 sm:px-6 sm:py-8"
         style={{ background: shell.pageBackground }}
       >
         <div className="w-full" style={{ maxWidth: shell.width }}>
@@ -692,16 +694,17 @@ function TargetInsight({ targetId }: { targetId: string }) {
         )}
       </p>
       {summary.recentSends.length > 0 ? (
-        <div className="flex flex-col gap-1">
-          <p className="text-xs font-medium">{t("deja_recu_par_ces_contacts_a_fe0a")}</p>
-          <ul className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+        // Replié : la ligne de compte suffit à prévenir ; le détail (quatre lignes de liens, dates, pourcentages) repoussait le document de 300 px.
+        <details className="group flex flex-col gap-1">
+          <summary className="cursor-pointer text-xs font-medium">{t("deja_recu_n", { count: summary.recentSends.length })}</summary>
+          <ul className="mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground">
             {summary.recentSends.map((s) => (
               <li key={s.id}>
                 {t.rich("le_de_la_cible", { n: s.subject || s.title, formatDate: fmt.date(s.sentAt), n2: s.overlapPercent ?? 0, n3: (s.topics.length > 0 && t("sujets", { join: s.topics.join(", ") })) || "", link: (chunks) => <Link href={`/newsletters/${s.id}`} className="underline underline-offset-2 hover:text-foreground">{chunks}</Link>, span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
               </li>
             ))}
           </ul>
-        </div>
+        </details>
       ) : (
         <p className="text-xs text-muted-foreground">{t("rien_d_envoye_a_ces_contacts_95af")}</p>
       )}
@@ -724,15 +727,20 @@ function LineField({
   placeholder: string;
 }) {
   const t = useTranslations("newsletters.newsletterEditor");
+  const id = useId();
   const over = value.length > max;
+  // Un vrai libellé (`label for`) et un champ actif visible au clavier — avant, un <span> et un champ sans bordure ni anneau.
   return (
     <div className="flex items-center gap-3">
-      <span className="w-14 shrink-0 text-xs font-medium text-muted-foreground">{label}</span>
+      <label htmlFor={id} className="w-14 shrink-0 text-xs font-medium text-muted-foreground">
+        {label}
+      </label>
       <Input
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-8 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+        className="-mx-1 h-8 rounded-md border-0 bg-transparent px-1 shadow-none focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-ring/50"
       />
       {/* Jamais tronqué, jamais interdit : seulement signalé. */}
       <span
@@ -793,7 +801,8 @@ function EmptyState({
         <InsertionPoint
           onInsert={onAdd}
           trigger={
-            <span className="inline-flex items-center gap-1 underline underline-offset-2">
+            // 40 px de haut au doigt : un lien de 16 px n'était pas une cible.
+            <span className="inline-flex min-h-10 items-center gap-1 px-2 underline underline-offset-2 sm:min-h-0 sm:px-0">
               <Plus className="size-3" />
               {t("ecrire_moi_meme")}
             </span>

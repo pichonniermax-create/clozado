@@ -12,7 +12,7 @@
     "ans": "ans",
     "aujourd_hui": "Aujourd’hui",
     "ce_qu_il_y_a_a_2dc7": "Ce qu’il y a à faire — saisi à la main ou généré depuis le suivi des partages.",
-    "ce_qu_il_y_a_a_a973": "Ce qu’il y a à faire, trié par échéance. Les relances du PRM arrivent ici toutes seules : partage sans réponse, affaire sans suite, commission non réglée — les achever vaut « traité ».",
+    "ce_qu_il_y_a_a_a973": "Ce qu’il y a à faire, trié par échéance.",
     "creer_la_tache": "Créer la tâche",
     "creer_une_tache": "Créer une tâche",
     "echeance": "Échéance",
@@ -21,9 +21,6 @@
     "jamais": "— jamais",
     "jours": "jours",
     "les_taches_se_creent_ci_dessus_0d28": "Les tâches se créent ci-dessus, ou naissent toutes seules des relances du PRM : partage sans réponse, affaire sans suite, commission non réglée.",
-    "marquer_comme_faite": "Marquer « {title} » comme faite",
-    "marquer_comme_faite_bb0d": "Marquer comme faite",
-    "modifier_refermer": "<span>Modifier…</span><span2>Refermer</span2>",
     "mois": "mois",
     "notes": "Notes",
     "nouvelle_tache": "Nouvelle tâche",
@@ -44,13 +41,15 @@
     "semaines": "semaines",
     "suivantes": "Suivantes →",
     "supprimer_cette_tache": "Supprimer cette tâche",
-    "sur_cette_page": "· {count} sur cette page",
+    "sur_cette_page": "{count} sur cette page",
     "taches": "Tâches",
     "titre": "Titre",
     "tous_les": "tous les",
     "tout_le_monde": "Tout le monde",
     "tu_es_en_vue_globale_choisis_3e1f": "Tu es en vue globale : choisis une organisation dans le bandeau super admin en haut de l’écran pour voir ses tâches.",
-    "unite_de_recurrence": "Unité de récurrence"
+    "unite_de_recurrence": "Unité de récurrence",
+    "modifier_la_tache": "Modifier la tâche",
+    "tache_automatique_explication": "Créée toute seule par le suivi (partage sans réponse, affaire sans suite, commission non réglée) : l’achever vaut « traité »."
   },
   "priorities": {
     "high": "Haute",
@@ -73,19 +72,19 @@
     "year": "{every, plural, =1 {Chaque année} other {Tous les # ans}}"
   },
   "taskSection": {
-    "affaire": "· affaire <link>{dealTitle}</link>",
+    "affaire": "affaire <link>{dealTitle}</link>",
     "ajouter": "Ajouter",
-    "contact": "· contact <link>{contactName}</link>",
+    "contact": "contact <link>{contactName}</link>",
     "echeance": "Échéance",
     "echeance_le": "Échéance le",
     "en_retard_echeance_le": "En retard — échéance le",
     "marquer_comme_faite": "Marquer « {title} » comme faite",
     "marquer_comme_faite_bb0d": "Marquer comme faite",
     "nouvelle_tache_pour_cette_fiche": "Nouvelle tâche pour cette fiche…",
-    "priorite": "· priorité {toLowerCase}",
+    "priorite": "priorité {toLowerCase}",
     "sans_echeance": "Sans échéance",
-    "taches": "Tâches{n}",
+    "taches": "Tâches",
     "titre_de_la_nouvelle_tache": "Titre de la nouvelle tâche",
-    "toutes_les_taches": "Toutes les tâches →"
+    "toutes_les_taches": "Toutes les tâches"
   }
 }

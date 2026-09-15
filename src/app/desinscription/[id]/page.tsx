@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { toAppLocale } from "@/i18n/locales";
 import { translatorFor } from "@/i18n/translator";
@@ -48,48 +49,29 @@ export default async function UnsubscribePage(props: { params: Promise<{ id: str
   const locale = toAppLocale(outcome.locale);
   const t = await translatorFor(locale, "email.unsubscribe");
   const done = query.fait === "1";
-  // La coquille racine pose <html> et <body> : cette page, publique, ne rend que sa carte — dans la langue de l'organisation.
+  // Le même cadre que /login et /inscription (audit UI du 2026-09-14) : c'est la page publique la plus vue par des
+  // non-utilisateurs (elle part dans chaque email), et c'était la seule qui ne ressemblait pas au produit — une carte nue
+  // posée en haut d'une page blanche. Dans la langue de l'organisation.
+  const { title, text } = wording(outcome, done, t);
   return (
-    <main lang={locale} className="mx-auto my-12 w-full max-w-md rounded-xl border border-border bg-card p-8 text-card-foreground">
-      <Content outcome={outcome} done={done} t={t} confirm={confirm} />
-    </main>
+    <AuthShell lang={locale} title={title} description={text}>
+      {/* « already » = un vrai message dont l'adresse n'est pas encore supprimée (le nom vient du geste idempotent). */}
+      {(outcome.kind === "already" || outcome.kind === "done") && !done && (
+        <form action={confirm}>
+          <Button type="submit" size="lg" className="w-full sm:w-auto">
+            {t("confirm")}
+          </Button>
+        </form>
+      )}
+    </AuthShell>
   );
 }
 
-function Content({ outcome, done, t, confirm }: { outcome: UnsubscribeOutcome; done: boolean; t: Awaited<ReturnType<typeof translatorFor<"email.unsubscribe">>>; confirm: () => Promise<void> }) {
-  if (outcome.kind === "test") {
-    return (
-      <>
-        <h1 className="mb-3 text-xl font-semibold">{t("test_title")}</h1>
-        <p className="text-sm leading-relaxed">{t("test", { product: PRODUCT_NAME })}</p>
-      </>
-    );
-  }
-  if (outcome.kind === "demo") {
-    return (
-      <>
-        <h1 className="mb-3 text-xl font-semibold">{t("demo_title")}</h1>
-        <p className="text-sm leading-relaxed">{t("demo", { product: PRODUCT_NAME })}</p>
-      </>
-    );
-  }
-  if (outcome.kind === "invalid") return null;
+function wording(outcome: UnsubscribeOutcome, done: boolean, t: Awaited<ReturnType<typeof translatorFor<"email.unsubscribe">>>): { title: string; text: string } {
+  if (outcome.kind === "test") return { title: t("test_title"), text: t("test", { product: PRODUCT_NAME }) };
+  if (outcome.kind === "demo") return { title: t("demo_title"), text: t("demo", { product: PRODUCT_NAME }) };
+  if (outcome.kind === "invalid") return { title: t("invalid_title"), text: t("invalid") };
   const { organizationName, email } = outcome;
-  if (done) {
-    return (
-      <>
-        <h1 className="mb-3 text-xl font-semibold">{t("done_title")}</h1>
-        <p className="text-sm leading-relaxed">{t("done", { organization: organizationName, email })}</p>
-      </>
-    );
-  }
-  return (
-    <>
-      <h1 className="mb-3 text-xl font-semibold">{t("title")}</h1>
-      <p className="mb-5 text-sm leading-relaxed">{t("intro", { organization: organizationName, email })}</p>
-      <form action={confirm}>
-        <Button type="submit">{t("confirm")}</Button>
-      </form>
-    </>
-  );
+  if (done) return { title: t("done_title"), text: t("done", { organization: organizationName, email }) };
+  return { title: t("title"), text: t("intro", { organization: organizationName, email }) };
 }

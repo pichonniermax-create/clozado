@@ -10,7 +10,7 @@
     "cet_ecran_suit_les_relances_d_e7be": "This screen tracks the follow-ups of a given organization.",
     "commissions_a_encaisser": "Commissions to collect",
     "confirmees_pas_encore_reglees_aucune_echeance_748a": "Confirmed, not yet settled — no due date, they remain owed.",
-    "element_elements_a_traiter_classe_classes_cd54": "{todo} {todo, plural, one {item} other {items}} to handle, sorted by kind — not by date.",
+    "element_elements_a_traiter_classe_classes_cd54": "{todo, plural, one {# item awaits} other {# items await}} an action: follow-ups, stalled deals, commissions due.",
     "en_cours": "In progress",
     "expire_dans": "expires in {formatDays}",
     "le_confrere_n_a_pas_repondu_fa04": "The partner hasn’t replied, or the link is about to expire.",
@@ -24,6 +24,8 @@
     "sans_reponse_depuis": "<span>no reply for {formatDays}</span>{n}",
     "suivi": "Follow-up",
     "tu_es_en_vue_globale_le_21fb": "You’re in global view: Follow-up only exists for a specific organization. Choose an organization in the super admin banner at the top of the screen to see its follow-ups.",
-    "voir_les_affaires": "See deals"
+    "voir_les_affaires": "See deals",
+    "confirmee_le": "confirmed on {formatDate}",
+    "date_de_confirmation_inconnue": "confirmation date unknown"
   }
 }

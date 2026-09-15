@@ -1,14 +1,16 @@
 import { use } from "react";
 import Link from "next/link";
-import { ExternalLink, Radar, RefreshCw, ShoppingBasket, Sparkles } from "lucide-react";
+import { ExternalLink, Radar, RefreshCw, Settings2, ShoppingBasket, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { ListCard } from "@/components/ui/list-card";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/app-shell/page-header";
+import { InlineDetails } from "@/components/ui/inline-details";
 import { RefreshWhileRunning } from "@/components/watch/refresh-while-running";
 import { countMembersByTarget, listMailTargets } from "@/db/queries/mail-targets";
 import { listFollowedIndicatorKeys } from "@/db/queries/market";
@@ -58,6 +60,15 @@ import { NativeSelect } from "@/components/ui/native-select";
 
 /** La collecte lancée à la visite s'exécute après la réponse : la fonction reste en vie le temps de son budget (120 s) et d'une marge. */
 export const maxDuration = 180;
+
+/** Le domaine d'une adresse de flux (« pret-facile.example ») — l'adresse brute, elle, ne tenait pas sur une ligne mobile. */
+function feedHostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
 
 
 
@@ -125,7 +136,9 @@ export default async function WatchPage() {
     if (topic) byTopic.set(topic.id, [...(byTopic.get(topic.id) ?? []), item]);
     else others.push(item);
   }
-  const packLabel = tr("suivre_la_veille_du_metier_sujet_7ee5", { label: tm(`packs.${pack.key}.label`), count: missing.topics.length, count2: missing.sources.length, count3: missing.indicators.length });
+  // Le bouton dit le geste, la ligne dessous dit le détail (audit UI du 2026-09-14 : un libellé de 600 px avec les trois comptes débordait de l'écran).
+  const packLabel = tr("suivre_la_veille_du_metier_court", { label: tm(`packs.${pack.key}.label`) });
+  const packDetails = tr("suivre_details", { count: missing.topics.length, count2: missing.sources.length, count3: missing.indicators.length });
 
   return (
     <>
@@ -134,6 +147,10 @@ export default async function WatchPage() {
         description={tr("description")}
         actions={
           <>
+            <a href="#reglages-veille" className={buttonVariants({ variant: "ghost" })}>
+              <Settings2 />
+              {tr("sujets_et_sources")}
+            </a>
             <Link href="/concurrents" className={buttonVariants({ variant: "ghost" })}>
               <Radar />
               {tr("concurrents")}
@@ -160,12 +177,15 @@ export default async function WatchPage() {
             <>
               {missingCount > 0 && (
                 <form action={createPackWatchAction}>
-                  <Button type="submit">{packLabel}</Button>
+                  <Button type="submit" className="h-auto w-full whitespace-normal sm:w-auto">
+                    {packLabel}
+                  </Button>
                 </form>
               )}
               <a href="#sujets" className={buttonVariants({ variant: "outline" })}>
                 {tr("ajouter_un_sujet_a_la_main")}
               </a>
+              {missingCount > 0 && <span className="w-full text-xs text-muted-foreground">{packDetails}</span>}
             </>
           }
         >
@@ -207,6 +227,9 @@ export default async function WatchPage() {
         </>
       )}
 
+      {/* Le fil d'articles d'abord, les réglages ensuite — derrière une frontière visible et une ancre depuis l'en-tête (audit UI du 2026-09-14 : sujets et sources étaient noyés sous 3 000 px d'articles). */}
+      <div id="reglages-veille" className="flex scroll-mt-24 flex-col gap-6 border-t border-border pt-6">
+      <h2 className="text-sm font-semibold">{tr("reglages_de_la_veille")}</h2>
       {missingCount > 0 && hasSetup && (
         <DetailsCard variant="archive" summary={tr("propose_par_ton_metier", { label: tm(`packs.${pack.key}.label`), missingCount })}>
           <div className="flex flex-col gap-3 text-sm">
@@ -225,10 +248,11 @@ export default async function WatchPage() {
                 {tr.rich("indicateurs_de_marche_visibles_sur_l_a621", { count: missing.indicators.length, span: (chunks) => <span className="font-medium">{chunks}</span>, link: (chunks) => <Link href="/chiffres" className="underline underline-offset-2">{chunks}</Link> })}
               </p>
             )}
-            <form action={createPackWatchAction}>
-              <Button type="submit" variant="outline">
+            <form action={createPackWatchAction} className="flex flex-col gap-1">
+              <Button type="submit" variant="outline" className="h-auto w-full whitespace-normal sm:w-fit">
                 {packLabel}
               </Button>
+              <span className="text-xs text-muted-foreground">{packDetails}</span>
             </form>
           </div>
         </DetailsCard>
@@ -257,6 +281,7 @@ export default async function WatchPage() {
           </ul>
         </DetailsCard>
       )}
+      </div>
     </>
   );
 }
@@ -300,7 +325,7 @@ function BasketSection({ basket, targets }: { basket: WatchItemRow[]; targets: {
           <ShoppingBasket className="size-4" />
           {tr("panier_article_articles_mis_de_cote", { count: basket.length })}
         </h2>
-        <form action={clearBasketAction}>
+        <form action={clearBasketAction} className="ml-auto">
           <Button type="submit" variant="ghost" size="sm">
             {tr("vider_le_panier")}
           </Button>
@@ -331,9 +356,9 @@ function BasketSection({ basket, targets }: { basket: WatchItemRow[]; targets: {
           {tr.rich("il_faut_une_cible_pour_ecrire_ac2e", { link: (chunks) => <Link href="/cibles" className="underline underline-offset-2">{chunks}</Link> })}
         </p>
       ) : (
-        <form action={writeFromBasketAction} className="flex flex-wrap items-end gap-3">
-          <Field label={tr("pour_quelle_cible")} htmlFor="basket-target">
-            <NativeSelect id="basket-target" name="targetId" className="w-auto max-w-full" defaultValue={targets[0]?.id} required>
+        <form action={writeFromBasketAction} className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+          <Field label={tr("pour_quelle_cible")} htmlFor="basket-target" className="w-full sm:w-auto">
+            <NativeSelect id="basket-target" name="targetId" className="w-full sm:w-72" defaultValue={targets[0]?.id} required>
               {targets.map((t) => (
                 <option key={t.id} value={t.id}>
                   {tr("contact_contacts", { label: t.label, count: t.count })}
@@ -341,7 +366,7 @@ function BasketSection({ basket, targets }: { basket: WatchItemRow[]; targets: {
               ))}
             </NativeSelect>
           </Field>
-          <Button type="submit">
+          <Button type="submit" className="w-full sm:w-auto">
             <Sparkles />
             {tr("ecrire_une_newsletter_a_partir_de_f06e")}
           </Button>
@@ -354,14 +379,15 @@ function BasketSection({ basket, targets }: { basket: WatchItemRow[]; targets: {
 function TopicArticles({ title, rows }: { title: string; rows: WatchItemRow[] }) {
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="text-sm font-medium tabular-nums">
-        {title} <span className="text-muted-foreground">({rows.length})</span>
+      {/* Un sous-titre de groupe, pas un second titre de section : même registre que les libellés de groupe de la barre latérale. */}
+      <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase tabular-nums">
+        {title} <span className="font-normal">({rows.length})</span>
       </h3>
-      <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+      <ListCard>
         {rows.map((item) => (
           <ArticleRow key={item.id} item={item} />
         ))}
-      </ul>
+      </ListCard>
     </div>
   );
 }
@@ -390,16 +416,40 @@ function ArticleRow({ item }: { item: WatchItemRow }) {
   ]
     .filter(Boolean)
     .join(" · ");
+  // Sur mobile, les actions viennent APRÈS le résumé (audit UI du 2026-09-14 : elles s'intercalaient entre la méta et le texte) ; dès sm, en colonne de droite.
   return (
-    <li id={`article-${item.id}`} className="flex flex-col gap-2 px-4 py-3 scroll-mt-24">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0 flex flex-col gap-0.5">
+    <li id={`article-${item.id}`} className="flex scroll-mt-24 flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex min-w-0 flex-col gap-0.5">
           <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline">
             {item.title} <ExternalLink className="ml-0.5 inline size-3 text-muted-foreground" />
           </a>
           <span className="text-xs tabular-nums text-muted-foreground">{meta}</span>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-1">
+        {item.summaryState === "done" && item.summary ? (
+          <p className="text-sm text-pretty">{item.summary}</p>
+        ) : (
+          // Un <div>, pas un <p> : un formulaire dans un paragraphe est refermé
+          // par le navigateur avant le formulaire — l'arbre ne correspond plus à
+          // celui de React (erreur d'hydratation #418, vue au navigateur).
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span>{summaryStateLabel(item, t)}</span>
+            {(item.summaryState === "refused" || item.summaryState === "failed") && (
+              <form action={resummarizeAction.bind(null, item.id)}>
+                <Button type="submit" variant="ghost" size="sm">
+                  {t("resumer_a_nouveau")}
+                </Button>
+              </form>
+            )}
+          </div>
+        )}
+        {(item.themes.length > 0 || (item.angle && item.summaryState === "done")) && (
+          <p className="text-xs text-muted-foreground">
+            {[...item.themes, item.summaryState === "done" ? item.angle : null].filter(Boolean).join(" · ")}
+          </p>
+        )}
+      </div>
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
           {item.usedIn > 0 && <Badge variant="secondary">{item.usedSent ? t("deja_envoye") : t("deja_utilise")}</Badge>}
           {item.inBasket ? (
             <form action={removeFromBasketAction.bind(null, item.id)}>
@@ -419,30 +469,7 @@ function ArticleRow({ item }: { item: WatchItemRow }) {
               {t("ecarter")}
             </Button>
           </form>
-        </div>
       </div>
-      {item.summaryState === "done" && item.summary ? (
-        <p className="text-sm text-pretty">{item.summary}</p>
-      ) : (
-        // Un <div>, pas un <p> : un formulaire dans un paragraphe est refermé
-        // par le navigateur avant le formulaire — l'arbre ne correspond plus à
-        // celui de React (erreur d'hydratation #418, vue au navigateur).
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span>{summaryStateLabel(item, t)}</span>
-          {(item.summaryState === "refused" || item.summaryState === "failed") && (
-            <form action={resummarizeAction.bind(null, item.id)}>
-              <Button type="submit" variant="ghost" size="sm">
-                {t("resumer_a_nouveau")}
-              </Button>
-            </form>
-          )}
-        </div>
-      )}
-      {(item.themes.length > 0 || (item.angle && item.summaryState === "done")) && (
-        <p className="text-xs text-muted-foreground">
-          {[...item.themes, item.summaryState === "done" ? item.angle : null].filter(Boolean).join(" · ")}
-        </p>
-      )}
     </li>
   );
 }
@@ -476,11 +503,9 @@ function TopicForm({ topic, action, submitLabel }: { topic?: WatchTopic; action:
       >
         <Textarea id={`topic-terms-${id}`} name="searchTerms" defaultValue={topic?.searchTerms.join("\n") ?? ""} className="min-h-16" placeholder={t("taux_credit_immobilier_pret_immobilier_banques")} />
       </Field>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" variant={topic ? "outline" : "default"}>
-          {submitLabel}
-        </Button>
-      </div>
+      <Button type="submit" variant={topic ? "outline" : "default"} className="w-full sm:w-fit">
+        {submitLabel}
+      </Button>
     </form>
   );
 }
@@ -494,7 +519,7 @@ function TopicsSection({ topics, archived, defaultOpen }: { topics: WatchTopic[]
         {t("sujet_sujets_suivi_suivis", { count: topics.length })}
       </h2>
       {topics.length > 0 && (
-        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+        <ListCard>
           {topics.map((topic) => (
             <li key={topic.id} className="flex flex-col gap-2 px-4 py-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -506,21 +531,20 @@ function TopicsSection({ topics, archived, defaultOpen }: { topics: WatchTopic[]
                     {topic.lastSearchedAt ? t("cherche", { formatRelativeTime: fmt.relative(topic.lastSearchedAt) }) : t("jamais_cherche")}
                   </span>
                 </div>
-                <form action={archiveTopicAction.bind(null, topic.id)}>
+                <form action={archiveTopicAction.bind(null, topic.id)} className="ml-auto">
                   <Button type="submit" variant="ghost" size="sm">
                     {t("desactiver")}
                   </Button>
                 </form>
               </div>
-              <details className="group text-sm">
-                <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">{t("modifier")}</summary>
+              <InlineDetails summary={t("modifier")}>
                 <div className="pt-3">
                   <TopicForm topic={topic} action={updateTopicAction.bind(null, topic.id)} submitLabel={t("enregistrer_le_sujet")} />
                 </div>
-              </details>
+              </InlineDetails>
             </li>
           ))}
-        </ul>
+        </ListCard>
       )}
       <DetailsCard summary={t("ajouter_un_sujet")} defaultOpen={defaultOpen}>
         <TopicForm action={createTopicAction} submitLabel={t("ajouter_le_sujet")} />
@@ -555,10 +579,12 @@ function SourcesSection({ sources, archived, topics }: { sources: WatchSource[];
         {tr("source_sources_suivie_suivies", { count: sources.length })}
       </h2>
       {sources.length > 0 && (
-        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+        <ListCard>
           {sources.map((source) => {
             const health = sourceHealth(source, tr, fmt);
             const topic = topicLabel(source.topicId);
+            // Le domaine du flux, pas l'adresse entière : l'information utile tient sur une ligne, l'adresse reste au survol.
+            const feedHost = source.feedUrl ? feedHostOf(source.feedUrl) : null;
             return (
               <li key={source.id} className="flex flex-col gap-1 px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -569,18 +595,18 @@ function SourcesSection({ sources, archived, topics }: { sources: WatchSource[];
                       </a>
                       {!source.feedUrl && <Badge variant="outline">{tr("sans_flux_cherchee_par_domaine")}</Badge>}
                     </span>
-                    <span className="truncate text-xs tabular-nums text-muted-foreground">
+                    <span className="truncate text-xs tabular-nums text-muted-foreground" title={source.feedUrl ?? undefined}>
                       {[
                         fmt.country(source.country),
                         source.lang === "en" ? tr("anglais") : source.lang === "fr" ? tr("francais") : null,
                         topic ? tr("sujet_label", { label: topic }) : null,
-                        source.feedUrl ? tr("flux_label", { url: source.feedUrl }) : null,
+                        feedHost ? tr("flux_label", { url: feedHost }) : null,
                       ]
                         .filter(Boolean)
                         .join(" · ")}
                     </span>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1">
+                  <div className="ml-auto flex shrink-0 items-center gap-2">
                     {(health.tone === "warning" || health.tone === "asleep") && (
                       <form action={retrySourceAction.bind(null, source.id)}>
                         <Button type="submit" variant="outline" size="sm">
@@ -602,7 +628,7 @@ function SourcesSection({ sources, archived, topics }: { sources: WatchSource[];
               </li>
             );
           })}
-        </ul>
+        </ListCard>
       )}
       <DetailsCard summary={tr("ajouter_une_source_ou_un_flux")}>
         <form action={createSourceAction} className="flex flex-col gap-4">
@@ -647,7 +673,7 @@ function SourcesSection({ sources, archived, topics }: { sources: WatchSource[];
           <p className="text-xs text-muted-foreground">
             {tr.rich("les_concurrents_nommes_se_declarent_sur_c58a", { link: (chunks) => <Link href="/concurrents" className="underline underline-offset-2">{chunks}</Link> })}
           </p>
-          <Button type="submit" className="w-fit">
+          <Button type="submit" className="w-full sm:w-fit">
             {tr("ajouter_la_source")}
           </Button>
         </form>

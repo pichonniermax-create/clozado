@@ -39,7 +39,11 @@
       "revoquee": "Revoked"
     },
     "migration_manquante_titre": "Invitations are not enabled on this database yet",
-    "migration_manquante": "Migration 0018 (the invitations table) has not been applied: apply it (npm run db:migrate:http) and this screen opens. Nothing else is affected meanwhile."
+    "migration_manquante": "Migration 0018 (the invitations table) has not been applied: apply it (npm run db:migrate:http) and this screen opens. Nothing else is affected meanwhile.",
+    "ouvrir_l_espace": "Open the workspace",
+    "revoquer_titre": "Revoke this invitation?",
+    "revoquer_texte": "The link for {name} will no longer work: the person will need a new one.",
+    "annuler": "Cancel"
   },
   "actions": {
     "revoquee": "Invitation revoked: the link no longer works.",

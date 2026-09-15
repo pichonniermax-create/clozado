@@ -1,7 +1,10 @@
 {
   "breakdownTable": {
     "part": "Part",
-    "sans_montant": "{withoutAmount} sans montant"
+    "sans_montant": "{withoutAmount} sans montant",
+    "affaires": "Affaires",
+    "montant": "Montant",
+    "part_masquee": "Part du total masquée : il manque {missing, plural, one {# perte} other {# pertes}} pour la calculer."
   },
   "delais": {
     "aucun_indicateur_n_atteint_observations_sur_a750": "Aucun indicateur n’atteint {minObservations} observations sur cette sélection — élargis la période ou retire un filtre.",
@@ -36,14 +39,17 @@
       "stage_reconstructed": "{n, plural, one {# passage reconstitué écarté} other {# passages reconstitués écartés}}"
     },
     "cycle_pending": ", {n, plural, one {# en cours} other {# en cours}}",
-    "cycle_excluded": ", {n, plural, one {# écartée} other {# écartées}}"
+    "cycle_excluded": ", {n, plural, one {# écartée} other {# écartées}}",
+    "indicateur": "Indicateur"
   },
   "durationTable": {
     "masked_missing": "masqué : il manque {missing, plural, one {# observation} other {# observations}} pour afficher un chiffre",
     "mediane": "Médiane",
     "moyenne": "Moyenne",
     "no_observation": "aucune observation — il en faut {missing} pour afficher un chiffre",
-    "observations": "Observations"
+    "observations": "Observations",
+    "indicateur": "Indicateur",
+    "obs_abrege": "Obs."
   },
   "filtersBar": {
     "au_inclus": "Au (inclus)",
@@ -117,13 +123,18 @@
     "visites_et_simulations_sans_objet_par_d74a": "Visites et simulations : sans objet par conseiller.",
     "visiteurs": "Visiteurs",
     "voir_la_liste_de_ces_affaires": "Voir la liste de ces affaires",
-    "voir_les_affaires_qui_ont_atteint_f2c3": "Voir les affaires qui ont atteint cette étape"
+    "voir_les_affaires_qui_ont_atteint_f2c3": "Voir les affaires qui ont atteint cette étape",
+    "lead_affaire": "Lead → affaire",
+    "simulations_demarrees": "Simulations démarrées",
+    "simulations_terminees": "Simulations terminées"
   },
   "funnelSteps": {
     "deperdition": "Déperdition",
     "nombre": "Nombre",
     "plus_que_le_pas_precedent": "—<span>plus que le pas précédent</span>",
-    "taux_de_passage": "Taux de passage"
+    "taux_de_passage": "Taux de passage",
+    "etape": "Étape",
+    "masked_missing": "masqué : il manque {missing, plural, one {# observation} other {# observations}} au pas précédent"
   },
   "metricDefinitions": {
     "ce_qui_compte": "Ce qui compte",
@@ -132,11 +143,10 @@
     "donnees_insuffisantes": "Données insuffisantes",
     "ecarte": "Écarte",
     "filtres": "Filtres",
-    "mesure": "Mesure"
+    "mesure": "Mesure",
+    "voir_la_definition": "Voir la définition"
   },
   "origines": {
-    "a_rapprocher": "À rapprocher{n}",
-    "affaires_sans_origine_chez_des_contacts_f2d8": "Affaires sans origine chez des contacts qui ont un lead{n}",
     "ajouter": "Ajouter",
     "aucune_chaque_affaire_d_un_contact_2ec0": "Aucune — chaque affaire d’un contact venu par un lead porte son origine.",
     "aucune_origine_configuree": "Aucune origine configurée",
@@ -151,15 +161,18 @@
     "nouvelle_origine": "Nouvelle origine",
     "origine_existante": "Origine existante",
     "origines": "Origines",
-    "origines_configurees": "Origines configurées{n}",
     "ou_nouvelle_origine": "…ou nouvelle origine",
     "rattacher": "Rattacher",
-    "rien_a_rapprocher": "Rien à rapprocher",
     "simulateur_credit": "Simulateur crédit",
-    "tout_ce_qui_est_arrive_porte_5717": "Tout ce qui est arrivé porte une origine connue — ou rien n’est encore arrivé. Les textes inconnus envoyés par tes sites et simulateurs apparaîtront ici.",
     "tu_es_en_vue_globale": "Tu es en vue globale",
     "une_affaire_creee_avant_l_arrivee_0df8": "Une affaire créée avant l’arrivée du lead ne se rattache jamais toute seule : c’est un geste sur la fiche de l’affaire, journalisé.",
-    "une_origine_un_simulateur_une_page_9378": "Une origine = un simulateur, une page, une campagne. Les leads et les visites qui arrivent avec un texte inconnu attendent ici d’être rattachés — le rattachement s’applique à tout l’historique."
+    "une_origine_un_simulateur_une_page_9378": "Une origine = un simulateur, une page, une campagne. Les leads et les visites qui arrivent avec un texte inconnu attendent ici d’être rattachés — le rattachement s’applique à tout l’historique.",
+    "a_rapprocher_titre": "À rapprocher",
+    "rien_a_rapprocher_ligne": "Rien à rapprocher — tout ce qui est arrivé porte une origine connue.",
+    "origines_configurees_titre": "Origines configurées",
+    "creee_le_texte": "créée le {formatDate}",
+    "voir_le_funnel": "Voir le funnel",
+    "affaires_sans_origine_titre": "Affaires sans origine"
   },
   "partenaires": {
     "acceptation": "Acceptation",
@@ -196,7 +209,7 @@
     "partages": "Partages",
     "partenaire": "Partenaire",
     "partenaire_partenaires": "{label} — <span>{sent}</span> ({count} {count, plural, one {partenaire} other {partenaires}})",
-    "partenaires_et_commissions": "Partenaires et commissions",
+    "partenaires_et_commissions": "Partenariats et commissions",
     "pour": "pour <span>{formatEuros}</span>",
     "refuses": "Refusés",
     "retirer_les_filtres": "Retirer les filtres",
@@ -208,20 +221,22 @@
     "un_etat_pas_une_periode_la_12b8": "Un état, pas une période : la période ne s’y applique pas (conseiller, type, pipeline et origine, si). Le règlement se déclare depuis la pile « commissions à encaisser » du <link>suivi</link>.",
     "un_taux_calcule_sur_moins_de_e7e1": "Un taux calculé sur moins de {minObservations} observations est masqué ; nombres et montants s’affichent toujours. Les délais de réponse bornés sur la date de réponse se lisent dans <link>Analytique → Délais</link>; les seuils de relance se règlent dans <link2>Marque & réglages</link2>.",
     "vieillissement_des_commissions_confirmees_non_reglees": "Vieillissement des commissions confirmées non réglées",
-    "voir_les_partenaires_ouvrir_le_pipeline": "<link>Voir les partenaires</link><link2>Ouvrir le pipeline</link2>"
+    "voir_les_partenaires_ouvrir_le_pipeline": "<link>Voir les partenaires</link><link2>Ouvrir le pipeline</link2>",
+    "inactif": "inactif",
+    "n_en_attente": "{n} en attente",
+    "n_expires": "{n, plural, one {# expiré} other {# expirés}}",
+    "n_revoques": "{n, plural, one {# révoqué} other {# révoqués}}",
+    "n_sans_montant": "{n} sans montant"
   },
   "pertes": {
-    "affaire_perdue_affaires_perdues": "{n, plural, one {# affaire perdue} other {# affaires perdues}}",
     "analyse_des_pertes": "Analyse des pertes",
     "aucune_affaire_perdue_a_cette_date_185c": "Aucune affaire perdue à cette date, pour ce conseiller, ce type, ce pipeline ou cette origine — élargis la période ou retire un filtre.",
     "aucune_affaire_perdue_pour_l_instant": "Aucune affaire perdue pour l’instant",
     "aucune_perte_sur_cette_selection": "Aucune perte sur cette sélection",
     "choisis_une_organisation_dans_le_bandeau_593c": "Choisis une organisation dans le bandeau super admin en haut de l’écran pour voir ses pertes — un agrégat ne traverse jamais la frontière entre deux organisations.",
     "conseiller": "Conseiller",
-    "de_montant_estime_perdu": "<span>{formatEuros}</span> de montant estimé perdu",
     "etape": "Étape",
     "filtre_sur_un_pipeline_pour_ouvrir_614b": "Filtre sur un pipeline pour ouvrir la liste des affaires de chaque ligne.",
-    "gagnee_gagnees_sur_la_meme_periode": "· <span>{won, plural, one {# gagnée} other {# gagnées}}</span> sur la même période ·",
     "gagnees_sur_la_periode": "Gagnées sur la période — <span>{won}</span>",
     "jamais_datees_par_une_valeur_plausible": "— jamais datées par une valeur plausible.",
     "l_etape_d_ou_l_affaire_baa2": "L’étape d’où l’affaire est tombée. « Dès la création » : née perdue.",
@@ -229,7 +244,6 @@
     "le_responsable_de_l_affaire_aujourd_701f": "Le responsable de l’affaire aujourd’hui (les réaffectations ne sont pas historisées).",
     "le_type_de_l_affaire_aujourd_f9d6": "Le type de l’affaire aujourd’hui.",
     "masque_il_manque_affaire_affaires_close_3720": "(masqué : il manque {missing} {missing, plural, one {affaire} other {affaires}} {missing, plural, one {close} other {closes}})",
-    "montant_estime_perdu_inconnu_sans_montant": "montant estimé perdu inconnu <span>({n} sans montant)</span>",
     "montant_inconnu": "montant inconnu",
     "montant_perdu": "Montant perdu",
     "motif": "Motif",
@@ -244,12 +258,16 @@
     "rien_a_repartir_sur_cette_selection": "Rien à répartir sur cette sélection.",
     "sans_montant": "({withoutAmount} sans montant)",
     "sur_la_periode": "Sur la période",
-    "taux_de_perte": "taux de perte",
     "tu_es_en_vue_globale": "Tu es en vue globale",
     "type": "Type",
     "une_part_calculee_sur_moins_de_19ce": "Une part calculée sur moins de {minObservations} pertes est masquée ; nombres et montants s’affichent toujours. Les motifs se configurent dans <link>Marque & réglages</link>; le funnel montre depuis quelle étape les affaires se perdent, en volume, dans <link2>Analytique → Funnel</link2>.",
     "une_perte_se_compte_quand_une_1fd0": "Une perte se compte quand une affaire est déplacée dans l’étape marquée « perdu », avec son motif : c’est ce geste qui nourrit cet écran.",
     "voir_ces_affaires": "Voir ces affaires",
-    "pertes_anterieures_ecartees": ", {n, plural, one {# perte antérieure au journal écartée (date inconnue)} other {# pertes antérieures au journal écartées (date inconnue)}}"
+    "pertes_anterieures_ecartees": ", {n, plural, one {# perte antérieure au journal écartée (date inconnue)} other {# pertes antérieures au journal écartées (date inconnue)}}",
+    "affaires_perdues": "Affaires perdues",
+    "montant_estime_perdu": "Montant estimé perdu",
+    "montant_inconnu_n_sans_montant": "{n, plural, one {# affaire sans montant} other {# affaires sans montant}}",
+    "gagnees_sur_la_meme_periode": "Gagnées sur la même période",
+    "taux_de_perte_titre": "Taux de perte"
   }
 }

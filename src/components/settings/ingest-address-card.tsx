@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import type { Organization } from "@/db/schema";
 import { renewIngestAddressAction, saveInboundBodiesAction } from "@/lib/email/actions";
 import { ingestAddress } from "@/lib/email/inbound/address";
@@ -29,7 +31,7 @@ export function IngestAddressCard({
   const address = org.ingestToken && inboundDomain ? ingestAddress(org.ingestToken, inboundDomain) : null;
 
   return (
-    <Card id="ingestion" className="scroll-mt-24">
+    <Card id="ingestion" className="scroll-mt-32">
       <CardHeader>
         <CardTitle>{t("adresse_d_ingestion")}</CardTitle>
         <CardDescription>{t("transfere_un_email_ou_mets_la_en_copie")}</CardDescription>
@@ -38,14 +40,19 @@ export function IngestAddressCard({
         {!inboundDomain ? (
           <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm text-pretty">{t("reception_non_configuree")}</p>
         ) : !address ? (
-          <>
-            <p className="text-sm text-pretty">{t("aucune_adresse_pour_l_instant")}</p>
-            {!readOnly && (
-              <form action={renewIngestAddressAction}>
-                <Button type="submit" className="w-fit">{t("creer_l_adresse")}</Button>
-              </form>
-            )}
-          </>
+          // L'état vide du socle, comme la carte Collecte : un titre, l'explication, le geste.
+          <EmptyState
+            title={t("aucune_adresse_titre")}
+            action={
+              !readOnly && (
+                <form action={renewIngestAddressAction}>
+                  <Button type="submit">{t("creer_l_adresse")}</Button>
+                </form>
+              )
+            }
+          >
+            {t("aucune_adresse_pour_l_instant")}
+          </EmptyState>
         ) : (
           <>
             <div className="flex flex-wrap items-center gap-2">
@@ -60,21 +67,25 @@ export function IngestAddressCard({
             {!readOnly && (
               <form action={saveInboundBodiesAction} className="flex flex-col gap-3 border-t border-border pt-4">
                 <label className="flex items-start gap-2 text-sm">
-                  <input type="checkbox" name="storeBodies" defaultChecked={org.storeInboundBodies} className="mt-0.5 size-4 rounded border-input" />
+                  <input type="checkbox" name="storeBodies" defaultChecked={org.storeInboundBodies} className="mt-0.5" />
                   <span className="flex flex-col gap-0.5">
                     <span className="font-medium">{t("conserver_le_corps")}</span>
                     <span className="text-xs text-muted-foreground text-pretty">{t("sinon_le_corps_n_est_pas_ecrit")}</span>
                   </span>
                 </label>
-                <Button type="submit" variant="outline" size="sm" className="w-fit">{t("enregistrer_le_reglage")}</Button>
+                {/* L'enregistrement d'une carte est toujours le bouton primaire, même taille partout. */}
+                <Button type="submit" className="w-fit">{t("enregistrer_le_reglage")}</Button>
               </form>
             )}
 
             {!readOnly && (
-              <form action={renewIngestAddressAction} className="flex flex-col gap-2 border-t border-border pt-4">
+              <div className="flex flex-col gap-2 border-t border-border pt-4">
                 <p className="text-xs text-muted-foreground text-pretty">{t("regenerer_coupe_l_ancienne")}</p>
-                <Button type="submit" variant="ghost" size="sm" className="w-fit">{t("regenerer_l_adresse")}</Button>
-              </form>
+                {/* Régénérer coupe l'ancienne adresse sur-le-champ : une confirmation, pas un clic. */}
+                <ConfirmSubmit action={renewIngestAddressAction} title={t("regenerer_titre")} description={t("regenerer_coupe_l_ancienne")} confirmLabel={t("regenerer_l_adresse")} cancelLabel={t("annuler")} className="w-fit text-destructive hover:text-destructive">
+                  {t("regenerer_l_adresse")}
+                </ConfirmSubmit>
+              </div>
             )}
           </>
         )}

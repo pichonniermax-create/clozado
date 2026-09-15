@@ -78,7 +78,7 @@
     "ajouter_un_chiffre": "Ajouter un chiffre",
     "aucun_indicateur_suivi_pour_l_instant": "Aucun indicateur suivi pour l’instant",
     "aucun_pack_metier_n_est_choisi_757c": "Aucun pack métier n’est choisi : ce sont les indicateurs « Tout métier ». <link>Choisir mon métier</link>.",
-    "autres_indicateurs_disponibles": "Autres indicateurs disponibles ({n})",
+    "autres_indicateurs_disponibles": "Suivre d’autres indicateurs ({n})",
     "cabinet_dupont_bilan_2025": "Cabinet Dupont — bilan 2025",
     "chaque_indicateur_suivi_est_copie_dans_659c": "Chaque indicateur suivi est copié dans les chiffres vérifiés avec sa période et sa source, mis à jour par la collecte — jamais à la main. Une source muette laisse la dernière valeur affichée, avec sa date.",
     "chiffre_chiffres_de_l_organisation": "{count} {count, plural, one {chiffre} other {chiffres}} de l’organisation",
@@ -115,7 +115,14 @@
     "tu_es_en_vue_globale_choisis_d645": "Tu es en vue globale : choisis une organisation dans le bandeau super admin en haut de l’écran pour voir ses chiffres.",
     "un_chiffre_sans_source_ou_sans_0ada": "Un chiffre sans source ou sans date est marqué « à compléter » et n’est pas transmis au composer tant qu’il l’est — la règle « aucun chiffre sans sa date et sa source » vaut aussi pour les chiffres internes.",
     "valeur_telle_qu_elle_se_cite": "Valeur, telle qu’elle se cite",
-    "description": "La source unique des chiffres que le composer a le droit de citer — chacun avec sa source et sa date. Les indicateurs de marché s’y copient tout seuls, datés et sourcés."
+    "description": "La source unique des chiffres que le composer a le droit de citer — chacun avec sa source et sa date. Les indicateurs de marché s’y copient tout seuls, datés et sourcés.",
+    "supprimer_ce_chiffre": "Supprimer ce chiffre ?",
+    "le_composer_ne_pourra_plus": "« {label} » disparaît des chiffres vérifiés : le composer ne pourra plus le citer.",
+    "ne_plus_suivre_cet_indicateur": "Ne plus suivre cet indicateur ?",
+    "ne_plus_suivre_description": "Sa valeur ne sera plus relue ni copiée dans les chiffres vérifiés.",
+    "annuler": "Annuler",
+    "depuis_le_periode": "depuis le {period}",
+    "au_periode": "au {period}"
   },
   "periods": {
     "quarter": "{quarter, selectordinal, one {#er} other {#e}} trimestre {year}"

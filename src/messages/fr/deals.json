@@ -19,7 +19,7 @@
     "envoye_le": "<span>{partnerName}</span><span2>Envoyé le {formatDate}{n}</span2>",
     "etape": "Étape",
     "expire_le": "· expire le {formatDate}",
-    "gagne": "(gagné)",
+    "gagne": "· gagné",
     "interactions_etapes_franchies_partages_et_taches_3236": "Interactions, étapes franchies, partages et tâches achevées sur cette affaire — une interaction consignée ici se retrouve aussi sur la fiche du client.",
     "la_liste_se_configure_dans_marque_d1d6": "La liste se configure dans Marque & réglages.",
     "lead_a_l_origine_de_l_9387": "Lead à l’origine de l’affaire",
@@ -29,7 +29,7 @@
     "motif_de_perte": "Motif de perte",
     "origine": "Origine",
     "partage_partages": "{count} {count, plural, one {partage} other {partages}}",
-    "perdu": "(perdu)",
+    "perdu": "· perdu",
     "personne": "Personne",
     "pipeline": "Pipeline",
     "pose_automatiquement_a_la_creation_depuis_4f3d": "Posé automatiquement à la création depuis le dernier lead reçu avant. Un lead arrivé après ne se rattache qu’ici — et c’est journalisé.",
@@ -42,7 +42,10 @@
     "statut_de_l_affaire": "Statut de l’affaire",
     "temps_par_etape": "Temps par étape",
     "vide_celle_de_l_etape": "Vide = celle de l’étape ({formatPercent}).",
-    "vide_celle_de_l_etape_f17a": "Vide = celle de l’étape."
+    "vide_celle_de_l_etape_f17a": "Vide = celle de l’étape.",
+    "depuis_n": "depuis {n}",
+    "affaire_close_pas_de_partage": "Cette affaire est close : elle ne se partage plus. Ses partages passés restent au-dessus.",
+    "partager_cette_affaire": "Partager cette affaire"
   },
   "detailNotFound": {
     "cette_affaire_n_existe_pas": "Cette affaire n’existe pas.",
@@ -56,7 +59,9 @@
     "le_deplacement_a_echoue_de_notre_9277": "Le déplacement a échoué de notre côté — réessaie.",
     "motif_de_perte": "Motif de perte",
     "motif_de_perte_c1b7": "Motif de perte ?",
-    "perdu": "· perdu"
+    "perdu": "· perdu",
+    "deplacer_vers": "Déplacer vers",
+    "cloture_depassee": "Clôture prévue dépassée"
   },
   "list": {
     "affaire": "Affaire",
@@ -114,7 +119,8 @@
     "toutes_les_etapes": "Toutes les étapes",
     "tu_es_en_vue_globale": "Tu es en vue globale",
     "type": "Type",
-    "un_pipeline_est_une_famille_d_ad50": "Un pipeline est une famille d’affaires avec ses propres étapes (crédit, placement, transaction…). Il se crée depuis Marque & réglages."
+    "un_pipeline_est_une_famille_d_ad50": "Un pipeline est une famille d’affaires avec ses propres étapes (crédit, placement, transaction…). Il se crée depuis Marque & réglages.",
+    "cloture_depassee": "Clôture prévue dépassée"
   },
   "queries": {
     "defaultPipeline": "Affaires",

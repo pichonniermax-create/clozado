@@ -66,16 +66,17 @@ export default async function PartnersPage({
             <Field label={t("metier")} htmlFor="profession">
               <Input id="profession" name="profession" placeholder={t("cgp_courtier_credit")} />
             </Field>
-            <Field label={t("email")} htmlFor="email">
+            <Field label={t("telephone")} htmlFor="phone">
+              <Input id="phone" name="phone" type="tel" />
+            </Field>
+            {/* Le même ordre que la fiche : l'email sur toute la ligne, les notes en dessous — aucune cellule vide. */}
+            <Field label={t("email")} htmlFor="email" className="sm:col-span-2">
               <Input id="email" name="email" type="email" />
             </Field>
-            <Field label={t("telephone")} htmlFor="phone">
-              <Input id="phone" name="phone" />
+            <Field label={t("notes")} htmlFor="notes" className="sm:col-span-2">
+              <Textarea id="notes" name="notes" className="min-h-16" />
             </Field>
           </div>
-          <Field label={t("notes")} htmlFor="notes">
-            <Textarea id="notes" name="notes" className="min-h-16" />
-          </Field>
           <Button type="submit" className="w-fit">
             {t("ajouter_le_partenaire")}
           </Button>

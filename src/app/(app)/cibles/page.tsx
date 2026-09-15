@@ -5,6 +5,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListCard, ListRowLink } from "@/components/ui/list-card";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { PageHeader } from "@/components/app-shell/page-header";
 import {
   countMembersByTarget,
@@ -89,13 +90,12 @@ export default async function TargetsPage() {
         </EmptyState>
       ) : (
         <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold tabular-nums">
-            {tr("cible_cibles_active_actives", { count: active.length })}
-          </h2>
+          <SectionHeading title={tr("cibles_actives")} count={active.length} />
           <ListCard>
             {active.map((t) => {
               const n = counts.get(t.id) ?? 0;
               const missing = missingIdentityFacets(t);
+              // Le nombre seul sous sm (le mot reste lu par le lecteur d'écran) : « 27 contacts » tronquait les critères, la seule chose qui distingue deux cibles.
               return (
                 <ListRowLink
                   key={t.id}
@@ -110,7 +110,8 @@ export default async function TargetsPage() {
                   subtitle={describeTarget(t, options, tt).join(" · ")}
                   trailing={
                     <span className="text-sm font-medium tabular-nums">
-                      {tr("contact_contacts", { n })}
+                      {n}
+                      <span className="ml-1 font-normal text-muted-foreground max-sm:sr-only">{tr("contacts_mot", { n })}</span>
                     </span>
                   }
                 />
@@ -120,8 +121,9 @@ export default async function TargetsPage() {
         </section>
       )}
 
+      {/* Une proposition de CRÉATION, pas une archive : le ton « + », pas le chevron gris. */}
       {active.length > 0 && proposals.length > 0 && (
-        <DetailsCard variant="archive" summary={tr("cibles_proposees_par_ton_metier", { label: tm(`packs.${pack.key}.label`), count: proposals.length })}>
+        <DetailsCard variant="create" summary={tr("cibles_proposees_par_ton_metier", { label: tm(`packs.${pack.key}.label`), count: proposals.length })}>
           <div className="flex flex-col gap-3">
             <ul className="flex flex-col gap-1.5 text-sm">
               {proposals.map((p) => (

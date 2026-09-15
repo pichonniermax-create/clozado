@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -267,7 +268,13 @@ export function ShareComposer({
               </Select>
               {partners.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                  {t("aucun_partenaire_actif_ajoutez_en_un_de95")}
+                  {t.rich("aucun_partenaire_actif_ajoutez_en_un_de95", {
+                    link: (chunks) => (
+                      <Link href="/partenaires?nouveau=1" className="text-primary-ink underline-offset-2 hover:underline">
+                        {chunks}
+                      </Link>
+                    ),
+                  })}
                 </p>
               )}
             </Field>
@@ -302,7 +309,7 @@ export function ShareComposer({
                 min={today}
                 value={expiresAt}
                 onChange={(e) => setExpiresAt(e.target.value)}
-                className="w-48"
+                className="w-full sm:w-48"
               />
             </Field>
           </CardContent>
@@ -462,9 +469,13 @@ export function ShareComposer({
         <Card>
           <CardHeader>
             <CardTitle>{t("apercu")}</CardTitle>
+            {/* Une seule étiquette : la bannière « Aperçu — ce que le partenaire verra » du composant ne s'affiche plus ici. */}
+            <CardDescription>{t("ce_que_le_partenaire_verra")}</CardDescription>
           </CardHeader>
-          <CardContent className="max-h-[80vh] overflow-y-auto rounded-md border">
-            <PartnerShareView token="" initialView={draftView} preview />
+          {/* Le défilement interne n'a de sens qu'à côté du formulaire (dès lg) : sur téléphone, il piégeait le
+              défilement de la page sous une zone de 80 % d'écran. */}
+          <CardContent className="rounded-md border lg:max-h-[80vh] lg:overflow-y-auto">
+            <PartnerShareView token="" initialView={draftView} preview previewBanner={false} />
           </CardContent>
         </Card>
       </div>

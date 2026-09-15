@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Ban, MailPlus, Send } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/app-shell/page-header";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ListCard, ListRow } from "@/components/ui/list-card";
+import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
 import { Textarea } from "@/components/ui/textarea";
+import { setActiveOrganizationAction } from "@/lib/admin/actions";
 import {
   DEFAULT_INVITATION_VALIDITY_DAYS,
   INVITATION_VALIDITY_DAYS,
@@ -35,12 +38,20 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 
-const STATUS_VARIANT: Record<InvitationStatus, "secondary" | "default" | "outline" | "destructive"> = {
-  en_attente: "secondary",
-  utilisee: "default",
-  expiree: "outline",
-  revoquee: "destructive",
+/** La grammaire commune des statuts : ce qui attend un geste en ambre, ce qui a abouti en vert, les fins normales en neutre. */
+const STATUS_TONE: Record<InvitationStatus, StatusTone> = {
+  en_attente: "warning",
+  utilisee: "success",
+  expiree: "neutral",
+  revoquee: "neutral",
 };
+
+/** « Ouvrir l'espace » d'une invitation utilisée : la substitution du super admin, puis le tableau de bord. */
+async function openWorkspace(formData: FormData) {
+  "use server";
+  await setActiveOrganizationAction(String(formData.get("organizationId") ?? "") || null);
+  redirect("/dashboard");
+}
 
 /**
  * /invitations — l'espace gestionnaire des liens de création d'espace
@@ -72,6 +83,8 @@ export default async function InvitationsPage({
   const [invitations, origin] = await Promise.all([listWorkspaceInvitations(user), requestOrigin()]);
   const highlighted = params.nouvelle ? (invitations.find((row) => row.id === params.nouvelle && row.token) ?? null) : null;
   const pending = invitations.filter((row) => row.status === "en_attente").length;
+  // Ce qui attend un geste d'abord (audit UI du 2026-09-14) : la seule invitation actionnable se retrouvait en 4e position, entre des révoquées et des utilisées.
+  const ordered = [...invitations.filter((row) => row.status === "en_attente"), ...invitations.filter((row) => row.status !== "en_attente")];
 
   return (
     <>
@@ -147,7 +160,7 @@ export default async function InvitationsPage({
         <section className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">{t("en_attente_count", { count: pending })}</p>
           <ListCard>
-            {invitations.map((row) => (
+            {ordered.map((row) => (
               <InvitationRow key={row.id} row={row} origin={origin} />
             ))}
           </ListCard>
@@ -168,14 +181,14 @@ async function InvitationRow({ row, origin }: { row: InvitationListItem; origin:
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
           {row.organizationName}
-          <Badge variant={STATUS_VARIANT[row.status]}>{t(`statut.${row.status}`)}</Badge>
+          <StatusBadge tone={STATUS_TONE[row.status]}>{t(`statut.${row.status}`)}</StatusBadge>
+          {row.status === "utilisee" && row.organization && <Badge variant="outline">{row.organization.name}</Badge>}
         </span>
         <span className="truncate text-xs text-muted-foreground">{row.email ?? t("lien_ouvert")}</span>
         <span className="text-xs text-muted-foreground">{meta.join(" · ")}</span>
         {row.status === "utilisee" && row.usedAt && (
           <span className="text-xs text-muted-foreground">
             {t("espace_cree_le", { date: fmt.date(row.usedAt), email: row.usedByEmail ?? "—" })}
-            {row.organization && ` · ${row.organization.name} (${row.organization.slug})`}
           </span>
         )}
         {row.status === "revoquee" && row.revokedAt && <span className="text-xs text-muted-foreground">{t("revoquee_le", { date: fmt.date(row.revokedAt) })}</span>}
@@ -183,25 +196,39 @@ async function InvitationRow({ row, origin }: { row: InvitationListItem; origin:
         {row.note && <span className="text-xs text-muted-foreground italic">{row.note}</span>}
       </div>
       {pending && (
+        // Des gestes de taille normale (28 px à la souris, 40 px au doigt), et « Révoquer » — irréversible — derrière une confirmation.
         <div className="flex flex-wrap items-center gap-1.5">
-          {row.token && <CopyButton value={invitationUrl(origin, row.token)} label={t("copier_le_lien")} />}
+          {row.token && <CopyButton value={invitationUrl(origin, row.token)} label={t("copier_le_lien")} size="sm" />}
           {row.email && (
             <form action={sendInvitationEmailAction}>
               <input type="hidden" name="id" value={row.id} />
-              <Button type="submit" variant="ghost" size="xs">
+              <Button type="submit" variant="ghost" size="sm">
                 <Send />
                 {row.sentAt ? t("renvoyer_l_email") : t("envoyer_par_email")}
               </Button>
             </form>
           )}
-          <form action={revokeInvitationAction}>
-            <input type="hidden" name="id" value={row.id} />
-            <Button type="submit" variant="ghost" size="xs" className="text-destructive hover:text-destructive">
-              <Ban />
-              {t("revoquer")}
-            </Button>
-          </form>
+          <ConfirmSubmit
+            action={revokeInvitationAction}
+            fields={{ id: row.id }}
+            title={t("revoquer_titre")}
+            description={t("revoquer_texte", { name: row.organizationName })}
+            confirmLabel={t("revoquer")}
+            cancelLabel={t("annuler")}
+            className="text-destructive hover:text-destructive"
+          >
+            <Ban />
+            {t("revoquer")}
+          </ConfirmSubmit>
         </div>
+      )}
+      {row.status === "utilisee" && row.organization && (
+        <form action={openWorkspace}>
+          <input type="hidden" name="organizationId" value={row.organization.id} />
+          <Button type="submit" variant="outline" size="sm">
+            {t("ouvrir_l_espace")}
+          </Button>
+        </form>
       )}
     </ListRow>
   );

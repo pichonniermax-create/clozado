@@ -58,10 +58,10 @@ export function ReissueShareButton({ shareId }: { shareId: string }) {
           onFocus={(e) => e.currentTarget.select()}
         />
         <div className="flex gap-2">
-          <Button size="sm" onClick={copy}>
+          <Button size="sm" className="h-10 px-3 sm:h-7 sm:px-2.5" onClick={copy}>
             {copied ? t("copie") : t("copier_le_lien")}
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => router.refresh()}>
+          <Button size="sm" variant="ghost" className="h-10 px-3 sm:h-7 sm:px-2.5" onClick={() => router.refresh()}>
             {t("termine")}
           </Button>
         </div>
@@ -72,8 +72,10 @@ export function ReissueShareButton({ shareId }: { shareId: string }) {
   return (
     // `outline` et non `ghost` : c'est l'action principale de la pile
     // « partages sans réponse » de l'écran de suivi — invisible tant qu'on
-    // ne la survole pas, elle ne se donnait pas pour un bouton.
-    <Button type="button" variant="outline" size="sm" onClick={reissue} disabled={pending}>
+    // ne la survole pas, elle ne se donnait pas pour un bouton. 40 px de
+    // haut sous sm : sur un téléphone il passe sous le texte et devient la
+    // seule cible de la ligne (audit UI du 2026-09-14).
+    <Button type="button" variant="outline" size="sm" className="h-10 px-3 sm:h-7 sm:px-2.5" onClick={reissue} disabled={pending}>
       {pending ? "…" : t("renvoyer_le_lien")}
     </Button>
   );

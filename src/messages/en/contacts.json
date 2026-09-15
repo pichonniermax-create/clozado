@@ -62,7 +62,7 @@
     "cree_la_premiere_depuis_le_pipeline": "create the first one from the pipeline",
     "creee_le": "Created on {formatDate}",
     "creee_pour_toute_l_organisation_et_98c8": "Created for the whole organization and applied to this record.",
-    "dans_les_cibles": "In audiences:",
+    "dans_les_cibles": "In audiences",
     "date_de_naissance": "Date of birth",
     "doublons_possibles": "Possible duplicates",
     "elles_apparaitront_ici": "they will show up here",
@@ -114,11 +114,12 @@
     },
     "indicateurs": {
       "dernier_email_ouvert": "Last email opened",
-      "approx": "Approximate — a preload counts as an open",
+      "approx": "Approximate (a preload counts as an open)",
       "dernier_clic": "Last click",
       "derniere_interaction": "Last interaction",
       "interaction_def": "Call, email, held appointment, note, or click",
-      "dernier_rendez_vous": "Last appointment"
+      "dernier_rendez_vous": "Last appointment",
+      "jamais": "Never"
     },
     "emailState": {
       "queued": "queued",
@@ -130,7 +131,9 @@
       "failed": "send failed",
       "opened": "opened (approx.)",
       "clicked": "clicked"
-    }
+    },
+    "nouvelle_affaire": "New deal",
+    "annuler": "Cancel"
   },
   "detailNotFound": {
     "cette_fiche_n_existe_pas": "This record doesn’t exist.",
@@ -184,7 +187,11 @@
     "raison": "Reason",
     "sans_titre": "(untitled)",
     "si_une_fiche_existe_deja_meme_8c50": "If a record already exists (same email)",
-    "voir_les_contacts": "See contacts"
+    "voir_les_contacts": "See contacts",
+    "choisir_un_fichier_csv": "Choose a CSV file",
+    "ou_depose_le_ici": "or drop it here",
+    "colonnes_reconnues": "Columns recognised automatically — the others will be offered for mapping",
+    "telecharger_un_modele": "Download a CSV template"
   },
   "list": {
     "aucun_contact_ne_correspond_a_cette_e658": "No contacts match this search",
@@ -199,13 +206,14 @@
     "pour": "for “{q}”",
     "precedents": "← Previous",
     "rechercher": "Search",
-    "rechercher_un_nom_un_email_une_15ed": "Search by name, email, company, phone…",
+    "rechercher_un_nom_un_email_une_15ed": "Name, email, company, phone…",
     "societe": "Company",
     "suivants": "Next →",
     "tes_clients_et_prospects_personnes_et_1688": "Your clients and prospects — people and companies, with their deals, tasks and exchanges.",
     "tes_clients_et_prospects_personnes_et_e0e9": "Your clients and prospects, people and companies: each record links its deals, tasks and exchanges. A CSV import from your CRM is the fastest way in.",
     "tous_les_conseillers": "All advisors",
-    "tout_afficher": "Show all"
+    "tout_afficher": "Show all",
+    "conseiller": "Adviser"
   },
   "queries": {
     "affaires_en_cours": "Open deals: {join}.",

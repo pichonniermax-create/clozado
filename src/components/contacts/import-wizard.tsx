@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { TriangleAlert, Upload } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   importContactsAction,
@@ -129,9 +132,9 @@ export function ImportWizard() {
   const [sending, setSending] = useState(false);
   const [readError, setReadError] = useState<string | null>(null);
 
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Un seul chemin pour le choix et le dépôt d'un fichier (audit UI du 2026-09-14 : champ natif en anglais système,
+  // sans zone de dépôt) ; l'input est remis à vide après lecture, pour pouvoir rechoisir le même fichier après une erreur.
+  async function handleFile(file: File) {
     setReport(null);
     setReadError(null);
     try {
@@ -189,17 +192,23 @@ export function ImportWizard() {
 
   const preview = parsed?.rows.slice(0, 5) ?? [];
 
+  // Les en-têtes traduits sont exactement ceux que `guessTarget` reconnaît : le modèle s'importe sans correspondance à faire.
+  const recognized = TARGETS.filter((v): v is ImportField => Boolean(v));
+  const templateHref = "data:text/csv;charset=utf-8," + encodeURIComponent(recognized.map((v) => tr(`fields.${v}`)).join(";") + "\n");
+
   if (report) {
     return (
       <div className="flex flex-col gap-4">
-        <div className="rounded-xl border border-border bg-card p-4">
+        <Card>
+          <CardContent>
           <p className="text-sm font-medium tabular-nums">
             {tr("fiche_fiches_creee_creees", { inserted: report.inserted, n: (report.completed.length > 0 &&
               tr("completee_completees", { count: report.completed.length })) || "", n2: (report.skipped.length > 0 &&
               tr("ligne_lignes_ecartee_ecartees", { count: report.skipped.length })) || "" })}
           </p>
           {report.error && <p className="mt-2 text-sm text-destructive">{report.error}</p>}
-        </div>
+          </CardContent>
+        </Card>
 
         {report.completed.length > 0 && (
           <section className="flex flex-col gap-2">
@@ -274,20 +283,51 @@ export function ImportWizard() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <label htmlFor="csv" className="text-sm font-medium">
-          {tr("fichier_csv")}
+        <p className="text-sm font-medium">{tr("fichier_csv")}</p>
+        {/* La zone de dépôt : un bouton du socle et une phrase traduite — plus jamais « Choose File / No file chosen ». */}
+        <label
+          htmlFor="csv"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            const f = e.dataTransfer.files?.[0];
+            if (f) handleFile(f);
+          }}
+          className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center transition-colors hover:bg-muted/40 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
+        >
+          <Upload className="size-5 text-muted-foreground" />
+          <span className={buttonVariants({ variant: "outline", size: "sm" })}>{tr("choisir_un_fichier_csv")}</span>
+          <span className="text-xs text-muted-foreground">{fileName ?? tr("ou_depose_le_ici")}</span>
         </label>
         <input
           id="csv"
           type="file"
           accept=".csv,text/csv"
-          onChange={onFile}
-          className="w-fit text-sm file:mr-3 file:rounded-lg file:border file:border-border file:bg-card file:px-3 file:py-1.5 file:text-sm file:font-medium"
+          className="sr-only"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleFile(f);
+            e.target.value = "";
+          }}
         />
         <p className="text-xs text-muted-foreground">
           {tr("premiere_ligne_en_tetes_separateur_point_76d7")}
         </p>
         {readError && <p className="text-sm text-destructive">{readError}</p>}
+        {/* Ce que le fichier peut contenir : les colonnes reconnues d'office, et un modèle à télécharger. */}
+        <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
+          <p className="text-sm font-medium">{tr("colonnes_reconnues")}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {recognized.map((v) => (
+              <Badge key={v} variant="secondary">
+                {tr(`fields.${v}`)}
+              </Badge>
+            ))}
+          </div>
+          <a href={templateHref} download="contacts-modele.csv" className="w-fit text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground">
+            {tr("telecharger_un_modele")}
+          </a>
+        </div>
       </div>
 
       {parsed && (
@@ -314,7 +354,9 @@ export function ImportWizard() {
                           value={mapping[i] ?? ""}
                           onChange={(e) =>
                             setMapping((m) => m.map((x, j) => (j === i ? (e.target.value as ImportField | "") : x)))
-                          } className="w-auto max-w-full"
+                          }
+                          aria-label={`${tr("devient")} — ${h || tr("sans_titre")}`}
+                          className="w-auto max-w-full"
                         >
                           {TARGETS.map((value) => (
                             <option key={value} value={value}>
@@ -332,7 +374,8 @@ export function ImportWizard() {
               </table>
             </div>
             {!hasName && (
-              <p className="text-sm text-warning">
+              <p className="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">
+                <TriangleAlert className="size-4 shrink-0 text-warning" />
                 {tr("associe_au_moins_une_colonne_a_84f6")}
               </p>
             )}

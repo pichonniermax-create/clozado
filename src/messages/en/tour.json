@@ -7,7 +7,9 @@
     "terminer": "Finish",
     "fermer": "Close the tour",
     "voir_cet_ecran": "Open this screen",
-    "terminee": "Tour finished. Your first steps are waiting on the dashboard."
+    "terminee": "Tour finished. Your first steps are waiting on the dashboard.",
+    "reduire": "Collapse the tour",
+    "agrandir": "Resume"
   },
   "steps": {
     "bienvenue": {

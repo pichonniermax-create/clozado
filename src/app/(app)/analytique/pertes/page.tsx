@@ -1,13 +1,13 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { TrendingDown } from "lucide-react";
+import { Banknote, Percent, TrendingDown, Trophy } from "lucide-react";
 import { BreakdownTable, type BreakdownRow } from "@/components/analytics/breakdown-table";
 import { dealsListHref } from "@/components/analytics/deals-list-href";
+import { DATA_LINK_CLASS, DefinitionLink } from "@/components/analytics/definition-link";
 import { AnalyticsFiltersBar } from "@/components/analytics/filters-bar";
-import { rateText } from "@/components/analytics/funnel-steps";
-import { definitionAnchor, MetricDefinitions } from "@/components/analytics/metric-definitions";
+import { MetricDefinitions } from "@/components/analytics/metric-definitions";
 import { periodPhrase } from "@/lib/metrics/period-phrase";
 import { PageHeader } from "@/components/app-shell/page-header";
+import { StatTile } from "@/components/stat-tile";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { listOrigins } from "@/db/queries/acquisition";
@@ -34,15 +34,6 @@ import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 
 const BASE_PATH = "/analytique/pertes";
-
-
-function DefinitionLink({ id, children }: { id: keyof typeof METRICS; children: ReactNode }) {
-  return (
-    <a href={`#${definitionAnchor(METRICS[id])}`} className="underline-offset-2 hover:underline">
-      {children}
-    </a>
-  );
-}
 
 /** L'état sans perte : une bonne nouvelle ou un pipeline pas tenu — l'inventaire le dit, avec les gestes. */
 function NotEnoughData({ report, filtered }: { report: LossesReport; filtered: boolean }) {
@@ -109,7 +100,7 @@ function BreakdownSection({
     return {
       key: row.key,
       label: over ? (
-        <Link href={dealsListHref(parsed, scopedPipelineId!, { cohorte: "perte", ...over })} className="underline-offset-2 hover:underline" title={t("voir_ces_affaires")}>
+        <Link href={dealsListHref(parsed, scopedPipelineId!, { cohorte: "perte", ...over })} className={DATA_LINK_CLASS} title={t("voir_ces_affaires")}>
           {row.label}
         </Link>
       ) : (
@@ -130,7 +121,7 @@ function BreakdownSection({
       {tableRows.length === 0 ? (
         <EmptyState>{t("rien_a_repartir_sur_cette_selection")}</EmptyState>
       ) : (
-        <BreakdownTable rows={tableRows} labelHeader={labelHeader} amountHeader={t("montant_perdu")} />
+        <BreakdownTable rows={tableRows} labelHeader={labelHeader} amountHeader={t("montant_perdu")} caption={title} />
       )}
     </section>
   );
@@ -172,8 +163,8 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
   const scopedPipelineId = parsed.filters.pipelineId ?? (pipelines.length === 1 ? pipelines[0].id : null);
   const hasData = lossesHasAnyData(report);
   const period = periodPhrase(parsed, tm, fmt);
-
-  const totalLabel = <span className="tabular-nums">{t("affaire_perdue_affaires_perdues", { n: report.total.n })}</span>;
+  const lossRate = report.lossRate.hidden || report.lossRate.percent === null ? null : fmt.rate(report.lossRate.percent);
+  const noAmount = report.total.withoutAmount === report.total.n;
 
   return (
     <>
@@ -188,34 +179,30 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
             <h2 className="text-sm font-semibold">
               <DefinitionLink id="lost_deal">{t("sur_la_periode")}</DefinitionLink>
             </h2>
-            <p className="text-sm text-pretty">
-              {scopedPipelineId ? (
-                <Link href={dealsListHref(parsed, scopedPipelineId, { cohorte: "perte" })} className="font-medium underline-offset-2 hover:underline">
-                  {totalLabel}
-                </Link>
-              ) : (
-                <span className="font-medium">{totalLabel}</span>
-              )}{" "}
-              {period},{" "}
-              {report.total.withoutAmount === report.total.n ? (
-                <>
-                  {t.rich("montant_estime_perdu_inconnu_sans_montant", { n: report.total.n, span: (chunks) => <span className="text-muted-foreground">{chunks}</span> })}
-                </>
-              ) : (
-                <>
-                  {t.rich("de_montant_estime_perdu", { formatEuros: (fmt.money(report.total.amount)) ?? "", span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
-                  {report.total.withoutAmount > 0 && (
-                    <span className="text-muted-foreground"> {t("sans_montant", { withoutAmount: report.total.withoutAmount })}</span>
-                  )}
-                </>
-              )}
-              {t.rich("gagnee_gagnees_sur_la_meme_periode", { won: report.won, span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
-              <DefinitionLink id="loss_rate">{t("taux_de_perte")}</DefinitionLink> <span className="tabular-nums">{rateText(report.lossRate, fmt, true)}</span>
-              {report.lossRate.hidden && (
-                <span className="text-muted-foreground"> {t("masque_il_manque_affaire_affaires_close_3720", { missing: report.lossRate.missing })}</span>
-              )}
-              .
-            </p>
+            <p className="-mt-1 text-xs text-muted-foreground">{period}</p>
+            {/* Quatre chiffres, quatre tuiles (audit UI du 2026-09-14) : la phrase qui les enchaînait cassait sa ponctuation (« perdu· 6 gagnées ») et noyait le taux de perte. */}
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <StatTile
+                icon={<TrendingDown />}
+                label={t("affaires_perdues")}
+                value={report.total.n}
+                tone="critical"
+                href={scopedPipelineId ? dealsListHref(parsed, scopedPipelineId, { cohorte: "perte" }) : undefined}
+              />
+              <StatTile
+                icon={<Banknote />}
+                label={t("montant_estime_perdu")}
+                value={noAmount ? "—" : (fmt.money(report.total.amount) ?? "—")}
+                hint={noAmount ? t("montant_inconnu_n_sans_montant", { n: report.total.n }) : report.total.withoutAmount > 0 ? t("sans_montant", { withoutAmount: report.total.withoutAmount }) : undefined}
+              />
+              <StatTile icon={<Trophy />} label={t("gagnees_sur_la_meme_periode")} value={report.won} tone="success" />
+              <StatTile
+                icon={<Percent />}
+                label={t("taux_de_perte_titre")}
+                value={lossRate ?? "—"}
+                hint={lossRate ? undefined : t("masque_il_manque_affaire_affaires_close_3720", { missing: report.lossRate.missing })}
+              />
+            </div>
             {report.excludedReconstructed.n > 0 && (
               <p className="-mt-1 text-xs text-muted-foreground text-pretty">
                 {t("perte_anterieure_au_journal_ecartee_pertes_17e3", { n: report.excludedReconstructed.n })}
@@ -235,6 +222,8 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
             )}
           </section>
 
+          {/* Deux répartitions par ligne dès lg (audit UI du 2026-09-14) : quatre tableaux d'une à trois lignes empilés sur 960 px laissaient 60 % de blanc. */}
+          <div className="grid gap-6 lg:grid-cols-2">
           <BreakdownSection
             id="loss_breakdown"
             title={t("par_motif")}
@@ -275,6 +264,7 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
             scopedPipelineId={scopedPipelineId}
             link={(row) => ({ type: row.key })}
           />
+          </div>
         </>
       )}
 

@@ -103,6 +103,7 @@ export function PartnerShareView({
   token,
   initialView,
   preview = false,
+  previewBanner = true,
 }: {
   token: string;
   initialView: PublicShareView;
@@ -113,6 +114,9 @@ export function PartnerShareView({
    * n'est déclenchable — pas de jeton réel à ce stade.
    */
   preview?: boolean;
+  /** En aperçu, la bannière « ce que le partenaire verra » — inutile quand le conteneur la dit déjà. */
+  /** En aperçu, le bandeau « ce que le partenaire verra » — le composeur le porte déjà dans son titre de carte. */
+  previewBanner?: boolean;
 }) {
   const t = useTranslations("shares.partnerShareView");
   const fmt = useFormats();
@@ -159,7 +163,7 @@ export function PartnerShareView({
         preview ? "p-1" : "my-6 rounded-2xl border border-border bg-card p-6 shadow-sm sm:my-10 sm:p-10"
       )}
     >
-      {preview && (
+      {preview && previewBanner && (
         <div className="rounded-md border border-dashed px-3 py-1.5 text-center text-xs font-medium text-muted-foreground">
           {t("apercu_ce_que_le_partenaire_verra")}
         </div>

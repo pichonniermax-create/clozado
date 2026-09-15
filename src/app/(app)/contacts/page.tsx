@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ContactCreateForm } from "@/components/contacts/contact-create-form";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -52,42 +52,51 @@ export default async function ContactsPage({
         }
       />
 
-      <DetailsCard summary={t("nouveau_contact")} defaultOpen={params.nouveau === "1"} tour="contacts-nouveau">
-        <ContactCreateForm orgUsers={orgUsers} />
-      </DetailsCard>
-
-      {/* Recherche côté serveur : nom, email, société, téléphone. */}
-      <form method="get" className="flex flex-wrap items-center gap-2">
+      {/* Recherche côté serveur : nom, email, société, téléphone — juste sous l'en-tête (audit UI du 2026-09-14 :
+          trois affordances de création la reléguaient en quatrième position). Une colonne à 390 px, une ligne dès sm. */}
+      <form method="get" className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Input
           key={q ?? ""}
           type="search"
           name="q"
           defaultValue={q ?? ""}
           placeholder={t("rechercher_un_nom_un_email_une_15ed")}
-          className="max-w-md"
+          aria-label={t("rechercher")}
+          className="min-w-0 sm:max-w-md"
         />
-        {orgUsers.length > 1 && (
-          <NativeSelect
-            name="conseiller"
-            defaultValue={ownerId ?? ""} className="w-auto max-w-full"
-          >
-            <option value="">{t("tous_les_conseillers")}</option>
-            {orgUsers.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name || u.email}
-              </option>
-            ))}
-          </NativeSelect>
-        )}
-        <button type="submit" className={buttonVariants({ variant: "outline" })}>
-          {t("rechercher")}
-        </button>
+        <div className="flex gap-2">
+          {orgUsers.length > 1 && (
+            <NativeSelect
+              name="conseiller"
+              defaultValue={ownerId ?? ""}
+              aria-label={t("conseiller")}
+              className="min-w-0 flex-1 sm:w-auto sm:flex-none"
+            >
+              <option value="">{t("tous_les_conseillers")}</option>
+              {orgUsers.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name || u.email}
+                </option>
+              ))}
+            </NativeSelect>
+          )}
+          {/* Le bouton reste sur mobile : le filtre conseiller n'a pas d'auto-soumission. */}
+          <Button type="submit" variant="outline">
+            {t("rechercher")}
+          </Button>
+        </div>
       </form>
 
+      {/* Reste dans le DOM même repliée : la visite guidée l'éclaire (`contacts-nouveau`) et `?nouveau=1` l'ouvre. */}
+      <DetailsCard summary={t("nouveau_contact")} defaultOpen={params.nouveau === "1"} tour="contacts-nouveau">
+        <ContactCreateForm orgUsers={orgUsers} />
+      </DetailsCard>
+
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold tabular-nums">
+        {/* Un compte, pas un titre de section : il ne pèse plus autant que les noms de la liste. */}
+        <p aria-live="polite" className="text-xs text-muted-foreground tabular-nums">
           {t("contact_contacts", { total, n: (q && t("pour", { q })) ?? "" })}
-        </h2>
+        </p>
 
         {rows.length === 0 ? (
           q || ownerId ? (
@@ -120,10 +129,29 @@ export default async function ContactsPage({
                 key={c.id}
                 href={`/contacts/${c.id}`}
                 title={c.name}
+                // Sur mobile, l'email (ou le téléphone) seul — le reste dès sm : la ville disparaissait derrière une ellipse.
                 subtitle={
-                  [c.email, c.phone, c.kind === "person" ? c.companyName : null, c.city]
-                    .filter(Boolean)
-                    .join(" · ") || "—"
+                  <>
+                    {c.email ?? c.phone ?? "—"}
+                    {c.email && c.phone && (
+                      <span className="hidden sm:inline">
+                        {" · "}
+                        {c.phone}
+                      </span>
+                    )}
+                    {c.kind === "person" && c.companyName && (
+                      <span className="hidden sm:inline">
+                        {" · "}
+                        {c.companyName}
+                      </span>
+                    )}
+                    {c.city && (
+                      <span className="hidden sm:inline">
+                        {" · "}
+                        {c.city}
+                      </span>
+                    )}
+                  </>
                 }
                 trailing={c.kind === "company" ? <Badge variant="secondary">{t("societe")}</Badge> : undefined}
               />

@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { safeColor } from "@/lib/brand/color";
 import { Button } from "@/components/ui/button";
+import { DetailsCard } from "@/components/ui/details-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { DealStatusBadge } from "@/components/deals/deal-status-badge";
 import { ListCard } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
@@ -113,17 +116,14 @@ export default async function DealPage({
     (p) => p.active && p.organizationId === deal.organizationId
   );
 
-  async function moveStage(formData: FormData) {
-    "use server";
-    const statusId = String(formData.get("statusId") ?? "");
-    if (!statusId) return;
-    await moveDealStageAction(id, statusId);
-    redirect(`/affaires/${id}`);
-  }
-
+  // UN seul formulaire pour l'étape et les détails (audit UI du 2026-09-14) : avant, « Déplacer » (étape) et
+  // « Enregistrer » (montant, probabilité…) étaient deux formulaires côte à côte — corriger le montant puis changer
+  // l'étape perdait la saisie sans prévenir. L'étape n'est écrite que si elle change (historique + journal).
   async function saveDetails(formData: FormData) {
     "use server";
     const raw = (name: string) => String(formData.get(name) ?? "").trim();
+    const statusId = raw("statusId");
+    if (statusId && statusId !== deal!.statusId) await moveDealStageAction(id, statusId);
     await updateDealDetailsAction(id, {
       estimatedAmount: raw("estimatedAmount") || null,
       probability: raw("probability") || null,
@@ -148,7 +148,15 @@ export default async function DealPage({
         title={deal.title}
         description={
           <>
-            {typeLabel} · {deal.clientName}
+            {typeLabel} ·{" "}
+            {/* Le client mène à sa fiche : la parenté affaire → contact manquait (audit UI du 2026-09-14). */}
+            {deal.contactId ? (
+              <Link href={`/contacts/${deal.contactId}`} className="text-foreground underline-offset-2 hover:underline">
+                {deal.clientName}
+              </Link>
+            ) : (
+              deal.clientName
+            )}
             {deal.estimatedAmount && ` · ≈ ${fmt.money(deal.estimatedAmount)}`}
           </>
         }
@@ -171,33 +179,30 @@ export default async function DealPage({
           <CardTitle>{tr("pipeline")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <form action={moveStage} className="flex flex-wrap items-end gap-2">
-            <Field label={tr("etape")} htmlFor="statusId">
-              <NativeSelect
-                id="statusId"
-                name="statusId"
-                defaultValue={deal.statusId} className="w-auto max-w-full min-w-48"
-              >
-                {pipelineStages.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.label}
-                    {s.outcome === "won" ? tr("gagne") : s.outcome === "lost" ? tr("perdu") : ""}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Field>
-            <Button type="submit" variant="outline">
-              {tr("deplacer")}
-            </Button>
-            {"outcome" in currentDealStatus && currentDealStatus.outcome === "lost" && (
-              <p className="w-full text-xs text-muted-foreground">
-                {tr("affaire_perdue", { value: deal.lossReasonId ? "" : tr("renseigne_le_motif_ci_dessous") })}
-              </p>
-            )}
-          </form>
+          <form action={saveDetails} className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-end gap-2">
+              <Field label={tr("etape")} htmlFor="statusId">
+                <NativeSelect
+                  id="statusId"
+                  name="statusId"
+                  defaultValue={deal.statusId} className="w-full sm:w-auto sm:min-w-48"
+                >
+                  {pipelineStages.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label}
+                      {s.outcome ? ` ${s.outcome === "won" ? tr("gagne") : tr("perdu")}` : ""}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </Field>
+              {"outcome" in currentDealStatus && currentDealStatus.outcome === "lost" && (
+                <p className="w-full text-xs text-muted-foreground">
+                  {tr("affaire_perdue", { value: deal.lossReasonId ? "" : tr("renseigne_le_motif_ci_dessous") })}
+                </p>
+              )}
+            </div>
 
-          <form action={saveDetails} className="flex flex-col gap-4 border-t border-border pt-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2 lg:grid-cols-4">
               <Field label={tr("montant_estime", { currency: fmt.currency })} htmlFor="estimatedAmount">
                 <Input
                   id="estimatedAmount"
@@ -238,7 +243,7 @@ export default async function DealPage({
                 <NativeSelect
                   id="ownerId"
                   name="ownerId"
-                  defaultValue={deal.ownerId ?? ""} className="w-auto max-w-full"
+                  defaultValue={deal.ownerId ?? ""} className="w-full"
                 >
                   <option value="">{tr("personne")}</option>
                   {orgUsers.map((u) => (
@@ -254,7 +259,7 @@ export default async function DealPage({
                 <NativeSelect
                   id="lossReasonId"
                   name="lossReasonId"
-                  defaultValue={deal.lossReasonId ?? ""} className="w-auto max-w-full max-w-64"
+                  defaultValue={deal.lossReasonId ?? ""} className="w-full sm:w-auto sm:min-w-64"
                 >
                   <option value="">{tr("sans_motif")}</option>
                   {lossReasons.map((r) => (
@@ -265,7 +270,8 @@ export default async function DealPage({
                 </NativeSelect>
               </Field>
             )}
-            <Button type="submit" variant="outline" className="w-fit">
+            {/* Un seul bouton primaire par carte, toujours le submit — le même poids que sur la fiche partenaire. */}
+            <Button type="submit" className="w-fit">
               {tr("enregistrer")}
             </Button>
           </form>
@@ -287,8 +293,10 @@ export default async function DealPage({
                       />
                       <span>{d.label}</span>
                       <span className="tabular-nums text-muted-foreground">
-                        {days < 1 ? tr("moins_d_un_jour") : fmt.days(days)}
-                        {d.current && tr("en_cours")}
+                        {/* Une étape terminale n'est pas « en cours » : « Perdue depuis 77 j ». */}
+                        {d.current && "outcome" in currentDealStatus && currentDealStatus.outcome
+                          ? tr("depuis_n", { n: days < 1 ? tr("moins_d_un_jour") : fmt.days(days) })
+                          : `${days < 1 ? tr("moins_d_un_jour") : fmt.days(days)}${d.current ? tr("en_cours") : ""}`}
                       </span>
                     </li>
                   );
@@ -306,20 +314,23 @@ export default async function DealPage({
           <CardTitle>{tr("origine")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <p className="text-sm">
-            {currentLead ? (
-              <>
-                {tr.rich("lead_du", { formatDate: fmt.date(currentLead.receivedAt), leadOriginLabel: leadOriginLabel(currentLead, tq), span: (chunks) => <span className="font-medium">{chunks}</span> })}
-                {currentLead.pageUrl && <span className="text-muted-foreground"> · {currentLead.pageUrl}</span>}
-              </>
-            ) : (
-              <span className="text-muted-foreground">{tr("aucune_origine_rattachee")}</span>
-            )}
-          </p>
+          {/* Une seule phrase quand il n'y a rien : « Aucune origine » ne se dit pas deux fois. */}
+          {(currentLead || contactLeads.length > 0) && (
+            <p className="text-sm">
+              {currentLead ? (
+                <>
+                  {tr.rich("lead_du", { formatDate: fmt.date(currentLead.receivedAt), leadOriginLabel: leadOriginLabel(currentLead, tq), span: (chunks) => <span className="font-medium">{chunks}</span> })}
+                  {currentLead.pageUrl && <span className="text-muted-foreground"> · {currentLead.pageUrl}</span>}
+                </>
+              ) : (
+                <span className="text-muted-foreground">{tr("aucune_origine_rattachee")}</span>
+              )}
+            </p>
+          )}
           {!deal.contactId ? (
-            <p className="text-xs text-muted-foreground">{tr("sans_fiche_contact_aucun_lead_ne_fe08")}</p>
+            <p className="text-sm text-muted-foreground">{tr("sans_fiche_contact_aucun_lead_ne_fe08")}</p>
           ) : contactLeads.length === 0 ? (
-            <p className="text-xs text-muted-foreground">{tr("ce_contact_n_a_recu_aucun_7e40")}</p>
+            <p className="text-sm text-muted-foreground">{tr("ce_contact_n_a_recu_aucun_7e40")}</p>
           ) : (
             <form action={setDealOriginAction.bind(null, id)} className="flex flex-wrap items-end gap-2">
               <Field
@@ -327,7 +338,7 @@ export default async function DealPage({
                 htmlFor="leadId"
                 hint={tr("pose_automatiquement_a_la_creation_depuis_4f3d")}
               >
-                <NativeSelect id="leadId" name="leadId" defaultValue={deal.leadId ?? ""} className="w-auto max-w-full min-w-64">
+                <NativeSelect id="leadId" name="leadId" defaultValue={deal.leadId ?? ""} className="w-full sm:w-auto sm:min-w-64">
                   <option value="">{tr("aucune_origine")}</option>
                   {contactLeads.map((l) => (
                     <option key={l.id} value={l.id}>
@@ -393,22 +404,30 @@ export default async function DealPage({
         </section>
       )}
 
-      <ShareComposer
-        dealId={id}
-        deal={{
-          title: deal.title,
-          clientName: deal.clientName,
-          typeLabel,
-          estimatedAmount: deal.estimatedAmount,
-          description: deal.description,
-        }}
-        organizationName={org.name}
-        brand={toRenderBrand(org, assetMeta)}
-        issuedByName={user.name ?? null}
-        currentDealStatus={currentDealStatus}
-        availableStatuses={partnerStages}
-        partners={activePartners}
-      />
+      {/* Partager une affaire CLOSE n'a pas de sens : le composeur ne s'affiche pas. Sur une affaire vivante déjà
+          partagée, il se replie derrière un « + » — les partages existants pèsent plus que le formulaire. */}
+      {"outcome" in currentDealStatus && currentDealStatus.outcome ? (
+        <EmptyState>{tr("affaire_close_pas_de_partage")}</EmptyState>
+      ) : (
+        <DetailsCard summary={tr("partager_cette_affaire")} defaultOpen={shares.length === 0}>
+          <ShareComposer
+            dealId={id}
+            deal={{
+              title: deal.title,
+              clientName: deal.clientName,
+              typeLabel,
+              estimatedAmount: deal.estimatedAmount,
+              description: deal.description,
+            }}
+            organizationName={org.name}
+            brand={toRenderBrand(org, assetMeta)}
+            issuedByName={user.name ?? null}
+            currentDealStatus={currentDealStatus}
+            availableStatuses={partnerStages}
+            partners={activePartners}
+          />
+        </DetailsCard>
+      )}
 
       <TaskSection
         tasks={dealTasks}

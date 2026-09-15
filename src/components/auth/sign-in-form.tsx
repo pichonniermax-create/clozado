@@ -23,6 +23,7 @@ export function SignInForm({ initialError }: { initialError?: string | null }) {
   return (
     <form action={action} className="flex flex-col gap-4">
       <Field label={t("email_professionnel")} htmlFor="email">
+        {/* Le seul champ de l'écran, rempli surtout depuis un téléphone : 40 px au doigt. L'erreur est RELIÉE au champ. */}
         <Input
           id="email"
           name="email"
@@ -32,11 +33,14 @@ export function SignInForm({ initialError }: { initialError?: string | null }) {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "email-error" : undefined}
+          className="pointer-coarse:h-10"
         />
       </Field>
 
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p id="email-error" role="alert" className="text-sm text-destructive">
           {error}
         </p>
       )}
@@ -44,10 +48,6 @@ export function SignInForm({ initialError }: { initialError?: string | null }) {
       <Button type="submit" disabled={pending}>
         {pending ? t("envoi_en_cours") : t("recevoir_le_lien_de_connexion")}
       </Button>
-
-      <p className="text-xs text-muted-foreground">
-        {t("pas_de_mot_de_passe_tu_3f5a")}
-      </p>
     </form>
   );
 }

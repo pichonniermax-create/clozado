@@ -39,12 +39,13 @@ const FAMILY_ICON: Record<string, ReactNode> = {
 
 
 /** Valeur, note et icône d'une tuile — la règle d'affichage par unité, en un seul endroit. */
-function tileOf({ metric, value, periodApplies }: DashboardIndicator, t: TranslatorOf<"dashboard.packIndicators">, tm: TranslatorOf<"metrics">, td: TranslatorOf<"analytics.durationTable">, fmt: Formats): { value: string | number; hint: string; icon: ReactNode } {
+function tileOf({ metric, value, periodApplies }: DashboardIndicator, t: TranslatorOf<"dashboard.packIndicators">, tm: TranslatorOf<"metrics">, td: TranslatorOf<"analytics.durationTable">, fmt: Formats): { value: string | number; hint?: string; icon: ReactNode } {
   const today = periodApplies ? undefined : t("a_aujourd_hui");
   const icon = metric.unit === "euros" ? <Banknote /> : metric.unit === "ratio" ? <Percent /> : (FAMILY_ICON[metric.family] ?? <Briefcase />);
   switch (value.kind) {
     case "count":
-      return { value: value.n, hint: [value.detail, today].filter(Boolean).join(" · ") || tm(`definitions.${metric.id}.label`), icon };
+      // Sans détail, pas de note : la tuile répétait son propre titre en petit (« Affaires créées / 19 / Affaires créées »).
+      return { value: value.n, hint: [value.detail, today].filter(Boolean).join(" · ") || undefined, icon };
     case "euros": {
       const { money } = value;
       const unknown = money.n > 0 && money.withoutAmount === money.n;
@@ -84,18 +85,20 @@ export async function PackIndicators({ user, businessPack, parsed }: { user: Org
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">{t("indicateurs", { label: tm(`packs.${pack.key}.label`) })}</h2>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap rounded-lg border border-border p-0.5" aria-label={t("periode_des_indicateurs")}>
+          {/* Un contrôle segmenté ne se replie pas (« Depuis le début » orphelin sur une 2e ligne) : libellés courts sous sm. */}
+          <div className="flex flex-nowrap rounded-lg border border-border p-0.5" aria-label={t("periode_des_indicateurs")}>
             {PERIOD_PRESETS.map((p) => (
               <Link
                 key={p.key}
                 href={`/dashboard?periode=${p.key}`}
                 aria-current={parsed.period === p.key ? "true" : undefined}
                 className={cn(
-                  "rounded-md px-2 py-0.5 text-xs transition-colors",
+                  "rounded-md px-2 py-0.5 text-xs whitespace-nowrap transition-colors",
                   parsed.period === p.key ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                {tm(`periods.${p.key}`)}
+                <span className="sm:hidden">{tm(`periodsShort.${p.key}`)}</span>
+                <span className="hidden sm:inline">{tm(`periods.${p.key}`)}</span>
               </Link>
             ))}
           </div>
@@ -103,9 +106,10 @@ export async function PackIndicators({ user, businessPack, parsed }: { user: Org
             href={`/api/analytique/export${metricQueryString<Record<string, string | undefined>>(parsed.params, { vue: "tableau-de-bord" })}`}
             className={buttonVariants({ variant: "ghost", size: "sm" })}
             title={t("telecharger_ces_indicateurs_avec_leur_periode_48ad")}
+            aria-label={t("telecharger_ces_indicateurs_avec_leur_periode_48ad")}
           >
             <Download />
-            {t("csv")}
+            <span className="hidden sm:inline">{t("csv")}</span>
           </a>
           <Link href={`/analytique/funnel${metricQueryString(parsed.params)}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
             {t("tout_l_analytique")}

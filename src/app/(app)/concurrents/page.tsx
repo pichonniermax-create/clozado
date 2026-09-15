@@ -9,6 +9,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ListCard } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
+import { InlineDetails } from "@/components/ui/inline-details";
 import { RefreshWhileRunning } from "@/components/watch/refresh-while-running";
 import { countMembersByTarget, listMailTargets } from "@/db/queries/mail-targets";
 import {
@@ -56,6 +57,15 @@ import { NativeSelect } from "@/components/ui/native-select";
  * 100 + 120 s, plus la marge.
  */
 export const maxDuration = 240;
+
+/** Le domaine d'une adresse de flux — l'adresse brute ne tenait pas sur une ligne mobile ; elle reste au survol. */
+function feedHostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
 
 
 type TargetOption = { id: string; label: string; count: number };
@@ -210,7 +220,8 @@ function Status({
       </p>
     );
   }
-  const known = tr("article_articles_de_concurrents_connu_connus_2d6b", { count: total, classified, pending });
+  // La fenêtre en chiffres, la même partout (audit UI du 2026-09-14 : « soixante jours » en lettres à côté de « 30 derniers jours »).
+  const known = tr("article_articles_de_concurrents_connu_connus_2d6b", { count: total, classified, pending, days: WATCH_MAX_ITEM_AGE_DAYS });
   return (
     <p className="text-sm tabular-nums text-muted-foreground">
       {latestFinished?.finishedAt ? tr("derniere_collecte", { formatRelativeTime: fmt.relative(latestFinished.finishedAt) }) : tp("aucune_collecte_terminee_pour_l_instant")} {known}
@@ -239,8 +250,8 @@ function GapSection({ gap, targets }: { gap: ContentGap; targets: TargetOption[]
               {tp.rich("il_faut_une_cible_pour_ecrire_ac2e", { link: (chunks) => <Link href="/cibles" className="underline underline-offset-2">{chunks}</Link> })}
             </p>
           ) : (
-            <Field label={tp("pour_quelle_cible")} htmlFor="gap-target">
-              <NativeSelect id="gap-target" name="targetId" className="w-auto max-w-full" defaultValue={targets[0]?.id} required>
+            <Field label={tp("pour_quelle_cible")} htmlFor="gap-target" className="w-full sm:w-auto">
+              <NativeSelect id="gap-target" name="targetId" className="w-full sm:w-72" defaultValue={targets[0]?.id} required>
                 {targets.map((t) => (
                   <option key={t.id} value={t.id}>
                     {tp("contact_contacts", { label: t.label, count: t.count })}
@@ -293,14 +304,13 @@ function GapRowItem({ row, canWrite }: { row: GapRow; canWrite: boolean }) {
           </Button>
         )}
       </div>
-      <details className="text-xs">
-        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">{tr("ce_qu_ils_ont_publie", { count: row.articles.length })}</summary>
+      <InlineDetails summary={tr("ce_qu_ils_ont_publie", { count: row.articles.length })} className="text-xs">
         <ul className="flex flex-col gap-1.5 pt-2">
           {row.articles.map((article) => (
             <ArticleLine key={article.id} article={article} showCompetitor />
           ))}
         </ul>
-      </details>
+      </InlineDetails>
     </li>
   );
 }
@@ -396,17 +406,17 @@ function CompetitorsSection({ competitors, stats, articles }: { competitors: Wat
                       </a>
                       {!competitor.feedUrl && <Badge variant="outline">{tr("sans_flux_cherche_par_domaine")}</Badge>}
                     </span>
-                    <span className="truncate text-xs tabular-nums text-muted-foreground">
+                    <span className="truncate text-xs tabular-nums text-muted-foreground" title={competitor.feedUrl ?? undefined}>
                       {[
                         fmt.country(competitor.country),
                         competitor.lang === "en" ? tp("anglais") : competitor.lang === "fr" ? tp("francais") : null,
-                        competitor.feedUrl ? tp("flux_label", { url: competitor.feedUrl }) : null,
+                        competitor.feedUrl ? tp("flux_label", { url: feedHostOf(competitor.feedUrl) }) : null,
                       ]
                         .filter(Boolean)
                         .join(" · ")}
                     </span>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1">
+                  <div className="ml-auto flex shrink-0 items-center gap-2">
                     {(health.tone === "warning" || health.tone === "asleep") && (
                       <form action={retryCompetitorAction.bind(null, competitor.id)}>
                         <Button type="submit" variant="outline" size="sm">
@@ -424,16 +434,13 @@ function CompetitorsSection({ competitors, stats, articles }: { competitors: Wat
                 <p className={`text-xs ${health.tone === "warning" || health.tone === "asleep" ? "text-warning" : "text-muted-foreground"}`}>{health.text}</p>
                 {activity && <p className="text-xs tabular-nums text-muted-foreground text-pretty">{activity}</p>}
                 {own.length > 0 && (
-                  <details className="text-xs">
-                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                      {tr("ce_qu_ils_ont_publie_jours", { count: own.length, days: WATCH_MAX_ITEM_AGE_DAYS })}
-                    </summary>
+                  <InlineDetails summary={tr("ce_qu_ils_ont_publie_jours", { count: own.length, days: WATCH_MAX_ITEM_AGE_DAYS })} className="text-xs">
                     <ul className="flex flex-col gap-1.5 pt-2">
                       {own.map((article) => (
                         <ArticleLine key={article.id} article={article} />
                       ))}
                     </ul>
-                  </details>
+                  </InlineDetails>
                 )}
               </li>
             );
@@ -480,7 +487,7 @@ function CompetitorForm() {
         </Field>
       </div>
       <p className="text-xs text-muted-foreground">{tr("uniquement_ce_qu_ils_publient_publiquement_aa10")}</p>
-      <Button type="submit" className="w-fit">
+      <Button type="submit" className="w-full sm:w-fit">
         {tr("ajouter_le_concurrent")}
       </Button>
     </form>

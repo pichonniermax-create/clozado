@@ -22,10 +22,11 @@
     "cree_le_dans_calendly_integrations_api": "Create it in Calendly → Integrations → API & webhooks → Personal access token. It is used once and never stored.",
     "placeholder_jeton": "eyJra…",
     "connecter": "Connect",
-    "le_jeton_sert_une_fois_webhooks_plans_payants": "The token is used once (to create the webhook subscription) then forgotten. Calendly webhooks require a paid plan (Standard, Teams…) — manual appointment entry works without one.",
     "deconnecter": "Disconnect",
     "la_deconnexion_est_locale_retire_aussi_le_webhook": "Disconnecting is local: since your token was never stored, remove the webhook subscription on Calendly’s side by hand (Calendly → Integrations → Webhooks).",
     "connectee_les_rendez_vous_arriveront_tout_seuls": "Calendly connected: booked appointments will now land on contact pages by themselves.",
-    "deconnectee_pense_a_retirer_le_webhook": "Calendly connection disconnected: nothing will be written anymore. Remember to also remove the webhook on Calendly’s side (Integrations → Webhooks)."
-  }
+    "deconnectee_pense_a_retirer_le_webhook": "Calendly connection disconnected: nothing will be written anymore. Remember to also remove the webhook on Calendly’s side (Integrations → Webhooks).",
+    "webhooks_plans_payants": "Calendly webhooks require a paid plan (Standard, Teams…). Without one, entering appointments by hand on the contact still works."
+  },
+  "sinon_celle_de_l_organisation_lien": "If empty, replies go to the organisation’s reply-to address ({email}) — <link>change it in the settings</link>."
 }

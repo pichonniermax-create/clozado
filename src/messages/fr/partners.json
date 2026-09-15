@@ -15,7 +15,10 @@
     "partenaires": "Partenaires",
     "societe": "Société",
     "telephone": "Téléphone",
-    "voir_les_affaires": "Voir les affaires"
+    "voir_les_affaires": "Voir les affaires",
+    "ecrire": "Écrire",
+    "appeler": "Appeler",
+    "annuler": "Annuler"
   },
   "detailNotFound": {
     "ce_partenaire_n_existe_pas": "Ce partenaire n’existe pas.",

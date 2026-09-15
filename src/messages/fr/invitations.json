@@ -39,7 +39,11 @@
       "revoquee": "Révoquée"
     },
     "migration_manquante_titre": "Les invitations ne sont pas encore activées sur cette base",
-    "migration_manquante": "La migration 0018 (table des invitations) n’a pas été appliquée : applique-la (npm run db:migrate:http) et cet écran s’ouvre. Rien d’autre n’est touché en attendant."
+    "migration_manquante": "La migration 0018 (table des invitations) n’a pas été appliquée : applique-la (npm run db:migrate:http) et cet écran s’ouvre. Rien d’autre n’est touché en attendant.",
+    "ouvrir_l_espace": "Ouvrir l’espace",
+    "revoquer_titre": "Révoquer cette invitation ?",
+    "revoquer_texte": "Le lien de {name} ne servira plus : la personne devra en recevoir un nouveau.",
+    "annuler": "Annuler"
   },
   "actions": {
     "revoquee": "Invitation révoquée : le lien ne sert plus.",

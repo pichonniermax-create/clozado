@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Copy, Mail } from "lucide-react";
+import { Copy, Ellipsis, Mail, PowerOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { DetailsCard } from "@/components/ui/details-card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { ListCard, ListRow, ListRowLink } from "@/components/ui/list-card";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { TargetForm } from "@/components/targets/target-form";
 import {
@@ -84,39 +87,44 @@ export default async function TargetPage({
         }
         backTo={{ href: "/cibles", label: t("cibles") }}
         actions={
-          <span className="flex flex-wrap items-center gap-2">
-            {archived ? (
-              <>
-                <Badge variant="secondary">{t("desactivee")}</Badge>
-                <form action={restoreTargetAction.bind(null, target.id)}>
-                  <Button type="submit" variant="outline">
-                    {t("reactiver")}
-                  </Button>
-                </form>
-              </>
-            ) : (
-              <>
-                <Link href={`/newsletters/new?cible=${target.id}`} className={buttonVariants()}>
-                  <Mail />
-                  {t("ecrire_une_newsletter_pour_cette_cible")}
-                </Link>
-                <form action={duplicateTargetAction.bind(null, target.id)}>
-                  <Button type="submit" variant="outline">
+          archived ? (
+            <>
+              <Badge variant="secondary">{t("desactivee")}</Badge>
+              <form action={restoreTargetAction.bind(null, target.id)}>
+                <Button type="submit" variant="outline">
+                  {t("reactiver")}
+                </Button>
+              </form>
+            </>
+          ) : (
+            <>
+              {/* Un seul bouton visible ; dupliquer et désactiver derrière « ⋯ » — trois boutons débordaient de 150 px à 390 px.
+                  Les formulaires vivent hors du menu (portail) : chaque entrée les vise par `form=`. */}
+              <Link href={`/newsletters/new?cible=${target.id}`} className={buttonVariants()}>
+                <Mail />
+                {t("ecrire_une_newsletter_pour_cette_cible")}
+              </Link>
+              <form id={`duplicate-${target.id}`} action={duplicateTargetAction.bind(null, target.id)} />
+              <form id={`archive-${target.id}`} action={archiveTargetAction.bind(null, target.id)} />
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<Button variant="outline" size="icon" aria-label={t("plus_d_actions")} />}>
+                  <Ellipsis />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem render={<button type="submit" form={`duplicate-${target.id}`} />}>
                     <Copy />
                     {t("dupliquer")}
-                  </Button>
-                </form>
-                <form action={archiveTargetAction.bind(null, target.id)}>
-                  <Button type="submit" variant="ghost">
+                  </DropdownMenuItem>
+                  <DropdownMenuItem render={<button type="submit" form={`archive-${target.id}`} />}>
+                    <PowerOff />
                     {t("desactiver")}
-                  </Button>
-                </form>
-              </>
-            )}
-          </span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )
         }
       />
-
 
       {archived && (
         <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
@@ -124,8 +132,9 @@ export default async function TargetPage({
         </p>
       )}
 
+      {/* Une note, pas un risque : le ton neutre, comme les deux autres encadrés. */}
       {sentCount > 0 && (
-        <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">
+        <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
           {t.rich("newsletter_a_s_ont_ete_marquee_5a1f", { sentCount, span: (chunks) => <span className="font-medium tabular-nums">{chunks}</span> })}
         </p>
       )}
@@ -136,33 +145,10 @@ export default async function TargetPage({
         </p>
       )}
 
-      <TargetForm
-        key={target.updatedAt.getTime()}
-        action={updateTargetAction.bind(null, target.id)}
-        options={options}
-        signatories={signatories}
-        initial={{
-          label: target.label,
-          description: target.description ?? "",
-          kind: isStatic ? "static" : "segment",
-          criteria: parseCriteria(target.criteria),
-          audienceLabel: target.audienceLabel ?? "",
-          defaultSignatoryId: target.defaultSignatoryId ?? "",
-          persona: target.persona ?? "",
-          concerns: target.concerns ?? "",
-          knowledgeLevel: target.knowledgeLevel ?? "",
-          editorialVoice: target.editorialVoice ?? "",
-          interests: target.interests ?? "",
-          avoid: target.avoid ?? "",
-        }}
-        submitLabel={t("enregistrer_la_cible")}
-      />
-
-      {/* La liste RÉELLE : recalculée à chaque consultation, jamais figée. */}
+      {/* La liste RÉELLE d'abord (recalculée à chaque consultation, jamais figée) : c'est ce qu'on vient voir. Le formulaire
+          de 2 000 px — critères et identité éditoriale — est replié plus bas, ouvert d'office quand l'identité est incomplète. */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold tabular-nums">
-          {t("contact_contacts_dans_cette_cible_aujourd_6a85", { total: members.total })}
-        </h2>
+        <SectionHeading title={t("contacts_dans_cette_cible")} count={members.total} />
 
         {isStatic && (
           <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
@@ -269,7 +255,7 @@ export default async function TargetPage({
 
       {/* L'anti-répétition : lue dans la photographie des envois, pas dans les critères. */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">{t("deja_envoye_a_ces_contacts")}</h2>
+        <SectionHeading title={t("deja_envoye_a_ces_contacts")} count={recentSends.length} />
         {recentSends.length === 0 ? (
           <EmptyState>
             {t("aucune_newsletter_marquee_envoyee_ne_recoupe_89da")}
@@ -281,16 +267,43 @@ export default async function TargetPage({
                 key={s.id}
                 href={`/newsletters/${s.id}`}
                 title={s.subject || s.title}
-                subtitle={
-                  `Envoyée le ${fmt.date(s.sentAt)} à ${s.recipients} contact${s.recipients > 1 ? "s" : ""} · ${s.overlap} dans la cible actuelle` +
-                  (s.overlapPercent !== null ? ` (${s.overlapPercent} %)` : "") +
-                  (s.topics.length > 0 ? ` · sujets : ${s.topics.join(", ")}` : "")
-                }
+                // Une seule clé ICU (pluriel, parenthèse et sujets facultatifs) : la phrase était assemblée en français en dur.
+                subtitle={t("envoi_recap", {
+                  date: fmt.date(s.sentAt),
+                  recipients: s.recipients,
+                  overlap: s.overlap,
+                  percent: s.overlapPercent === null ? "none" : String(s.overlapPercent),
+                  topics: s.topics.length > 0 ? s.topics.join(", ") : "none",
+                })}
               />
             ))}
           </ListCard>
         )}
       </section>
+
+      <DetailsCard variant="archive" summary={t("modifier_les_criteres")} defaultOpen={missing.length > 0 && !archived}>
+        <TargetForm
+          key={target.updatedAt.getTime()}
+          action={updateTargetAction.bind(null, target.id)}
+          options={options}
+          signatories={signatories}
+          initial={{
+            label: target.label,
+            description: target.description ?? "",
+            kind: isStatic ? "static" : "segment",
+            criteria: parseCriteria(target.criteria),
+            audienceLabel: target.audienceLabel ?? "",
+            defaultSignatoryId: target.defaultSignatoryId ?? "",
+            persona: target.persona ?? "",
+            concerns: target.concerns ?? "",
+            knowledgeLevel: target.knowledgeLevel ?? "",
+            editorialVoice: target.editorialVoice ?? "",
+            interests: target.interests ?? "",
+            avoid: target.avoid ?? "",
+          }}
+          submitLabel={t("enregistrer_la_cible")}
+        />
+      </DetailsCard>
     </>
   );
 }

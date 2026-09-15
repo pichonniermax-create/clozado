@@ -33,8 +33,8 @@
     "le_sens": "The direction of this email",
     "le_sens_decide_de_l_arret_automatique": "An email coming from the contact stops automatic sending to them.",
     "nom": "Name",
-    "proposition_deterministe": "Proposal made without a model: phone by pattern, name from the header.",
-    "proposition_du_modele": "Proposal from a model, based on the last lines of the message: nothing is written until you confirm.",
+    "proposition_deterministe": "Fields spotted automatically in the email (the phone number in the text, the name from the sender) — check before confirming.",
+    "proposition_du_modele": "Fields suggested by the assistant from the message signature — nothing is written until you confirm.",
     "rattacher_ne_modifie_pas_la_fiche": "Linking does not change the existing record: only the interaction is added to it.",
     "recu_de_le": "Received from {sender} on {when}",
     "sans_objet": "No subject",
@@ -75,7 +75,10 @@
       "rejected": "Rejected ({count})",
       "treated": "Handled ({count})"
     },
-    "transfere_a_ou_mets_en_copie": "Forward an email to {address}, or put that address in blind copy: the proposal shows up here."
+    "transfere_a_ou_mets_en_copie": "Forward an email to {address}, or put that address in blind copy: the proposal shows up here.",
+    "transfere_ou_mets_en_copie_cachee": "Forward an email to your ingestion address, or put it in Bcc: the proposal lands here.",
+    "ton_adresse_d_ingestion": "Your ingestion address",
+    "regler_l_adresse": "Set up the address"
   },
   "rejection": {
     "rate_limited": "Too many emails received",

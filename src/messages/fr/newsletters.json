@@ -101,7 +101,10 @@
   },
   "detail": {
     "desactivee": "{label} (désactivée)",
-    "newsletters": "Newsletters"
+    "newsletters": "Newsletters",
+    "brouillon": "Brouillon",
+    "envoyee": "Envoyée",
+    "envoyer": "Envoyer"
   },
   "insertionPoint": {
     "inserer_un_bloc_ici": "Insérer un bloc ici"
@@ -120,7 +123,10 @@
     "nouvelle_newsletter": "Nouvelle newsletter",
     "objet_a_ecrire": "Objet à écrire",
     "supprimer": "Supprimer",
-    "marquee_envoyee": "Marquée envoyée"
+    "marquee_envoyee": "Marquée envoyée",
+    "supprimer_ce_brouillon": "Supprimer ce brouillon ?",
+    "suppression_definitive": "Le brouillon et ses blocs disparaissent définitivement. Une newsletter envoyée, elle, ne se supprime pas.",
+    "annuler": "Annuler"
   },
   "new": {
     "aucune_cible_pour_l_instant": "Aucune cible pour l’instant",
@@ -171,7 +177,8 @@
     "article_articles_de_la_matiere_non_cites": "{count, plural, one {Un article de la matière n’est pas cité} other {# articles de la matière ne sont pas cités}} — s’ils ont servi, ajoute-les au bloc Sources.",
     "source_sources_hors_matiere_retirees": "{count, plural, one {Une source citée hors de la matière a été retirée} other {# sources citées hors de la matière ont été retirées}} — seuls les articles rattachés se citent.",
     "le_bloc_sources_est_vide": "Le bloc Sources est vide : choisis les articles à citer, ou supprime-le.",
-    "sujets_traites_declares": "Sujets traités : {join} — modifiables au marquage « envoyée »."
+    "sujets_traites_declares": "Sujets traités : {join} — modifiables au marquage « envoyée ».",
+    "deja_recu_n": "Déjà reçu par ces contacts : {count, plural, one {# newsletter} other {# newsletters}} — à ne pas répéter"
   },
   "saveIndicator": {
     "enregistre": "Enregistré {formatSavedAt}",
@@ -259,5 +266,10 @@
   },
   "useAutosave": {
     "enregistrement_impossible": "Enregistrement impossible."
+  },
+  "detailNotFound": {
+    "cette_newsletter_n_existe_pas": "Cette newsletter n’existe pas.",
+    "le_lien_est_peut_etre_perime": "Le lien est peut-être périmé, ou la newsletter a été créée dans un autre espace.",
+    "voir_les_newsletters": "Voir les newsletters"
   }
 }

@@ -22,7 +22,7 @@ export function LegalFootprintCard({ org, readOnly }: { org: Pick<Organization, 
   const profile = footerProfileOf(org);
   const countryName = (code: string) => new Intl.DisplayNames(["fr", "en"], { type: "region" }).of(code) ?? code;
   return (
-    <Card id="pied-de-page" className="scroll-mt-24">
+    <Card id="pied-de-page" className="scroll-mt-32">
       <CardHeader>
         <CardTitle>{t("pied_de_page_des_emails")}</CardTitle>
         <CardDescription>{t("chaque_email_porte_qui_l_envoie")}</CardDescription>

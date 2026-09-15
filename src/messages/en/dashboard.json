@@ -66,8 +66,6 @@
     "invitations_description": "{count, plural, =0 {No pending invitations} one {# pending invitation} other {# pending invitations}} — generate a link so a new company can create its workspace.",
     "invitations_titre": "Workspace invitations",
     "lien_expire": "link expired",
-    "marquer_comme_faite": "Mark “{title}” as done",
-    "marquer_comme_faite_bb0d": "Mark as done",
     "nouvelle_affaire": "New deal",
     "nouvelle_invitation": "New invitation",
     "organisations": "Organizations",
@@ -83,7 +81,7 @@
     "taches_du_jour": "Today’s tasks",
     "tout_le_suivi": "All follow-ups",
     "toutes_les_taches": "All tasks",
-    "travailler_dans_cette_organisation": "Work in this organization",
-    "vue_globale_super_admin_choisis_une_36d9": "Super admin global view — choose an organization (here or in the banner) to work in it."
+    "vue_globale_super_admin_choisis_une_36d9": "Client workspaces, the demo and invitations.",
+    "entrer": "Open"
   }
 }

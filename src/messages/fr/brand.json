@@ -25,7 +25,8 @@
     "six_caracteres_de_0_a_9_5caa": "Six caractères, de 0 à 9 et de A à F.",
     "suivi": "Suivi",
     "tableau_de_bord": "Tableau de bord",
-    "un_texte_courant_avec_un_lien_ba9e": "Un texte courant avec <a>un lien à la couleur de la marque</a>, puis la suite de la phrase."
+    "un_texte_courant_avec_un_lien_ba9e": "Un texte courant avec <a>un lien à la couleur de la marque</a>, puis la suite de la phrase.",
+    "apercu": "Aperçu sur les éléments du produit"
   },
   "brandLogoUploader": {
     "apercu_en_situation": "Aperçu en situation",

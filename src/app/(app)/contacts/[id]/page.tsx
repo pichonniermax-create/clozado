@@ -1,7 +1,7 @@
 import { use } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarDays, Download, Mail, MailOpen, MessageSquare, MousePointerClick } from "lucide-react";
+import { CalendarDays, Download, Mail, MailOpen, MessageSquare, MousePointerClick, Plus } from "lucide-react";
 import { StatTile } from "@/components/stat-tile";
 import { suppressionOfContact } from "@/db/queries/email-events";
 import { getContactIndicators, listSentNewslettersOfContact } from "@/db/queries/engagement";
@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ListCard, ListRow, ListRowLink } from "@/components/ui/list-card";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Journal } from "@/components/activities/journal";
 import { JOURNAL_ERROR_PARAM } from "@/components/activities/labels";
@@ -135,62 +136,107 @@ export default async function ContactPage({
     <>
       <PageHeader
         title={contact.name}
+        // « Suivi par … » est une information, pas une action : il vit dans la description (audit UI du 2026-09-14).
         description={
-          [isPerson ? contact.jobTitle : null, isPerson ? contact.companyName : null, contact.city]
+          [isPerson ? contact.jobTitle : null, isPerson ? contact.companyName : null, contact.city, owner ? tr("suivi_par", { n: owner.name ?? owner.email }) : null]
             .filter(Boolean)
             .join(" · ") || undefined
         }
         backTo={{ href: "/contacts", label: tr("contacts") }}
         actions={
-          <span className="flex items-center gap-2">
+          <>
             {suppression && <Badge variant="outline" title={tr("desinscrit_detail", { when: fmt.date(suppression.createdAt), reason: tr(`suppressionReasons.${suppression.reason as "unsubscribed" | "bounced" | "complained" | "manual"}`) })}>{tr("desinscrit")}</Badge>}
             {!isPerson && <Badge variant="secondary">{tr("societe")}</Badge>}
-            {owner && (
-              <span className="text-xs text-muted-foreground">{tr("suivi_par", { n: owner.name ?? owner.email })}</span>
-            )}
-          </span>
+            {/* Le geste principal et l'export en tête — avant, l'un était un lien gris au-dessus des affaires, l'autre au fond d'un repli. */}
+            <Link href={`/affaires?contact=${contact.id}`} className={buttonVariants({ size: "sm" })}>
+              <Plus />
+              {tr("nouvelle_affaire")}
+            </Link>
+            <a href={`/api/contacts/${contact.id}/export`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              <Download />
+              {tr("exporter_les_donnees")}
+            </a>
+          </>
         }
       />
 
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {tags.map((t) => (
-            <Badge
-              key={t.id}
-              variant="outline"
-              style={t.color ? { borderColor: t.color, color: t.color } : undefined}
-            >
-              {t.label}
-            </Badge>
-          ))}
-        </div>
+      {/* Les doublons sont une alerte : juste sous l'en-tête, pas après les newsletters. */}
+      {duplicates.length > 0 && (
+        <section className="flex flex-col gap-3 rounded-xl border border-warning/40 bg-warning/5 p-4">
+          <h2 className="text-sm font-semibold">{tr("doublons_possibles")}</h2>
+          <p className="text-sm text-muted-foreground">
+            {tr.rich("cette_fiche_porte_ces_fiches_portent_6dd9", { count: duplicates.length, span: (chunks) => <span className="font-medium">{chunks}</span> })}
+          </p>
+          <ul className="flex flex-col gap-2">
+            {duplicates.map((d) => (
+              <li key={d.id} className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm">
+                  <Link href={`/contacts/${d.id}`} className="font-medium underline underline-offset-2">
+                    {d.name}
+                  </Link>
+                  <span className="text-muted-foreground">
+                    {[d.email, d.companyName].filter(Boolean).map((x) => ` · ${x}`)}
+                  </span>
+                </span>
+                <form action={mergeContactsAction.bind(null, contact.id, d.id)}>
+                  <Button type="submit" variant="outline" size="sm">
+                    {tr("fusionner_dans_cette_fiche")}
+                  </Button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
-      {/* Les cibles dont cette fiche fait partie AUJOURD'HUI : un segment se
-          recalcule, une étiquette posée ou retirée change la réponse. */}
-      <p className="flex flex-wrap items-center gap-1.5 text-sm">
-        <span className="text-muted-foreground">{tr("dans_les_cibles")}</span>
-        {contactTargets.length === 0 ? (
-          <span className="text-muted-foreground">
-            {tr.rich("aucune_pour_l_instant_voir_les_4a14", { link: (chunks) => <Link href="/cibles" className="underline underline-offset-2 hover:text-foreground">{chunks}</Link> })}
-          </span>
-        ) : (
-          contactTargets.map((t) => (
-            <Badge key={t.id} variant="secondary" render={<Link href={`/cibles/${t.id}`} />}>
-              {t.label}
-            </Badge>
-          ))
+      {/* Étiquettes et cibles : deux concepts, deux libellés, une seule ligne de méta. La couleur d'une étiquette
+          est un point, jamais la couleur du texte (contraste non garanti sur une couleur libre). Les cibles dont
+          cette fiche fait partie AUJOURD'HUI : un segment se recalcule, une étiquette posée ou retirée change la réponse. */}
+      <dl className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+        {tags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <dt className="text-xs text-muted-foreground">{tr("etiquettes")}</dt>
+            {tags.map((t) => (
+              <dd key={t.id}>
+                <Badge variant="secondary">
+                  <span aria-hidden className="size-2 rounded-full" style={{ backgroundColor: t.color ?? "var(--muted-foreground)" }} />
+                  {t.label}
+                </Badge>
+              </dd>
+            ))}
+          </div>
         )}
-      </p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <dt className="text-xs text-muted-foreground">{tr("dans_les_cibles")}</dt>
+          {contactTargets.length === 0 ? (
+            <dd className="text-muted-foreground">
+              {tr.rich("aucune_pour_l_instant_voir_les_4a14", { link: (chunks) => <Link href="/cibles" className="underline underline-offset-2 hover:text-foreground">{chunks}</Link> })}
+            </dd>
+          ) : (
+            contactTargets.map((t) => (
+              <dd key={t.id}>
+                <Badge variant="secondary" render={<Link href={`/cibles/${t.id}`} />}>
+                  {t.label}
+                </Badge>
+              </dd>
+            ))
+          )}
+        </div>
+      </dl>
 
+      {/* Deux colonnes dès lg (audit UI du 2026-09-14) : l'activité — ce qu'on cherche en ouvrant une fiche — à
+          gauche, la fiche et ses réglages à droite. Sur mobile, l'activité d'abord, la fiche ensuite (l'aside est
+          APRÈS dans le DOM). Le formulaire reste éditable en permanence : c'est la convention des fiches du produit. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+      <div className="flex min-w-0 flex-col gap-6">
       {/* Les indicateurs d'engagement — une seule définition par indicateur
           (src/db/queries/engagement.ts) ; l'ouverture est dite approximative. */}
       {indicators && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatTile label={tr("indicateurs.dernier_email_ouvert")} value={indicators.lastOpenedAt ? fmt.date(indicators.lastOpenedAt) : "—"} hint={tr("indicateurs.approx")} icon={<MailOpen />} />
-          <StatTile label={tr("indicateurs.dernier_clic")} value={indicators.lastClickedAt ? fmt.date(indicators.lastClickedAt) : "—"} icon={<MousePointerClick />} />
-          <StatTile label={tr("indicateurs.derniere_interaction")} value={indicators.lastInteractionAt ? fmt.date(indicators.lastInteractionAt) : "—"} hint={tr("indicateurs.interaction_def")} icon={<MessageSquare />} />
-          <StatTile label={tr("indicateurs.dernier_rendez_vous")} value={indicators.lastAppointmentAt ? fmt.date(indicators.lastAppointmentAt) : "—"} icon={<CalendarDays />} />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <StatTile label={tr("indicateurs.dernier_email_ouvert")} value={indicators.lastOpenedAt ? fmt.date(indicators.lastOpenedAt) : tr("indicateurs.jamais")} hint={tr("indicateurs.approx")} icon={<MailOpen />} />
+          <StatTile label={tr("indicateurs.dernier_clic")} value={indicators.lastClickedAt ? fmt.date(indicators.lastClickedAt) : tr("indicateurs.jamais")} icon={<MousePointerClick />} />
+          <StatTile label={tr("indicateurs.derniere_interaction")} value={indicators.lastInteractionAt ? fmt.date(indicators.lastInteractionAt) : tr("indicateurs.jamais")} hint={tr("indicateurs.interaction_def")} icon={<MessageSquare />} />
+          <StatTile label={tr("indicateurs.dernier_rendez_vous")} value={indicators.lastAppointmentAt ? fmt.date(indicators.lastAppointmentAt) : tr("indicateurs.jamais")} icon={<CalendarDays />} />
         </div>
       )}
       {suppression && (
@@ -199,128 +245,9 @@ export default async function ContactPage({
         </p>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{tr("fiche")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form
-            // Remonté quand la fiche change (édition, fusion) : des champs
-            // non contrôlés dont les defaultValue bougent sous un composant
-            // monté déclenchent l'avertissement Base UI et gardent l'ancienne
-            // saisie à l'écran.
-            key={contact.updatedAt.getTime()}
-            action={updateContactAction.bind(null, contact.id)}
-            className="flex flex-col gap-4"
-          >
-            <input type="hidden" name="kind" value={contact.kind} />
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {isPerson ? (
-                <>
-                  <Field label={tr("prenom")} htmlFor="firstName">
-                    <Input id="firstName" name="firstName" defaultValue={contact.firstName ?? ""} />
-                  </Field>
-                  <Field label={tr("nom")} htmlFor="lastName">
-                    <Input id="lastName" name="lastName" defaultValue={contact.lastName ?? ""} />
-                  </Field>
-                </>
-              ) : (
-                <Field label={tr("raison_sociale")} htmlFor="name" className="sm:col-span-2">
-                  <Input id="name" name="name" defaultValue={contact.name} required />
-                </Field>
-              )}
-              {isPerson && (
-                <input type="hidden" name="name" value="" />
-              )}
-              <Field label={tr("email")} htmlFor="email">
-                <Input id="email" name="email" type="email" defaultValue={contact.email ?? ""} />
-              </Field>
-              <Field label={tr("telephone")} htmlFor="phone">
-                <Input id="phone" name="phone" defaultValue={contact.phone ?? ""} />
-              </Field>
-              {isPerson && (
-                <>
-                  <Field label={tr("societe")} htmlFor="companyName">
-                    <Input id="companyName" name="companyName" defaultValue={contact.companyName ?? ""} />
-                  </Field>
-                  <Field label={tr("fonction")} htmlFor="jobTitle">
-                    <Input id="jobTitle" name="jobTitle" defaultValue={contact.jobTitle ?? ""} />
-                  </Field>
-                  <Field label={tr("date_de_naissance")} htmlFor="birthDate">
-                    <Input id="birthDate" name="birthDate" type="date" defaultValue={contact.birthDate ?? ""} />
-                  </Field>
-                </>
-              )}
-              <Field label={tr("ville")} htmlFor="city">
-                <Input id="city" name="city" defaultValue={contact.city ?? ""} />
-              </Field>
-              <Field label={tr("code_postal")} htmlFor="postalCode">
-                <Input id="postalCode" name="postalCode" defaultValue={contact.postalCode ?? ""} />
-              </Field>
-              <Field label={tr("pays")} htmlFor="country">
-                <Input id="country" name="country" defaultValue={contact.country ?? ""} />
-              </Field>
-              {orgUsers.length > 0 && (
-                <Field label={tr("conseiller_attribue")} htmlFor="ownerId">
-                  <NativeSelect
-                    id="ownerId"
-                    name="ownerId"
-                    defaultValue={contact.ownerId ?? ""} className="w-auto max-w-full"
-                  >
-                    <option value="">{tr("personne")}</option>
-                    {orgUsers.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name || u.email}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </Field>
-              )}
-            </div>
-            <Field label={tr("notes")} htmlFor="notes">
-              <Textarea id="notes" name="notes" defaultValue={contact.notes ?? ""} className="min-h-16" />
-            </Field>
-            <Button type="submit" className="w-fit">
-              {tr("enregistrer")}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* Étiquettes — configurables par organisation, posées ici. */}
-      <DetailsCard summary={tr("etiquettes")} variant="archive">
-        <form action={saveContactTagsAction.bind(null, contact.id)} className="flex flex-col gap-3 p-4">
-          {allTags.length > 0 ? (
-            <div className="flex flex-wrap gap-x-4 gap-y-2">
-              {allTags.map((t) => (
-                <label key={t.id} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    name="tagIds"
-                    value={t.id}
-                    defaultChecked={tags.some((x) => x.id === t.id)}
-                  />
-                  {t.label}
-                </label>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              {tr("aucune_etiquette_dans_ton_organisation_pour_4ff3")}
-            </p>
-          )}
-          <Field label={tr("nouvelle_etiquette")} htmlFor="newTag" hint={tr("creee_pour_toute_l_organisation_et_98c8")}>
-            <Input id="newTag" name="newTag" placeholder={tr("vip_prospect_notaire")} className="max-w-60" />
-          </Field>
-          <Button type="submit" variant="outline" className="w-fit">
-            {tr("enregistrer_les_etiquettes")}
-          </Button>
-        </form>
-      </DetailsCard>
-
       {!isPerson && (
         <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold">{tr("personnes_rattachees")}</h2>
+          <SectionHeading title={tr("personnes_rattachees")} count={employees.length} />
           {employees.length === 0 ? (
             <EmptyState>
               {tr("aucune_personne_rattachee_a_cette_societe_ec5c")}
@@ -385,9 +312,7 @@ export default async function ContactPage({
       )}
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">
-          {tr("newsletters_recues", { n: (received.length > 0 && ` (${received.length})`) || "" })}
-        </h2>
+        <SectionHeading title={tr("newsletters_recues", { n: "" })} count={received.length} />
         {received.length === 0 ? (
           <EmptyState>
             {tr("aucune_newsletter_marquee_envoyee_a_cette_15d7")}
@@ -415,13 +340,15 @@ export default async function ContactPage({
         {mailTargets.length > 0 ? (
           <form
             action={createNewsletterForContactAction.bind(null, contact.id)}
-            className="flex flex-wrap items-center gap-2"
+            // Une colonne à 390 px (les contrôles se repliaient en escalier), une ligne dès sm.
+            className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center"
           >
             {mailTargets.length > 1 ? (
               <NativeSelect
                 name="targetId"
                 defaultValue={mailTargets[0].id}
-                aria-label={tr("cible")} className="w-auto max-w-full"
+                aria-label={tr("cible")}
+                className="w-full sm:w-auto"
               >
                 {mailTargets.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -432,7 +359,7 @@ export default async function ContactPage({
             ) : (
               <input type="hidden" name="targetId" value={mailTargets[0].id} />
             )}
-            <Button type="submit" variant="outline">
+            <Button type="submit" variant="outline" className="w-full sm:w-auto">
               <Mail />
               {tr("rediger_une_newsletter_pour_ce_contact")}
             </Button>
@@ -446,34 +373,134 @@ export default async function ContactPage({
           </p>
         )}
       </section>
+      </div>
 
-      {duplicates.length > 0 && (
-        <section className="flex flex-col gap-3 rounded-xl border border-warning/40 bg-warning/5 p-4">
-          <h2 className="text-sm font-semibold">{tr("doublons_possibles")}</h2>
-          <p className="text-sm text-muted-foreground">
-            {tr.rich("cette_fiche_porte_ces_fiches_portent_6dd9", { count: duplicates.length, span: (chunks) => <span className="font-medium">{chunks}</span> })}
-          </p>
-          <ul className="flex flex-col gap-2">
-            {duplicates.map((d) => (
-              <li key={d.id} className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm">
-                  <Link href={`/contacts/${d.id}`} className="font-medium underline underline-offset-2">
-                    {d.name}
-                  </Link>
-                  <span className="text-muted-foreground">
-                    {[d.email, d.companyName].filter(Boolean).map((x) => ` · ${x}`)}
-                  </span>
-                </span>
-                <form action={mergeContactsAction.bind(null, contact.id, d.id)}>
-                  <Button type="submit" variant="outline" size="sm">
-                    {tr("fusionner_dans_cette_fiche")}
-                  </Button>
-                </form>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <aside className="flex min-w-0 flex-col gap-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>{tr("fiche")}</CardTitle>
+        </CardHeader>
+        <CardContent className="@container">
+          <form
+            // Remonté quand la fiche change (édition, fusion) : des champs
+            // non contrôlés dont les defaultValue bougent sous un composant
+            // monté déclenchent l'avertissement Base UI et gardent l'ancienne
+            // saisie à l'écran.
+            key={contact.updatedAt.getTime()}
+            action={updateContactAction.bind(null, contact.id)}
+            className="flex flex-col gap-4"
+          >
+            <input type="hidden" name="kind" value={contact.kind} />
+            {/* Deux colonnes selon la largeur de la CARTE (pas de l'écran) : une seule dans l'aside de 320 px. */}
+            <div className="grid grid-cols-1 gap-4 @md:grid-cols-2">
+              {isPerson ? (
+                <>
+                  <Field label={tr("prenom")} htmlFor="firstName">
+                    <Input id="firstName" name="firstName" defaultValue={contact.firstName ?? ""} />
+                  </Field>
+                  <Field label={tr("nom")} htmlFor="lastName">
+                    <Input id="lastName" name="lastName" defaultValue={contact.lastName ?? ""} />
+                  </Field>
+                </>
+              ) : (
+                <Field label={tr("raison_sociale")} htmlFor="name" className="sm:col-span-2">
+                  <Input id="name" name="name" defaultValue={contact.name} required />
+                </Field>
+              )}
+              {isPerson && (
+                <input type="hidden" name="name" value="" />
+              )}
+              <Field label={tr("email")} htmlFor="email">
+                <Input id="email" name="email" type="email" defaultValue={contact.email ?? ""} />
+              </Field>
+              <Field label={tr("telephone")} htmlFor="phone">
+                <Input id="phone" name="phone" defaultValue={contact.phone ?? ""} />
+              </Field>
+              {isPerson && (
+                <>
+                  <Field label={tr("societe")} htmlFor="companyName">
+                    <Input id="companyName" name="companyName" defaultValue={contact.companyName ?? ""} />
+                  </Field>
+                  <Field label={tr("fonction")} htmlFor="jobTitle">
+                    <Input id="jobTitle" name="jobTitle" defaultValue={contact.jobTitle ?? ""} />
+                  </Field>
+                  <Field label={tr("date_de_naissance")} htmlFor="birthDate">
+                    <Input id="birthDate" name="birthDate" type="date" defaultValue={contact.birthDate ?? ""} />
+                  </Field>
+                </>
+              )}
+              <Field label={tr("ville")} htmlFor="city">
+                <Input id="city" name="city" defaultValue={contact.city ?? ""} />
+              </Field>
+              <Field label={tr("code_postal")} htmlFor="postalCode">
+                <Input id="postalCode" name="postalCode" defaultValue={contact.postalCode ?? ""} />
+              </Field>
+              <Field label={tr("pays")} htmlFor="country">
+                <Input id="country" name="country" defaultValue={contact.country ?? ""} />
+              </Field>
+              {orgUsers.length > 0 && (
+                <Field label={tr("conseiller_attribue")} htmlFor="ownerId">
+                  <NativeSelect
+                    id="ownerId"
+                    name="ownerId"
+                    defaultValue={contact.ownerId ?? ""} className="w-full"
+                  >
+                    <option value="">{tr("personne")}</option>
+                    {orgUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name || u.email}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              )}
+            </div>
+            <Field label={tr("notes")} htmlFor="notes">
+              <Textarea id="notes" name="notes" defaultValue={contact.notes ?? ""} className="min-h-16" />
+            </Field>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="submit" className="w-fit">
+                {tr("enregistrer")}
+              </Button>
+              {/* Revenir aux valeurs enregistrées sans recharger : la seule finition admise sur un formulaire toujours ouvert. */}
+              <Button type="reset" variant="ghost">
+                {tr("annuler")}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Étiquettes — configurables par organisation, posées ici. */}
+      <DetailsCard summary={tr("etiquettes")} variant="archive">
+        <form action={saveContactTagsAction.bind(null, contact.id)} className="flex flex-col gap-3">
+          {allTags.length > 0 ? (
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {allTags.map((t) => (
+                <label key={t.id} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="tagIds"
+                    value={t.id}
+                    defaultChecked={tags.some((x) => x.id === t.id)}
+                  />
+                  {t.label}
+                </label>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {tr("aucune_etiquette_dans_ton_organisation_pour_4ff3")}
+            </p>
+          )}
+          <Field label={tr("nouvelle_etiquette")} htmlFor="newTag" hint={tr("creee_pour_toute_l_organisation_et_98c8")}>
+            <Input id="newTag" name="newTag" placeholder={tr("vip_prospect_notaire")} className="max-w-60" />
+          </Field>
+          <Button type="submit" variant="outline" className="w-fit">
+            {tr("enregistrer_les_etiquettes")}
+          </Button>
+        </form>
+      </DetailsCard>
 
       <DetailsCard variant="archive" summary={tr("journal_des_acces", { count: accessLog.length })} flush>
         <ul className="divide-y divide-border">
@@ -525,6 +552,8 @@ export default async function ContactPage({
           </form>
         </div>
       </DetailsCard>
+      </aside>
+      </div>
     </>
   );
 }
@@ -540,17 +569,17 @@ function DealsSection({
   const fmt = use(getFormats());
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">{t("affaires_liees")}</h2>
-        {contactId && (
-          <Link
-            href={`/affaires?contact=${contactId}`}
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {t("nouvelle_affaire_pour_ce_contact")}
-          </Link>
-        )}
-      </div>
+      <SectionHeading
+        title={t("affaires_liees")}
+        count={deals.length}
+        trailing={
+          contactId ? (
+            <Link href={`/affaires?contact=${contactId}`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              {t("nouvelle_affaire_pour_ce_contact")}
+            </Link>
+          ) : undefined
+        }
+      />
       {deals.length === 0 ? (
         <EmptyState>
           {t("aucune_affaire_reliee_a_cette_fiche")}{" "}

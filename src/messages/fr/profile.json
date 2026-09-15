@@ -22,10 +22,11 @@
     "cree_le_dans_calendly_integrations_api": "Crée-le dans Calendly → Integrations → API & webhooks → Personal access token. Il sert une fois et n’est jamais conservé.",
     "placeholder_jeton": "eyJra…",
     "connecter": "Connecter",
-    "le_jeton_sert_une_fois_webhooks_plans_payants": "Le jeton sert une seule fois (créer l’abonnement webhook) puis est oublié. Les webhooks Calendly sont réservés aux plans payants (Standard, Teams…) — la saisie manuelle sur la fiche marche sans.",
     "deconnecter": "Déconnecter",
     "la_deconnexion_est_locale_retire_aussi_le_webhook": "La déconnexion est locale : ton jeton n’ayant jamais été conservé, l’abonnement webhook côté Calendly se retire à la main (Calendly → Integrations → Webhooks).",
     "connectee_les_rendez_vous_arriveront_tout_seuls": "Calendly connecté : les rendez-vous pris arriveront tout seuls sur les fiches.",
-    "deconnectee_pense_a_retirer_le_webhook": "Connexion Calendly déconnectée : plus rien ne sera écrit. Pense à retirer aussi le webhook côté Calendly (Integrations → Webhooks)."
-  }
+    "deconnectee_pense_a_retirer_le_webhook": "Connexion Calendly déconnectée : plus rien ne sera écrit. Pense à retirer aussi le webhook côté Calendly (Integrations → Webhooks).",
+    "webhooks_plans_payants": "Les webhooks Calendly exigent un plan payant (Standard, Teams…). Sans, la saisie manuelle des rendez-vous sur la fiche marche."
+  },
+  "sinon_celle_de_l_organisation_lien": "Si vide, les réponses vont à l’adresse de réponse de l’organisation ({email}) — <link>la changer dans les réglages</link>."
 }

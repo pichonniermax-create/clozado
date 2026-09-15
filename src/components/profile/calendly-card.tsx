@@ -45,6 +45,8 @@ export function CalendlyCard({ connection }: { connection: CalendarConnection | 
           </>
         ) : (
           <form action={connectCalendlyAction} className="flex flex-col gap-4">
+            {/* La contrainte de plan AVANT la saisie, pas après le bouton (audit UI du 2026-09-14). */}
+            <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm text-pretty">{t("webhooks_plans_payants")}</p>
             <Field label={t("jeton_d_acces_personnel")} htmlFor="calendly-token" hint={t("cree_le_dans_calendly_integrations_api")}>
               <Input
                 id="calendly-token"
@@ -59,7 +61,6 @@ export function CalendlyCard({ connection }: { connection: CalendarConnection | 
             <Button type="submit" className="w-fit">
               {t("connecter")}
             </Button>
-            <p className="text-xs text-muted-foreground">{t("le_jeton_sert_une_fois_webhooks_plans_payants")}</p>
           </form>
         )}
       </CardContent>

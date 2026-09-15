@@ -24,7 +24,7 @@ export function AutoSendCard({
 }) {
   const t = useTranslations("rules.settingsCard");
   return (
-    <Card id="envois-automatiques" className="scroll-mt-24">
+    <Card id="envois-automatiques" className="scroll-mt-32">
       <CardHeader>
         <CardTitle>{t("envois_automatiques")}</CardTitle>
         <CardDescription>{t("rien_ne_part_sans_clic_la_vague_se_relit")}</CardDescription>
@@ -38,8 +38,9 @@ export function AutoSendCard({
               <span className="block text-xs text-muted-foreground">{t("coupe_send_email_ne_prepare_rien")}</span>
             </span>
           </label>
-          <div className="flex flex-wrap items-end gap-3">
-            <Field label={t("plafond_periode_jours")} htmlFor="auto-send-period" hint={t("au_plus_un_email_automatique_par_contact")}>
+          {/* Une grille alignée en haut : avec `items-end`, l'aide du plafond faisait descendre ses voisins de 40 px. */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-[10rem_6rem_6rem] sm:items-start">
+            <Field label={t("plafond_periode_jours")} htmlFor="auto-send-period" hint={t("au_plus_un_email_automatique_par_contact")} className="col-span-2 sm:col-span-1">
               <Input
                 id="auto-send-period"
                 name="autoSendPeriodDays"
@@ -48,14 +49,14 @@ export function AutoSendCard({
                 max={365}
                 defaultValue={org.autoSendPeriodDays}
                 disabled={readOnly}
-                className="w-24"
+                className="w-full sm:w-24"
               />
             </Field>
             <Field label={t("heures_de_bureau_debut")} htmlFor="auto-send-start">
-              <Input id="auto-send-start" name="officeHoursStart" type="number" min={0} max={23} defaultValue={org.officeHoursStart} disabled={readOnly} className="w-20" />
+              <Input id="auto-send-start" name="officeHoursStart" type="number" min={0} max={23} defaultValue={org.officeHoursStart} disabled={readOnly} className="w-full" />
             </Field>
             <Field label={t("heures_de_bureau_fin")} htmlFor="auto-send-end">
-              <Input id="auto-send-end" name="officeHoursEnd" type="number" min={1} max={24} defaultValue={org.officeHoursEnd} disabled={readOnly} className="w-20" />
+              <Input id="auto-send-end" name="officeHoursEnd" type="number" min={1} max={24} defaultValue={org.officeHoursEnd} disabled={readOnly} className="w-full" />
             </Field>
           </div>
           <p className="text-xs text-muted-foreground">{t("jours_ouvres_dans_le_fuseau", { timezone: org.timezone })}</p>

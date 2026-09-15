@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Route } from "lucide-react";
+import { Briefcase, Route } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { ListCard, ListRow, ListRowLink } from "@/components/ui/list-card";
+import { ListCard, ListRowLink } from "@/components/ui/list-card";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { PageHeader } from "@/components/app-shell/page-header";
 import {
   listDealsWithoutOriginButLeads,
@@ -54,11 +55,10 @@ export default async function OriginsPage() {
 
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">{t("a_rapprocher", { n: (unmatched.length > 0 && ` (${unmatched.length})`) || "" })}</h2>
+        <SectionHeading title={t("a_rapprocher_titre")} count={unmatched.length > 0 ? unmatched.length : undefined} />
+        {/* Une bonne nouvelle tient en une ligne (audit UI du 2026-09-14) : un grand cadre en tête de page pour dire « rien à faire » repoussait la liste utile. */}
         {unmatched.length === 0 ? (
-          <EmptyState icon={<Route />} title={t("rien_a_rapprocher")}>
-            {t("tout_ce_qui_est_arrive_porte_5717")}
-          </EmptyState>
+          <EmptyState icon={<Route />}>{t("rien_a_rapprocher_ligne")}</EmptyState>
         ) : (
           <ListCard>
             {unmatched.map((u) => (
@@ -66,11 +66,11 @@ export default async function OriginsPage() {
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   {t.rich("lead_leads_visite_visites_simulation_simulations_d0e8", { raw: u.raw, leads: u.leads, events: u.events, formatDateTime: fmt.dateTime(u.lastSeenAt), span: (chunks) => <span className="text-sm font-medium">{chunks}</span>, span2: (chunks) => <span className="text-xs tabular-nums text-muted-foreground">{chunks}</span> })}
                 </div>
-                <form action={attachOriginAction} className="flex flex-wrap items-end gap-2">
+                <form action={attachOriginAction} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
                   <input type="hidden" name="raw" value={u.raw} />
                   {origins.length > 0 && (
                     <Field label={t("origine_existante")} htmlFor={`origin-${u.raw}`}>
-                      <NativeSelect id={`origin-${u.raw}`} name="originId" defaultValue="" className="w-auto max-w-full">
+                      <NativeSelect id={`origin-${u.raw}`} name="originId" defaultValue="" className="w-full sm:w-auto">
                         <option value="">{t("choisir")}</option>
                         {origins.map((o) => (
                           <option key={o.id} value={o.id}>{o.label}</option>
@@ -79,9 +79,9 @@ export default async function OriginsPage() {
                     </Field>
                   )}
                   <Field label={origins.length > 0 ? t("ou_nouvelle_origine") : t("nouvelle_origine")} htmlFor={`new-${u.raw}`}>
-                    <Input id={`new-${u.raw}`} name="newLabel" placeholder={u.raw} className="w-56" />
+                    <Input id={`new-${u.raw}`} name="newLabel" placeholder={u.raw} className="w-full sm:w-56" />
                   </Field>
-                  <Button type="submit" variant="outline">{t("rattacher")}</Button>
+                  <Button type="submit" variant="outline" className="w-full sm:w-auto">{t("rattacher")}</Button>
                 </form>
               </li>
             ))}
@@ -90,37 +90,45 @@ export default async function OriginsPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">{t("origines_configurees", { n: (origins.length > 0 && ` (${origins.length})`) || "" })}</h2>
+        {/* Le geste de création vit dans l'en-tête de section (audit UI du 2026-09-14) : sous la liste, son libellé en gras se lisait comme une quatrième section. */}
+        <SectionHeading
+          title={t("origines_configurees_titre")}
+          count={origins.length > 0 ? origins.length : undefined}
+          trailing={
+            <form action={createOriginAction} className="flex w-full items-center gap-2 sm:w-auto">
+              <Input id="new-origin" name="label" required placeholder={t("simulateur_credit")} aria-label={t("nouvelle_origine")} className="min-w-0 flex-1 sm:w-56 sm:flex-none" />
+              <Button type="submit" variant="outline" className="shrink-0">{t("ajouter")}</Button>
+            </form>
+          }
+        />
         {origins.length === 0 ? (
           <EmptyState title={t("aucune_origine_configuree")}>
             {t("cree_les_origines_que_tu_veux_03ba")}
           </EmptyState>
         ) : (
           <ListCard>
+            {/* Chaque origine ouvre le funnel filtré sur elle : une ligne inerte ne disait qu'une date de création. */}
             {origins.map((o) => (
-              <ListRow key={o.id}>
-                {t.rich("creee_le", { label: o.label, formatDate: fmt.date(o.createdAt), span: (chunks) => <span className="text-sm font-medium">{chunks}</span>, span2: (chunks) => <span className="text-xs tabular-nums text-muted-foreground">{chunks}</span> })}
-              </ListRow>
+              <ListRowLink
+                key={o.id}
+                href={`/analytique/funnel?origine=${o.id}`}
+                title={o.label}
+                subtitle={t("creee_le_texte", { formatDate: fmt.date(o.createdAt) })}
+                trailing={<span className="text-xs text-muted-foreground">{t("voir_le_funnel")}</span>}
+              />
             ))}
           </ListCard>
         )}
-        <form action={createOriginAction} className="flex flex-wrap items-end gap-2">
-          <Field label={t("nouvelle_origine")} htmlFor="new-origin" className="w-72">
-            <Input id="new-origin" name="label" required placeholder={t("simulateur_credit")} />
-          </Field>
-          <Button type="submit" variant="outline">{t("ajouter")}</Button>
-        </form>
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">
-          {t("affaires_sans_origine_chez_des_contacts_f2d8", { n: (orphanDeals.length > 0 && ` (${orphanDeals.length})`) || "" })}
-        </h2>
-        <p className="-mt-1 text-xs text-muted-foreground">
-          {t("une_affaire_creee_avant_l_arrivee_0df8")}
-        </p>
+        <SectionHeading
+          title={t("affaires_sans_origine_titre")}
+          count={orphanDeals.length > 0 ? orphanDeals.length : undefined}
+          description={t("une_affaire_creee_avant_l_arrivee_0df8")}
+        />
         {orphanDeals.length === 0 ? (
-          <EmptyState>{t("aucune_chaque_affaire_d_un_contact_2ec0")}</EmptyState>
+          <EmptyState icon={<Briefcase />}>{t("aucune_chaque_affaire_d_un_contact_2ec0")}</EmptyState>
         ) : (
           <ListCard>
             {orphanDeals.map((d) => (

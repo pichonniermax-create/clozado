@@ -46,6 +46,7 @@ export function SignUpForm({ invitation = null }: { invitation?: SignUpInvitatio
           maxLength={120}
           value={organizationName}
           onChange={(e) => setOrganizationName(e.target.value)}
+          className="pointer-coarse:h-10"
         />
       </Field>
 
@@ -59,14 +60,17 @@ export function SignUpForm({ invitation = null }: { invitation?: SignUpInvitatio
           required
           readOnly={emailLocked}
           aria-readonly={emailLocked || undefined}
-          className={emailLocked ? "bg-muted/60 text-muted-foreground" : undefined}
+          className={emailLocked ? "bg-muted/60 text-muted-foreground pointer-coarse:h-10" : "pointer-coarse:h-10"}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          aria-invalid={state.error ? true : undefined}
+          aria-describedby={state.error ? "signup-error" : undefined}
         />
       </Field>
 
       {state.error && (
-        <p role="alert" className="text-sm text-destructive">
+        // L'action ne renvoie qu'une erreur : elle est rattachée à l'adresse (le champ le plus souvent en cause).
+        <p id="signup-error" role="alert" className="text-sm text-destructive">
           {state.error}
         </p>
       )}

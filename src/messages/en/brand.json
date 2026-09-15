@@ -25,7 +25,8 @@
     "six_caracteres_de_0_a_9_5caa": "Six characters, 0 to 9 and A to F.",
     "suivi": "Follow-up",
     "tableau_de_bord": "Dashboard",
-    "un_texte_courant_avec_un_lien_ba9e": "Body text with <a>a link in the brand color</a>, then the rest of the sentence."
+    "un_texte_courant_avec_un_lien_ba9e": "Body text with <a>a link in the brand color</a>, then the rest of the sentence.",
+    "apercu": "Preview on product elements"
   },
   "brandLogoUploader": {
     "apercu_en_situation": "Preview in context",

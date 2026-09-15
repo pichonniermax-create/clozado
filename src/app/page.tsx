@@ -4,6 +4,7 @@ import { ArrowRight, Banknote, Share2, Target } from "lucide-react";
 import { auth } from "@/auth";
 import { BrandMark } from "@/components/app-shell/brand-mark";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { getTranslations } from "next-intl/server";
 
 /**
@@ -20,15 +21,16 @@ export default async function Home() {
   if (session?.user) redirect("/dashboard");
 
   return (
-    <div className="flex min-h-screen flex-col bg-muted/40">
+    // `min-h-svh` : sur Safari iOS, 100vh compte la barre d'adresse et la page sautait au défilement.
+    <div className="flex min-h-svh flex-col bg-muted/40">
       <header className="flex items-center justify-between px-6 py-5">
         <BrandMark size="lg" />
-        <Link href="/login" className={buttonVariants({ variant: "ghost" })}>
+        <Link href="/login" className={buttonVariants({ variant: "ghost", size: "lg" })}>
           {t("se_connecter")}
         </Link>
       </header>
 
-      <main className="flex flex-1 items-center justify-center px-6 py-12">
+      <main className="flex flex-1 items-start justify-center px-6 py-8 sm:items-center sm:py-12">
         <div className="flex w-full max-w-2xl flex-col items-center gap-8 text-center">
           <div className="flex flex-col gap-4">
             <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
@@ -39,12 +41,13 @@ export default async function Home() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Link href="/inscription" className={buttonVariants({ size: "lg" })}>
+          {/* Sur un téléphone, les deux gestes s'empilent en pleine largeur (40 px au doigt) ; côte à côte dès sm. */}
+          <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-center">
+            <Link href="/inscription" className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-auto")}>
               {t("creer_un_espace")}
               <ArrowRight />
             </Link>
-            <Link href="/login" className={buttonVariants({ variant: "outline", size: "lg" })}>
+            <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto")}>
               {t("j_ai_deja_un_compte")}
             </Link>
           </div>
@@ -82,10 +85,11 @@ function Argument({
   body: string;
 }) {
   return (
+    // Un vrai titre de section et un corps lisible (14 px) : c'est une page marketing, pas une note de bas de page.
     <li className="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-4">
       <span className="text-primary [&_svg]:size-4">{icon}</span>
-      <span className="text-sm font-medium">{title}</span>
-      <span className="text-xs text-muted-foreground">{body}</span>
+      <h2 className="text-sm font-medium">{title}</h2>
+      <p className="text-sm text-muted-foreground text-pretty">{body}</p>
     </li>
   );
 }

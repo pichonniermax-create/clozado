@@ -23,7 +23,9 @@
     "evaluer_maintenant": "Évaluer maintenant",
     "dernier_passage_resultat": "Dernier passage le {when} : {matched} retenus, {done} faites, {skipped} non faites.",
     "evaluation_en_cours": "Évaluation en cours…",
-    "le_cron_quotidien_evalue_aussi": "Le passage quotidien — avant 9h00, avec la reprise des envois — évalue aussi ces règles : il prépare, il n’envoie jamais."
+    "le_cron_quotidien_evalue_aussi": "Le passage quotidien — avant 9h00, avec la reprise des envois — évalue aussi ces règles : il prépare, il n’envoie jamais.",
+    "aucune_regle_titre": "Aucune règle pour l’instant",
+    "archiver": "Archiver"
   },
   "wave": {
     "vague_en_attente": "Vague en attente ({n})",
@@ -86,7 +88,10 @@
       "nom_complet": "Camille Roussel",
       "societe": "Roussel Transports",
       "organisation": "Cabinet Exemple"
-    }
+    },
+    "seuil": "Seuil",
+    "jours": "jours",
+    "annuler": "Annuler"
   },
   "journal": {
     "journal_des_regles": "Journal des règles",
@@ -101,7 +106,8 @@
     "rien_pour_ces_filtres": "Rien pour ces filtres — le moteur n’a encore rien fait, ou pas ça.",
     "faite": "Faite",
     "non_faite": "Non faite",
-    "gabarit_vn": "gabarit v{n}"
+    "gabarit_vn": "gabarit v{n}",
+    "les_200_derniers": "Les 200 dernières entrées — affine les filtres pour voir plus loin."
   },
   "skip": {
     "no_owner": "Sans responsable",
@@ -156,8 +162,8 @@
     "coupe_send_email_ne_prepare_rien": "Coupé : l’action « envoi automatique » ne prépare rien et la vague refuse de partir. Tâches, notifications et brouillons continuent.",
     "plafond_periode_jours": "Plafond : période (jours)",
     "au_plus_un_email_automatique_par_contact": "Au plus un email automatique par contact par période, toutes règles confondues.",
-    "heures_de_bureau_debut": "Heures de bureau : début",
-    "heures_de_bureau_fin": "fin",
+    "heures_de_bureau_debut": "Heures de bureau : début (h)",
+    "heures_de_bureau_fin": "Fin (h)",
     "jours_ouvres_dans_le_fuseau": "Jours ouvrés (lundi–vendredi), dans le fuseau {timezone}. Hors fenêtre, l’écran de la vague avertit — c’est le clic qui décide.",
     "enregistrer": "Enregistrer",
     "reglages_enregistres": "Réglages enregistrés."

@@ -99,6 +99,7 @@ export const NAVIGATION: NavSection[] = [
 export const QUICK_CREATE: { href: string; key: keyof Messages["nav"]["quickCreate"]; icon: LucideIcon }[] = [
   { href: "/contacts?nouveau=1", key: "contacts", icon: BookUser },
   { href: "/affaires?nouveau=1", key: "affaires", icon: Briefcase },
-  { href: "/taches#nouvelle-tache", key: "taches", icon: ListTodo },
+  // `?nouveau=1`, pas une ancre : le formulaire vit dans un repli fermé par défaut — une ancre ne l'ouvrirait pas.
+  { href: "/taches?nouveau=1", key: "taches", icon: ListTodo },
   { href: "/partenaires?nouveau=1", key: "partenaires", icon: Users },
 ];

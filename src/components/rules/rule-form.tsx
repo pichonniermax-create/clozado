@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -80,9 +81,10 @@ export function RuleForm({
       {items.length === 0 ? (
         <p className="text-xs text-muted-foreground">{empty}</p>
       ) : (
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+        // 36 px de haut au doigt (une case native fait 13 px) ; rien ne change à la souris.
+        <div className="flex flex-wrap gap-x-4 gap-y-1 sm:gap-y-1.5">
           {items.map((item) => (
-            <label key={item.id} className="flex items-center gap-1.5 text-sm">
+            <label key={item.id} className="flex min-h-9 items-center gap-2 text-sm sm:min-h-0">
               <input type="checkbox" name={name} value={item.id} defaultChecked={initial.conditions[name]?.includes(item.id)} />
               {item.label}
             </label>
@@ -102,7 +104,8 @@ export function RuleForm({
           <Field label={t("nom_de_la_regle")} htmlFor="rule-name" hint={t("il_devient_le_titre_des_taches")}>
             <Input id="rule-name" name="name" required defaultValue={initial.name} className="max-w-xl" />
           </Field>
-          <div className="flex flex-wrap items-end gap-3">
+          {/* `items-start` : les libellés s'alignent en haut quels que soient les contrôles (un select et un champ n'ont pas la même hauteur). */}
+          <div className="flex flex-wrap items-start gap-3">
             <Field label={t("declencheur")} htmlFor="rule-trigger">
               <NativeSelect id="rule-trigger" name="trigger" defaultValue={initial.trigger} className="w-auto max-w-full">
                 {RULE_TRIGGERS.map((trigger) => (
@@ -112,17 +115,21 @@ export function RuleForm({
                 ))}
               </NativeSelect>
             </Field>
-            <Field label={t("depuis_au_moins_jours")} htmlFor="rule-threshold">
-              <Input
-                id="rule-threshold"
-                name="thresholdDays"
-                type="number"
-                min={1}
-                max={365}
-                required
-                defaultValue={initial.thresholdDays}
-                className="w-24"
-              />
+            {/* « Seuil » + l'unité en suffixe, plutôt que « Depuis au moins (jours) » entre parenthèses. */}
+            <Field label={t("seuil")} htmlFor="rule-threshold">
+              <div className="flex items-center gap-2">
+                <Input
+                  id="rule-threshold"
+                  name="thresholdDays"
+                  type="number"
+                  min={1}
+                  max={365}
+                  required
+                  defaultValue={initial.thresholdDays}
+                  className="w-20"
+                />
+                <span className="text-sm text-muted-foreground">{t("jours")}</span>
+              </div>
             </Field>
             <Field label={t("action")} htmlFor="rule-action">
               <NativeSelect
@@ -156,9 +163,9 @@ export function RuleForm({
             {options.professions.length === 0 ? (
               <p className="text-xs text-muted-foreground">{t("aucune_profession_de_partenaire")}</p>
             ) : (
-              <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 sm:gap-y-1.5">
                 {options.professions.map((profession) => (
-                  <label key={profession} className="flex items-center gap-1.5 text-sm">
+                  <label key={profession} className="flex min-h-9 items-center gap-2 text-sm sm:min-h-0">
                     <input
                       type="checkbox"
                       name="partnerProfessions"
@@ -224,9 +231,13 @@ export function RuleForm({
         <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">{t("rappel_vague_rien_ne_part_sans_clic")}</p>
       )}
 
-      <Button type="submit" className="w-fit">
-        {submitLabel}
-      </Button>
+      {/* Une échappatoire explicite à côté du bouton d'envoi : avant, le retour se faisait par le fil, tout en haut. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="submit">{submitLabel}</Button>
+        <Link href="/regles" className={buttonVariants({ variant: "ghost" })}>
+          {t("annuler")}
+        </Link>
+      </div>
     </form>
   );
 }

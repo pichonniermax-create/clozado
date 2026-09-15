@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, ChevronLeft, ChevronRight, Compass, X } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Compass, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
@@ -59,6 +59,9 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
   const forced = params.get(TOUR_PARAM) === "1";
   const [state, setState] = useState<TourState>(() => (forced || !initialState ? { step: 0, status: "en_cours" } : initialState));
   const [anchor, setAnchor] = useState<Anchor | null>(null);
+  // Sur un téléphone, la carte fixe masquait le tiers bas de l'écran sans pouvoir se réduire (audit UI du 2026-09-14) :
+  // repliée, il ne reste qu'une ligne au-dessus de la barre d'onglets. Un changement d'étape la redéplie.
+  const [collapsed, setCollapsed] = useState(false);
   const scrolledFor = useRef<string | null>(null);
 
   // L'état de départ (première visite, ou visite forcée) s'écrit une fois, pour survivre à la navigation.
@@ -108,6 +111,7 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
 
   function update(next: TourState, navigateTo?: string) {
     setState(next);
+    setCollapsed(false);
     writeCookie(next);
     if (next.status === "termine") toast.add({ type: "success", description: t("carte.terminee"), timeout: 6000 });
     if (navigateTo && navigateTo !== pathname) router.push(navigateTo);
@@ -116,6 +120,26 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
   if (!running) return null;
   const total = TOUR_STEPS.length;
   const last = state.step === total - 1;
+
+  if (collapsed) {
+    return (
+      <aside
+        role="complementary"
+        aria-label={t("carte.visite_guidee")}
+        className="fixed inset-x-0 bottom-14 z-40 flex items-center justify-between gap-2 border-t border-border bg-card px-4 py-1.5 text-card-foreground shadow-lg md:inset-x-auto md:right-6 md:bottom-6 md:w-96 md:rounded-xl md:border"
+      >
+        <p className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
+          <Compass className="size-4 shrink-0 text-muted-foreground" />
+          <span className="truncate">{t(`steps.${step.key}.titre`)}</span>
+          <span className="shrink-0 text-xs text-muted-foreground">{t("carte.etape_sur", { n: state.step + 1, total })}</span>
+        </p>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setCollapsed(false)}>
+          {t("carte.agrandir")}
+          <ChevronUp />
+        </Button>
+      </aside>
+    );
+  }
 
   return (
     <>
@@ -140,9 +164,14 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
             <Compass className="size-4" />
             {t("carte.etape_sur", { n: state.step + 1, total })}
           </p>
-          <Button type="button" variant="ghost" size="icon-xs" aria-label={t("carte.fermer")} onClick={() => update({ ...state, status: "masque" })}>
-            <X />
-          </Button>
+          <span className="flex items-center gap-1">
+            <Button type="button" variant="ghost" size="icon-xs" aria-label={t("carte.reduire")} onClick={() => setCollapsed(true)}>
+              <ChevronDown />
+            </Button>
+            <Button type="button" variant="ghost" size="icon-xs" aria-label={t("carte.fermer")} onClick={() => update({ ...state, status: "masque" })}>
+              <X />
+            </Button>
+          </span>
         </div>
         <ol className="mt-2 flex items-center gap-1" aria-hidden>
           {TOUR_STEPS.map((s, index) => (

@@ -4,9 +4,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Funnel } from "lucide-react";
 import { dealsListHref } from "@/components/analytics/deals-list-href";
+import { DATA_LINK_CLASS, DefinitionLink } from "@/components/analytics/definition-link";
 import { AnalyticsFiltersBar } from "@/components/analytics/filters-bar";
 import { CountCell, FunnelSteps, rateText, type FunnelRow } from "@/components/analytics/funnel-steps";
-import { definitionAnchor, MetricDefinitions } from "@/components/analytics/metric-definitions";
+import { MetricDefinitions } from "@/components/analytics/metric-definitions";
 import { periodPhrase } from "@/lib/metrics/period-phrase";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { buttonVariants } from "@/components/ui/button";
@@ -40,18 +41,11 @@ const BASE_PATH = "/analytique/funnel";
 
 const listHref = dealsListHref;
 
-function DefinitionLink({ id, children }: { id: keyof typeof METRICS; children: ReactNode }) {
-  return (
-    <a href={`#${definitionAnchor(METRICS[id])}`} className="underline-offset-2 hover:underline">
-      {children}
-    </a>
-  );
-}
-
+/** Un lien qui ouvre une liste d'affaires : souligné au repos (mobile compris), à l'inverse du lien de définition et de son « ? ». */
 function ListLink({ href, children, title }: { href: string; children: ReactNode; title?: string }) {
   const t = useTranslations("analytics.funnel");
   return (
-    <Link href={href} className="underline-offset-2 hover:underline" title={title ?? t("voir_la_liste_de_ces_affaires")}>
+    <Link href={href} className={DATA_LINK_CLASS} title={title ?? t("voir_la_liste_de_ces_affaires")}>
       {children}
     </Link>
   );
@@ -202,10 +196,10 @@ function ChainSection({ report, parsed, scopedPipelineId }: { report: FunnelRepo
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-sm font-semibold">{t("la_chaine_de_la_visite_a_fa8a")}</h2>
-      <p className="-mt-1 text-xs text-muted-foreground text-pretty">
+      <p className="-mt-1 max-w-prose text-xs text-muted-foreground text-pretty">
         {t("les_trois_premiers_pas_comptent_des_9da4", { periodPhrase: periodPhrase(parsed, tm, fmt) })}
       </p>
-      <FunnelSteps rows={rows} />
+      <FunnelSteps rows={rows} caption={t("la_chaine_de_la_visite_a_fa8a")} />
     </section>
   );
 }
@@ -269,7 +263,7 @@ function PipelineSection({ funnel, parsed, single }: { funnel: PipelineFunnel; p
         {prefix}
         <DefinitionLink id="funnel_stage_reached">{single ? t("par_etape_du_pipeline") : t("par_etape")}</DefinitionLink>
       </h2>
-      <p className="-mt-1 text-xs text-muted-foreground text-pretty">
+      <p className="-mt-1 max-w-prose text-xs text-muted-foreground text-pretty">
         <ListLink href={href()}>
           {t.rich("affaire_creee_affaires_creees_c2f7", { created: funnel.created, periodPhrase: periodPhrase(parsed, tm, fmt), span: (chunks) => <span className="tabular-nums">{chunks}</span> })}
         </ListLink>
@@ -283,7 +277,7 @@ function PipelineSection({ funnel, parsed, single }: { funnel: PipelineFunnel; p
       {funnel.created === 0 ? (
         <EmptyState>{t("aucune_affaire_creee_dans_ce_pipeline_53a0", { periodPhrase: periodPhrase(parsed, tm, fmt) })}</EmptyState>
       ) : (
-        <FunnelSteps rows={rows} labelHeader={t("etape")} />
+        <FunnelSteps rows={rows} labelHeader={t("etape")} caption={`${prefix}${single ? t("par_etape_du_pipeline") : t("par_etape")}`} />
       )}
     </section>
   );
@@ -291,19 +285,22 @@ function PipelineSection({ funnel, parsed, single }: { funnel: PipelineFunnel; p
 
 function OriginsSection({ rows, parsed }: { rows: OriginFunnelRow[]; parsed: ParsedMetricFilters }) {
   const t = useTranslations("analytics.funnel");
+  const tf = useTranslations("analytics.funnelSteps");
   const fmt = use(getFormats());
-  const header = (label: string, align: "left" | "right" = "right") => (
-    <th scope="col" className={`px-3 py-2.5 font-medium ${align === "right" ? "text-right" : "text-left"}`}>
+  // Dix colonnes : le tableau défile dans son cadre, l'origine reste collée à gauche ; les deux colonnes de simulations
+  // (déjà lues dans la chaîne) n'apparaissent qu'à partir de xl (audit UI du 2026-09-14 : à 1440 px, la dernière colonne était coupée).
+  const header = (label: string, align: "left" | "right" = "right", extra = "", title?: string) => (
+    <th scope="col" title={title} className={`px-3 py-2.5 font-medium whitespace-nowrap ${align === "right" ? "text-right" : "text-left"} ${extra}`}>
       {label}
     </th>
   );
-  const cell = (content: ReactNode) => <td className="px-3 py-3 text-right align-top tabular-nums">{content}</td>;
+  const cell = (content: ReactNode, extra = "") => <td className={`px-3 py-3 text-right align-top whitespace-nowrap tabular-nums ${extra}`}>{content}</td>;
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-sm font-semibold">
         <DefinitionLink id="funnel_by_origin">{t("par_origine_laquelle_genere_des_affaires_6ba2")}</DefinitionLink>
       </h2>
-      <p className="-mt-1 text-xs text-muted-foreground text-pretty">
+      <p className="-mt-1 max-w-prose text-xs text-muted-foreground text-pretty">
         {t("les_memes_pas_que_la_chaine_ef4b", { n: (parsed.filters.ownerId && t("visites_et_simulations_sans_objet_par_d74a")) ?? "" })}
       </p>
       {rows.length === 0 ? (
@@ -319,42 +316,43 @@ function OriginsSection({ rows, parsed }: { rows: OriginFunnelRow[]; parsed: Par
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full min-w-[64rem] text-sm">
+          <table className="w-full min-w-[52rem] text-sm xl:min-w-[60rem]">
+            <caption className="sr-only">{t("par_origine_laquelle_genere_des_affaires_6ba2")}</caption>
             <thead>
               <tr className="border-b border-border text-xs text-muted-foreground">
-                {header(t("origine"), "left")}
+                {header(t("origine"), "left", "sticky left-0 z-10 bg-card")}
                 {header(t("visiteurs"))}
-                {header(t("sim_demarrees"))}
-                {header(t("sim_terminees"))}
+                {header(t("sim_demarrees"), "right", "hidden xl:table-cell", t("simulations_demarrees"))}
+                {header(t("sim_terminees"), "right", "hidden xl:table-cell", t("simulations_terminees"))}
                 {header(t("leads"))}
                 {header(t("contacts_etablis"))}
                 {header(t("affaires"))}
                 {header(t("gagnees"))}
-                {header("Lead → affaire")}
+                {header(t("lead_affaire"))}
                 {header(t("affaire_gagnee"))}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {rows.map((row) => (
                 <tr key={row.key}>
-                  <th scope="row" className="px-3 py-3 text-left font-medium align-top">
+                  <th scope="row" className="sticky left-0 z-10 min-w-36 bg-card px-3 py-3 text-left align-top font-medium">
                     <Link
                       href={`${BASE_PATH}${metricQueryString(parsed.params, { origine: row.key })}`}
-                      className="underline-offset-2 hover:underline"
+                      className={DATA_LINK_CLASS}
                       title={t("filtrer_l_ecran_sur_cette_origine")}
                     >
                       {row.label}
                     </Link>
                   </th>
                   {cell(<CountCell count={row.visitors} />)}
-                  {cell(<CountCell count={row.started} />)}
-                  {cell(<CountCell count={row.completed} />)}
+                  {cell(<CountCell count={row.started} />, "hidden xl:table-cell")}
+                  {cell(<CountCell count={row.completed} />, "hidden xl:table-cell")}
                   {cell(<CountCell count={row.leads} />)}
                   {cell(<CountCell count={row.contacted} />)}
                   {cell(<CountCell count={row.deals} />)}
                   {cell(<CountCell count={row.won} />)}
-                  {cell(rateText(row.leadToDeal, fmt, true))}
-                  {cell(rateText(row.dealToWon, fmt, true))}
+                  {cell(rateText(row.leadToDeal, fmt, tf, true))}
+                  {cell(rateText(row.dealToWon, fmt, tf, true))}
                 </tr>
               ))}
             </tbody>

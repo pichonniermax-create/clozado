@@ -1,5 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Send } from "lucide-react";
 import { PageHeader } from "@/components/app-shell/page-header";
+import { buttonVariants } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { NewsletterEditor } from "@/components/newsletter/editor/newsletter-editor";
 import { SEND_ERROR_PARAM } from "@/components/newsletter/labels";
 import { SendStatusCard } from "@/components/newsletter/send-status-card";
@@ -73,9 +77,21 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
 
   return (
     <>
+      {/* Le statut et l'action d'envoi dans l'en-tête : la carte d'envoi est à 1 400 px sous le titre — le bouton y mène (`#envoi`). */}
       <PageHeader
         title={data.newsletter.title}
         backTo={{ href: "/newsletters", label: tr("newsletters") }}
+        actions={
+          <>
+            {data.newsletter.sentAt ? <StatusBadge tone="success">{tr("envoyee")}</StatusBadge> : <StatusBadge>{tr("brouillon")}</StatusBadge>}
+            {!data.newsletter.sentAt && !session.readOnly && (
+              <Link href="#envoi" className={buttonVariants()}>
+                <Send />
+                {tr("envoyer")}
+              </Link>
+            )}
+          </>
+        }
       />
       <NewsletterEditor
         lang={contentLocale}

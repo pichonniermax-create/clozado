@@ -23,7 +23,7 @@ export function MarkCommissionSettledButton({ commissionId }: { commissionId: st
   }
 
   return (
-    <Button type="button" variant="outline" size="sm" onClick={run} disabled={pending}>
+    <Button type="button" variant="outline" size="sm" className="h-10 px-3 sm:h-7 sm:px-2.5" onClick={run} disabled={pending}>
       {pending ? "…" : t("marquer_reglee")}
     </Button>
   );

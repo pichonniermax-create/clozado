@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { safeColor } from "@/lib/brand/color";
-import type { ReactNode } from "react";
 import { Timer } from "lucide-react";
+import { DefinitionLink } from "@/components/analytics/definition-link";
 import { AnalyticsFiltersBar } from "@/components/analytics/filters-bar";
 import { DurationTable, statNotes, type DurationRow } from "@/components/analytics/duration-table";
-import { definitionAnchor, MetricDefinitions } from "@/components/analytics/metric-definitions";
+import { MetricDefinitions } from "@/components/analytics/metric-definitions";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -40,15 +40,6 @@ const stageWords = (t: TranslatorOf<"analytics.delais">): StatNoteWords => ({
   pending: (n) => t("words.stage_pending", { n }),
   reconstructed: (n) => t("words.stage_reconstructed", { n }),
 });
-
-
-function DefinitionLink({ id, children }: { id: keyof typeof METRICS; children: ReactNode }) {
-  return (
-    <a href={`#${definitionAnchor(METRICS[id])}`} className="underline-offset-2 hover:underline">
-      {children}
-    </a>
-  );
-}
 
 function StageLabel({ stage }: { stage: { pipelineId: string; stageId: string; label: string; color: string | null } }) {
   const t = useTranslations("analytics.delais");
@@ -145,33 +136,36 @@ function PipelineSections({ pipeline, report, single }: { pipeline: PipelineWith
     note: statNotes(p, td),
     stat: p,
   }));
+  const stageTitle = `${prefix}${single ? t("temps_passe_par_etape") : t("temps_passe_par_etape_19a1")}`;
+  const pairTitle = `${prefix}${single ? t("d_une_etape_a_la_suivante") : t("d_une_etape_a_la_suivante_2e3d")}`;
+  // Les deux tableaux du pipeline côte à côte dès lg (audit UI du 2026-09-14) : trois tableaux identiques empilés se lisaient comme un seul, coupé en trois.
   return (
-    <>
+    <div className="grid gap-6 lg:grid-cols-2">
       {stageRows.length > 0 && (
-        <section className="flex flex-col gap-3">
+        <section className="flex min-w-0 flex-col gap-3">
           <h2 className="text-sm font-semibold">
             {prefix}
             <DefinitionLink id="stage_duration">{single ? t("temps_passe_par_etape") : t("temps_passe_par_etape_19a1")}</DefinitionLink>
           </h2>
-          <p className="-mt-1 text-xs text-muted-foreground">
+          <p className="-mt-1 max-w-prose text-xs text-muted-foreground">
             {t("sur_les_passages_termines_une_affaire_01c8")}
           </p>
-          <DurationTable rows={stageRows} labelHeader={t("etape")} />
+          <DurationTable rows={stageRows} labelHeader={t("etape")} caption={stageTitle} />
         </section>
       )}
       {pairRows.length > 0 && (
-        <section className="flex flex-col gap-3">
+        <section className="flex min-w-0 flex-col gap-3">
           <h2 className="text-sm font-semibold">
             {prefix}
             <DefinitionLink id="stage_pair_delay">{single ? t("d_une_etape_a_la_suivante") : t("d_une_etape_a_la_suivante_2e3d")}</DefinitionLink>
           </h2>
-          <p className="-mt-1 text-xs text-muted-foreground">
+          <p className="-mt-1 max-w-prose text-xs text-muted-foreground">
             {t("de_la_premiere_entree_dans_une_5e9d")}
           </p>
-          <DurationTable rows={pairRows} labelHeader={t("etapes")} />
+          <DurationTable rows={pairRows} labelHeader={t("etapes")} caption={pairTitle} />
         </section>
       )}
-    </>
+    </div>
   );
 }
 
@@ -230,10 +224,10 @@ export default async function DelaysPage({ searchParams }: { searchParams: Promi
         <>
           <section className="flex flex-col gap-3">
             <h2 className="text-sm font-semibold">{t("le_cycle")}</h2>
-            <p className="-mt-1 text-xs text-muted-foreground">
+            <p className="-mt-1 max-w-prose text-xs text-muted-foreground">
               {t("dans_l_ordre_de_la_vie_9ebc")}
             </p>
-            <DurationTable rows={cycleRows} />
+            <DurationTable rows={cycleRows} labelHeader={t("indicateur")} caption={t("le_cycle")} />
           </section>
 
           {shownPipelines.map((p) => (

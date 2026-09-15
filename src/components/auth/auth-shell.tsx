@@ -15,14 +15,18 @@ export function AuthShell({
   description,
   children,
   footer,
+  lang,
 }: {
   title: string;
   description?: ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
   footer?: ReactNode;
+  /** La langue de la page quand elle n'est pas celle de la requête (la désinscription parle la langue de l'organisation). */
+  lang?: string;
 }) {
+  // `min-h-svh` plutôt que `min-h-screen` : sur Safari iOS, 100vh compte la barre d'adresse et la carte sautait au défilement.
   return (
-    <div className="flex min-h-screen flex-col bg-muted/40">
+    <div lang={lang} className="flex min-h-svh flex-col bg-muted/40">
       <div className="flex flex-1 items-center justify-center px-4 py-10">
         <div className="flex w-full max-w-sm flex-col gap-6">
           <BrandMark size="lg" href="/" className="self-center" />

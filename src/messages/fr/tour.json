@@ -7,7 +7,9 @@
     "terminer": "Terminer",
     "fermer": "Fermer la visite",
     "voir_cet_ecran": "Voir cet écran",
-    "terminee": "Visite terminée. Les premiers pas t’attendent sur le tableau de bord."
+    "terminee": "Visite terminée. Les premiers pas t’attendent sur le tableau de bord.",
+    "reduire": "Réduire la visite",
+    "agrandir": "Reprendre"
   },
   "steps": {
     "bienvenue": {

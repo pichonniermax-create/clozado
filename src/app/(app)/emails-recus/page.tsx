@@ -5,6 +5,7 @@ import { InboundProposalCard } from "@/components/inbound/inbound-proposal-card"
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListCard, ListRow } from "@/components/ui/list-card";
 import {
@@ -77,18 +78,27 @@ export default async function EmailsRecusPage({
 
   return (
     <>
+      {/* L'adresse n'est plus noyée dans la description (elle prenait toute la ligne et renvoyait l'action sous le titre) :
+          une ligne dédiée, copiable d'un geste — c'est LE geste de l'écran. Le bouton dit un verbe. */}
       <PageHeader
         title={t("emails_recus")}
-        description={address ? t("transfere_a_ou_mets_en_copie", { address }) : t("ce_que_l_adresse_d_ingestion_a_recu")}
+        description={address ? t("transfere_ou_mets_en_copie_cachee") : t("ce_que_l_adresse_d_ingestion_a_recu")}
         actions={
           readOnly ? undefined : (
             <Link href="/settings#ingestion" className={buttonVariants({ variant: "outline" })}>
-              {t("l_adresse_d_ingestion")}
+              {t("regler_l_adresse")}
             </Link>
           )
         }
       />
 
+      {address && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <span className="text-muted-foreground">{t("ton_adresse_d_ingestion")}</span>
+          <code className="rounded-md bg-muted px-2 py-1 font-mono text-xs break-all">{address}</code>
+          <CopyButton value={address} />
+        </div>
+      )}
 
       {!address && !readOnly && (
         <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-pretty">

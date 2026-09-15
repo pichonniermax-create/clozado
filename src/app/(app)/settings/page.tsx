@@ -1,6 +1,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { Calculator, ChevronDown, ChevronUp, Eye, Inbox } from "lucide-react";
 import { ApiKeyCreator } from "@/components/acquisition/api-key-creator";
+import { StatTile } from "@/components/stat-tile";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +17,7 @@ import { getFormats } from "@/i18n/formats";
 import { PageHeader } from "@/components/app-shell/page-header";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -46,7 +49,9 @@ import { assetUrlsFromMeta } from "@/lib/brand/assets";
 import { normalizeHex } from "@/lib/brand/color";
 import { brandStyle, deriveBrandTokens } from "@/lib/brand/derive";
 import { isPlausibleEmail } from "@/lib/email/address";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { EmailDomainCard } from "@/components/settings/email-domain-card";
+import { SettingsNav } from "@/components/settings/settings-nav";
 import { AutoSendCard } from "@/components/settings/auto-send-card";
 import { IngestAddressCard } from "@/components/settings/ingest-address-card";
 import { LegalFootprintCard } from "@/components/settings/legal-footprint-card";
@@ -266,14 +271,14 @@ export default async function SettingsPage() {
             : t("ton_nom_ta_couleur_et_ton_08c6")
         }
       />
+      <SettingsNav />
 
-
-      <Card id="marque" className="scroll-mt-24">
+      {/* Le titre dit la FONCTION de la carte, pas la donnée (« Vasseur Courtage » suivi d'un champ « Nom affiché » contenant… « Vasseur Courtage ») ; l'identifiant technique passe en note. */}
+      <Card id="marque" className="scroll-mt-32">
         <CardHeader>
-          <CardTitle>{org.name}</CardTitle>
-          <CardDescription>
-            {t("identifiant_une_seule_couleur_le_systeme_0d04", { slug: org.slug })}
-          </CardDescription>
+          <CardTitle>{t("marque")}</CardTitle>
+          <CardDescription>{t("ce_que_voit_ton_equipe")}</CardDescription>
+          <p className="font-mono text-xs text-muted-foreground">{t("identifiant", { slug: org.slug })}</p>
         </CardHeader>
         <CardContent>
           <form action={saveBranding} className="flex flex-col gap-5">
@@ -281,7 +286,7 @@ export default async function SettingsPage() {
               <Input id="name" name="name" defaultValue={org.name} disabled={readOnly} required />
             </Field>
 
-            <Field label={t("couleur_de_la_marque")} htmlFor="brand-color">
+            <Field label={t("couleur_de_la_marque")} htmlFor="brand-color" hint={t("une_seule_couleur_le_systeme_en_derive")}>
               <BrandColorPicker initialHex={org.primaryColor} name="primaryColor" disabled={readOnly} />
             </Field>
 
@@ -323,7 +328,7 @@ export default async function SettingsPage() {
 
       <AutoSendCard org={org} readOnly={readOnly} />
 
-      <Card id="langue" className="scroll-mt-24">
+      <Card id="langue" className="scroll-mt-32">
         <CardHeader>
           <CardTitle>{t("langue_devise_et_fuseau")}</CardTitle>
           <CardDescription>{t("la_langue_de_l_espace_par_defaut_1a2b")}</CardDescription>
@@ -368,7 +373,7 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card id="logo" className="scroll-mt-24">
+      <Card id="logo" className="scroll-mt-32">
         <CardHeader>
           <CardTitle>{t("logo")}</CardTitle>
           <CardDescription>
@@ -387,7 +392,7 @@ export default async function SettingsPage() {
           tableau de bord vient d'ici — une donnée de l'organisation, pas
           une condition dans le code du tableau de bord.
       ------------------------------------------------------------------ */}
-      <Card id="pack-metier" className="scroll-mt-24">
+      <Card id="pack-metier" className="scroll-mt-32">
         <CardHeader>
           <CardTitle>{t("pack_metier")}</CardTitle>
           <CardDescription>
@@ -425,29 +430,25 @@ export default async function SettingsPage() {
           un vocabulaire figé. Les étapes se renomment et se réordonnent, ne
           se suppriment pas (l'historique des affaires les référence).
       ------------------------------------------------------------------ */}
-      {pipelines.map((pipeline) => (
-        <Card key={pipeline.id}>
+      {pipelines.map((pipeline, pipelineIndex) => (
+        <Card key={pipeline.id} id={pipelineIndex === 0 ? "pipelines" : undefined} className="scroll-mt-32">
           <CardHeader>
-            <CardTitle>
-              <form action={renamePipeline} className="flex items-center gap-2">
-                <input type="hidden" name="pipelineId" value={pipeline.id} />
-                <Input
-                  name="label"
-                  defaultValue={pipeline.label}
-                  disabled={readOnly}
-                  className="max-w-60 font-semibold"
-                  aria-label={t("nom_du_pipeline")}
-                />
-                {!readOnly && (
-                  <Button type="submit" variant="ghost" size="sm">
-                    {t("renommer")}
-                  </Button>
-                )}
-              </form>
-            </CardTitle>
+            {/* Le titre est le nom du pipeline ; le renommage vit dans l'action de la carte, pas DANS le titre (audit UI du 2026-09-14). */}
+            <CardTitle>{pipeline.label}</CardTitle>
             <CardDescription>
               {t("les_etapes_de_ce_pipeline_leur_6f64")}
             </CardDescription>
+            {!readOnly && (
+              <CardAction className="col-span-2 row-start-3 w-full justify-self-stretch sm:col-span-1 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:w-auto sm:justify-self-end">
+                <form action={renamePipeline} className="flex items-center gap-2">
+                  <input type="hidden" name="pipelineId" value={pipeline.id} />
+                  <Input name="label" defaultValue={pipeline.label} className="min-w-0 flex-1 sm:w-56" aria-label={t("nom_du_pipeline")} />
+                  <Button type="submit" variant="ghost" size="sm">
+                    {t("renommer")}
+                  </Button>
+                </form>
+              </CardAction>
+            )}
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
             {pipeline.stages.map((stage, index) => (
@@ -457,27 +458,31 @@ export default async function SettingsPage() {
                 className="flex flex-wrap items-center gap-2 rounded-lg border border-border px-3 py-2"
               >
                 <input type="hidden" name="stageId" value={stage.id} />
-                <span className="flex flex-col gap-0.5">
-                  <button
+                {/* De vrais boutons-icônes (28 px à la souris, 40 px au doigt) — avant, deux glyphes ▲▼ de 12 px, impossibles à toucher. */}
+                <span className="flex items-center sm:flex-col">
+                  <Button
                     type="submit"
                     formAction={moveStageUpForm}
+                    variant="ghost"
+                    size="icon-sm"
                     disabled={readOnly || index === 0}
                     aria-label={t("monter", { label: stage.label })}
-                    className="text-muted-foreground disabled:opacity-30"
                   >
-                    ▲
-                  </button>
-                  <button
+                    <ChevronUp />
+                  </Button>
+                  <Button
                     type="submit"
                     formAction={moveStageDownForm}
+                    variant="ghost"
+                    size="icon-sm"
                     disabled={readOnly || index === pipeline.stages.length - 1}
                     aria-label={t("descendre", { label: stage.label })}
-                    className="text-muted-foreground disabled:opacity-30"
                   >
-                    ▼
-                  </button>
+                    <ChevronDown />
+                  </Button>
                 </span>
-                <Input name="label" defaultValue={stage.label} disabled={readOnly} className="w-44" aria-label={t("libelle_de_l_etape")} />
+                {/* Le libellé prend la place qui reste ; à 390 px, couleur, probabilité et marqueur passent sur la ligne suivante. */}
+                <Input name="label" defaultValue={stage.label} disabled={readOnly} className="min-w-40 flex-1" aria-label={t("libelle_de_l_etape")} />
                 <Input name="color" defaultValue={stage.color ?? ""} disabled={readOnly} placeholder={DEFAULT_BRAND_PRIMARY} className="w-28" aria-label={t("couleur")} />
                 <Input
                   name="probability"
@@ -511,7 +516,7 @@ export default async function SettingsPage() {
             {!readOnly && (
               <form action={addStage} className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2">
                 <input type="hidden" name="pipelineId" value={pipeline.id} />
-                <Input name="label" placeholder={t("nouvelle_etape")} required className="w-44" aria-label={t("libelle_de_la_nouvelle_etape")} />
+                <Input name="label" placeholder={t("nouvelle_etape")} required className="min-w-40 flex-1" aria-label={t("libelle_de_la_nouvelle_etape")} />
                 <Input name="color" placeholder={DEFAULT_BRAND_PRIMARY} className="w-28" aria-label={t("couleur")} />
                 <Input name="probability" type="number" min="0" max="100" placeholder="%" className="w-20 text-right" aria-label={t("probabilite")} />
                 <NativeSelect name="outcome" defaultValue="" className="w-auto max-w-full" aria-label={t("marqueur_de_fin")}>
@@ -529,7 +534,7 @@ export default async function SettingsPage() {
       ))}
 
       {!readOnly && (
-        <Card className="max-w-xl">
+        <Card>
           <CardHeader>
             <CardTitle>{t("nouveau_pipeline")}</CardTitle>
             <CardDescription>
@@ -537,7 +542,7 @@ export default async function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={addPipeline} className="flex items-end gap-2">
+            <form action={addPipeline} className="flex max-w-xl items-end gap-2">
               <Field label={t("nom_du_pipeline")} htmlFor="newPipelineLabel" className="flex-1">
                 <Input id="newPipelineLabel" name="label" placeholder={t("placement")} required />
               </Field>
@@ -553,7 +558,7 @@ export default async function SettingsPage() {
           d'API serveur, clés de site et extrait, domaines autorisés
           (fail-closed, jamais silencieux : les refus sont comptés ici).
       ------------------------------------------------------------------ */}
-      <Card>
+      <Card id="collecte" className="scroll-mt-32">
         <CardHeader>
           <CardTitle>{t("collecte_des_leads_et_des_visites")}</CardTitle>
           <CardDescription>
@@ -566,25 +571,21 @@ export default async function SettingsPage() {
               {t("aucune_visite_ni_aucun_lead_recus_d528")}
             </EmptyState>
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-border p-3">
-                <p className="text-xs text-muted-foreground">{t("visites_30_jours")}</p>
-                <p className="text-2xl font-semibold tabular-nums">{collection.visits30d}</p>
-                <p className="text-xs text-muted-foreground">
-                  {collection.lastEventAt ? t("dernier_evenement_le", { formatDateTime: fmt.dateTime(collection.lastEventAt) }) : t("aucun_evenement")}
-                </p>
-              </div>
-              <div className="rounded-lg border border-border p-3">
-                <p className="text-xs text-muted-foreground">{t("simulations_30_jours")}</p>
-                <p className="text-2xl font-semibold tabular-nums">{collection.simulations30d}</p>
-              </div>
-              <div className="rounded-lg border border-border p-3">
-                <p className="text-xs text-muted-foreground">{t("leads_30_jours")}</p>
-                <p className="text-2xl font-semibold tabular-nums">{collection.leads30d}</p>
-                <p className="text-xs text-muted-foreground">
-                  {collection.lastLeadAt ? t("dernier_le", { formatDateTime: fmt.dateTime(collection.lastLeadAt) }) : t("aucun_lead")}
-                </p>
-              </div>
+            // Les tuiles du socle (StatTile), comme sur le tableau de bord — pas trois cadres recopiés à la main.
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <StatTile
+                label={t("visites_30_jours")}
+                value={collection.visits30d}
+                icon={<Eye />}
+                hint={collection.lastEventAt ? t("dernier_evenement_le", { formatDateTime: fmt.dateTime(collection.lastEventAt) }) : t("aucun_evenement")}
+              />
+              <StatTile label={t("simulations_30_jours")} value={collection.simulations30d} icon={<Calculator />} />
+              <StatTile
+                label={t("leads_30_jours")}
+                value={collection.leads30d}
+                icon={<Inbox />}
+                hint={collection.lastLeadAt ? t("dernier_le", { formatDateTime: fmt.dateTime(collection.lastLeadAt) }) : t("aucun_lead")}
+              />
             </div>
           )}
 
@@ -620,9 +621,16 @@ export default async function SettingsPage() {
                   {t("script_src_s_js_data_site_ae81", { appOrigin, key: k.key })}
                 </code>
                 {!readOnly && activeSiteKeys.length > 1 && (
-                  <form action={revokeSiteKeyAction.bind(null, k.id)}>
-                    <Button type="submit" variant="ghost" size="sm">{t("revoquer_cette_cle_de_site")}</Button>
-                  </form>
+                  <ConfirmSubmit
+                    action={revokeSiteKeyAction.bind(null, k.id)}
+                    title={t("revoquer_cle_site_titre")}
+                    description={t("revoquer_cle_site_texte", { label: k.label })}
+                    confirmLabel={t("revoquer")}
+                    cancelLabel={t("annuler")}
+                    className="w-fit text-destructive hover:text-destructive"
+                  >
+                    {t("revoquer_cette_cle_de_site")}
+                  </ConfirmSubmit>
                 )}
               </div>
             ))}
@@ -655,7 +663,7 @@ export default async function SettingsPage() {
                 <Textarea id="allowed-domains" name="domains" defaultValue={org.allowedDomains.join("\n")} disabled={readOnly} className="min-h-20 max-w-xl font-mono text-xs" placeholder={t("www_mon_cabinet_fr_simulateur_mon_c2b2")} />
               </Field>
               {!readOnly && (
-                <Button type="submit" variant="outline" className="w-fit">{t("enregistrer_les_domaines")}</Button>
+                <Button type="submit" className="w-fit">{t("enregistrer_les_domaines")}</Button>
               )}
             </form>
           </div>
@@ -672,9 +680,16 @@ export default async function SettingsPage() {
                       {t.rich("creee_le", { label: k.label, keyPrefix: k.keyPrefix, formatDateTime: fmt.dateTime(k.createdAt), value: k.lastUsedAt ? t("dernier_usage_le", { formatDateTime: fmt.dateTime(k.lastUsedAt) }) : t("jamais_utilisee"), n: (k.revokedAt && t("revoquee_le", { formatDateTime: fmt.dateTime(k.revokedAt) })) ?? "", code: (chunks) => <code className="text-xs text-muted-foreground">{chunks}</code>, span: (chunks) => <span className="font-medium">{chunks}</span>, span2: (chunks) => <span className="text-xs tabular-nums text-muted-foreground">{chunks}</span> })}
                     </span>
                     {!readOnly && !k.revokedAt && (
-                      <form action={revokeApiKeyAction.bind(null, k.id)}>
-                        <Button type="submit" variant="ghost" size="sm">{t("revoquer")}</Button>
-                      </form>
+                      <ConfirmSubmit
+                        action={revokeApiKeyAction.bind(null, k.id)}
+                        title={t("revoquer_cle_api_titre")}
+                        description={t("revoquer_cle_api_texte", { label: k.label })}
+                        confirmLabel={t("revoquer")}
+                        cancelLabel={t("annuler")}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        {t("revoquer")}
+                      </ConfirmSubmit>
                     )}
                   </li>
                 ))}
@@ -688,29 +703,30 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="max-w-xl">
+      <Card id="motifs" className="scroll-mt-32">
         <CardHeader>
           <CardTitle>{t("motifs_de_perte")}</CardTitle>
           <CardDescription>
             {t("proposes_quand_une_affaire_part_sur_8e27")}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          {lossReasons.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              {t("aucun_motif_pour_l_instant_taux_72e7")}
-            </p>
-          )}
+        <CardContent className="flex max-w-xl flex-col gap-2">
+          {lossReasons.length === 0 && <EmptyState>{t("aucun_motif_pour_l_instant_taux_72e7")}</EmptyState>}
           {lossReasons.map((r) => (
             <div key={r.id} className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
               <span className="text-sm">{r.label}</span>
               {!readOnly && (
-                <form action={removeLossReason}>
-                  <input type="hidden" name="id" value={r.id} />
-                  <Button type="submit" variant="ghost" size="sm">
-                    {t("supprimer")}
-                  </Button>
-                </form>
+                <ConfirmSubmit
+                  action={removeLossReason}
+                  fields={{ id: r.id }}
+                  title={t("supprimer_motif_titre")}
+                  description={t("supprimer_motif_texte", { label: r.label })}
+                  confirmLabel={t("supprimer")}
+                  cancelLabel={t("annuler")}
+                  className="text-destructive hover:text-destructive"
+                >
+                  {t("supprimer")}
+                </ConfirmSubmit>
               )}
             </div>
           ))}

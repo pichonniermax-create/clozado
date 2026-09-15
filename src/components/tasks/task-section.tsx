@@ -1,14 +1,16 @@
 import { use } from "react";
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { ListCard } from "@/components/ui/list-card";
+import { SectionHeading } from "@/components/ui/section-heading";
+import { CompleteTaskButton } from "@/components/tasks/complete-task-button";
 import { autoRuleLabel, formatRecurrence, priorityLabel } from "@/components/tasks/labels";
 import { todayAsStoredDate, type TaskRow } from "@/db/queries/tasks";
-import { completeTaskAction, createTaskFromFicheAction } from "@/lib/tasks/actions";
+import { createTaskFromFicheAction } from "@/lib/tasks/actions";
 import { getFormats } from "@/i18n/formats";
 import { useTranslations } from "next-intl";
 
@@ -37,17 +39,16 @@ export function TaskSection({
   const tt = useTranslations("tasks");
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">
-          {t("taches", { n: (tasks.length > 0 && ` (${tasks.length})`) || "" })}
-        </h2>
-        <Link
-          href="/taches"
-          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {t("toutes_les_taches")}
-        </Link>
-      </div>
+      <SectionHeading
+        title={t("taches")}
+        count={tasks.length > 0 ? tasks.length : undefined}
+        trailing={
+          <Link href="/taches" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+            {t("toutes_les_taches")}
+            <ArrowRight />
+          </Link>
+        }
+      />
 
       {tasks.length === 0 ? (
         <EmptyState>{emptyText}</EmptyState>
@@ -55,20 +56,9 @@ export function TaskSection({
         <ListCard>
           {tasks.map((task) => (
             <li key={task.id} className="flex items-center gap-3 px-4 py-3">
-              <form action={completeTaskAction.bind(null, { taskId: task.id, backTo })}>
-                <Button
-                  type="submit"
-                  variant="outline"
-                  size="icon-sm"
-                  className="rounded-full"
-                  aria-label={t("marquer_comme_faite", { title: task.title })}
-                  title={t("marquer_comme_faite_bb0d")}
-                >
-                  <Check />
-                </Button>
-              </form>
+              <CompleteTaskButton taskId={task.id} backTo={backTo} title={task.title} />
               <div className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-sm font-medium">{task.title}</span>
+                <span className="line-clamp-2 text-sm font-medium sm:line-clamp-1">{task.title}</span>
                 <TaskMetaLine task={task} hideContactId={contactId} hideDealId={dealId} />
               </div>
               {task.autoRule && (
@@ -81,19 +71,20 @@ export function TaskSection({
         </ListCard>
       )}
 
+      {/* Une colonne sous sm (les trois contrôles se repliaient en escalier à 390 px), une ligne dès sm. */}
       <form
         action={createTaskFromFicheAction.bind(null, { backTo, contactId, dealId })}
-        className="flex flex-wrap items-center gap-2"
+        className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center"
       >
         <Input
           name="title"
           required
           placeholder={t("nouvelle_tache_pour_cette_fiche")}
           aria-label={t("titre_de_la_nouvelle_tache")}
-          className="min-w-48 flex-1"
+          className="sm:min-w-48 sm:flex-1"
         />
-        <Input name="dueDate" type="date" aria-label={t("echeance")} className="w-fit" />
-        <Button type="submit" variant="outline">
+        <Input name="dueDate" type="date" aria-label={t("echeance")} className="w-full sm:w-fit" />
+        <Button type="submit" variant="outline" className="w-full sm:w-auto">
           {t("ajouter")}
         </Button>
       </form>
@@ -123,8 +114,10 @@ export function TaskMetaLine({
   const showDeal = task.dealId && task.dealTitle && task.dealId !== hideDealId;
   const showContact = task.contactId && task.contactName && task.contactId !== hideContactId;
 
+  // Les séparateurs « · » sont posés en CSS APRÈS chaque segment sauf le dernier (audit UI du 2026-09-14) : portés par le
+  // segment suivant, ils ouvraient chaque retour à la ligne par un point médian orphelin sur mobile.
   return (
-    <span className="flex flex-wrap items-center gap-x-1.5 text-xs tabular-nums text-muted-foreground">
+    <span className="flex flex-wrap items-center gap-x-1.5 text-xs tabular-nums text-muted-foreground [&>*:not(:last-child)]:after:ml-1.5 [&>*:not(:last-child)]:after:content-['·']">
       {task.dueAt ? (
         <span className={overdue ? "font-medium text-destructive" : undefined}>
           {overdue ? t("en_retard_echeance_le") : t("echeance_le")}{" "}
@@ -137,9 +130,9 @@ export function TaskMetaLine({
         <span>{t("priorite", { toLowerCase: priorityLabel(task.priority, tt).toLowerCase() })}</span>
       )}
       {task.recurUnit && task.recurEvery && (
-        <span>· {formatRecurrence(task.recurUnit, task.recurEvery, tt).toLowerCase()}</span>
+        <span>{formatRecurrence(task.recurUnit, task.recurEvery, tt).toLowerCase()}</span>
       )}
-      {task.assigneeLabel && <span>· {task.assigneeLabel}</span>}
+      {task.assigneeLabel && <span>{task.assigneeLabel}</span>}
       {showDeal && (
         <span>
           {t.rich("affaire", { dealTitle: (task.dealTitle) ?? "", link: (chunks) => <Link href={`/affaires/${task.dealId}`}

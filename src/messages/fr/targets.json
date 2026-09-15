@@ -107,7 +107,7 @@
     "desactivee_le_elle_n_est_plus_159e": "Désactivée le {formatDate} : elle n’est plus proposée dans le composer ni sur les fiches, mais les newsletters qui lui ont été envoyées la gardent en historique.",
     "desactiver": "Désactiver",
     "dupliquer": "Dupliquer",
-    "ecrire_une_newsletter_pour_cette_cible": "Écrire une newsletter pour cette cible",
+    "ecrire_une_newsletter_pour_cette_cible": "Écrire une newsletter",
     "enregistrer_la_cible": "Enregistrer la cible",
     "identite_editoriale_incomplete_le_composer_ecrit_efd3": "Identité éditoriale incomplète : {toLowerCase}. Le composer écrit avec ce qui est rempli.",
     "newsletter_a_s_ont_ete_marquee_5a1f": "<span>{sentCount}</span> newsletter{sentCount, plural, one { a} other {s ont}} été {sentCount, plural, one {marquée} other {marquées}} {sentCount, plural, one {envoyée} other {envoyées}} à cette cible. Leur historique — les destinataires et les critères du jour — ne change pas si tu modifies la cible. Pour un nouveau découpage, duplique-la plutôt.",
@@ -118,7 +118,11 @@
     "rechercher_des_contacts_a_ajouter": "Rechercher des contacts à ajouter",
     "retirer": "Retirer",
     "societe": "Société",
-    "suivants": "Suivants →"
+    "suivants": "Suivants →",
+    "envoi_recap": "Envoyée le {date} à {recipients, plural, one {# contact} other {# contacts}} · {overlap} dans la cible actuelle{percent, select, none {} other { ({percent} %)}}{topics, select, none {} other { · sujets : {topics}}}",
+    "plus_d_actions": "Plus d’actions",
+    "modifier_les_criteres": "Modifier les critères et l’identité éditoriale",
+    "contacts_dans_cette_cible": "Contacts dans cette cible aujourd’hui"
   },
   "detailNotFound": {
     "cette_cible_n_existe_pas": "Cette cible n’existe pas.",
@@ -167,7 +171,9 @@
     "selection_manuelle": "Sélection manuelle",
     "tu_es_en_vue_globale_choisis_599b": "Tu es en vue globale : choisis une organisation dans le bandeau super admin en haut de l’écran pour voir ses cibles.",
     "une_cible_c_est_un_segment_d9ec": "Une cible, c’est un segment de tes contacts (étiquettes, ville, affaires en cours…) et l’identité de la personne à qui on écrit. Ton métier en propose {count} pour commencer — chacune se modifie ensuite.",
-    "description": "À qui tu écris : des segments vivants de ta base de contacts, recalculés à chaque consultation, chacun avec son identité éditoriale."
+    "description": "À qui tu écris : des segments vivants de ta base de contacts, recalculés à chaque consultation, chacun avec son identité éditoriale.",
+    "cibles_actives": "Cibles actives",
+    "contacts_mot": "{n, plural, one {contact} other {contacts}}"
   },
   "new": {
     "cibles": "Cibles",
@@ -194,7 +200,7 @@
     "etiquette_d_audience": "Étiquette d’audience",
     "identite_editoriale": "Identité éditoriale",
     "investisseurs_a_lyon": "Investisseurs à Lyon",
-    "la_newsletter_mensuelle_des_clients_locatifs": "La newsletter mensuelle des clients locatifs",
+    "la_newsletter_mensuelle_des_clients_locatifs": "Ex. : la newsletter mensuelle",
     "les_fiches_se_choisissent_sur_la_f8d6": "Les fiches se choisissent sur la page de la cible, {value} — par recherche, une ou plusieurs à la fois.",
     "nom_de_la_cible": "Nom de la cible",
     "plus_bas": "plus bas",

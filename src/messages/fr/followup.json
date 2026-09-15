@@ -10,7 +10,7 @@
     "cet_ecran_suit_les_relances_d_e7be": "Cet écran suit les relances d’une organisation donnée.",
     "commissions_a_encaisser": "Commissions à encaisser",
     "confirmees_pas_encore_reglees_aucune_echeance_748a": "Confirmées, pas encore réglées — aucune échéance, elles restent dues.",
-    "element_elements_a_traiter_classe_classes_cd54": "{todo} {todo, plural, one {élément} other {éléments}} à traiter, {todo, plural, one {classé} other {classés}} par nature — pas par date.",
+    "element_elements_a_traiter_classe_classes_cd54": "{todo, plural, one {# élément attend} other {# éléments attendent}} une action : relances, dossiers sans suite, commissions dues.",
     "en_cours": "En cours",
     "expire_dans": "expire dans {formatDays}",
     "le_confrere_n_a_pas_repondu_fa04": "Le confrère n’a pas répondu, ou le lien va expirer.",
@@ -24,6 +24,8 @@
     "sans_reponse_depuis": "<span>sans réponse depuis {formatDays}</span>{n}",
     "suivi": "Suivi",
     "tu_es_en_vue_globale_le_21fb": "Tu es en vue globale : le suivi n’existe que rapporté à une organisation précise. Choisis une organisation dans le bandeau super admin en haut de l’écran pour voir ses relances.",
-    "voir_les_affaires": "Voir les affaires"
+    "voir_les_affaires": "Voir les affaires",
+    "confirmee_le": "confirmée le {formatDate}",
+    "date_de_confirmation_inconnue": "date de confirmation inconnue"
   }
 }

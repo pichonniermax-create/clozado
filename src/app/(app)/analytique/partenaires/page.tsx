@@ -2,9 +2,10 @@ import { use } from "react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Handshake } from "lucide-react";
+import { DATA_LINK_CLASS, DefinitionLink } from "@/components/analytics/definition-link";
 import { AnalyticsFiltersBar } from "@/components/analytics/filters-bar";
 import { rateText } from "@/components/analytics/funnel-steps";
-import { definitionAnchor, MetricDefinitions } from "@/components/analytics/metric-definitions";
+import { MetricDefinitions } from "@/components/analytics/metric-definitions";
 import { periodPhrase } from "@/lib/metrics/period-phrase";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { buttonVariants } from "@/components/ui/button";
@@ -15,7 +16,6 @@ import { listDealTypes } from "@/db/queries/deal-types";
 import { listPipelinesWithStages } from "@/db/queries/pipelines";
 import { getFormats } from "@/i18n/formats";
 import {
-  METRICS,
   MIN_OBSERVATIONS,
   metricsOfFamily,
   parseMetricFilters,
@@ -33,15 +33,6 @@ import type { TranslatorOf } from "@/i18n/translator";
 import type { Formats } from "@/lib/format";
 
 const BASE_PATH = "/analytique/partenaires";
-
-
-function DefinitionLink({ id, children }: { id: keyof typeof METRICS; children: ReactNode }) {
-  return (
-    <a href={`#${definitionAnchor(METRICS[id])}`} className="underline-offset-2 hover:underline">
-      {children}
-    </a>
-  );
-}
 
 const MASKED = <span className="text-muted-foreground">—</span>;
 
@@ -71,7 +62,7 @@ function DelayCell({ stat }: { stat: DurationStat }) {
 function MoneyCell({ money, showCount = true }: { money: MoneyCount; showCount?: boolean }) {
   const t = useTranslations("analytics.partenaires");
   const fmt = use(getFormats());
-  const parts = [showCount && money.n > 0 ? t("commission_commissions", { n: money.n }) : null, money.withoutAmount > 0 ? `${money.withoutAmount} sans montant` : null].filter(Boolean);
+  const parts = [showCount && money.n > 0 ? t("commission_commissions", { n: money.n }) : null, money.withoutAmount > 0 ? t("n_sans_montant", { n: money.withoutAmount }) : null].filter(Boolean);
   return (
     <>
       {money.n === 0 || money.withoutAmount === money.n ? MASKED : fmt.money(money.amount)}
@@ -92,11 +83,11 @@ function forAmount(money: MoneyCount, t: TranslatorOf<"analytics.partenaires">, 
 }
 
 const th = (label: ReactNode, align: "left" | "right" = "right") => (
-  <th scope="col" className={`px-3 py-2.5 font-medium ${align === "right" ? "text-right" : "text-left"}`}>
+  <th scope="col" className={`px-3 py-2.5 font-medium whitespace-nowrap ${align === "right" ? "text-right" : "text-left"}`}>
     {label}
   </th>
 );
-const td = (content: ReactNode) => <td className="px-3 py-3 text-right align-top tabular-nums">{content}</td>;
+const td = (content: ReactNode) => <td className="px-3 py-3 text-right align-top whitespace-nowrap tabular-nums">{content}</td>;
 
 function NotEnoughData({ report, filtered }: { report: PartnersReport; filtered: boolean }) {
   const t = useTranslations("analytics.partenaires");
@@ -162,6 +153,7 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
   }
 
   const parsed = parseMetricFilters(raw, fmt.timeZone);
+  const tf = await getTranslations("analytics.funnelSteps");
   const [pipelines, types, users, origins, report] = await Promise.all([
     listPipelinesWithStages(user),
     listDealTypes(user),
@@ -200,11 +192,16 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
                 {t("les_partages_se_mesurent_par_confrere_eb43")}
               </EmptyState>
             ) : (
+              // Onze colonnes : le tableau défile DANS son cadre, jamais la page (audit UI du 2026-09-14) ; la colonne du
+              // partenaire reste collée à gauche pendant le défilement, pour savoir de qui on lit les chiffres.
               <div className="overflow-x-auto rounded-xl border border-border bg-card">
-                <table className="w-full min-w-[72rem] text-sm">
+                <table className="w-full min-w-[64rem] text-sm">
+                  <caption className="sr-only">{t("par_partenaire")}</caption>
                   <thead>
                     <tr className="border-b border-border text-xs text-muted-foreground">
-                      {th(t("partenaire"), "left")}
+                      <th scope="col" className="sticky left-0 z-10 bg-card px-3 py-2.5 text-left font-medium">
+                        {t("partenaire")}
+                      </th>
                       {th(t("partages"))}
                       {th(t("acceptes"))}
                       {th(t("refuses"))}
@@ -220,13 +217,13 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
                   <tbody className="divide-y divide-border">
                     {report.partners.map((p) => (
                       <tr key={p.partnerId}>
-                        <th scope="row" className="px-3 py-3 text-left align-top font-medium">
-                          <Link href={`/partenaires/${p.partnerId}`} className="underline-offset-2 hover:underline">
+                        <th scope="row" className="sticky left-0 z-10 min-w-40 bg-card px-3 py-3 text-left align-top font-medium">
+                          <Link href={`/partenaires/${p.partnerId}`} className={DATA_LINK_CLASS}>
                             {p.name}
                           </Link>
                           {(p.company || p.profession || !p.active) && (
                             <span className="block text-xs font-normal text-muted-foreground">
-                              {[p.profession, p.company, p.active ? null : "inactif"].filter(Boolean).join(" · ")}
+                              {[p.profession, p.company, p.active ? null : t("inactif")].filter(Boolean).join(" · ")}
                             </span>
                           )}
                         </th>
@@ -238,17 +235,17 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
                             {p.pending + p.expired + p.revoked}
                             {p.pending + p.expired + p.revoked > 0 && (
                               <span className="block text-xs text-muted-foreground">
-                                {[p.pending > 0 && `${p.pending} en attente`, p.expired > 0 && `${p.expired} expiré${p.expired > 1 ? "s" : ""}`, p.revoked > 0 && `${p.revoked} révoqué${p.revoked > 1 ? "s" : ""}`]
+                                {[p.pending > 0 && t("n_en_attente", { n: p.pending }), p.expired > 0 && t("n_expires", { n: p.expired }), p.revoked > 0 && t("n_revoques", { n: p.revoked })]
                                   .filter(Boolean)
                                   .join(" · ")}
                               </span>
                             )}
                           </>
                         )}
-                        {td(rateText(p.acceptanceRate, fmt, true))}
+                        {td(rateText(p.acceptanceRate, fmt, tf, true))}
                         {td(<DelayCell stat={p.responseDelay} />)}
                         {td(p.won)}
-                        {td(rateText(p.transformationRate, fmt, true))}
+                        {td(rateText(p.transformationRate, fmt, tf, true))}
                         {td(<MoneyCell money={p.earned} />)}
                         {td(<MoneyCell money={p.planned} />)}
                       </tr>
@@ -256,17 +253,17 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
                   </tbody>
                   <tfoot>
                     <tr className="border-t border-border bg-muted/40 font-medium">
-                      <th scope="row" className="px-3 py-3 text-left align-top">
+                      <th scope="row" className="sticky left-0 z-10 bg-muted px-3 py-3 text-left align-top">
                         {t("ensemble")}
                       </th>
                       {td(totals.sent)}
                       {td(totals.accepted)}
                       {td(totals.declined)}
                       {td(totals.noResponse)}
-                      {td(rateText(totals.acceptanceRate, fmt, true))}
+                      {td(rateText(totals.acceptanceRate, fmt, tf, true))}
                       {td(MASKED)}
                       {td(totals.won)}
-                      {td(rateText(totals.transformationRate, fmt, true))}
+                      {td(rateText(totals.transformationRate, fmt, tf, true))}
                       {td(<MoneyCell money={totals.earned} />)}
                       {td(<MoneyCell money={totals.planned} />)}
                     </tr>
@@ -284,7 +281,8 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
               {t.rich("un_etat_pas_une_periode_la_12b8", { link: (chunks) => <Link href="/suivi" className="underline underline-offset-2 hover:text-foreground">{chunks}</Link> })}
             </p>
             <div className="overflow-x-auto rounded-xl border border-border bg-card">
-              <table className="w-full min-w-[32rem] text-sm">
+              <table className="w-full text-sm">
+                <caption className="sr-only">{t("encours_de_commissions_a_aujourd_hui")}</caption>
                 <thead>
                   <tr className="border-b border-border text-xs text-muted-foreground">
                     {th(t("etat"), "left")}
@@ -323,7 +321,8 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
               )}
             </p>
             <div className="overflow-x-auto rounded-xl border border-border bg-card">
-              <table className="w-full min-w-[32rem] text-sm">
+              <table className="w-full text-sm">
+                <caption className="sr-only">{t("vieillissement_des_commissions_confirmees_non_reglees")}</caption>
                 <thead>
                   <tr className="border-b border-border text-xs text-muted-foreground">
                     {th(t("anciennete"), "left")}

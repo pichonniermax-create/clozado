@@ -260,3 +260,155 @@ preuve ; en production, autant de requêtes Neon pour rien — constat D4 de
 l'audit). Désormais `prefetch={false}` et `router.prefetch` au survol ou au
 focus : la navigation reste immédiate, sans le coût. La barre d'onglets
 mobile ne précharge pas (pas de survol).
+
+## Étape 5 — l'audit d'écrans et ses correctifs (2026-09-14 → 2026-09-15)
+
+Après l'étape 4, onze relecteurs ont passé TOUS les écrans sur des
+captures bureau (1440) et mobile (390) de la base locale de démo — un par
+famille d'écrans (accueil/suivi/tâches, contacts, affaires/partenaires,
+cibles/newsletters, règles/emails, veille/chiffres, analytique,
+réglages/profil, pages publiques et super admin, cohérence transversale,
+mobile) — avec la même consigne : ce qu'un utilisateur de HubSpot, Attio,
+Monday ou Lovable remarquerait en une minute. 247 constats bruts, 152
+élevés ou moyens ; les trente premiers vérifiés par un second relecteur
+(code + capture), les autres vérifiés au moment de corriger. Le
+classement par sévérité a décidé de l'ordre, la grammaire du socle a
+décidé de la forme.
+
+### Le socle d'abord (`dad75a2`)
+
+Ce qui traverse tous les écrans se corrige une fois :
+
+- **`NativeSelect`** (`ui/native-select.tsx`) — onze fichiers recopiaient
+  chacun leur constante `SELECT_CLASS` (h-8 ici, h-9 là, `px-2` ou
+  `px-2.5`, chevron du navigateur, aucun anneau de focus, et un corps de
+  14 px qui déclenche le zoom d'iOS). Les 46 `<select>` du produit passent
+  par le même composant serveur : les jetons de l'`Input`, le chevron du
+  socle, `text-base` sous md, 40 px au doigt. `className` s'applique à
+  l'enveloppe, c'est là que se décide la largeur. Le `Select` Base UI
+  reste celui des formulaires client contrôlés.
+- **La bordure des liens-boutons** — `buttonVariants({ variant: "outline" })`
+  posé sans `cn()` (76 liens : « Rechercher », « Importer un CSV »,
+  « Filtrer », « Exporter en CSV »…) perdait sa bordure : dans la feuille
+  générée, `.border-transparent` est émise après `.border-border`, et sans
+  `twMerge` les deux classes restaient. La bordure transparente vit
+  désormais dans chaque variante pleine, plus dans la base
+  (`button.test.ts` verrouille le point).
+- **Les cibles tactiles** — `pointer-coarse:min-h-10` sur tout bouton,
+  `pointer-coarse:min-w-10` sur les boutons-icônes : 40 px au doigt, le
+  bureau garde ses hauteurs. Cases à cocher et boutons radio natifs
+  prennent la couleur de marque et 16 px (20 px au doigt) dans la couche
+  de base — plus de bleu système.
+- **`StatusBadge`** (`ui/status-badge.tsx`) — cinq tons en contour teinté
+  (neutre, info, succès, attention, danger) : un même sens, une même
+  couleur sur tous les écrans. Le badge plein reste réservé aux
+  compteurs de navigation.
+- **`SectionHeading`** (`ui/section-heading.tsx`) — titre, compte en
+  pastille, action à droite, description dessous : les quatre façons
+  d'écrire un compte et les trois façons d'écrire « voir tout »
+  convergent.
+- **Deux tuiles par ligne dès 390 px** (tableau de bord, indicateurs,
+  tâches, squelette) : corps réduit et césure autorisée pour
+  « 1 376 000 € », libellé jamais tronqué — c'est le seul nom de la tuile.
+- **L'en-tête de page** — dès md, les actions restent TOUJOURS à droite
+  du titre ; avant, une description longue prenait toute la ligne et
+  renvoyait le bouton principal sous le texte sur la moitié des écrans.
+  Sous md, elles passent dessous.
+- **La barre latérale** collante à la hauteur de l'écran (sur une page
+  longue, la navigation restait tout en bas d'un document de plusieurs
+  milliers de pixels) ; le bandeau super admin collant dès md seulement,
+  sa phrase masquée sous sm ; en vue globale, Contacts, Affaires,
+  Partenaires et Newsletters masqués sans organisation, un onglet
+  « Invitations » dans la barre du bas ; l'onglet « Accueil » plutôt que
+  « Tableau de bord » en 11 px.
+- **`Field`** relie l'aide au contrôle (`aria-describedby`) ; un badge ne
+  déborde plus de sa carte (`max-w-full`).
+
+Constat écarté : le champ date en « mm/dd/yyyy » — c'est la locale du
+navigateur de capture (Chromium en anglais), pas le produit.
+
+### Les écrans ensuite (cinq lots en parallèle, fichiers disjoints)
+
+**Accueil, suivi, tâches.** « Premiers pas » disait 1/8 à un espace qui a
+44 contacts et 17 affaires : dans `getOnboardingFacts`, un `${organizations.id}`
+placé dans un fragment `sql` d'un `select()` devenait la colonne nue `"id"`,
+liée à la table de la sous-requête — toujours faux. Le paramètre est lié
+explicitement, chaque existence s'arrête à la première ligne, et
+`onboarding.test.ts` vérifie le SQL généré. « Nouvelle affaire » ouvre le
+formulaire ; les indicateurs passent APRÈS le travail du jour ; la liste
+des organisations du super admin ne tronque plus le nom ni le badge ; le
+formulaire « Nouvelle tâche » est replié (déplié sans tâche ouverte ou par
+`?nouveau=1`, que le menu « Nouveau » utilise — une ancre n'ouvre pas un
+repli) ; la coche « faite » a 44 px de zone de frappe (`CompleteTaskButton`) ;
+la méta-ligne des tâches met ses « · » en CSS, plus jamais en début de
+ligne ; le suivi traduit ses deux phrases en dur et ses lignes tronquent
+sans perdre l'urgence ; « Acceptées sans suite » devient une ligne
+cliquable.
+
+**Contacts, affaires, partenaires.** La fiche contact passe en deux
+colonnes dès `lg` (l'activité à gauche, la fiche et ses annexes dans une
+colonne de 320 px à droite — le formulaire s'y replie par container
+query) ; la recherche remonte sous l'en-tête ; l'import a une zone de
+dépôt, ses libellés traduits, la liste des colonnes reconnues et un modèle
+CSV à télécharger. Le kanban se pilote au toucher (un `NativeSelect`
+« Déplacer vers » sur chaque carte sous `md`) et au clavier (menu derrière
+une poignée nommée), les colonnes accrochent le défilement, une clôture
+dépassée se voit ; la carte Pipeline n'a plus qu'un formulaire (l'étape
+n'est écrite que si elle change) ; le composeur de partage disparaît sur
+une affaire close ; « Perdue(perdu) » est réparé ; le nom du client mène à
+sa fiche ; la fiche partenaire tient à 390 px et offre « Écrire » /
+« Appeler ».
+
+**Cibles, newsletters, règles, emails reçus.** Les lignes de règles ne
+sont plus écrasées par trois boutons (actions sous le texte sous `sm`), le
+nom d'une règle n'est plus un badge, la fiche règle porte
+Désactiver/Archiver/Journal, l'état vide a un titre et une action, le
+journal est une grille alignée avec des `StatusBadge`. La liste des
+newsletters est une `ListCard` dont le titre ne se fait plus écraser par
+« Supprimer » (icône + dialogue de confirmation), le module a ses
+squelettes et sa 404, la fiche montre statut et « Envoyer » dans
+l'en-tête, l'éditeur relie ses libellés à ses champs. La fiche cible
+s'ouvre sur ses contacts et son historique, le formulaire est replié, le
+bouton de création vit dans une barre collante ; Dupliquer/Désactiver
+passent dans un menu « ⋯ » (formulaires cachés visés par `form=`). Les
+emails reçus mettent l'adresse d'ingestion en évidence avec « Copier »,
+Confirmer/Ignorer sur une rangée.
+
+**Veille, concurrents, chiffres, analytique.** Aucun tableau ne fait plus
+défiler le corps de page : les composants partagés (`FunnelSteps`,
+`DurationTable`, `BreakdownTable`) tiennent à 390 px (colonnes secondaires
+masquées sous `sm`, `caption` partout), les grands tableaux défilent dans
+leur cadre avec une première colonne collante ; la phrase de synthèse des
+pertes (« perdu· 6 gagnées ») devient quatre tuiles ; les textes en dur
+(« Pas », « Indicateur », « inactif », « expiré(s) »…) passent en clés ; la
+barre de filtres est une grille sous `sm` ; `DefinitionLink` remplace
+quatre copies du lien « voir la définition ». La veille regroupe ses
+réglages (sujets, sources, collectes) sous une frontière, le bouton de
+600 px se replie, les listes passent en `ListCard` ; les chiffres
+remplacent le « — » géant par une place réservée, et « Supprimer » /
+« Ne plus suivre » demandent confirmation.
+
+**Réglages, profil, pages publiques, invitations, visite.** Un sommaire
+collant relie les treize cartes des réglages (`SettingsNav`, ancres
+`scroll-mt-32`) ; « Déclarer ce domaine » est aligné sur son champ ; les
+étapes de pipeline ont des flèches en boutons-icônes et une ligne qui se
+replie ; tout geste destructif (révoquer une clé, retirer un domaine,
+régénérer l'adresse, supprimer un motif, révoquer une invitation) passe
+par `ConfirmSubmit` — le dialogue du socle qui soumet le `<form action>`
+par référence, sans texte propre. L'aperçu de marque n'est plus focusable.
+La désinscription vit dans le cadre des pages d'auth, un lien inconnu
+rend l'état « invalide » prévu, la 404 racine propose « Accueil » et « Se
+connecter » à un anonyme. Les invitations en attente passent en tête,
+« Ouvrir l'espace » mène à l'espace créé, les badges suivent
+`StatusBadge`. La carte de la visite se réduit sur mobile.
+
+Composants nés de ce lot et remontés dans le socle : `ConfirmSubmit`
+(`ui/confirm-submit.tsx`), `InlineDetails` (`ui/inline-details.tsx`, le
+repli en ligne avec le chevron du socle), `DefinitionLink`
+(`analytics/definition-link.tsx`), `CompleteTaskButton`, `SettingsNav`.
+
+Non traité, à décider : un composant `Notice` du socle (quatre encadrés
+d'information encore recopiés), un `Checkbox` shadcn, un « Nom affiché »
+sur le profil, le volume par origine sur `/analytique/origines`, les pages
+légales en pied d'accueil (P2 de l'audit : des liens vers rien seraient
+pires).

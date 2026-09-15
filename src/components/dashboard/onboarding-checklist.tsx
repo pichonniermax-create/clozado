@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
  * fait est mis en avant. « Masquer » pose un cookie ; la carte disparaît
  * d'elle-même quand tout est fait (l'appelant ne la rend pas).
  */
-export async function OnboardingChecklist({ progress }: { progress: OnboardingProgress }) {
+export async function OnboardingChecklist({ progress, tourRunning = false }: { progress: OnboardingProgress; tourRunning?: boolean }) {
   const t = await getTranslations("dashboard.onboarding");
   const next = progress.steps.find((step) => !step.done) ?? null;
   const percent = Math.round((progress.done / progress.total) * 100);
@@ -37,9 +37,10 @@ export async function OnboardingChecklist({ progress }: { progress: OnboardingPr
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/15" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-label={t("progression")}>
           <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${percent}%` }} />
         </div>
+        {/* Sur mobile, seule la prochaine étape s'affiche (la carte prenait ~470 px avant le premier chiffre) ; dès sm, les huit. */}
         <ol className="grid grid-cols-1 gap-1 sm:grid-cols-2">
           {progress.steps.map((step) => (
-            <li key={step.key}>
+            <li key={step.key} className={cn(next?.key !== step.key && "hidden sm:block")}>
               <Link
                 href={step.href}
                 className={cn(
@@ -62,10 +63,13 @@ export async function OnboardingChecklist({ progress }: { progress: OnboardingPr
               <ArrowRight />
             </Link>
           )}
-          <Link href={`/dashboard?${TOUR_PARAM}=1`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-            <Compass />
-            {t("visite_guidee")}
-          </Link>
+          {/* Pas deux surfaces d'accueil à la fois : le lien disparaît pendant que la visite tourne. */}
+          {!tourRunning && (
+            <Link href={`/dashboard?${TOUR_PARAM}=1`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              <Compass />
+              {t("visite_guidee")}
+            </Link>
+          )}
         </div>
       </CardContent>
     </Card>

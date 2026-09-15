@@ -15,7 +15,10 @@
     "partenaires": "Partners",
     "societe": "Company",
     "telephone": "Phone",
-    "voir_les_affaires": "See deals"
+    "voir_les_affaires": "See deals",
+    "ecrire": "Email",
+    "appeler": "Call",
+    "annuler": "Cancel"
   },
   "detailNotFound": {
     "ce_partenaire_n_existe_pas": "This partner doesn’t exist.",

@@ -49,7 +49,8 @@ export function PageHeader({
             <div className="max-w-prose text-sm text-muted-foreground text-pretty">{description}</div>
           )}
         </div>
-        {actions && <div className="flex min-w-0 flex-wrap items-center gap-2 md:shrink-0 md:justify-end">{actions}</div>}
+        {/* Sous sm, chaque action se partage la ligne (cibles pleine largeur au doigt) ; dès md, elles gardent leur largeur. */}
+        {actions && <div className="flex min-w-0 flex-wrap items-center gap-2 max-sm:[&>*]:flex-1 md:shrink-0 md:justify-end">{actions}</div>}
       </div>
     </header>
   );

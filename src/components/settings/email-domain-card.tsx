@@ -1,12 +1,13 @@
 import { use } from "react";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
 import { DetailsCard } from "@/components/ui/details-card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import type { Organization } from "@/db/schema";
 import { checkEmailDomainAction, declareEmailDomainAction, forgetEmailDomainAction } from "@/lib/email/actions";
 import { missingRecords, parseDomainRecords, type DomainRecordView } from "@/lib/email/domain";
@@ -50,11 +51,11 @@ export function EmailDomainCard({
   const senderOnDomain = Boolean(org.senderEmail && org.emailDomain && org.senderEmail.toLowerCase().endsWith(`@${org.emailDomain}`));
 
   return (
-    <Card id="domaine" className="scroll-mt-24">
+    <Card id="domaine" className="scroll-mt-32">
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center gap-2">
           {t("domaine_d_envoi")}
-          {verified ? <Badge>{t("verifie")}</Badge> : org.emailDomain && !unavailable ? <Badge variant="secondary">{t("en_attente")}</Badge> : <Badge variant="outline">{t("repli")}</Badge>}
+          {verified ? <StatusBadge tone="success">{t("verifie")}</StatusBadge> : org.emailDomain && !unavailable ? <StatusBadge tone="warning">{t("en_attente")}</StatusBadge> : <StatusBadge>{t("repli")}</StatusBadge>}
         </CardTitle>
         <CardDescription>{t("expediteur_effectif", { from: effectiveFrom })}</CardDescription>
       </CardHeader>
@@ -63,11 +64,15 @@ export function EmailDomainCard({
           <>
             <p className="text-sm text-pretty">{t("sans_domaine", { domain: sharedDomain })}</p>
             {!readOnly && (
-              <form action={declareEmailDomainAction} className="flex flex-wrap items-end gap-3">
-                <Field label={t("ton_domaine")} htmlFor="domain" hint={t("celui_de_ton_adresse")} className="max-w-xs flex-1">
-                  <Input id="domain" name="domain" placeholder={t("placeholder_domaine")} required />
-                </Field>
-                <Button type="submit">{t("declarer")}</Button>
+              // L'aide sort du Field : alignée sur le bas de l'aide, le bouton tombait 40 px sous le champ (audit UI du 2026-09-14).
+              <form action={declareEmailDomainAction} className="flex flex-col gap-2">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                  <Field label={t("ton_domaine")} htmlFor="domain" className="w-full sm:max-w-xs sm:flex-1">
+                    <Input id="domain" name="domain" placeholder={t("placeholder_domaine")} required aria-describedby="domain-hint" />
+                  </Field>
+                  <Button type="submit" className="w-full sm:w-auto">{t("declarer")}</Button>
+                </div>
+                <p id="domain-hint" className="text-xs text-muted-foreground">{t("celui_de_ton_adresse")}</p>
               </form>
             )}
           </>
@@ -78,9 +83,9 @@ export function EmailDomainCard({
             <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm text-pretty">{t("indisponible_sur_ce_plan", { domain: org.emailDomain, shared: sharedDomain })}</p>
             {org.emailDomainCheckError && <p className="text-xs text-muted-foreground">{t("le_fournisseur_a_dit", { message: org.emailDomainCheckError })}</p>}
             {!readOnly && (
-              <form action={forgetEmailDomainAction}>
-                <Button type="submit" variant="ghost" size="sm">{t("retirer_ce_domaine")}</Button>
-              </form>
+              <ConfirmSubmit action={forgetEmailDomainAction} title={t("retirer_titre")} description={t("retirer_texte")} confirmLabel={t("retirer_ce_domaine")} cancelLabel={t("annuler")} className="w-fit text-destructive hover:text-destructive">
+                {t("retirer_ce_domaine")}
+              </ConfirmSubmit>
             )}
           </div>
         )}
@@ -97,9 +102,9 @@ export function EmailDomainCard({
                   <form action={checkEmailDomainAction}>
                     <Button type="submit" variant="outline" size="sm">{t("verifier_maintenant")}</Button>
                   </form>
-                  <form action={forgetEmailDomainAction}>
-                    <Button type="submit" variant="ghost" size="sm">{t("retirer_ce_domaine")}</Button>
-                  </form>
+                  <ConfirmSubmit action={forgetEmailDomainAction} title={t("retirer_titre")} description={t("retirer_texte")} confirmLabel={t("retirer_ce_domaine")} cancelLabel={t("annuler")} className="text-destructive hover:text-destructive">
+                    {t("retirer_ce_domaine")}
+                  </ConfirmSubmit>
                 </div>
               )}
             </div>
@@ -166,7 +171,7 @@ function RecordsTable({ records, t }: { records: DomainRecordView[]; t: DomainTr
                 </div>
               </td>
               <td className="px-3 py-2">
-                <Badge variant={r.status === "verified" ? "default" : "outline"}>{recordStatusLabel(r.status, t)}</Badge>
+                <StatusBadge tone={r.status === "verified" ? "success" : r.status === "failed" ? "danger" : "warning"}>{recordStatusLabel(r.status, t)}</StatusBadge>
                 {r.ours && <div className="text-muted-foreground">{t("verifie_par_nous")}</div>}
               </td>
             </tr>

@@ -28,11 +28,8 @@ export default async function NewTargetPage() {
 
   return (
     <>
-      <PageHeader
-        title={t("nouvelle_cible")}
-        description={t("qui_recoit_et_qui_est_cette_1764")}
-        backTo={{ href: "/cibles", label: t("cibles") }}
-      />
+      {/* Sans description : la carte « Qui reçoit » explique déjà le segment vivant — deux paragraphes avant le premier champ. */}
+      <PageHeader title={t("nouvelle_cible")} backTo={{ href: "/cibles", label: t("cibles") }} />
       <TargetForm action={createTargetAction} options={options} signatories={signatories} submitLabel={t("creer_la_cible")} />
     </>
   );

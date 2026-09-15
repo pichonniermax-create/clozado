@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { Mail, Phone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ListCard, ListRowLink } from "@/components/ui/list-card";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { ShareStatusBadge } from "@/components/deal-shares/share-status-badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -57,7 +59,24 @@ export default async function PartnerPage({
         title={partner.name}
         description={[partner.profession, partner.company].filter(Boolean).join(" · ") || undefined}
         backTo={{ href: "/partenaires", label: t("partenaires") }}
-        actions={!partner.active ? <Badge variant="secondary">{t("inactif")}</Badge> : undefined}
+        // La première chose qu'on fait sur une fiche partenaire : l'appeler ou lui écrire (audit UI du 2026-09-14).
+        actions={
+          <>
+            {!partner.active && <Badge variant="secondary">{t("inactif")}</Badge>}
+            {partner.email && (
+              <a href={`mailto:${partner.email}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                <Mail />
+                {t("ecrire")}
+              </a>
+            )}
+            {partner.phone && (
+              <a href={`tel:${partner.phone.replace(/\s/g, "")}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                <Phone />
+                {t("appeler")}
+              </a>
+            )}
+          </>
+        }
       />
 
       <Card>
@@ -66,7 +85,9 @@ export default async function PartnerPage({
         </CardHeader>
         <CardContent>
           <form action={savePartner} className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-4">
+            {/* Une colonne à 390 px (deux colonnes forcées tronquaient l'email), deux dès sm ; l'email — long — sur
+                toute la ligne et les notes en dessous : plus de cellule vide dans la grille. */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label={t("nom")} htmlFor="name">
                 <Input id="name" name="name" defaultValue={partner.name} required />
               </Field>
@@ -76,28 +97,33 @@ export default async function PartnerPage({
               <Field label={t("metier")} htmlFor="profession">
                 <Input id="profession" name="profession" defaultValue={partner.profession ?? ""} />
               </Field>
-              <Field label={t("email")} htmlFor="email">
+              <Field label={t("telephone")} htmlFor="phone">
+                <Input id="phone" name="phone" type="tel" defaultValue={partner.phone ?? ""} />
+              </Field>
+              <Field label={t("email")} htmlFor="email" className="sm:col-span-2">
                 <Input id="email" name="email" type="email" defaultValue={partner.email ?? ""} />
               </Field>
-              <Field label={t("telephone")} htmlFor="phone">
-                <Input id="phone" name="phone" defaultValue={partner.phone ?? ""} />
+              <Field label={t("notes")} htmlFor="notes" className="sm:col-span-2">
+                <Textarea
+                  id="notes"
+                  name="notes"
+                  defaultValue={partner.notes ?? ""}
+                  className="min-h-16"
+                />
               </Field>
             </div>
-            <Field label={t("notes")} htmlFor="notes">
-              <Textarea
-                id="notes"
-                name="notes"
-                defaultValue={partner.notes ?? ""}
-                className="min-h-16"
-              />
-            </Field>
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex min-h-10 items-center gap-2 text-sm">
               <input type="checkbox" name="active" defaultChecked={partner.active} />
               {t("partenaire_actif")}
             </label>
-            <Button type="submit" className="w-fit">
-              {t("enregistrer")}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="submit" className="w-fit">
+                {t("enregistrer")}
+              </Button>
+              <Button type="reset" variant="ghost">
+                {t("annuler")}
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -106,7 +132,7 @@ export default async function PartnerPage({
           section) — l'historique n'a pas de raison d'être « en carte dans
           une carte » alors que la même liste vit nue sur les autres écrans. */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">{t("affaires_partagees")}</h2>
+        <SectionHeading title={t("affaires_partagees")} count={history.length} />
         {history.length === 0 ? (
           <EmptyState
             title={t("aucune_affaire_partagee_avec_ce_partenaire")}

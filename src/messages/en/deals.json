@@ -19,7 +19,7 @@
     "envoye_le": "<span>{partnerName}</span><span2>Sent on {formatDate}{n}</span2>",
     "etape": "Stage",
     "expire_le": "· expires on {formatDate}",
-    "gagne": "(won)",
+    "gagne": "· won",
     "interactions_etapes_franchies_partages_et_taches_3236": "Interactions, stage changes, shares and completed tasks on this deal — an interaction logged here also shows up on the client’s record.",
     "la_liste_se_configure_dans_marque_d1d6": "The list is configured in Brand & settings.",
     "lead_a_l_origine_de_l_9387": "Lead behind the deal",
@@ -29,7 +29,7 @@
     "motif_de_perte": "Loss reason",
     "origine": "Origin",
     "partage_partages": "{count} {count, plural, one {share} other {shares}}",
-    "perdu": "(lost)",
+    "perdu": "· lost",
     "personne": "Person",
     "pipeline": "Pipeline",
     "pose_automatiquement_a_la_creation_depuis_4f3d": "Set automatically at creation from the last lead received before it. A lead that arrived later can only be attached here — and it’s logged.",
@@ -42,7 +42,10 @@
     "statut_de_l_affaire": "Deal status",
     "temps_par_etape": "Time per stage",
     "vide_celle_de_l_etape": "Empty = the stage’s probability ({formatPercent}).",
-    "vide_celle_de_l_etape_f17a": "Empty = the stage’s probability."
+    "vide_celle_de_l_etape_f17a": "Empty = the stage’s probability.",
+    "depuis_n": "for {n}",
+    "affaire_close_pas_de_partage": "This deal is closed: it can no longer be shared. Its past shares stay listed above.",
+    "partager_cette_affaire": "Share this deal"
   },
   "detailNotFound": {
     "cette_affaire_n_existe_pas": "This deal doesn’t exist.",
@@ -56,7 +59,9 @@
     "le_deplacement_a_echoue_de_notre_9277": "The move failed on our side — try again.",
     "motif_de_perte": "Loss reason",
     "motif_de_perte_c1b7": "Loss reason?",
-    "perdu": "· lost"
+    "perdu": "· lost",
+    "deplacer_vers": "Move to",
+    "cloture_depassee": "Expected close date passed"
   },
   "list": {
     "affaire": "Deal",
@@ -114,7 +119,8 @@
     "toutes_les_etapes": "All stages",
     "tu_es_en_vue_globale": "You’re in global view",
     "type": "Type",
-    "un_pipeline_est_une_famille_d_ad50": "A pipeline is a family of deals with its own stages (credit, investment, transaction…). It’s created from Brand & settings."
+    "un_pipeline_est_une_famille_d_ad50": "A pipeline is a family of deals with its own stages (credit, investment, transaction…). It’s created from Brand & settings.",
+    "cloture_depassee": "Expected close date passed"
   },
   "queries": {
     "defaultPipeline": "Deals",
