@@ -46,16 +46,18 @@ export function StatTile({
   const body = (
     <>
       <div className="flex items-center gap-2">
-        <span className={cn("[&_svg]:size-4", TONE_ICON[effectiveTone])}>{icon}</span>
-        <span className="text-sm font-medium text-muted-foreground">{label}</span>
+        <span className={cn("shrink-0 [&_svg]:size-4", TONE_ICON[effectiveTone])}>{icon}</span>
+        {/* Jamais tronqué : le libellé est le seul nom de la tuile — il se replie en corps réduit sur mobile. */}
+        <span className="min-w-0 text-xs leading-tight font-medium text-muted-foreground sm:text-sm">{label}</span>
       </div>
-      <p className="text-3xl font-semibold tracking-tight">{value}</p>
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      {/* Deux tuiles par ligne à 390 px (≈ 170 px chacune) : corps réduit et césure autorisée pour « 1 376 000 € ». */}
+      <p className="min-w-0 text-2xl font-semibold tracking-tight [overflow-wrap:anywhere] sm:text-3xl">{value}</p>
+      {hint && <p className="line-clamp-2 text-xs text-muted-foreground">{hint}</p>}
     </>
   );
 
   const className = cn(
-    "flex flex-col gap-1.5 rounded-xl border border-border bg-card p-4 shadow-xs",
+    "flex min-w-0 flex-col gap-1.5 rounded-xl border border-border bg-card p-3 shadow-xs sm:p-4",
     href && "transition-colors hover:border-primary/40 hover:bg-accent/40"
   );
 

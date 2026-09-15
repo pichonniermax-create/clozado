@@ -33,6 +33,7 @@ import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
+import { NativeSelect } from "@/components/ui/native-select";
 
 type Params = {
   conseiller?: string;
@@ -326,7 +327,7 @@ function TaskItem({
             <Field label={t("titre")} htmlFor={`title-${task.id}`}>
               <Input id={`title-${task.id}`} name="title" defaultValue={task.title} required />
             </Field>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Field label={t("echeance")} htmlFor={`dueDate-${task.id}`}>
                 <Input
                   id={`dueDate-${task.id}`}
@@ -387,18 +388,17 @@ function TaskItem({
 function PrioritySelect({ id, defaultValue }: { id: string; defaultValue: string }) {
   const tt = useTranslations("tasks");
   return (
-    <select
+    <NativeSelect
       id={id}
       name="priority"
-      defaultValue={defaultValue}
-      className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+      defaultValue={defaultValue} className="w-auto max-w-full"
     >
       {TASK_PRIORITIES.map((value) => (
         <option key={value} value={value}>
           {tt(`priorities.${value}`)}
         </option>
       ))}
-    </select>
+    </NativeSelect>
   );
 }
 
@@ -413,11 +413,10 @@ function AssigneeSelect({
 }) {
   const t = useTranslations("tasks.page");
   return (
-    <select
+    <NativeSelect
       id={id}
       name="assigneeId"
-      defaultValue={defaultValue}
-      className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+      defaultValue={defaultValue} className="w-auto max-w-full"
     >
       <option value="">{t("personne")}</option>
       {orgUsers.map((u) => (
@@ -425,7 +424,7 @@ function AssigneeSelect({
           {u.name || u.email}
         </option>
       ))}
-    </select>
+    </NativeSelect>
   );
 }
 
@@ -453,19 +452,18 @@ function RecurrenceFields({
         aria-label={t("pas_de_recurrence_toutes_les_n_a5aa")}
         className="w-14"
       />
-      <select
+      <NativeSelect
         id={`${idPrefix}-recurUnit`}
         name="recurUnit"
         defaultValue={defaultUnit}
-        aria-label={t("unite_de_recurrence")}
-        className="h-8 flex-1 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+        aria-label={t("unite_de_recurrence")} className="flex-1"
       >
         <option value="">{t("jamais")}</option>
         <option value="day">{t("jours")}</option>
         <option value="week">{t("semaines")}</option>
         <option value="month">{t("mois")}</option>
         <option value="year">{t("ans")}</option>
-      </select>
+      </NativeSelect>
     </div>
   );
 }

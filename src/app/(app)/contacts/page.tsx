@@ -11,6 +11,7 @@ import { Upload } from "lucide-react";
 import { CONTACTS_PAGE_SIZE, listContacts, listOrgUsers } from "@/db/queries/contacts";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
+import { NativeSelect } from "@/components/ui/native-select";
 
 export default async function ContactsPage({
   searchParams,
@@ -66,10 +67,9 @@ export default async function ContactsPage({
           className="max-w-md"
         />
         {orgUsers.length > 1 && (
-          <select
+          <NativeSelect
             name="conseiller"
-            defaultValue={ownerId ?? ""}
-            className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+            defaultValue={ownerId ?? ""} className="w-auto max-w-full"
           >
             <option value="">{t("tous_les_conseillers")}</option>
             {orgUsers.map((u) => (
@@ -77,7 +77,7 @@ export default async function ContactsPage({
                 {u.name || u.email}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         )}
         <button type="submit" className={buttonVariants({ variant: "outline" })}>
           {t("rechercher")}

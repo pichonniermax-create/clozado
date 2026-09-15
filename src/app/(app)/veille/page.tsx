@@ -54,12 +54,12 @@ import { scheduleWatchRefresh } from "@/lib/watch/schedule";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import type { TranslatorOf } from "@/i18n/translator";
+import { NativeSelect } from "@/components/ui/native-select";
 
 /** La collecte lancée à la visite s'exécute après la réponse : la fonction reste en vie le temps de son budget (120 s) et d'une marge. */
 export const maxDuration = 180;
 
 
-const SELECT_CLASS = "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm";
 
 export default async function WatchPage() {
   const tr = await getTranslations("watch.page");
@@ -333,13 +333,13 @@ function BasketSection({ basket, targets }: { basket: WatchItemRow[]; targets: {
       ) : (
         <form action={writeFromBasketAction} className="flex flex-wrap items-end gap-3">
           <Field label={tr("pour_quelle_cible")} htmlFor="basket-target">
-            <select id="basket-target" name="targetId" className={SELECT_CLASS} defaultValue={targets[0]?.id} required>
+            <NativeSelect id="basket-target" name="targetId" className="w-auto max-w-full" defaultValue={targets[0]?.id} required>
               {targets.map((t) => (
                 <option key={t.id} value={t.id}>
                   {tr("contact_contacts", { label: t.label, count: t.count })}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </Field>
           <Button type="submit">
             <Sparkles />
@@ -617,30 +617,30 @@ function SourcesSection({ sources, archived, topics }: { sources: WatchSource[];
               <Input id="source-feed" name="feedUrl" placeholder={tr("https_www_exemple_fr_feed")} />
             </Field>
             <Field label={tr("sujet_rattache")} htmlFor="source-topic" hint={tr("les_articles_de_cette_source_sont_a769")}>
-              <select id="source-topic" name="topicId" className={SELECT_CLASS} defaultValue="">
+              <NativeSelect id="source-topic" name="topicId" className="w-auto max-w-full" defaultValue="">
                 <option value="">{tr("aucun_classes_par_theme_au_resume")}</option>
                 {topics.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.label}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
             <Field label={tr("pays")} htmlFor="source-country">
-              <select id="source-country" name="country" className={SELECT_CLASS} defaultValue="FR">
+              <NativeSelect id="source-country" name="country" className="w-auto max-w-full" defaultValue="FR">
                 {SOURCE_COUNTRY_CODES.map((code) => (
                   <option key={code} value={code}>
                     {tr(`countries.${code || "unknown"}`)}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
             <Field label={tr("langue")} htmlFor="source-lang">
-              <select id="source-lang" name="lang" className={SELECT_CLASS} defaultValue="fr">
+              <NativeSelect id="source-lang" name="lang" className="w-auto max-w-full" defaultValue="fr">
                 <option value="fr">{tr("francais")}</option>
                 <option value="en">{tr("anglais")}</option>
                 <option value="">{tr("autre")}</option>
-              </select>
+              </NativeSelect>
             </Field>
           </div>
           <input type="hidden" name="kind" value="source" />

@@ -62,8 +62,8 @@ import { isAppLocale, LOCALES, localeDisplayName } from "@/i18n/locales";
 import { CURRENCIES, currencyDisplayName, isCurrency } from "@/lib/currencies";
 import { isTimeZone, listTimeZones } from "@/lib/timezone";
 import { updateOrganizationSettings } from "@/db/queries/organizations";
+import { NativeSelect } from "@/components/ui/native-select";
 
-const SELECT_CLASS = "h-9 w-full rounded-lg border border-input bg-transparent px-2 text-sm";
 
 /** Une pile de polices CSS (« Inter, 'Helvetica Neue', sans-serif », « Söhne ») : lettres et chiffres de toute écriture, espaces, virgules, guillemets, tirets, soulignés — 80 caractères au plus. Le rendu l'échappe de toute façon (render-email.ts) : ceci n'est qu'un contrôle de forme. */
 const FONT_FAMILY_SHAPE = /^[\p{L}\p{N} ,'"_\-]{1,80}$/u;
@@ -332,31 +332,31 @@ export default async function SettingsPage() {
           <form action={saveRegionalSettings} className="flex flex-col gap-5">
             <div className="grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
               <Field label={t("langue_par_defaut")} htmlFor="defaultLocale" hint={t("chaque_membre_peut_choisir_la_sienne_c3d4")}>
-                <select id="defaultLocale" name="defaultLocale" defaultValue={org.defaultLocale} disabled={readOnly} className={SELECT_CLASS}>
+                <NativeSelect id="defaultLocale" name="defaultLocale" defaultValue={org.defaultLocale} disabled={readOnly} className="w-full">
                   {LOCALES.map((locale) => (
                     <option key={locale} value={locale}>
                       {localeDisplayName(locale)}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </Field>
               <Field label={t("devise")} htmlFor="currency" hint={t("les_montants_s_affichent_dans_cette_e5f6")}>
-                <select id="currency" name="currency" defaultValue={org.currency} disabled={readOnly} className={SELECT_CLASS}>
+                <NativeSelect id="currency" name="currency" defaultValue={org.currency} disabled={readOnly} className="w-full">
                   {CURRENCIES.map((currency) => (
                     <option key={currency} value={currency}>
                       {currency} — {currencyDisplayName(currency, fmt.tag)}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </Field>
               <Field label={t("fuseau_horaire")} htmlFor="timezone" hint={t("dates_heures_et_echeances_se_lisent_a7b8")}>
-                <select id="timezone" name="timezone" defaultValue={org.timezone} disabled={readOnly} className={SELECT_CLASS}>
+                <NativeSelect id="timezone" name="timezone" defaultValue={org.timezone} disabled={readOnly} className="w-full">
                   {listTimeZones().map((zone) => (
                     <option key={zone} value={zone}>
                       {zone.replace(/_/g, " ")}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </Field>
             </div>
             {!readOnly && (
@@ -490,17 +490,16 @@ export default async function SettingsPage() {
                   className="w-20 text-right tabular-nums"
                   aria-label={t("probabilite")}
                 />
-                <select
+                <NativeSelect
                   name="outcome"
                   defaultValue={stage.outcome ?? ""}
-                  disabled={readOnly}
-                  className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm"
+                  disabled={readOnly} className="w-auto max-w-full"
                   aria-label={t("marqueur_de_fin")}
                 >
                   <option value="">{t("etape_intermediaire")}</option>
                   <option value="won">{t("gagne")}</option>
                   <option value="lost">{t("perdu")}</option>
-                </select>
+                </NativeSelect>
                 {!readOnly && (
                   <Button type="submit" variant="ghost" size="sm">
                     {t("enregistrer")}
@@ -515,11 +514,11 @@ export default async function SettingsPage() {
                 <Input name="label" placeholder={t("nouvelle_etape")} required className="w-44" aria-label={t("libelle_de_la_nouvelle_etape")} />
                 <Input name="color" placeholder={DEFAULT_BRAND_PRIMARY} className="w-28" aria-label={t("couleur")} />
                 <Input name="probability" type="number" min="0" max="100" placeholder="%" className="w-20 text-right" aria-label={t("probabilite")} />
-                <select name="outcome" defaultValue="" className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm" aria-label={t("marqueur_de_fin")}>
+                <NativeSelect name="outcome" defaultValue="" className="w-auto max-w-full" aria-label={t("marqueur_de_fin")}>
                   <option value="">{t("etape_intermediaire")}</option>
                   <option value="won">{t("gagne")}</option>
                   <option value="lost">{t("perdu")}</option>
-                </select>
+                </NativeSelect>
                 <Button type="submit" variant="outline" size="sm">
                   {t("ajouter_l_etape")}
                 </Button>

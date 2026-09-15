@@ -48,6 +48,7 @@ import { requireUser } from "@/lib/session";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import type { TranslatorOf } from "@/i18n/translator";
+import { NativeSelect } from "@/components/ui/native-select";
 
 /** L'état de l'email réellement envoyé à cette personne pour une newsletter : remis, ouvert (approx.), cliqué, rejeté… — vide pour un envoi déclaré à la main. */
 function emailStateOf(m: { status: string; firstOpenedAt: Date | null; firstClickedAt: Date | null } | undefined, t: TranslatorOf<"contacts.detail">): string {
@@ -261,11 +262,10 @@ export default async function ContactPage({
               </Field>
               {orgUsers.length > 0 && (
                 <Field label={tr("conseiller_attribue")} htmlFor="ownerId">
-                  <select
+                  <NativeSelect
                     id="ownerId"
                     name="ownerId"
-                    defaultValue={contact.ownerId ?? ""}
-                    className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                    defaultValue={contact.ownerId ?? ""} className="w-auto max-w-full"
                   >
                     <option value="">{tr("personne")}</option>
                     {orgUsers.map((u) => (
@@ -273,7 +273,7 @@ export default async function ContactPage({
                         {u.name || u.email}
                       </option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </Field>
               )}
             </div>
@@ -418,18 +418,17 @@ export default async function ContactPage({
             className="flex flex-wrap items-center gap-2"
           >
             {mailTargets.length > 1 ? (
-              <select
+              <NativeSelect
                 name="targetId"
                 defaultValue={mailTargets[0].id}
-                aria-label={tr("cible")}
-                className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                aria-label={tr("cible")} className="w-auto max-w-full"
               >
                 {mailTargets.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.label}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             ) : (
               <input type="hidden" name="targetId" value={mailTargets[0].id} />
             )}

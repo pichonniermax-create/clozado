@@ -123,7 +123,7 @@ export async function PackIndicators({ user, businessPack, parsed }: { user: Org
         )}
         {t.rich("marque_reglages", { link: (chunks) => <Link href="/settings#pack-metier" className="underline underline-offset-2 hover:text-foreground">{chunks}</Link> })}
       </p>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {indicators.map((indicator) => {
           const tile = tileOf(indicator, t, tm, td, fmt);
           return <StatTile key={indicator.id} label={tm(`definitions.${indicator.metric.id}.label`)} value={tile.value} hint={tile.hint} icon={tile.icon} href={indicator.href} />;

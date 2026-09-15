@@ -32,5 +32,9 @@
     "dossiers": "Dossiers",
     "gestion": "Gestion",
     "outils": "Outils"
+  },
+  "tabs": {
+    "dashboard": "Accueil",
+    "invitations": "Invitations"
   }
 }

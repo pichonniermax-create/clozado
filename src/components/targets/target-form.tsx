@@ -10,6 +10,7 @@ import { CriteriaEditor } from "@/components/targets/criteria-editor";
 import type { TargetFormState } from "@/lib/targets/actions";
 import { IDENTITY_FACET_KEYS, type CriteriaOptions, type IdentityFacetKey, type SegmentCriteria } from "@/lib/targets/criteria";
 import { useTranslations } from "next-intl";
+import { NativeSelect } from "@/components/ui/native-select";
 
 export type TargetFormInitial = {
   label: string;
@@ -35,7 +36,6 @@ const EMPTY: TargetFormInitial = {
   avoid: "",
 };
 
-const SELECT_CLASS = "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm";
 
 /**
  * Le formulaire d'une cible — création et édition, le même. Champs
@@ -126,7 +126,7 @@ export function TargetForm({
             </Field>
             {signatories.length > 0 && (
               <Field label={t("signataire_par_defaut")} htmlFor="target-signatory">
-                <select id="target-signatory" name="defaultSignatoryId" value={v.defaultSignatoryId} onChange={set("defaultSignatoryId")} className={SELECT_CLASS}>
+                <NativeSelect id="target-signatory" name="defaultSignatoryId" value={v.defaultSignatoryId} onChange={set("defaultSignatoryId")} className="w-auto max-w-full">
                   <option value="">{t("aucun")}</option>
                   {signatories.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -134,7 +134,7 @@ export function TargetForm({
                       {s.jobTitle ? ` — ${s.jobTitle}` : ""}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </Field>
             )}
           </div>

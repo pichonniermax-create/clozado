@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookUser, Briefcase, LayoutDashboard, ListTodo, Menu, type LucideIcon } from "lucide-react";
+import { BookUser, Briefcase, LayoutDashboard, ListTodo, MailPlus, Menu, type LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { NavBadge } from "@/components/app-shell/navigation";
 import { NavigationList } from "@/components/app-shell/navigation-list";
@@ -10,14 +10,23 @@ import { WorkspaceMark, type WorkspaceMarkProps } from "@/components/app-shell/w
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
-type Tab = { href: string; key: "dashboard" | "contacts" | "affaires" | "taches"; icon: LucideIcon; badge?: NavBadge; requiresOrganization?: boolean };
+type Tab = {
+  href: string;
+  key: "dashboard" | "contacts" | "affaires" | "taches" | "invitations";
+  icon: LucideIcon;
+  badge?: NavBadge;
+  requiresOrganization?: boolean;
+  /** En vue globale du super admin réel seulement : sans organisation, la barre ne se réduit pas à « Accueil + Menu ». */
+  superAdminOnly?: boolean;
+};
 
 /** Les quatre destinations du pouce : le tableau de bord, les deux dossiers du quotidien, les tâches. Le reste vit derrière « Menu ». */
 const TABS: Tab[] = [
   { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
-  { href: "/contacts", key: "contacts", icon: BookUser },
-  { href: "/affaires", key: "affaires", icon: Briefcase },
+  { href: "/contacts", key: "contacts", icon: BookUser, requiresOrganization: true },
+  { href: "/affaires", key: "affaires", icon: Briefcase, requiresOrganization: true },
   { href: "/taches", key: "taches", icon: ListTodo, badge: "tasksDue", requiresOrganization: true },
+  { href: "/invitations", key: "invitations", icon: MailPlus, superAdminOnly: true },
 ];
 
 /**
@@ -45,7 +54,7 @@ export function BottomNav({
   const t = useTranslations("shell.bottomNav");
   const tn = useTranslations("nav");
   const pathname = usePathname();
-  const tabs = TABS.filter((tab) => hasOrganization || !tab.requiresOrganization);
+  const tabs = TABS.filter((tab) => (hasOrganization || !tab.requiresOrganization) && (!tab.superAdminOnly || (isSuperAdmin && !hasOrganization)));
 
   return (
     <nav
@@ -69,7 +78,8 @@ export function BottomNav({
                 )}
               >
                 <tab.icon className="size-5" aria-hidden />
-                <span className="truncate">{tn(`entries.${tab.key}`)}</span>
+                {/* Un mot par onglet : « Accueil » plutôt que « Tableau de bord » en 11 px collé aux bords. */}
+                <span className="truncate">{tab.key === "dashboard" || tab.key === "invitations" ? tn(`tabs.${tab.key}`) : tn(`entries.${tab.key}`)}</span>
                 {badge > 0 && (
                   <span className="absolute top-1.5 left-1/2 ml-1.5 min-w-4 rounded-full bg-primary px-1 text-center text-[0.625rem] leading-4 font-semibold text-primary-foreground tabular-nums">
                     {badge}

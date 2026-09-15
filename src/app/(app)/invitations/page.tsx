@@ -27,13 +27,13 @@ import { createInvitationAction, revokeInvitationAction, sendInvitationEmailActi
 import { invitationUrl } from "@/lib/invitations/token";
 import { requestOrigin } from "@/lib/request-origin";
 import { requireSessionUser } from "@/lib/session";
+import { NativeSelect } from "@/components/ui/native-select";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("invitations.page");
   return { title: t("titre") };
 }
 
-const SELECT_CLASS = "h-9 w-full rounded-lg border border-input bg-transparent px-2 text-sm";
 
 const STATUS_VARIANT: Record<InvitationStatus, "secondary" | "default" | "outline" | "destructive"> = {
   en_attente: "secondary",
@@ -111,22 +111,22 @@ export default async function InvitationsPage({
               <Input id="email" name="email" type="email" placeholder={t("adresse_placeholder")} autoComplete="off" />
             </Field>
             <Field label={t("langue_de_l_espace")} htmlFor="locale">
-              <select id="locale" name="locale" defaultValue="fr" className={SELECT_CLASS}>
+              <NativeSelect id="locale" name="locale" defaultValue="fr" className="w-full">
                 {LOCALES.map((locale) => (
                   <option key={locale} value={locale}>
                     {localeDisplayName(locale)}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
             <Field label={t("validite")} htmlFor="validityDays">
-              <select id="validityDays" name="validityDays" defaultValue={String(DEFAULT_INVITATION_VALIDITY_DAYS)} className={SELECT_CLASS}>
+              <NativeSelect id="validityDays" name="validityDays" defaultValue={String(DEFAULT_INVITATION_VALIDITY_DAYS)} className="w-full">
                 {INVITATION_VALIDITY_DAYS.map((days) => (
                   <option key={days} value={days}>
                     {t("jours", { days })}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
             <Field label={t("note_interne")} htmlFor="note" hint={t("note_hint")} className="sm:col-span-2">
               <Textarea id="note" name="note" rows={2} maxLength={2000} />

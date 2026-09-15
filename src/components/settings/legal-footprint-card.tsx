@@ -7,6 +7,7 @@ import type { Organization } from "@/db/schema";
 import { saveLegalFootprintAction } from "@/lib/email/actions";
 import { footerProfileOf } from "@/lib/email/footer-profiles";
 import { useTranslations } from "next-intl";
+import { NativeSelect } from "@/components/ui/native-select";
 
 /**
  * LES FAITS DU PIED DE PAGE (docs/module-engagement.md §2.4, §3.4) : le
@@ -15,7 +16,6 @@ import { useTranslations } from "next-intl";
  * part (le profil européen l'exige) — la carte le dit.
  */
 const COUNTRIES = ["FR", "BE", "LU", "CH", "MC", "GB", "CA", "US", "DE", "ES", "IT", "NL", "PT", "IE"] as const;
-const SELECT_CLASS = "h-9 w-full rounded-lg border border-input bg-transparent px-2 text-sm";
 
 export function LegalFootprintCard({ org, readOnly }: { org: Pick<Organization, "country" | "postalAddress" | "legalMention" | "privacyPolicyUrl">; readOnly: boolean }) {
   const t = useTranslations("settings.legalCard");
@@ -32,12 +32,12 @@ export function LegalFootprintCard({ org, readOnly }: { org: Pick<Organization, 
           {!org.postalAddress?.trim() && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{t("sans_adresse_postale_aucun_envoi")}</p>}
           <div className="grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label={t("pays")} htmlFor="country" hint={t("le_pays_choisit_les_regles", { profile: t(`profiles.${profile.key as "eu" | "ch" | "gb" | "ca" | "us"}`) })}>
-              <select id="country" name="country" defaultValue={org.country ?? ""} disabled={readOnly} className={SELECT_CLASS}>
+              <NativeSelect id="country" name="country" defaultValue={org.country ?? ""} disabled={readOnly} className="w-full">
                 <option value="">{t("non_renseigne_profil_europeen")}</option>
                 {COUNTRIES.map((code) => (
                   <option key={code} value={code}>{countryName(code)}</option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
             <Field label={t("politique_de_confidentialite")} htmlFor="privacyPolicyUrl" hint={t("liee_au_pied_de_page")}>
               <Input id="privacyPolicyUrl" name="privacyPolicyUrl" type="url" placeholder={t("placeholder_politique")} defaultValue={org.privacyPolicyUrl ?? ""} disabled={readOnly} />

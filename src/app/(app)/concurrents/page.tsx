@@ -46,6 +46,7 @@ import { sourceHealth } from "@/lib/watch/health";
 import { scheduleWatchRefresh } from "@/lib/watch/schedule";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
+import { NativeSelect } from "@/components/ui/native-select";
 
 /**
  * La collecte lancée à la visite s'exécute après la réponse : la fonction
@@ -56,7 +57,6 @@ import { getTranslations } from "next-intl/server";
  */
 export const maxDuration = 240;
 
-const SELECT_CLASS = "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm";
 
 type TargetOption = { id: string; label: string; count: number };
 
@@ -240,13 +240,13 @@ function GapSection({ gap, targets }: { gap: ContentGap; targets: TargetOption[]
             </p>
           ) : (
             <Field label={tp("pour_quelle_cible")} htmlFor="gap-target">
-              <select id="gap-target" name="targetId" className={SELECT_CLASS} defaultValue={targets[0]?.id} required>
+              <NativeSelect id="gap-target" name="targetId" className="w-auto max-w-full" defaultValue={targets[0]?.id} required>
                 {targets.map((t) => (
                   <option key={t.id} value={t.id}>
                     {tp("contact_contacts", { label: t.label, count: t.count })}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
           )}
           <ul className="flex flex-col gap-2">
@@ -463,20 +463,20 @@ function CompetitorForm() {
           <Input id="competitor-feed" name="feedUrl" placeholder={tp("https_www_exemple_fr_feed")} />
         </Field>
         <Field label={tp("pays")} htmlFor="competitor-country">
-          <select id="competitor-country" name="country" className={SELECT_CLASS} defaultValue="FR">
+          <NativeSelect id="competitor-country" name="country" className="w-auto max-w-full" defaultValue="FR">
             {SOURCE_COUNTRY_CODES.map((code) => (
               <option key={code} value={code}>
                 {tp(`countries.${code || "unknown"}`)}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </Field>
         <Field label={tp("langue")} htmlFor="competitor-lang">
-          <select id="competitor-lang" name="lang" className={SELECT_CLASS} defaultValue="fr">
+          <NativeSelect id="competitor-lang" name="lang" className="w-auto max-w-full" defaultValue="fr">
             <option value="fr">{tp("francais")}</option>
             <option value="en">{tp("anglais")}</option>
             <option value="">{tp("autre")}</option>
-          </select>
+          </NativeSelect>
         </Field>
       </div>
       <p className="text-xs text-muted-foreground">{tr("uniquement_ce_qu_ils_publient_publiquement_aa10")}</p>

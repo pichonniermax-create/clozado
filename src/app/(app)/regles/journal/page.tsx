@@ -10,6 +10,7 @@ import type { RuleSkipReason } from "@/lib/rules/evaluate";
 import { getFormats } from "@/i18n/formats";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
+import { NativeSelect } from "@/components/ui/native-select";
 
 /**
  * /regles/journal (§5.4) — toutes les actions du moteur, faites ou non
@@ -32,8 +33,6 @@ export default async function RuleJournalPage({
     listRules(user),
   ]);
 
-  // `max-w-full` : la largeur naturelle d'un <select> est celle de sa plus longue option — un nom de règle long débordait de l'écran sur mobile.
-  const SELECT_CLASS = "h-8 max-w-full rounded-lg border border-input bg-transparent px-2.5 text-sm";
   return (
     <>
       <PageHeader
@@ -42,19 +41,20 @@ export default async function RuleJournalPage({
         backTo={{ href: "/regles", label: t("editor.regles") }}
       />
       <form method="get" className="flex min-w-0 flex-wrap items-center gap-2">
-        <select name="regle" defaultValue={regle ?? ""} className={SELECT_CLASS} aria-label={t("journal.filtrer_par_regle")}>
+        {/* `max-w-full` : la largeur naturelle d'un select est celle de sa plus longue option — un nom de règle long débordait de l'écran sur mobile. */}
+        <NativeSelect name="regle" defaultValue={regle ?? ""} className="w-auto max-w-full" aria-label={t("journal.filtrer_par_regle")}>
           <option value="">{t("journal.toutes_les_regles")}</option>
           {rules.map(({ rule }) => (
             <option key={rule.id} value={rule.id}>
               {rule.name}
             </option>
           ))}
-        </select>
-        <select name="resultat" defaultValue={resultat ?? ""} className={SELECT_CLASS} aria-label={t("journal.filtrer_par_resultat")}>
+        </NativeSelect>
+        <NativeSelect name="resultat" defaultValue={resultat ?? ""} className="w-auto max-w-full" aria-label={t("journal.filtrer_par_resultat")}>
           <option value="">{t("journal.tous_les_resultats")}</option>
           <option value="done">{t("journal.faites")}</option>
           <option value="skipped">{t("journal.non_faites")}</option>
-        </select>
+        </NativeSelect>
         <Button type="submit" variant="outline" size="sm">
           {t("journal.filtrer")}
         </Button>

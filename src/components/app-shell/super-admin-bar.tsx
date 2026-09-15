@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 import { setActiveOrganizationAction } from "@/lib/admin/actions";
 import { useTranslations } from "next-intl";
+import { NativeSelect } from "@/components/ui/native-select";
 
 type OrgOption = { id: string; name: string; slug: string };
 
@@ -36,21 +37,22 @@ export function SuperAdminBar({
   }
 
   return (
-    <div className="sticky top-14 z-30 border-b border-warning/50 bg-warning/15 backdrop-blur">
+    // Collant dès md seulement (audit UI du 2026-09-14) : sur un téléphone, en-tête + bandeau + barre d'onglets figeaient ~210 px.
+    <div className="border-b border-warning/50 bg-warning/15 backdrop-blur md:sticky md:top-14 md:z-30">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-sm md:px-8">
         <span className="flex items-center gap-1.5 font-semibold">
           <ShieldAlert className="size-4" />
           {t("super_admin")}
         </span>
-        <span className="text-muted-foreground">
+        <span className="hidden text-foreground/80 sm:inline">
           {known ? t("tu_travailles_dans") : t("vue_globale_choisis_une_organisation_pour_d974")}
         </span>
-        <select
+        <NativeSelect
           value={known ? activeOrgId! : ""}
           onChange={(e) => choose(e.target.value)}
           disabled={pending}
           aria-label={t("organisation_active")}
-          className="h-7 rounded-lg border border-warning/50 bg-background px-2 text-sm font-medium"
+          className="min-w-0 flex-1 sm:w-auto sm:flex-none"
         >
           <option value="">{t("vue_globale_aucune_organisation")}</option>
           {organizations.map((o) => (
@@ -58,7 +60,7 @@ export function SuperAdminBar({
               {o.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
         {activeOrgId && !known && (
           <span className="text-xs text-destructive">
             {t("l_organisation_memorisee_n_existe_plus_c1ce")}

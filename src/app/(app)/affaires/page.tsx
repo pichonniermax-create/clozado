@@ -36,6 +36,7 @@ import { metricQueryString, parseDealSelection, type DealSelectionParams, type P
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { getTranslations } from "next-intl/server";
+import { NativeSelect } from "@/components/ui/native-select";
 
 /**
  * Les paramètres natifs de la liste, plus ceux d'une SÉLECTION venue du
@@ -454,10 +455,9 @@ async function ListeView({
         <input type="hidden" name="vue" value="liste" />
         <input type="hidden" name="pipeline" value={pipelineId} />
         {Object.entries(selectionParams).map(([k, v]) => v && <input key={k} type="hidden" name={k} value={v} />)}
-        <select
+        <NativeSelect
           name="etape"
-          defaultValue={params.etape ?? ""}
-          className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+          defaultValue={params.etape ?? ""} className="w-auto max-w-full"
           aria-label={t("filtrer_par_etape")}
         >
           <option value="">{t("toutes_les_etapes")}</option>
@@ -466,12 +466,11 @@ async function ListeView({
               {s.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
         {orgUsers.length > 1 && (
-          <select
+          <NativeSelect
             name="conseiller"
-            defaultValue={sel.parsed.filters.ownerId ?? ""}
-            className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+            defaultValue={sel.parsed.filters.ownerId ?? ""} className="w-auto max-w-full"
             aria-label={t("filtrer_par_conseiller")}
           >
             <option value="">{t("tous_les_conseillers")}</option>
@@ -480,7 +479,7 @@ async function ListeView({
                 {u.name || u.email}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         )}
         <button type="submit" className={buttonVariants({ variant: "outline", size: "sm" })}>
           {t("filtrer")}

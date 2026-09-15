@@ -12,6 +12,7 @@ import {
   type ImportRowInput,
 } from "@/lib/contacts/actions";
 import { useTranslations } from "next-intl";
+import { NativeSelect } from "@/components/ui/native-select";
 
 /**
  * Import CSV en trois temps, tout sur un écran : le fichier est lu et
@@ -309,19 +310,18 @@ export function ImportWizard() {
                     <tr key={`${h}-${i}`}>
                       <td className="px-4 py-2 font-medium">{h || <span className="text-muted-foreground">{tr("sans_titre")}</span>}</td>
                       <td className="px-4 py-2">
-                        <select
+                        <NativeSelect
                           value={mapping[i] ?? ""}
                           onChange={(e) =>
                             setMapping((m) => m.map((x, j) => (j === i ? (e.target.value as ImportField | "") : x)))
-                          }
-                          className="rounded-lg border border-input bg-transparent px-2 py-1 text-sm"
+                          } className="w-auto max-w-full"
                         >
                           {TARGETS.map((value) => (
                             <option key={value} value={value}>
                               {tr(`fields.${value || "ignore"}`)}
                             </option>
                           ))}
-                        </select>
+                        </NativeSelect>
                       </td>
                       <td className="max-w-48 truncate px-4 py-2 text-muted-foreground">
                         {parsed.rows[0]?.cells[i] ?? ""}

@@ -36,6 +36,7 @@ import type { Journal as JournalData, JournalEntry, JournalKind } from "@/db/que
 import { deleteActivityAction, logActivityAction } from "@/lib/activities/actions";
 import { getFormats } from "@/i18n/formats";
 import { useTranslations } from "next-intl";
+import { NativeSelect } from "@/components/ui/native-select";
 
 /**
  * Le journal unifié d'une fiche (contact ou affaire) ou de l'organisation
@@ -100,18 +101,17 @@ export function Journal({
           className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3"
         >
           <div className="flex flex-wrap items-center gap-2">
-            <select
+            <NativeSelect
               name="type"
               defaultValue="call"
-              aria-label={t("type_d_interaction")}
-              className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+              aria-label={t("type_d_interaction")} className="w-auto max-w-full"
             >
               {ACTIVITY_TYPES.map((value) => (
                 <option key={value} value={value}>
                   {ta(`types.${value}`)}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             <Input
               name="content"
               placeholder={t("ce_qui_s_est_dit_ce_870e")}

@@ -12,6 +12,7 @@ import {
 } from "@/lib/metrics";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
+import { NativeSelect } from "@/components/ui/native-select";
 
 /**
  * La barre de filtres commune aux vues analytiques : période (préréglages
@@ -22,7 +23,6 @@ import { useTranslations } from "next-intl";
  * Un sélecteur n'apparaît que s'il a de quoi choisir (un seul conseiller,
  * un seul pipeline : rien à filtrer).
  */
-const SELECT_CLASS = "h-8 max-w-56 rounded-lg border border-input bg-transparent px-2.5 text-sm";
 const DATE_CLASS = "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm";
 
 export function AnalyticsFiltersBar({
@@ -97,37 +97,37 @@ export function AnalyticsFiltersBar({
           <input type="date" name="au" defaultValue={params.au ?? ""} className={DATE_CLASS} aria-label={tr("fin_de_periode")} />
         </label>
         {users.length > 1 && (
-          <select name="conseiller" defaultValue={params.conseiller ?? ""} className={SELECT_CLASS} aria-label={tr("filtrer_par_conseiller")}>
+          <NativeSelect name="conseiller" defaultValue={params.conseiller ?? ""} className="w-auto max-w-full max-w-56" aria-label={tr("filtrer_par_conseiller")}>
             <option value="">{tr("tous_les_conseillers")}</option>
             {users.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.name || u.email}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         )}
         {types.length > 0 && (
-          <select name="type" defaultValue={params.type ?? ""} className={SELECT_CLASS} aria-label={tr("filtrer_par_type_d_affaire")}>
+          <NativeSelect name="type" defaultValue={params.type ?? ""} className="w-auto max-w-full max-w-56" aria-label={tr("filtrer_par_type_d_affaire")}>
             <option value="">{tr("tous_les_types")}</option>
             {types.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.label}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         )}
         {pipelines.length > 1 && (
-          <select name="pipeline" defaultValue={params.pipeline ?? ""} className={SELECT_CLASS} aria-label={tr("filtrer_par_pipeline")}>
+          <NativeSelect name="pipeline" defaultValue={params.pipeline ?? ""} className="w-auto max-w-full max-w-56" aria-label={tr("filtrer_par_pipeline")}>
             <option value="">{tr("tous_les_pipelines")}</option>
             {pipelines.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.label}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         )}
         {origins.length > 0 && (
-          <select name="origine" defaultValue={params.origine ?? ""} className={SELECT_CLASS} aria-label={tr("filtrer_par_origine")}>
+          <NativeSelect name="origine" defaultValue={params.origine ?? ""} className="w-auto max-w-full max-w-56" aria-label={tr("filtrer_par_origine")}>
             <option value="">{tr("toutes_les_origines")}</option>
             {origins.map((o) => (
               <option key={o.id} value={o.id}>
@@ -136,7 +136,7 @@ export function AnalyticsFiltersBar({
             ))}
             <option value={ORIGIN_UNMATCHED}>{tr("origine_a_rapprocher")}</option>
             <option value={ORIGIN_UNKNOWN}>{tr("sans_origine_aucun_lead")}</option>
-          </select>
+          </NativeSelect>
         )}
         <button type="submit" className={buttonVariants({ variant: "outline", size: "sm" })}>
           {tr("filtrer")}

@@ -37,15 +37,19 @@ export function PageHeader({
           {backTo.label}
         </Link>
       )}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 flex-col gap-1">
+      {/*
+        Sous md, les actions passent SOUS le titre (elles débordaient de 150 px sur une fiche cible à 390 px) ;
+        dès md, elles restent TOUJOURS à droite du titre — avant, une description longue prenait toute la ligne
+        et renvoyait le bouton principal sous le texte sur la moitié des écrans (audit UI du 2026-09-14).
+      */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
           <h1 className="text-xl font-semibold tracking-tight text-balance">{title}</h1>
           {description && (
-            <div className="text-sm text-muted-foreground text-pretty">{description}</div>
+            <div className="max-w-prose text-sm text-muted-foreground text-pretty">{description}</div>
           )}
         </div>
-        {/* Les actions passent à la ligne sur petit écran (elles débordaient de 150 px sur une fiche cible à 390 px). */}
-        {actions && <div className="flex min-w-0 flex-wrap items-center gap-2">{actions}</div>}
+        {actions && <div className="flex min-w-0 flex-wrap items-center gap-2 md:shrink-0 md:justify-end">{actions}</div>}
       </div>
     </header>
   );

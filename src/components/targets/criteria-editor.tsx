@@ -15,6 +15,7 @@ import {
 import type { SegmentPreview } from "@/db/queries/mail-targets";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
+import { NativeSelect } from "@/components/ui/native-select";
 
 /**
  * L'ÉDITEUR DE CRITÈRES — lisible par un non-technicien : une ligne par
@@ -25,7 +26,6 @@ import { useTranslations } from "next-intl";
  * quelques noms — recalculé à chaque changement (délai de 300 ms), par la
  * même fonction SQL que la liste et le compte de la cible.
  */
-const SELECT_CLASS = "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm";
 
 export function CriteriaEditor({
   value,
@@ -60,8 +60,7 @@ export function CriteriaEditor({
     <div className="flex flex-col gap-5">
       <Group title={tr("qui")}>
         <Row label={tr("type_de_fiche")}>
-          <select
-            className={SELECT_CLASS}
+          <NativeSelect className="w-auto max-w-full"
             value={c.kind ?? ""}
             onChange={(e) => set("kind", (e.target.value || undefined) as SegmentCriteria["kind"])}
             aria-label={tr("type_de_fiche")}
@@ -69,7 +68,7 @@ export function CriteriaEditor({
             <option value="">{tr("personnes_et_societes")}</option>
             <option value="person">{tr("personnes_seulement")}</option>
             <option value="company">{tr("societes_seulement")}</option>
-          </select>
+          </NativeSelect>
         </Row>
         <Row label={tr("porte_au_moins_une_de_ces_b799")} hint={options.tags.length === 0 ? tr("aucune_etiquette_dans_ton_organisation_pour_3f45") : undefined}>
           <CheckList items={options.tags.map((t) => ({ id: t.id, label: t.label }))} selected={c.tagsAny ?? []} onToggle={(id) => toggle("tagsAny", id)} />
@@ -113,8 +112,7 @@ export function CriteriaEditor({
         )}
         <Row label={tr("anciennete_de_la_fiche")}>
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <select
-              className={SELECT_CLASS}
+            <NativeSelect className="w-auto max-w-full"
               value={seniority}
               onChange={(e) => {
                 const v = e.target.value;
@@ -130,7 +128,7 @@ export function CriteriaEditor({
               <option value="">{tr("peu_importe")}</option>
               <option value="more">{tr("creee_il_y_a_plus_de")}</option>
               <option value="less">{tr("creee_il_y_a_moins_de")}</option>
-            </select>
+            </NativeSelect>
             {seniority && (
               <>
                 <Input type="number" min={1} max={3650} className="w-24 text-right tabular-nums" value={seniorityDays} onChange={(e) => set(seniority === "more" ? "createdMoreThanDays" : "createdLessThanDays", Math.max(1, Number(e.target.value) || 1))} aria-label={tr("nombre_de_jours")} />
@@ -150,14 +148,14 @@ export function CriteriaEditor({
 
       <Group title={tr("affaires")}>
         <Row label={tr("presence_d_affaires")}>
-          <select className={SELECT_CLASS} value={c.deals ?? ""} onChange={(e) => set("deals", (e.target.value || undefined) as DealPresence | undefined)} aria-label={tr("presence_d_affaires")}>
+          <NativeSelect className="w-auto max-w-full" value={c.deals ?? ""} onChange={(e) => set("deals", (e.target.value || undefined) as DealPresence | undefined)} aria-label={tr("presence_d_affaires")}>
             <option value="">{tr("peu_importe")}</option>
             {DEAL_PRESENCES.map((k) => (
               <option key={k} value={k}>
                 {tt(`dealPresence.${k}`)}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </Row>
         {stages.length > 0 && (
           <Row label={tr("au_moins_une_affaire_dans_l_9e54")}>

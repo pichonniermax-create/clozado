@@ -39,6 +39,7 @@ import { getFormats } from "@/i18n/formats";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
 import type { TranslatorOf } from "@/i18n/translator";
+import { NativeSelect } from "@/components/ui/native-select";
 
 /** L'état d'une commission, en mots — `deals.detail.commissionStates.<état>` ; un état inconnu s'affiche tel quel. */
 const COMMISSION_STATES = ["prevue", "confirmee", "reglee"] as const;
@@ -172,11 +173,10 @@ export default async function DealPage({
         <CardContent className="flex flex-col gap-4">
           <form action={moveStage} className="flex flex-wrap items-end gap-2">
             <Field label={tr("etape")} htmlFor="statusId">
-              <select
+              <NativeSelect
                 id="statusId"
                 name="statusId"
-                defaultValue={deal.statusId}
-                className="h-8 min-w-48 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                defaultValue={deal.statusId} className="w-auto max-w-full min-w-48"
               >
                 {pipelineStages.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -184,7 +184,7 @@ export default async function DealPage({
                     {s.outcome === "won" ? tr("gagne") : s.outcome === "lost" ? tr("perdu") : ""}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
             <Button type="submit" variant="outline">
               {tr("deplacer")}
@@ -235,11 +235,10 @@ export default async function DealPage({
                 />
               </Field>
               <Field label={tr("responsable")} htmlFor="ownerId">
-                <select
+                <NativeSelect
                   id="ownerId"
                   name="ownerId"
-                  defaultValue={deal.ownerId ?? ""}
-                  className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                  defaultValue={deal.ownerId ?? ""} className="w-auto max-w-full"
                 >
                   <option value="">{tr("personne")}</option>
                   {orgUsers.map((u) => (
@@ -247,16 +246,15 @@ export default async function DealPage({
                       {u.name || u.email}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </Field>
             </div>
             {"outcome" in currentDealStatus && currentDealStatus.outcome === "lost" && (
               <Field label={tr("motif_de_perte")} htmlFor="lossReasonId" hint={tr("la_liste_se_configure_dans_marque_d1d6")}>
-                <select
+                <NativeSelect
                   id="lossReasonId"
                   name="lossReasonId"
-                  defaultValue={deal.lossReasonId ?? ""}
-                  className="h-8 max-w-64 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                  defaultValue={deal.lossReasonId ?? ""} className="w-auto max-w-full max-w-64"
                 >
                   <option value="">{tr("sans_motif")}</option>
                   {lossReasons.map((r) => (
@@ -264,7 +262,7 @@ export default async function DealPage({
                       {r.label}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </Field>
             )}
             <Button type="submit" variant="outline" className="w-fit">
@@ -329,14 +327,14 @@ export default async function DealPage({
                 htmlFor="leadId"
                 hint={tr("pose_automatiquement_a_la_creation_depuis_4f3d")}
               >
-                <select id="leadId" name="leadId" defaultValue={deal.leadId ?? ""} className="h-8 min-w-64 rounded-lg border border-input bg-transparent px-2.5 text-sm">
+                <NativeSelect id="leadId" name="leadId" defaultValue={deal.leadId ?? ""} className="w-auto max-w-full min-w-64">
                   <option value="">{tr("aucune_origine")}</option>
                   {contactLeads.map((l) => (
                     <option key={l.id} value={l.id}>
                       {fmt.date(l.receivedAt)} — {leadOriginLabel(l, tq)}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </Field>
               <Button type="submit" variant="outline">{tr("enregistrer")}</Button>
             </form>

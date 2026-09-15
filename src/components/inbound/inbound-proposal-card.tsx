@@ -10,6 +10,7 @@ import { confirmInboundAction, ignoreInboundAction } from "@/lib/email/actions";
 import { LOW_CONFIDENCE, readProposal } from "@/lib/email/inbound/proposal";
 import { useTranslations } from "next-intl";
 import { AuthBadge } from "./auth-badge";
+import { NativeSelect } from "@/components/ui/native-select";
 
 /**
  * UN EMAIL REÇU À CONFIRMER (docs/module-engagement.md §4.3) — ce que le
@@ -19,7 +20,6 @@ import { AuthBadge } from "./auth-badge";
  * marqué « à vérifier ». Le corps, quand il est conservé, s'affiche comme
  * du TEXTE (React l'échappe) : il n'est jamais rendu en HTML.
  */
-const SELECT_CLASS = "h-9 w-full rounded-lg border border-input bg-transparent px-2 text-sm";
 
 export function InboundProposalCard({
   email,
@@ -76,26 +76,26 @@ export function InboundProposalCard({
           {/* Ni transfert ni copie reconnus : le sens ne se devine pas, il se demande. */}
           {email.mode === null && (
             <Field label={t("le_sens")} htmlFor={`direction-${email.id}`} hint={t("le_sens_decide_de_l_arret_automatique")}>
-              <select id={`direction-${email.id}`} name="direction" defaultValue="" required className={SELECT_CLASS}>
+              <NativeSelect id={`direction-${email.id}`} name="direction" defaultValue="" required className="w-full">
                 <option value="" disabled>
                   {t("a_choisir")}
                 </option>
                 <option value="inbound">{t("sens_entrant")}</option>
                 <option value="outbound">{t("sens_sortant")}</option>
-              </select>
+              </NativeSelect>
             </Field>
           )}
 
           {candidates.length > 0 && (
             <Field label={t("la_fiche")} htmlFor={`contact-${email.id}`} hint={t("rattacher_ne_modifie_pas_la_fiche")}>
-              <select id={`contact-${email.id}`} name="contactId" defaultValue={sameAddress} className={SELECT_CLASS}>
+              <NativeSelect id={`contact-${email.id}`} name="contactId" defaultValue={sameAddress} className="w-full">
                 {candidates.map((candidate) => (
                   <option key={candidate.id} value={candidate.id}>
                     {candidate.email ? `${candidate.name} · ${candidate.email}` : candidate.name}
                   </option>
                 ))}
                 <option value="">{t("creer_une_nouvelle_fiche")}</option>
-              </select>
+              </NativeSelect>
             </Field>
           )}
 

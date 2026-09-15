@@ -9,6 +9,7 @@ import { moveDealStageAction, updateDealDetailsAction } from "@/lib/deals/action
 import { useFormats } from "@/components/i18n/formats-provider";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
+import { NativeSelect } from "@/components/ui/native-select";
 
 export type KanbanStage = {
   id: string;
@@ -179,11 +180,10 @@ export function KanbanBoard({
                           )}
                         </Link>
                         {stage.outcome === "lost" && !card.lossReasonId && lossReasons.length > 0 && (
-                          <select
+                          <NativeSelect
                             defaultValue=""
                             onChange={(e) => setReason(card.id, e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="mt-2 w-full rounded-md border border-warning/50 bg-background px-1.5 py-1 text-xs"
+                            onClick={(e) => e.stopPropagation()} className="mt-2 w-full"
                             aria-label={tr("motif_de_perte")}
                           >
                             <option value="" disabled>
@@ -194,7 +194,7 @@ export function KanbanBoard({
                                 {r.label}
                               </option>
                             ))}
-                          </select>
+                          </NativeSelect>
                         )}
                       </li>
                     ))}

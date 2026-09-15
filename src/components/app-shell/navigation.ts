@@ -62,9 +62,9 @@ export const NAVIGATION: NavSection[] = [
   {
     key: "dossiers",
     entries: [
-      { href: "/contacts", key: "contacts", icon: BookUser },
-      { href: "/affaires", key: "affaires", icon: Briefcase },
-      { href: "/partenaires", key: "partenaires", icon: Users },
+      { href: "/contacts", key: "contacts", icon: BookUser, requiresOrganization: true },
+      { href: "/affaires", key: "affaires", icon: Briefcase, requiresOrganization: true },
+      { href: "/partenaires", key: "partenaires", icon: Users, requiresOrganization: true },
     ],
   },
   {
@@ -86,7 +86,7 @@ export const NAVIGATION: NavSection[] = [
       { href: "/veille", key: "veille", icon: Newspaper, requiresOrganization: true },
       { href: "/concurrents", key: "concurrents", icon: Radar, requiresOrganization: true },
       { href: "/chiffres", key: "chiffres", icon: Sigma, requiresOrganization: true },
-      { href: "/newsletters", key: "newsletters", icon: Mail },
+      { href: "/newsletters", key: "newsletters", icon: Mail, requiresOrganization: true },
     ],
   },
   {

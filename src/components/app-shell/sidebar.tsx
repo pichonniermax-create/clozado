@@ -31,7 +31,9 @@ export function Sidebar({
   badges: Record<NavBadge, number>;
 }) {
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
+    // Collante et à la hauteur de l'écran (audit UI du 2026-09-14) : sur une page longue (réglages), la navigation
+    // et son pied restaient tout en bas d'un document de plusieurs milliers de pixels.
+    <aside className="hidden w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:sticky md:top-0 md:flex md:h-screen">
       <div className="px-4 py-4">
         <WorkspaceMark {...mark} href="/dashboard" />
       </div>

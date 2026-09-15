@@ -15,6 +15,7 @@ import {
 } from "@/lib/rules/criteria";
 import { RULE_TEMPLATE_VARIABLES, renderRuleTemplate } from "@/lib/rules/template";
 import { useTranslations } from "next-intl";
+import { NativeSelect } from "@/components/ui/native-select";
 
 /**
  * LE FORMULAIRE D'UNE RÈGLE (§5.4) — une phrase à remplir : déclencheur,
@@ -25,7 +26,6 @@ import { useTranslations } from "next-intl";
  * entier — la base la re-vérifie de toute façon (CHECK).
  */
 
-const SELECT_CLASS = "h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm";
 
 type RuleFormValue = {
   name: string;
@@ -104,13 +104,13 @@ export function RuleForm({
           </Field>
           <div className="flex flex-wrap items-end gap-3">
             <Field label={t("declencheur")} htmlFor="rule-trigger">
-              <select id="rule-trigger" name="trigger" defaultValue={initial.trigger} className={SELECT_CLASS}>
+              <NativeSelect id="rule-trigger" name="trigger" defaultValue={initial.trigger} className="w-auto max-w-full">
                 {RULE_TRIGGERS.map((trigger) => (
                   <option key={trigger} value={trigger}>
                     {t(`triggers.${trigger}`)}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
             <Field label={t("depuis_au_moins_jours")} htmlFor="rule-threshold">
               <Input
@@ -125,19 +125,18 @@ export function RuleForm({
               />
             </Field>
             <Field label={t("action")} htmlFor="rule-action">
-              <select
+              <NativeSelect
                 id="rule-action"
                 name="action"
                 value={ruleAction}
-                onChange={(event) => setRuleAction(event.target.value)}
-                className={SELECT_CLASS}
+                onChange={(event) => setRuleAction(event.target.value)} className="w-auto max-w-full"
               >
                 {RULE_ACTIONS.map((value) => (
                   <option key={value} value={value}>
                     {t(`actions.${value}`)}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
           </div>
         </CardContent>

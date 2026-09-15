@@ -15,6 +15,7 @@ import { attachOriginAction, createOriginAction } from "@/lib/acquisition/action
 import { getFormats } from "@/i18n/formats";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
+import { NativeSelect } from "@/components/ui/native-select";
 
 /**
  * Le rapprochement des origines : la liste configurée par l'organisation,
@@ -69,12 +70,12 @@ export default async function OriginsPage() {
                   <input type="hidden" name="raw" value={u.raw} />
                   {origins.length > 0 && (
                     <Field label={t("origine_existante")} htmlFor={`origin-${u.raw}`}>
-                      <select id={`origin-${u.raw}`} name="originId" defaultValue="" className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm">
+                      <NativeSelect id={`origin-${u.raw}`} name="originId" defaultValue="" className="w-auto max-w-full">
                         <option value="">{t("choisir")}</option>
                         {origins.map((o) => (
                           <option key={o.id} value={o.id}>{o.label}</option>
                         ))}
-                      </select>
+                      </NativeSelect>
                     </Field>
                   )}
                   <Field label={origins.length > 0 ? t("ou_nouvelle_origine") : t("nouvelle_origine")} htmlFor={`new-${u.raw}`}>
