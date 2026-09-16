@@ -6,7 +6,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { mailTargets, newsletterBlocks, newsletters } from "@/db/schema";
 import { parseLocalDateTime } from "@/db/queries/activities";
-import { attachNewsletterSources, getNewsletterOrThrow, markNewsletterSent, normalizeTopics, unmarkNewsletterSent, updateNewsletterTopics } from "@/db/queries/newsletters";
+import { attachNewsletterSources, markNewsletterSent, normalizeTopics, unmarkNewsletterSent, updateNewsletterTopics } from "@/db/queries/newsletters";
 import { assertOrgAccess, orgScope } from "@/db/scope";
 import { SEND_ERROR_PARAM } from "@/components/newsletter/labels";
 import { errorMessage, withError } from "@/lib/form-actions";
@@ -15,6 +15,7 @@ import { requestOrigin } from "@/lib/request-origin";
 import { getLatestSend, unpauseSend } from "@/db/queries/email-sends";
 import { launchNewsletterSend, scheduleSendResume, sendTestEmail } from "@/lib/email/send-newsletter";
 import { NEWSLETTER_DRAFT_SCHEMA, parseBlockPayload, type AnyBlock } from "./blocks";
+import { assertTargetForNewsletter, resolveSendToResume } from "./guards";
 import { AppError } from "@/lib/errors";
 import { getTranslations } from "next-intl/server";
 import { resolveRequestSettings } from "@/i18n/locale";
@@ -68,24 +69,17 @@ export async function saveNewsletter(input: SaveNewsletterInput) {
   if (!target) {
     throw new AppError("cible_introuvable", undefined, 404);
   }
-  assertOrgAccess(user, target.organizationId);
 
   let newsletterId = parsed.id;
-  if (newsletterId) {
-    const existing = await db.query.newsletters.findFirst({
-      where: eq(newsletters.id, newsletterId),
-    });
-    if (!existing) {
-      throw new AppError("newsletter_introuvable", undefined, 404);
-    }
-    assertOrgAccess(user, existing.organizationId);
-    // La cible et la newsletter sont vérifiées l'une CONTRE l'autre, pas seulement chacune contre la personne
-    // (stabilisation, S4) : pour un super admin en vue globale, les deux gardes passent séparément et une
-    // newsletter de A pouvait recevoir la cible de B — `newsletters.target_id` n'a pas de FK composite.
-    if (target.organizationId !== existing.organizationId) {
-      throw new AppError("la_cible_et_la_newsletter_n_appartiennent_3901", undefined, 403);
-    }
+  const existing = newsletterId ? await db.query.newsletters.findFirst({ where: eq(newsletters.id, newsletterId) }) : null;
+  if (newsletterId && !existing) {
+    throw new AppError("newsletter_introuvable", undefined, 404);
+  }
+  // La cible à la personne, la newsletter à la personne, et la cible à la newsletter — la garde vit dans
+  // `guards.ts`, testée sans session (stabilisation, S4).
+  assertTargetForNewsletter(user, target, existing ?? null);
 
+  if (newsletterId && existing) {
     await db
       .update(newsletters)
       .set({
@@ -295,11 +289,11 @@ export async function resumeSendAction(id: string) {
   const user = await requireUser();
   let destination = `/newsletters/${id}#envoi`;
   try {
-    // La newsletter D'ABORD (stabilisation, S2) : `getLatestSend` ne connaît pas l'organisation, et l'erreur
-    // renvoyée différait selon qu'une autre organisation avait un envoi ouvert — un oracle d'existence.
-    await getNewsletterOrThrow(user, id);
-    const send = await getLatestSend(id);
-    if (!send || send.finishedAt) throw new AppError("cet_envoi_est_termine");
+    // La newsletter d'abord, l'envoi ensuite — la garde vit dans `guards.ts`, testée sans session (stabilisation, S2).
+    const send = await resolveSendToResume(user, id, {
+      findNewsletter: (newsletterId) => db.query.newsletters.findFirst({ where: eq(newsletters.id, newsletterId), columns: { organizationId: true } }),
+      findLatestSend: getLatestSend,
+    });
     await unpauseSend(user, send.id);
     scheduleSendResume(send.id, await requestOrigin());
   } catch (error) {

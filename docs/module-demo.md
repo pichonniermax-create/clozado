@@ -286,10 +286,15 @@ partagent cette base.** Le script de reconnaissance
 - Contournement 1 (`notify_owner`) : `evaluate.ts` teste
   `context.org.isDemo` avant `sendEmail` et journalise l'action comme
   faite avec le motif « simulé (démo) ».
-- Contournement 2 (lien de connexion) : `sendVerificationRequest` résout
-  l'organisation du destinataire ; membre d'une démo → l'email n'est pas
-  envoyé (la page « vérifie ta boîte » s'affiche quand même — personne ne
-  se connecte comme persona de la démo, et rien ne le dit à un inconnu).
+- Contournement 2 (lien de connexion) : `sendVerificationRequest` refuse
+  toute adresse réservée aux exemples — toutes les personas de la démo en
+  portent une — et la page « vérifie ta boîte » s'affiche quand même, rien
+  ne le dit à un inconnu. Depuis le plan de stabilisation (2026-09-16), une
+  personne RÉELLE rattachée à la démo reçoit son lien : c'est le compte
+  member de test (`scripts/demo-member.ts attach --email=…`, réversible par
+  `detach`), et un lien de connexion est un email du produit, pas un envoi
+  de l'organisation. Une réinitialisation recrée la persona avec son
+  adresse fictive : relancer `attach` ensuite.
 - **La ceinture, au niveau le plus bas** : `sendEmail`/`sendBatch`
   (`resend.ts`) refusent tout destinataire dont le domaine est réservé aux
   exemples (RFC 2606/6761 : `example.com/.net/.org`, TLD `.example`,

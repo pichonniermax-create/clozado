@@ -516,5 +516,14 @@ chantier B, dont la migration ne sera rédigée qu'après tes réponses.
   newsletter. Preuve : neuf contrôles ajoutés à `scripts/test-isolation.ts`
   (S1, S3, S4a), joués contre la base ; S2 et S4b-c prouvés par lecture et
   par le build.
+- **Complément à l'étape 1 — faite le 2026-09-16.** Les gardes S2 et S4
+  sortent des actions serveur dans `src/lib/newsletter/guards.ts`
+  (`resolveSendToResume`, `assertTargetForNewsletter`), testées sans
+  session par `guards.test.ts` (huit cas : newsletter d'une autre
+  organisation refusée sans jamais lire son envoi, cible d'une autre
+  organisation refusée, même organisation acceptée). Compte member de test :
+  la persona « Thomas Renard » de la démo reçoit une adresse réelle par
+  `scripts/demo-member.ts` (réversible), et le lien de connexion n'est plus
+  refusé à une personne réelle rattachée à la démo (`src/auth.ts`).
 
 STOP.
