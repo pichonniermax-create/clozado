@@ -653,5 +653,30 @@ chantier B, dont la migration ne sera rédigée qu'après tes réponses.
   dans le DOM (les champs texte gardent la leur) — la règle repartait
   « Créer une tâche » ; les champs du formulaire sont remontés après chaque
   retour d'action (`generation`). **P8 reste en attente d'accord.**
+- **Chantier A, P8 — les écrans de connexion et d'inscription face à une
+  session — fait le 2026-09-16, sur accord.** Une session en cours est
+  renvoyée de `/login` (et `/login/verifier`) vers `/dashboard`, et de
+  `/inscription` vers `/dashboard` avec la phrase signée « Tu es déjà
+  connecté : voici ton espace. Pour en créer un autre, déconnecte-toi
+  d'abord. » (`redirectIfSignedIn`, `src/lib/auth/signed-in.ts`, appelée
+  depuis le LAYOUT de chaque segment : depuis la page, rendue derrière
+  `loading.tsx`, la redirection n'était qu'une instruction dans un 200 —
+  depuis le layout c'est une vraie 307). La session Auth.js seule : une
+  visite de la démo se termine en entrant sur ces chemins (proxy). Depuis
+  l'inscription, `sendMagicLink` mène à `/login/verifier?depuis=inscription`
+  (un flux, jamais un fait sur l'adresse : `signIn` sans redirection
+  automatique, dont l'adresse rendue est la route `verify-request` d'Auth.js,
+  qui renvoyait déjà vers notre écran), et l'écran ajoute « Si cette adresse
+  a déjà un espace, le lien t'y ramène : rien n'est créé en double. » —
+  sans énumération, la réponse reste la même pour une adresse connue ou
+  inconnue. Preuve (build de production, organisation jetable + l'adresse
+  réelle du member de démo) : session + GET /login → 307 /dashboard ;
+  session + GET /inscription → 307 /dashboard?info=<jeton signé> relu en
+  « Tu es déjà connecté… » et vu en notification au navigateur ; sans
+  session, les deux écrans en 200 ; « Vérifie tes emails » porte la phrase
+  depuis l'inscription seulement ; l'inscription d'une adresse déjà
+  inscrite mène à cet écran avec la phrase et ne crée ni organisation ni
+  compte (4→4, 1→1) ; la connexion d'une adresse inconnue mène au même
+  écran sans la phrase ; zéro erreur de page. **Chantier A terminé.**
 
 STOP.

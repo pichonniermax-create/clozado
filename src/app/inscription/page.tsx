@@ -22,6 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * formulaire montre (jamais l'auteur, jamais la note).
  */
 export default async function SignUpPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  // Une session en cours ne voit jamais cet écran : le layout du segment la renvoie à son espace (stabilisation, P8).
   const [t, params] = await Promise.all([getTranslations("auth.signup"), searchParams]);
   const token = params[INVITATION_PARAM];
   const resolved = token ? (isInvitationTokenShape(token) ? await resolveInvitation(token) : { ok: false as const, reason: "not_found" as const }) : null;

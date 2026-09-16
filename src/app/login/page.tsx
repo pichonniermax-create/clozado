@@ -23,6 +23,7 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  // Une session en cours ne voit jamais cet écran : le layout du segment la renvoie à son espace (stabilisation, P8).
   const t = await getTranslations("auth.login");
   const { error } = await searchParams;
   const errorMessage = error ? ((KNOWN_ERRORS as readonly string[]).includes(error) ? t(`errors.${error as (typeof KNOWN_ERRORS)[number]}`) : t("une_erreur_est_survenue")) : null;

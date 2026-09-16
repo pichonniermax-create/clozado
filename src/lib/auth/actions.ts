@@ -66,14 +66,28 @@ export async function signInAction(
  * journal (audit, constat Q4) — sans ça, une page d'erreur brute
  * s'affichait juste après avoir créé l'espace de la personne.
  */
-async function sendMagicLink(email: string): Promise<AuthFormState> {
+const VERIFY_PATH = "/login/verifier";
+
+/** L'écran « Vérifie tes emails » sait d'où l'on vient — un flux, jamais un fait sur l'adresse (stabilisation, P8). */
+function verifyPath(flow: "login" | "signup"): string {
+  return flow === "signup" ? `${VERIFY_PATH}?depuis=inscription` : VERIFY_PATH;
+}
+
+async function sendMagicLink(email: string, flow: "login" | "signup" = "login"): Promise<AuthFormState> {
   const t = await getTranslations("auth.actions");
+  let destination = verifyPath(flow);
   try {
-    await signIn("resend", { email, redirectTo: "/dashboard" });
+    // Sans redirection automatique : Auth.js rend l'adresse où il aurait envoyé — sa route `verify-request`, qui
+    // renvoie vers notre écran « Vérifie tes emails » (vu au navigateur) ; on y va directement, avec le flux d'où l'on
+    // vient, sans rien dire de l'adresse saisie. Toute autre adresse (un imprévu) est suivie telle quelle.
+    const sentTo = await signIn("resend", { email, redirectTo: "/dashboard", redirect: false });
+    const target = typeof sentTo === "string" ? new URL(sentTo, "http://localhost") : null;
+    const verifyLike = !target || target.pathname === VERIFY_PATH || target.pathname.endsWith("/verify-request");
+    if (target && !verifyLike) destination = `${target.pathname}${target.search}`;
   } catch (error) {
     if (error instanceof AuthError && error.type === "AccessDenied") {
       log.info("magic_link_unknown_email");
-      redirect("/login/verifier");
+      redirect(verifyPath(flow));
     }
     if (error instanceof AuthError) {
       log.error("magic_link_send_failed", { error });
@@ -84,7 +98,7 @@ async function sendMagicLink(email: string): Promise<AuthFormState> {
     }
     throw error;
   }
-  return { error: null };
+  redirect(destination);
 }
 
 export async function signUpAction(
@@ -152,5 +166,5 @@ export async function signUpAction(
     else await releaseInvitation(claimed.id).catch(() => undefined);
   }
 
-  return sendMagicLink(email);
+  return sendMagicLink(email, "signup");
 }
