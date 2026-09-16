@@ -19,6 +19,7 @@ import {
   type ImportRowInput,
 } from "@/db/queries/contacts";
 import { errorMessage, withError } from "@/lib/form-actions";
+import { validateContactInput } from "@/lib/contacts/input";
 import { saveNewsletter } from "@/lib/newsletter/actions";
 import { log } from "@/lib/log";
 import { requireUser } from "@/lib/session";
@@ -78,6 +79,9 @@ export async function createContactAction(
   }
   const input = readContactForm(formData);
   if (!input.name) return { error: t("le_nom_est_obligatoire"), duplicates: null };
+  // La forme de la saisie (stabilisation, E5) : la phrase, jamais l'écran d'erreur.
+  const shape = validateContactInput(input);
+  if (!shape.ok) return { error: (await getTranslations("errors"))(shape.key as never), duplicates: null };
 
   // Détection de doublons AVANT la création : même email ou même nom.
   // « Créer quand même » renvoie le formulaire avec force=1.
@@ -113,8 +117,21 @@ export async function createContactAction(
 export async function updateContactAction(id: string, formData: FormData) {
   const user = await requireUser();
   const input = readContactForm(formData);
-  await updateContact(user, id, input);
-  redirect(`/contacts/${id}`);
+  const backTo = `/contacts/${id}`;
+  let destination = backTo;
+  // La forme d'abord, puis l'écriture rattrapée (stabilisation, E5) : une valeur refusée revient sur la fiche en
+  // notification — avant, l'écran d'erreur de la liste.
+  const shape = validateContactInput(input);
+  if (!shape.ok) {
+    destination = withError(backTo, (await getTranslations("errors"))(shape.key as never));
+  } else {
+    try {
+      await updateContact(user, id, input);
+    } catch (error) {
+      destination = withError(backTo, await errorMessage(error));
+    }
+  }
+  redirect(destination);
 }
 
 /** Enregistre les étiquettes cochées + en crée une à la volée si un libellé est saisi. */

@@ -1,4 +1,5 @@
 import { use } from "react";
+import { nullIfNotFound } from "@/lib/errors";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, Download, Mail, MailOpen, MessageSquare, MousePointerClick, Plus } from "lucide-react";
@@ -81,7 +82,7 @@ export default async function ContactPage({
   const { id } = await params;
   const query = await searchParams;
 
-  const data = await getContactPageData(user, id).catch(() => null);
+  const data = await nullIfNotFound(getContactPageData(user, id));
   if (!data) notFound();
 
   const { contact, tags, allTags, deals, tasks, company, employees, owner } = data;

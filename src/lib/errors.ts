@@ -36,6 +36,20 @@ export function isAppError(error: unknown): error is AppError {
   return error instanceof AppError;
 }
 
+/**
+ * Une lecture de fiche : `null` quand la fiche n'existe pas ou n'est pas à cette personne (403 / 404 — l'écran rend
+ * « introuvable ») ; TOUTE AUTRE erreur remonte à `error.tsx`. Avant, `.catch(() => null)` faisait d'une base
+ * indisponible un « Cette fiche n'existe pas » (stabilisation, E2).
+ */
+export async function nullIfNotFound<T>(promise: Promise<T>): Promise<T | null> {
+  try {
+    return await promise;
+  } catch (error) {
+    if (isAppError(error) && (error.status === 403 || error.status === 404)) return null;
+    throw error;
+  }
+}
+
 /** Le statut HTTP d'une erreur attrapée par une route : celui de l'AppError, 500 pour un accident. */
 export function statusOf(error: unknown): number {
   return isAppError(error) ? error.status : 500;

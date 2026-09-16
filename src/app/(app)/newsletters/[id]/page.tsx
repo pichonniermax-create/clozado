@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { nullIfNotFound } from "@/lib/errors";
 import { notFound } from "next/navigation";
 import { Send } from "lucide-react";
 import { PageHeader } from "@/components/app-shell/page-header";
@@ -30,7 +31,7 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
   const query = await props.searchParams;
   const sendError = query[SEND_ERROR_PARAM];
 
-  const data = await loadNewsletter(id).catch(() => null);
+  const data = await nullIfNotFound(loadNewsletter(id));
   if (!data) {
     notFound();
   }
@@ -46,7 +47,7 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
   // proposée dans le sélecteur, marquée comme telle, plutôt qu'un choix vide.
   let editorTargets = targets;
   if (!targets.some((t) => t.id === data.newsletter.targetId)) {
-    const current = await getMailTarget(user, data.newsletter.targetId).catch(() => null);
+    const current = await nullIfNotFound(getMailTarget(user, data.newsletter.targetId));
     if (current) editorTargets = [...targets, current];
   }
   const counts = await countMembersByTarget(editorTargets);

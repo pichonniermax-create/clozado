@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { withError } from "@/lib/form-actions";
+import { nullIfNotFound } from "@/lib/errors";
 import { notFound, redirect } from "next/navigation";
 import { safeColor } from "@/lib/brand/color";
 import { Button } from "@/components/ui/button";
@@ -65,7 +67,7 @@ export default async function DealPage({
   const { id } = await params;
   const query = await searchParams;
 
-  const deal = await getDeal(user, id).catch(() => null);
+  const deal = await nullIfNotFound(getDeal(user, id));
   if (!deal) notFound();
 
   const [org, types, statuses, partners, shares, commissions, journal, lossReasons, durations, orgUsers, dealTasks, contactLeads, assetMeta] = await Promise.all([
@@ -125,14 +127,19 @@ export default async function DealPage({
     "use server";
     const raw = (name: string) => String(formData.get(name) ?? "").trim();
     const statusId = raw("statusId");
-    if (statusId && statusId !== deal!.statusId) await moveDealStageAction(id, statusId);
-    await updateDealDetailsAction(id, {
+    // Les actions rendent leur échec (stabilisation, E3) : ici, il revient sur la fiche en notification — jamais l'écran d'erreur.
+    if (statusId && statusId !== deal!.statusId) {
+      const moved = await moveDealStageAction(id, statusId);
+      if (!moved.ok) redirect(withError(`/affaires/${id}`, moved.error));
+    }
+    const saved = await updateDealDetailsAction(id, {
       estimatedAmount: raw("estimatedAmount") || null,
       probability: raw("probability") || null,
       expectedCloseDate: raw("expectedCloseDate") || null,
       ownerId: raw("ownerId") || null,
       ...(formData.has("lossReasonId") ? { lossReasonId: raw("lossReasonId") || null } : {}),
     });
+    if (!saved.ok) redirect(withError(`/affaires/${id}`, saved.error));
     redirect(`/affaires/${id}`);
   }
 

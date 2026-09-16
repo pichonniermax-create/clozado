@@ -68,7 +68,8 @@ export async function updatePipelineLabel(user: OrgScopeUser, pipelineId: string
   if (!pipeline) throw new AppError("pipeline_introuvable", undefined, 404);
   assertOrgAccess(user, pipeline.organizationId);
   const trimmed = label.trim();
-  if (!trimmed) return;
+  // Un libellé vide n'est plus un silence (stabilisation, E4) : la phrase revient en notification.
+  if (!trimmed) throw new AppError("le_libelle_du_pipeline_est_obligatoire");
   await db.update(pipelines).set({ label: trimmed, updatedAt: new Date() }).where(eq(pipelines.id, pipelineId));
 }
 
@@ -131,7 +132,7 @@ export async function updateStage(user: OrgScopeUser, stageId: string, input: St
   if (!stage) throw new AppError("etape_introuvable", undefined, 404);
   assertOrgAccess(user, stage.organizationId);
   const label = input.label.trim();
-  if (!label) return;
+  if (!label) throw new AppError("le_libelle_de_l_etape_est_obligatoire");
   const color = stageColor(input.color);
   await db
     .update(dealStatuses)

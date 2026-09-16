@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { nullIfNotFound } from "@/lib/errors";
 import { notFound, redirect } from "next/navigation";
 import { Archive, ScrollText } from "lucide-react";
 import { PageHeader } from "@/components/app-shell/page-header";
@@ -20,7 +21,7 @@ export default async function EditRulePage({ params }: { params: Promise<{ id: s
   const user = await requireUser();
   if (!user.organizationId) redirect("/dashboard");
   const { id } = await params;
-  const data = await getRule(user, id).catch(() => null);
+  const data = await nullIfNotFound(getRule(user, id));
   if (!data) notFound();
   const { rule, template } = data;
   const [options] = await Promise.all([listRuleFormOptions(user)]);

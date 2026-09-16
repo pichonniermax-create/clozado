@@ -25,6 +25,7 @@ import {
   updatePartner,
   type CreatePartnerInput,
 } from "@/db/queries/partners";
+import { actionResult } from "@/lib/form-actions";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
 
@@ -61,7 +62,8 @@ export async function createDealTypeAction(label: string) {
 /** Renvoie { share, token } — le jeton en clair, UNE SEULE FOIS : à afficher immédiatement côté client, jamais récupérable après cet appel. */
 export async function createDealShareAction(input: CreateShareInput) {
   const user = await requireUser();
-  return createDealShare(user, user.id, input);
+  // Appelée depuis le composeur (client) : l'échec est RENDU, traduit — jamais levé avec sa clé (stabilisation, E3).
+  return actionResult(() => createDealShare(user, user.id, input));
 }
 
 export async function revokeDealShareAction(shareId: string) {
@@ -78,13 +80,19 @@ export async function reissueDealShareAction(shareId: string) {
 /** Fiche affaire : prevue → confirmee, une fois l'affaire aboutie et le montant arrêté. */
 export async function confirmCommissionAction(commissionId: string) {
   const user = await requireUser();
-  return confirmCommission(user, user.id, commissionId, await getTranslations("shares.queries"));
+  const t = await getTranslations("shares.queries");
+  return actionResult(async () => {
+    await confirmCommission(user, user.id, commissionId, t);
+  });
 }
 
 /** Écran de suivi, pile "commissions confirmées non réglées" — la seule action possible dessus. */
 export async function markCommissionSettledAction(commissionId: string) {
   const user = await requireUser();
-  return markCommissionSettled(user, user.id, commissionId, await getTranslations("shares.queries"));
+  const t = await getTranslations("shares.queries");
+  return actionResult(async () => {
+    await markCommissionSettled(user, user.id, commissionId, t);
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -94,12 +102,17 @@ export async function markCommissionSettledAction(commissionId: string) {
 /** LE geste du kanban et de la fiche : déplacer une affaire vers une étape. */
 export async function moveDealStageAction(dealId: string, statusId: string, lossReasonId?: string | null) {
   const user = await requireUser();
-  return changeDealStage(user, user.id, dealId, statusId, lossReasonId);
+  // Le kanban (client) affiche la phrase rendue — avant, la clé brute de l'AppError (stabilisation, E3).
+  return actionResult(async () => {
+    await changeDealStage(user, user.id, dealId, statusId, lossReasonId);
+  });
 }
 
 export async function updateDealDetailsAction(dealId: string, input: DealDetailsInput) {
   const user = await requireUser();
-  return updateDealDetails(user, dealId, input);
+  return actionResult(async () => {
+    await updateDealDetails(user, dealId, input);
+  });
 }
 
 export async function createPipelineAction(label: string) {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { errorMessage, withError } from "@/lib/form-actions";
 import { redirect } from "next/navigation";
 import { ChevronRight, Plus, Trash2 } from "lucide-react";
 import {
@@ -91,7 +92,8 @@ export default async function NewslettersPage() {
                   </span>
                 </Link>
                 <div className="flex shrink-0 items-center gap-1">
-                  {!n.sentAt && (
+                  {/* Le créateur seul peut supprimer (garde d'auteur) : la corbeille n'est montrée qu'à lui (stabilisation, E6). */}
+                  {!n.sentAt && n.createdBy === user.id && (
                     <>
                       {/* La suppression est définitive : une confirmation, et une icône plutôt qu'un mot qui écrasait le titre.
                           Le formulaire vit hors du dialogue (portail) : le bouton du dialogue le vise par `form=`. */}
@@ -99,8 +101,13 @@ export default async function NewslettersPage() {
                         id={`delete-${n.id}`}
                         action={async () => {
                           "use server";
-                          await deleteNewsletter(n.id);
-                          redirect("/newsletters");
+                          let destination = "/newsletters";
+                          try {
+                            await deleteNewsletter(n.id);
+                          } catch (error) {
+                            destination = withError("/newsletters", await errorMessage(error));
+                          }
+                          redirect(destination);
                         }}
                       />
                       <AlertDialog>

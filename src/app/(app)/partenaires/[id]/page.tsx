@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { nullIfNotFound } from "@/lib/errors";
 import { notFound, redirect } from "next/navigation";
 import { Mail, Phone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +30,7 @@ export default async function PartnerPage({
   const user = await requireUser();
   const { id } = await params;
 
-  const partner = await getPartner(user, id).catch(() => null);
+  const partner = await nullIfNotFound(getPartner(user, id));
   if (!partner) notFound();
 
   const history = await listDealSharesForPartner(user, id);

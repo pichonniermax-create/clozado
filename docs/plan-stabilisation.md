@@ -563,5 +563,24 @@ chantier B, dont la migration ne sera rédigée qu'après tes réponses.
   adresses réelles posées par script en reçoivent, et par sonde HTTP sur le
   site que la démo publique reste en lecture seule (écriture → 303
   `?demo=lecture-seule`, réglages interdits, API → 403).
+- **Chantier A, étape 3 — écrans d'erreur et clics muets (E1 à E7) — faite
+  le 2026-09-16.** E3 : `moveDealStageAction`, `updateDealDetailsAction`,
+  `createDealShareAction`, `confirmCommissionAction`,
+  `markCommissionSettledAction` RENDENT leur échec traduit (`actionResult`,
+  `src/lib/form-actions.ts`) ; le kanban, le composeur, la carte Pipeline et
+  les boutons de commission affichent la phrase ; `deal_closed` a la sienne
+  chez le partenaire. E1 : les neuf actions de `/settings` rattrapent et
+  renvoient en notification ; pack exigé (case + phrase), nom affiché exigé,
+  couleur d'étape contrôlée (`pattern`) ; E4 : un libellé vide de pipeline,
+  d'étape, de type ou de partenaire a sa phrase, « Créer l'affaire » dit ce
+  qui manque (titre, type, client) et ramène au formulaire ouvert. E2 :
+  `nullIfNotFound` — sept fiches ne rendent « introuvable » que pour un
+  403/404, une panne remonte à `error.tsx`. E5 : `validateContactInput`
+  (création et modification, phrase par refus). E6 : corbeille des
+  newsletters réservée au créateur, échec rattrapé. E7 : `?page` entier,
+  boutons de commission avec message. Preuve : `nullIfNotFound`,
+  `actionResult`, `validateContactInput` par tests unitaires (dix cas) ;
+  libellés vides refusés avec leur clé dans `scripts/test-isolation.ts`
+  contre la base ; le reste se voit à l'écran.
 
 STOP.

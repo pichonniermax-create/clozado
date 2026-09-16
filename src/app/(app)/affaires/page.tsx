@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { errorMessage, withError } from "@/lib/form-actions";
 import { redirect } from "next/navigation";
 import { ArrowDown, ArrowUp, Columns3, Rows3 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -60,9 +61,15 @@ type Params = DealSelectionParams & {
 async function addDealType(formData: FormData) {
   "use server";
   const label = String(formData.get("typeLabel") ?? "").trim();
-  if (!label) return;
-  await createDealTypeAction(label);
-  redirect("/affaires");
+  // Plus de retour muet (stabilisation, E4) : la phrase revient en notification.
+  if (!label) redirect(withError("/affaires", (await getTranslations("errors"))("le_libelle_du_type_d_affaire_est_obligatoire")));
+  let destination = "/affaires";
+  try {
+    await createDealTypeAction(label);
+  } catch (error) {
+    destination = withError("/affaires", await errorMessage(error));
+  }
+  redirect(destination);
 }
 
 export default async function DealsPage({ searchParams }: { searchParams: Promise<Params> }) {
@@ -150,19 +157,30 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
     const typeId = String(formData.get("typeId") ?? "").trim();
     const contactId = String(formData.get("contactId") ?? "").trim() || null;
     const statusId = String(formData.get("statusId") ?? "").trim() || undefined;
-    if (!title || !typeId || (!clientName && !contactId)) return;
+    const backTo = `/affaires?vue=${formData.get("vue")}&pipeline=${formData.get("pipelineId")}`;
+    // Chaque manque a sa phrase et ramène au formulaire ouvert (stabilisation, E4) — avant, « Créer l'affaire » ne
+    // faisait rien du tout quand le type n'était pas choisi.
+    const te = await getTranslations("errors");
+    if (!title) redirect(withError(`${backTo}&nouveau=1`, te("le_titre_est_obligatoire")));
+    if (!typeId) redirect(withError(`${backTo}&nouveau=1`, te("le_type_d_affaire_est_obligatoire")));
+    if (!clientName && !contactId) redirect(withError(`${backTo}&nouveau=1`, te("indique_le_client_de_l_affaire")));
 
     const rawAmount = String(formData.get("estimatedAmount") ?? "").trim();
-    await createDealAction({
-      title,
-      clientName,
-      typeId,
-      statusId,
-      contactId,
-      estimatedAmount: rawAmount || null,
-      description: String(formData.get("description") ?? "").trim() || null,
-    });
-    redirect(`/affaires?vue=${formData.get("vue")}&pipeline=${formData.get("pipelineId")}`);
+    let destination = backTo;
+    try {
+      await createDealAction({
+        title,
+        clientName,
+        typeId,
+        statusId,
+        contactId,
+        estimatedAmount: rawAmount || null,
+        description: String(formData.get("description") ?? "").trim() || null,
+      });
+    } catch (error) {
+      destination = withError(`${backTo}&nouveau=1`, await errorMessage(error));
+    }
+    redirect(destination);
   }
 
   return (

@@ -53,7 +53,7 @@ async function main() {
   const activitiesQ = await import("../src/db/queries/activities");
   const { createPartner, updatePartner } = await import("../src/db/queries/partners");
   const { getFollowUpBoard } = await import("../src/db/queries/deal-follow-up");
-  const { organizations, users, contacts, deals, tasks, activities, dealEvents, dealStageChanges, dealShares, dealTypes, dealStatuses, contactAccessLog, partners, commissions } = schema;
+  const { organizations, users, contacts, deals, tasks, activities, dealEvents, dealStageChanges, dealShares, dealTypes, dealStatuses, contactAccessLog, partners, commissions, pipelines } = schema;
 
   // Jamais deux passages simultanés, et jamais de reliquat d'un passage interrompu.
   const leftovers = await db.select({ id: organizations.id }).from(organizations).where(inArray(organizations.slug, [...SLUGS]));
@@ -394,6 +394,12 @@ async function main() {
     expect("updateContact(prénom seul) garde « Jean Dupont »", (await db.query.contacts.findFirst({ where: eq(contacts.id, a.contactId) }))?.name === "Jean Dupont");
     await contactsQ.updateContact(a.admin, a.contactId, { name: "Jean Durand", firstName: "Jean", lastName: "Durand" });
     expect("updateContact(prénom + nom) recompose « Jean Durand »", (await db.query.contacts.findFirst({ where: eq(contacts.id, a.contactId) }))?.name === "Jean Durand");
+
+    console.log("\n--- Stabilisation, chantier A étape 3 : plus de retour muet — un libellé vide a sa phrase");
+    await expectAppError("updatePipelineLabel(A, libellé vide) → phrase", () => pipelinesQ.updatePipelineLabel(a!.admin, a!.pipelineId, "   "), "le_libelle_du_pipeline_est_obligatoire");
+    await expectAppError("updateStage(A, libellé vide) → phrase", () => pipelinesQ.updateStage(a!.admin, a!.statuses[0].id, { label: "", color: null, probability: null, outcome: null }), "le_libelle_de_l_etape_est_obligatoire");
+    await pipelinesQ.updatePipelineLabel(a.admin, a.pipelineId, "Crédit");
+    expect("updatePipelineLabel(A, « Crédit ») passe", (await db.query.pipelines.findFirst({ where: eq(pipelines.id, a.pipelineId) }))?.label === "Crédit");
 
     console.log("\n--- La garde de connexion de la démo : qui reçoit un lien de connexion, qui n'en reçoit pas");
     const guard = await import("../src/lib/auth/magic-link-guard");

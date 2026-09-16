@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { nullIfNotFound } from "@/lib/errors";
 import { notFound } from "next/navigation";
 import { Copy, Ellipsis, Mail, PowerOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +51,7 @@ export default async function TargetPage({
   const { id } = await params;
   const query = await searchParams;
 
-  const target = await getMailTarget(user, id).catch(() => null);
+  const target = await nullIfNotFound(getMailTarget(user, id));
   if (!target) notFound();
 
   const page = Number(query.page) > 0 ? Number(query.page) : 1;

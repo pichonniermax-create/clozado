@@ -1,9 +1,11 @@
 {
   "confirmCommissionButton": {
-    "confirmer": "Confirmer"
+    "confirmer": "Confirmer",
+    "echec_reseau": "Connexion impossible — réessaie."
   },
   "markCommissionSettledButton": {
-    "marquer_reglee": "Marquer réglée"
+    "marquer_reglee": "Marquer réglée",
+    "echec_reseau": "Connexion impossible — réessaie."
   },
   "partnerShareView": {
     "a_confirmer_avant_le": "À confirmer avant le {formatDate}.",

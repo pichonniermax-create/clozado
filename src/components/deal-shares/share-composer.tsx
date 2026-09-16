@@ -170,7 +170,7 @@ export function ShareComposer({
     setPhase("sending");
     setError(null);
     try {
-      const { token } = await createDealShareAction({
+      const result = await createDealShareAction({
         dealId,
         partnerId,
         proposedTerms: proposedTerms || null,
@@ -179,10 +179,16 @@ export function ShareComposer({
         expiresAt: expiresAt ? endOfDayFromDateInput(expiresAt) : null,
         commission: commissionInput,
       });
-      setSentToken(token);
+      // L'action rend son échec traduit (« un partage est déjà en attente… ») ; avant, la clé brute s'affichait.
+      if (!result.ok) {
+        setError(result.error);
+        setPhase("confirm");
+        return;
+      }
+      setSentToken(result.value.token);
       setPhase("done");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("l_envoi_a_echoue_de_notre_2adc"));
+    } catch {
+      setError(t("l_envoi_a_echoue_de_notre_2adc"));
       setPhase("confirm");
     }
   }

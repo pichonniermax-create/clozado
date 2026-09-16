@@ -1,9 +1,11 @@
 {
   "confirmCommissionButton": {
-    "confirmer": "Confirm"
+    "confirmer": "Confirm",
+    "echec_reseau": "Connection failed — try again."
   },
   "markCommissionSettledButton": {
-    "marquer_reglee": "Mark as settled"
+    "marquer_reglee": "Mark as settled",
+    "echec_reseau": "Connection failed — try again."
   },
   "partnerShareView": {
     "a_confirmer_avant_le": "To be confirmed before {formatDate}.",

@@ -83,11 +83,10 @@ export function KanbanBoard({
     setError(null);
     startTransition(async () => {
       applyMove({ dealId, statusId: stageId });
-      try {
-        await moveDealStageAction(dealId, stageId);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : tr("le_deplacement_a_echoue_de_notre_9277"));
-      }
+      // L'action rend son échec traduit ; une coupure réseau, elle, se lit comme un échec « de notre côté ».
+      const result = await moveDealStageAction(dealId, stageId).catch(() => null);
+      if (!result) setError(tr("le_deplacement_a_echoue_de_notre_9277"));
+      else if (!result.ok) setError(result.error);
       router.refresh();
     });
   }
@@ -107,11 +106,9 @@ export function KanbanBoard({
   function setReason(dealId: string, lossReasonId: string) {
     if (!lossReasonId) return;
     startTransition(async () => {
-      try {
-        await updateDealDetailsAction(dealId, { lossReasonId });
-      } catch (e) {
-        setError(e instanceof Error ? e.message : tr("l_enregistrement_du_motif_a_echoue_a3c4"));
-      }
+      const result = await updateDealDetailsAction(dealId, { lossReasonId }).catch(() => null);
+      if (!result) setError(tr("l_enregistrement_du_motif_a_echoue_a3c4"));
+      else if (!result.ok) setError(result.error);
       router.refresh();
     });
   }

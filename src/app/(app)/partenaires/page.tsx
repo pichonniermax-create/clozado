@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { errorMessage, withError } from "@/lib/form-actions";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -21,18 +22,22 @@ async function addPartner(formData: FormData) {
   await requireUser();
 
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) return;
+  if (!name) redirect(withError("/partenaires?nouveau=1", (await getTranslations("errors"))("le_nom_du_partenaire_est_obligatoire")));
 
-  await createPartnerAction({
-    name,
-    company: String(formData.get("company") ?? "").trim() || null,
-    profession: String(formData.get("profession") ?? "").trim() || null,
-    email: String(formData.get("email") ?? "").trim() || null,
-    phone: String(formData.get("phone") ?? "").trim() || null,
-    notes: String(formData.get("notes") ?? "").trim() || null,
-  });
-
-  redirect("/partenaires");
+  let destination = "/partenaires";
+  try {
+    await createPartnerAction({
+      name,
+      company: String(formData.get("company") ?? "").trim() || null,
+      profession: String(formData.get("profession") ?? "").trim() || null,
+      email: String(formData.get("email") ?? "").trim() || null,
+      phone: String(formData.get("phone") ?? "").trim() || null,
+      notes: String(formData.get("notes") ?? "").trim() || null,
+    });
+  } catch (error) {
+    destination = withError("/partenaires?nouveau=1", await errorMessage(error));
+  }
+  redirect(destination);
 }
 
 export default async function PartnersPage({

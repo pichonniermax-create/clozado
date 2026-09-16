@@ -31,3 +31,19 @@ export async function errorMessage(error: unknown): Promise<string> {
   }
   return t("common.generic");
 }
+
+export type ActionResult<T> = { ok: true; value: T } | { ok: false; error: string };
+
+/**
+ * Une action serveur appelée depuis un composant CLIENT rend son échec — la
+ * phrase traduite — au lieu de le lever : levée, une `AppError` arrivait au
+ * navigateur avec sa CLÉ pour message (« cette_etape_appartient_a_un_autre_
+ * pipeline_9d7d » sur le kanban — stabilisation, E3).
+ */
+export async function actionResult<T>(run: () => Promise<T>): Promise<ActionResult<T>> {
+  try {
+    return { ok: true, value: await run() };
+  } catch (error) {
+    return { ok: false, error: await errorMessage(error) };
+  }
+}

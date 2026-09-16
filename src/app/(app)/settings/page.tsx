@@ -57,7 +57,7 @@ import { IngestAddressCard } from "@/components/settings/ingest-address-card";
 import { LegalFootprintCard } from "@/components/settings/legal-footprint-card";
 import { inboundDomain, sharedSendingDomain } from "@/lib/email/config";
 import { resolveSender } from "@/lib/email/sender";
-import { withError } from "@/lib/form-actions";
+import { errorMessage, withError } from "@/lib/form-actions";
 import { BUSINESS_PACK_LIST, resolveBusinessPack } from "@/lib/metrics";
 import { requestOrigin } from "@/lib/request-origin";
 import { requireUser } from "@/lib/session";
@@ -81,7 +81,7 @@ async function saveBranding(formData: FormData) {
   const user = await requireUser();
 
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) return;
+  if (!name) redirect(withError("/settings", t("le_nom_affiche_est_obligatoire")));
 
   // La couleur vient du sélecteur, déjà normalisée ; on la revalide quand
   // même — une chaîne libre n'entre jamais en base.
@@ -136,8 +136,16 @@ async function saveRegionalSettings(formData: FormData) {
 
 async function savePack(formData: FormData) {
   "use server";
+  const t = await getTranslations("settings.page");
   const user = await requireUser();
-  await updateOrganizationPack(user, String(formData.get("businessPack") ?? ""));
+  const pack = String(formData.get("businessPack") ?? "");
+  // Aucun pack coché (organisation neuve) : la phrase, pas l'écran d'erreur (stabilisation, E1).
+  if (!pack) redirect(withError("/settings#pack-metier", t("choisis_un_pack_avant_d_enregistrer")));
+  try {
+    await updateOrganizationPack(user, pack);
+  } catch (error) {
+    redirect(withError("/settings#pack-metier", await errorMessage(error)));
+  }
   // La cible ne diffère de la page courante que par l'ancre : sans
   // revalidation, le routeur remonte la page depuis son cache et le
   // formulaire réapparaît dans l'état d'AVANT (aucun pack coché, la mention
@@ -219,46 +227,86 @@ export default async function SettingsPage() {
 
   async function saveStage(formData: FormData) {
     "use server";
-    await updateStageAction(String(formData.get("stageId")), stageInputFrom(formData));
-    redirect("/settings");
+    let destination = "/settings";
+    try {
+      await updateStageAction(String(formData.get("stageId")), stageInputFrom(formData));
+    } catch (error) {
+      destination = withError("/settings", await errorMessage(error));
+    }
+    redirect(destination);
   }
   async function addStage(formData: FormData) {
     "use server";
-    await createStageAction(String(formData.get("pipelineId")), stageInputFrom(formData));
-    redirect("/settings");
+    let destination = "/settings";
+    try {
+      await createStageAction(String(formData.get("pipelineId")), stageInputFrom(formData));
+    } catch (error) {
+      destination = withError("/settings", await errorMessage(error));
+    }
+    redirect(destination);
   }
   // Deux actions plutôt qu'un name="direction" sur les boutons : React
   // écrase le name d'un bouton porteur de formAction (il y encode l'id de
   // l'action), le champ n'arriverait jamais dans le FormData.
   async function moveStageUpForm(formData: FormData) {
     "use server";
-    await moveStageAction(String(formData.get("stageId")), "up");
-    redirect("/settings");
+    let destination = "/settings";
+    try {
+      await moveStageAction(String(formData.get("stageId")), "up");
+    } catch (error) {
+      destination = withError("/settings", await errorMessage(error));
+    }
+    redirect(destination);
   }
   async function moveStageDownForm(formData: FormData) {
     "use server";
-    await moveStageAction(String(formData.get("stageId")), "down");
-    redirect("/settings");
+    let destination = "/settings";
+    try {
+      await moveStageAction(String(formData.get("stageId")), "down");
+    } catch (error) {
+      destination = withError("/settings", await errorMessage(error));
+    }
+    redirect(destination);
   }
   async function renamePipeline(formData: FormData) {
     "use server";
-    await updatePipelineLabelAction(String(formData.get("pipelineId")), String(formData.get("label") ?? ""));
-    redirect("/settings");
+    let destination = "/settings";
+    try {
+      await updatePipelineLabelAction(String(formData.get("pipelineId")), String(formData.get("label") ?? ""));
+    } catch (error) {
+      destination = withError("/settings", await errorMessage(error));
+    }
+    redirect(destination);
   }
   async function addPipeline(formData: FormData) {
     "use server";
-    await createPipelineAction(String(formData.get("label") ?? ""));
-    redirect("/settings");
+    let destination = "/settings";
+    try {
+      await createPipelineAction(String(formData.get("label") ?? ""));
+    } catch (error) {
+      destination = withError("/settings", await errorMessage(error));
+    }
+    redirect(destination);
   }
   async function addLossReason(formData: FormData) {
     "use server";
-    await createLossReasonAction(String(formData.get("label") ?? ""));
-    redirect("/settings");
+    let destination = "/settings";
+    try {
+      await createLossReasonAction(String(formData.get("label") ?? ""));
+    } catch (error) {
+      destination = withError("/settings", await errorMessage(error));
+    }
+    redirect(destination);
   }
   async function removeLossReason(formData: FormData) {
     "use server";
-    await deleteLossReasonAction(String(formData.get("id")));
-    redirect("/settings");
+    let destination = "/settings";
+    try {
+      await deleteLossReasonAction(String(formData.get("id")));
+    } catch (error) {
+      destination = withError("/settings", await errorMessage(error));
+    }
+    redirect(destination);
   }
 
   return (
@@ -409,6 +457,7 @@ export default async function SettingsPage() {
                   value={pack.key}
                   defaultChecked={org.businessPack === pack.key}
                   disabled={readOnly}
+                  required
                   className="mt-1 accent-primary"
                 />
                 <span className="flex min-w-0 flex-col gap-1">
@@ -442,7 +491,7 @@ export default async function SettingsPage() {
               <CardAction className="col-span-2 row-start-3 w-full justify-self-stretch sm:col-span-1 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:w-auto sm:justify-self-end">
                 <form action={renamePipeline} className="flex items-center gap-2">
                   <input type="hidden" name="pipelineId" value={pipeline.id} />
-                  <Input name="label" defaultValue={pipeline.label} className="min-w-0 flex-1 sm:w-56" aria-label={t("nom_du_pipeline")} />
+                  <Input name="label" defaultValue={pipeline.label} required className="min-w-0 flex-1 sm:w-56" aria-label={t("nom_du_pipeline")} />
                   <Button type="submit" variant="ghost" size="sm">
                     {t("renommer")}
                   </Button>
@@ -482,8 +531,9 @@ export default async function SettingsPage() {
                   </Button>
                 </span>
                 {/* Le libellé prend la place qui reste ; à 390 px, couleur, probabilité et marqueur passent sur la ligne suivante. */}
-                <Input name="label" defaultValue={stage.label} disabled={readOnly} className="min-w-40 flex-1" aria-label={t("libelle_de_l_etape")} />
-                <Input name="color" defaultValue={stage.color ?? ""} disabled={readOnly} placeholder={DEFAULT_BRAND_PRIMARY} className="w-28" aria-label={t("couleur")} />
+                <Input name="label" defaultValue={stage.label} disabled={readOnly} required className="min-w-40 flex-1" aria-label={t("libelle_de_l_etape")} />
+                {/* Un hexadécimal à six chiffres ou rien : le navigateur retient une saisie en mots, le serveur la refuse avec sa phrase (stabilisation, E1). */}
+                <Input name="color" defaultValue={stage.color ?? ""} disabled={readOnly} pattern="#[0-9a-fA-F]{6}" placeholder={DEFAULT_BRAND_PRIMARY} className="w-28" aria-label={t("couleur")} />
                 <Input
                   name="probability"
                   type="number"
@@ -517,7 +567,7 @@ export default async function SettingsPage() {
               <form action={addStage} className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2">
                 <input type="hidden" name="pipelineId" value={pipeline.id} />
                 <Input name="label" placeholder={t("nouvelle_etape")} required className="min-w-40 flex-1" aria-label={t("libelle_de_la_nouvelle_etape")} />
-                <Input name="color" placeholder={DEFAULT_BRAND_PRIMARY} className="w-28" aria-label={t("couleur")} />
+                <Input name="color" pattern="#[0-9a-fA-F]{6}" placeholder={DEFAULT_BRAND_PRIMARY} className="w-28" aria-label={t("couleur")} />
                 <Input name="probability" type="number" min="0" max="100" placeholder="%" className="w-20 text-right" aria-label={t("probabilite")} />
                 <NativeSelect name="outcome" defaultValue="" className="w-auto max-w-full" aria-label={t("marqueur_de_fin")}>
                   <option value="">{t("etape_intermediaire")}</option>

@@ -44,7 +44,8 @@ export default async function EmailsRecusPage({
   const user = await requireUser();
   const params = await searchParams;
   const tab: InboundTab = isInboundTab(params.onglet) ? params.onglet : "pending";
-  const page = Number(params.page) > 0 ? Number(params.page) : 1;
+  // Un entier strictement positif, sinon la première page (stabilisation, E7 : `?page=1.5` faisait une erreur SQL).
+  const page = Number.isInteger(Number(params.page)) && Number(params.page) > 0 ? Number(params.page) : 1;
 
   if (!user.organizationId) {
     return (

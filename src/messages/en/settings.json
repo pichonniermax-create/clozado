@@ -258,7 +258,9 @@
       "pipelines": "Pipelines",
       "collecte": "Collection",
       "motifs": "Loss reasons"
-    }
+    },
+    "choisis_un_pack_avant_d_enregistrer": "Choose a business pack before saving.",
+    "le_nom_affiche_est_obligatoire": "The displayed name is required."
   },
   "queries": {
     "fields": {
