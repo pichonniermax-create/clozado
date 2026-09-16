@@ -34,6 +34,7 @@ export function ConfirmSubmit({
   variant = "ghost",
   size = "sm",
   className,
+  triggerLabel,
   children,
 }: {
   action: (formData: FormData) => void | Promise<void>;
@@ -46,6 +47,8 @@ export function ConfirmSubmit({
   variant?: ComponentProps<typeof Button>["variant"];
   size?: ComponentProps<typeof Button>["size"];
   className?: string;
+  /** Le nom accessible du déclencheur quand il n'est qu'une icône (`aria-label` et `title`). */
+  triggerLabel?: string;
   /** Le libellé du déclencheur. */
   children: ReactNode;
 }) {
@@ -54,7 +57,7 @@ export function ConfirmSubmit({
     <form ref={formRef} action={action}>
       {fields && Object.entries(fields).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
       <AlertDialog>
-        <AlertDialogTrigger render={<Button type="button" variant={variant} size={size} className={className} />}>{children}</AlertDialogTrigger>
+        <AlertDialogTrigger render={<Button type="button" variant={variant} size={size} className={className} aria-label={triggerLabel} title={triggerLabel} />}>{children}</AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{title}</AlertDialogTitle>

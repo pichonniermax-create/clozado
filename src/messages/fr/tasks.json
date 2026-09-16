@@ -49,7 +49,10 @@
     "tu_es_en_vue_globale_choisis_3e1f": "Tu es en vue globale : choisis une organisation dans le bandeau super admin en haut de l’écran pour voir ses tâches.",
     "unite_de_recurrence": "Unité de récurrence",
     "modifier_la_tache": "Modifier la tâche",
-    "tache_automatique_explication": "Créée toute seule par le suivi (partage sans réponse, affaire sans suite, commission non réglée) : l’achever vaut « traité »."
+    "tache_automatique_explication": "Créée toute seule par le suivi (partage sans réponse, affaire sans suite, commission non réglée) : l’achever vaut « traité ».",
+    "supprimer_tache_titre": "Supprimer cette tâche ?",
+    "supprimer_tache_texte": "« {title} » disparaît définitivement. Une tâche faite peut simplement rester dans « Achevées ».",
+    "annuler": "Annuler"
   },
   "priorities": {
     "high": "Haute",

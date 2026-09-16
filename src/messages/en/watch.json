@@ -224,7 +224,9 @@
     "suivre_la_veille_du_metier_court": "Follow the monitoring for the “{label}” profession",
     "suivre_details": "{count} {count, plural, one {topic} other {topics}}, {count2} {count2, plural, one {source} other {sources}}, {count3} market {count3, plural, one {indicator} other {indicators}}",
     "sujets_et_sources": "Topics and sources",
-    "reglages_de_la_veille": "Monitoring settings"
+    "reglages_de_la_veille": "Monitoring settings",
+    "articles_ecartes": "Dismissed articles ({count})",
+    "reprendre": "Bring back"
   },
   "queries": {
     "collecte_interrompue_delai_depasse": "Collection run interrupted (timed out)."

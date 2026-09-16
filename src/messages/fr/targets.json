@@ -122,7 +122,10 @@
     "envoi_recap": "Envoyée le {date} à {recipients, plural, one {# contact} other {# contacts}} · {overlap} dans la cible actuelle{percent, select, none {} other { ({percent} %)}}{topics, select, none {} other { · sujets : {topics}}}",
     "plus_d_actions": "Plus d’actions",
     "modifier_les_criteres": "Modifier les critères et l’identité éditoriale",
-    "contacts_dans_cette_cible": "Contacts dans cette cible aujourd’hui"
+    "contacts_dans_cette_cible": "Contacts dans cette cible aujourd’hui",
+    "retirer_titre": "Retirer « {name} » de cette cible ?",
+    "retirer_texte": "La fiche reste dans tes contacts ; elle ne recevra plus ce que tu envoies à cette cible. Tu peux la rajouter par la recherche ci-dessus.",
+    "annuler": "Annuler"
   },
   "detailNotFound": {
     "cette_cible_n_existe_pas": "Cette cible n’existe pas.",

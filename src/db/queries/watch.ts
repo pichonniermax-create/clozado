@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   newsletters,
@@ -396,6 +396,13 @@ export async function listWatchItems(user: OrgScopeUser, opts: { includeDismisse
   const organizationId = requireOrganization(user);
   const extra = opts.includeDismissed ? [] : [isNull(watchItems.dismissedAt)];
   const rows = await selectItemRows(organizationId, extra, opts.limit ?? 200);
+  return rows.map(toRow);
+}
+
+/** Les articles écartés, les plus récents d'abord — pour les reprendre (stabilisation, D6 : « Écarter » était sans retour à l'écran). */
+export async function listDismissedWatchItems(user: OrgScopeUser, limit = 50): Promise<WatchItemRow[]> {
+  const organizationId = requireOrganization(user);
+  const rows = await selectItemRows(organizationId, [isNotNull(watchItems.dismissedAt)], limit);
   return rows.map(toRow);
 }
 

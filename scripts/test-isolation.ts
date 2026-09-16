@@ -378,6 +378,23 @@ async function main() {
     const usersOfA = await contactsQ.listOrgUsersOf(a.orgId);
     expect("listOrgUsersOf(A) = l'admin de A seulement", usersOfA.length === 1 && usersOfA[0].id === a.userId);
 
+    console.log("\n--- Stabilisation, chantier A étape 2 : archiver et restaurer une règle, le nom d'une fiche retouchée");
+    const ruleA = await rulesQ.createRule(a.admin, a.userId, { name: "Sans nouvelles", trigger: "no_interaction", thresholdDays: 30, conditions: {}, action: "create_task" });
+    await rulesQ.archiveRule(a.admin, ruleA.id);
+    expect("archiveRule(A) : la règle quitte listRules(A)", !(await rulesQ.listRules(a.admin)).some((r) => r.rule.id === ruleA.id));
+    const withArchived = await rulesQ.listRules(a.admin, { includeArchived: true });
+    expect("listRules(A, archivées comprises) la garde, marquée archivée", withArchived.some((r) => r.rule.id === ruleA.id && r.rule.archivedAt !== null));
+    expect("listRules(B, archivées comprises) ne voit pas la règle de A", !(await rulesQ.listRules(b.admin, { includeArchived: true })).some((r) => r.rule.id === ruleA.id));
+    await expectThrow("restoreRule(B, règle de A) refuse", () => rulesQ.restoreRule(b!.admin, ruleA.id));
+    await rulesQ.restoreRule(a.admin, ruleA.id);
+    const restored = (await rulesQ.listRules(a.admin)).find((r) => r.rule.id === ruleA.id);
+    expect("restoreRule(A) : la règle revient dans la liste, désactivée", restored !== undefined && restored.rule.archivedAt === null && restored.rule.enabled === false);
+    await db.update(contacts).set({ name: "Jean Dupont", firstName: null, lastName: null }).where(eq(contacts.id, a.contactId));
+    await contactsQ.updateContact(a.admin, a.contactId, { name: "Jean", firstName: "Jean", lastName: null });
+    expect("updateContact(prénom seul) garde « Jean Dupont »", (await db.query.contacts.findFirst({ where: eq(contacts.id, a.contactId) }))?.name === "Jean Dupont");
+    await contactsQ.updateContact(a.admin, a.contactId, { name: "Jean Durand", firstName: "Jean", lastName: "Durand" });
+    expect("updateContact(prénom + nom) recompose « Jean Durand »", (await db.query.contacts.findFirst({ where: eq(contacts.id, a.contactId) }))?.name === "Jean Durand");
+
     console.log("\n--- La base elle-même : une ligne qui mélange deux organisations est rejetée (FK composites)");
     const fkViolation = async (label: string, statement: Promise<unknown>) => {
       try {

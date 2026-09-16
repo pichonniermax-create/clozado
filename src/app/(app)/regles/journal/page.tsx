@@ -30,7 +30,8 @@ export default async function RuleJournalPage({
   const outcome = resultat === "done" || resultat === "skipped" ? resultat : undefined;
   const [rows, rules] = await Promise.all([
     listRuleJournal(user, { ruleId: regle || undefined, outcome, limit: 200 }),
-    listRules(user),
+    // Les archivées aussi : leurs lignes de journal restent, on doit pouvoir les filtrer (stabilisation, D4).
+    listRules(user, { includeArchived: true }),
   ]);
 
   return (
@@ -47,7 +48,7 @@ export default async function RuleJournalPage({
           <option value="">{t("journal.toutes_les_regles")}</option>
           {rules.map(({ rule }) => (
             <option key={rule.id} value={rule.id}>
-              {rule.name}
+              {rule.archivedAt ? t("list.nom_archivee", { name: rule.name }) : rule.name}
             </option>
           ))}
         </NativeSelect>

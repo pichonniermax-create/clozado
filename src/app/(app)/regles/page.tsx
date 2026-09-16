@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Archive, Pencil, Play, Plus, ScrollText, Send, Workflow } from "lucide-react";
+import { Archive, Pencil, Play, Plus, RotateCcw, ScrollText, Send, Workflow } from "lucide-react";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
+import { DetailsCard } from "@/components/ui/details-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListCard } from "@/components/ui/list-card";
@@ -18,6 +20,7 @@ import {
 import {
   archiveRuleAction,
   evaluateNowAction,
+  restoreRuleAction,
   sendWaveAction,
   setRuleEnabledAction,
 } from "@/lib/rules/actions";
@@ -61,14 +64,17 @@ export default async function RulesPage({ searchParams }: { searchParams: Promis
   const org = await getOwnOrganization(user);
   if (!org) redirect("/dashboard");
 
-  const [, rules, latestRun, drafts, options] = await Promise.all([
+  const [, allRules, latestRun, drafts, options] = await Promise.all([
     searchParams,
-    listRules(user),
+    // Les archivées aussi (stabilisation, D4) : elles vivent repliées sous la liste, avec « Restaurer ».
+    listRules(user, { includeArchived: true }),
     getLatestRuleRun(org.id),
     listAutomaticDrafts(user),
     listRuleFormOptions(user),
   ]);
   const inWindow = inOfficeWindow(org);
+  const rules = allRules.filter(({ rule }) => !rule.archivedAt);
+  const archivedRules = allRules.filter(({ rule }) => rule.archivedAt);
 
   return (
     <>
@@ -181,21 +187,43 @@ export default async function RulesPage({ searchParams }: { searchParams: Promis
                 >
                   <Pencil />
                 </Link>
-                <form action={archiveRuleAction.bind(null, { ruleId: rule.id })}>
-                  <Button
-                    type="submit"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={t("list.archiver_la_regle", { name: rule.name })}
-                    title={t("list.archiver_le_journal_reste")}
-                  >
-                    <Archive />
-                  </Button>
-                </form>
+                {/* Archiver retire la règle de la liste : derrière la confirmation du socle, et réversible dessous (stabilisation, D4). */}
+                <ConfirmSubmit
+                  action={archiveRuleAction.bind(null, { ruleId: rule.id })}
+                  title={t("list.archiver_titre", { name: rule.name })}
+                  description={t("list.archiver_texte")}
+                  confirmLabel={t("list.archiver")}
+                  cancelLabel={t("list.annuler")}
+                  size="icon-sm"
+                  triggerLabel={t("list.archiver_la_regle", { name: rule.name })}
+                >
+                  <Archive />
+                </ConfirmSubmit>
               </div>
             </li>
           ))}
         </ListCard>
+      )}
+
+      {archivedRules.length > 0 && (
+        <DetailsCard variant="archive" flush summary={t("list.regles_archivees", { count: archivedRules.length })}>
+          <ListCard>
+            {archivedRules.map(({ rule }) => (
+              <li key={rule.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center">
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="line-clamp-2 text-sm font-medium">{rule.name}</span>
+                  <span className="text-xs text-muted-foreground">{describeRule(rule, options, t)}</span>
+                </div>
+                <form action={restoreRuleAction.bind(null, { ruleId: rule.id })} className="shrink-0 sm:ml-auto">
+                  <Button type="submit" variant="outline" size="sm">
+                    <RotateCcw />
+                    {t("list.restaurer")}
+                  </Button>
+                </form>
+              </li>
+            ))}
+          </ListCard>
+        </DetailsCard>
       )}
 
       {/* Le pied de section : le geste, son dernier résultat et la note sur le passage quotidien — un seul cadre, pas trois lignes flottantes. */}

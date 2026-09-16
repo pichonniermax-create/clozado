@@ -89,11 +89,12 @@ async function currentTemplates(ruleIds: string[]): Promise<Map<string, RuleTemp
   return map;
 }
 
-export async function listRules(user: OrgScopeUser): Promise<RuleWithTemplate[]> {
+/** Les règles de l'organisation — sans les archivées, sauf demande (la liste les montre repliées, le journal les filtre). */
+export async function listRules(user: OrgScopeUser, opts: { includeArchived?: boolean } = {}): Promise<RuleWithTemplate[]> {
   const rows = await db
     .select()
     .from(rules)
-    .where(and(orgScope(user, rules.organizationId), isNull(rules.archivedAt)))
+    .where(and(orgScope(user, rules.organizationId), opts.includeArchived ? undefined : isNull(rules.archivedAt)))
     .orderBy(asc(rules.position), asc(rules.createdAt));
   const templates = await currentTemplates(rows.map((r) => r.id));
   return rows.map((rule) => ({ rule, template: templates.get(rule.id) ?? null }));
@@ -236,6 +237,18 @@ export async function setRuleEnabled(user: OrgScopeUser, ruleId: string, enabled
 export async function archiveRule(user: OrgScopeUser, ruleId: string): Promise<void> {
   const { rule } = await getRule(user, ruleId);
   await db.update(rules).set({ archivedAt: new Date(), enabled: false, updatedAt: new Date() }).where(eq(rules.id, rule.id));
+}
+
+/**
+ * Le retour d'une règle archivée (stabilisation, D4) : elle revient désactivée — l'activer est un geste à part,
+ * après relecture. `getRule` refuse une archivée : la lecture est faite ici, avec la même garde.
+ */
+export async function restoreRule(user: OrgScopeUser, ruleId: string): Promise<void> {
+  const rule = await db.query.rules.findFirst({ where: eq(rules.id, ruleId) });
+  if (!rule) throw new AppError("regle_introuvable", undefined, 404);
+  assertOrgAccess(user, rule.organizationId);
+  if (!rule.archivedAt) return;
+  await db.update(rules).set({ archivedAt: null, updatedAt: new Date() }).where(eq(rules.id, rule.id));
 }
 
 // ---------------------------------------------------------------------------

@@ -22,6 +22,7 @@ import {
 } from "@/db/schema";
 import { assertOrgAccess, assertUserInOrg, orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
+import { displayNameAfterUpdate } from "@/lib/contacts/display-name";
 import { listOpenTasksForContact } from "./tasks";
 import { AppError } from "@/lib/errors";
 import { log } from "@/lib/log";
@@ -244,9 +245,9 @@ export async function updateContact(
   const [updated] = await db
     .update(contacts)
     .set({
-      // Vide (ex: fiche importée sans prénom/nom séparés, champs laissés
-      // tels quels) = on garde le nom actuel, jamais un nom effacé.
-      name: input.name.trim() || contact.name,
+      // Le nom se recompose seulement avec prénom ET nom ; un seul des deux, ou rien, garde le nom actuel
+      // (stabilisation, D3 : « Jean Dupont » importé ne devenait plus que « Jean » après une retouche).
+      name: displayNameAfterUpdate(contact, input),
       firstName: isCompany ? null : input.firstName?.trim() || null,
       lastName: isCompany ? null : input.lastName?.trim() || null,
       email: input.email?.trim() || null,

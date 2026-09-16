@@ -21,6 +21,7 @@ import {
   isWatchStale,
   listBasket,
   listRecentRuns,
+  listDismissedWatchItems,
   listWatchItems,
   listWatchSources,
   listWatchTopics,
@@ -48,6 +49,7 @@ import {
   retrySourceAction,
   updateTopicAction,
   writeFromBasketAction,
+  restoreItemAction,
 } from "@/lib/watch/actions";
 import { SOURCE_COUNTRY_CODES } from "@/lib/watch/countries";
 import { log } from "@/lib/log";
@@ -105,6 +107,7 @@ export default async function WatchPage() {
     listMailTargets(user),
   ]);
   const counts = await countMembersByTarget(targets);
+  const dismissed = await listDismissedWatchItems(user, 50);
   const { pack, chosen } = resolveBusinessPack(org?.businessPack);
   const activeTopics = topics.filter((t) => !t.archivedAt);
   const archivedTopics = topics.filter((t) => t.archivedAt);
@@ -222,6 +225,25 @@ export default async function WatchPage() {
                   {tr("rien_du_texte_des_articles_n_63f8")}
                 </p>
               </>
+            )}
+            {/* « Écarter » n'est plus sans retour (stabilisation, D6) : les écartés restent à portée, un clic les reprend. */}
+            {dismissed.length > 0 && (
+              <DetailsCard summary={tr("articles_ecartes", { count: dismissed.length })}>
+                <ul className="flex flex-col divide-y divide-border">
+                  {dismissed.map((item) => (
+                    <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                      <a href={item.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate text-sm underline-offset-2 hover:underline">
+                        {item.title}
+                      </a>
+                      <form action={restoreItemAction.bind(null, item.id)}>
+                        <Button type="submit" variant="outline" size="sm">
+                          {tr("reprendre")}
+                        </Button>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              </DetailsCard>
             )}
           </section>
         </>

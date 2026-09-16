@@ -25,7 +25,14 @@
     "evaluation_en_cours": "Evaluation in progress…",
     "le_cron_quotidien_evalue_aussi": "The daily pass — before 9:00 am, with send resumption — also evaluates these rules: it prepares, it never sends.",
     "aucune_regle_titre": "No rules yet",
-    "archiver": "Archive"
+    "archiver": "Archive",
+    "archiver_titre": "Archive “{name}”?",
+    "archiver_texte": "It will no longer be evaluated and leaves this list; its journal and its tasks remain. You can restore it from “Archived rules”.",
+    "annuler": "Cancel",
+    "restaurer": "Restore",
+    "regles_archivees": "Archived rules ({count})",
+    "archivee": "Archived",
+    "nom_archivee": "{name} (archived)"
   },
   "wave": {
     "vague_en_attente": "Pending wave ({n})",
@@ -153,7 +160,8 @@
     "brouillon_enregistre": "Draft saved.",
     "brouillon_ignore": "Draft dismissed.",
     "envois_arretes": "Automatic sending stopped for this contact.",
-    "envois_rearmes": "Automatic sending re-armed for this contact."
+    "envois_rearmes": "Automatic sending re-armed for this contact.",
+    "regle_restauree": "Rule restored — disabled: enable it when you’re ready."
   },
   "settingsCard": {
     "envois_automatiques": "Automatic sending",

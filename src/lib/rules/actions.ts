@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import {
   archiveRule,
+  restoreRule,
   cancelDraft,
   createRule,
   getRuleDraft,
@@ -88,6 +89,19 @@ export async function setRuleEnabledAction(context: { ruleId: string; enabled: b
   let destination = RULES_PATH;
   try {
     await setRuleEnabled(user, context.ruleId, context.enabled);
+  } catch (error) {
+    destination = withError(RULES_PATH, await errorMessage(error));
+  }
+  revalidatePath(RULES_PATH);
+  redirect(destination);
+}
+
+export async function restoreRuleAction(context: { ruleId: string }) {
+  const t = await getTranslations("rules.actions");
+  const user = await requireUser();
+  let destination = withError(RULES_PATH, t("regle_restauree"), "info");
+  try {
+    await restoreRule(user, context.ruleId);
   } catch (error) {
     destination = withError(RULES_PATH, await errorMessage(error));
   }

@@ -224,7 +224,9 @@
     "suivre_la_veille_du_metier_court": "Suivre la veille du métier « {label} »",
     "suivre_details": "{count} {count, plural, one {sujet} other {sujets}}, {count2} {count2, plural, one {source} other {sources}}, {count3} {count3, plural, one {indicateur} other {indicateurs}} de marché",
     "sujets_et_sources": "Sujets et sources",
-    "reglages_de_la_veille": "Réglages de la veille"
+    "reglages_de_la_veille": "Réglages de la veille",
+    "articles_ecartes": "Articles écartés ({count})",
+    "reprendre": "Reprendre"
   },
   "queries": {
     "collecte_interrompue_delai_depasse": "Collecte interrompue (délai dépassé)."

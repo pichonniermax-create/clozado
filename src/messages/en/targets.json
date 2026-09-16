@@ -122,7 +122,10 @@
     "envoi_recap": "Sent on {date} to {recipients, plural, one {# contact} other {# contacts}} · {overlap} in the current audience{percent, select, none {} other { ({percent}%)}}{topics, select, none {} other { · topics: {topics}}}",
     "plus_d_actions": "More actions",
     "modifier_les_criteres": "Edit the criteria and the editorial identity",
-    "contacts_dans_cette_cible": "Contacts in this audience today"
+    "contacts_dans_cette_cible": "Contacts in this audience today",
+    "retirer_titre": "Remove “{name}” from this audience?",
+    "retirer_texte": "The record stays in your contacts; it will no longer receive what you send to this audience. You can add it back with the search above.",
+    "annuler": "Cancel"
   },
   "detailNotFound": {
     "cette_cible_n_existe_pas": "This audience doesn’t exist.",

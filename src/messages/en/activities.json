@@ -28,7 +28,11 @@
     "rien_encore_les_appels_rendez_vous_2f2c": "Nothing yet. Calls, meetings and notes are logged above; stages, shares and completed tasks show up on their own.",
     "supprimer_cette_interaction": "Delete this interaction",
     "systeme": "System",
-    "type_d_interaction": "Interaction type"
+    "type_d_interaction": "Interaction type",
+    "supprimer_interaction_titre": "Delete this interaction?",
+    "supprimer_interaction_texte": "It disappears from the journal and from the record’s export. This cannot be undone.",
+    "supprimer": "Delete",
+    "annuler": "Cancel"
   },
   "kinds": {
     "call": "Call",

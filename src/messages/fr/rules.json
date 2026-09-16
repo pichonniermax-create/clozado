@@ -25,7 +25,14 @@
     "evaluation_en_cours": "Évaluation en cours…",
     "le_cron_quotidien_evalue_aussi": "Le passage quotidien — avant 9h00, avec la reprise des envois — évalue aussi ces règles : il prépare, il n’envoie jamais.",
     "aucune_regle_titre": "Aucune règle pour l’instant",
-    "archiver": "Archiver"
+    "archiver": "Archiver",
+    "archiver_titre": "Archiver « {name} » ?",
+    "archiver_texte": "Elle ne sera plus évaluée et quitte cette liste ; son journal et ses tâches restent. Tu pourras la restaurer depuis « Règles archivées ».",
+    "annuler": "Annuler",
+    "restaurer": "Restaurer",
+    "regles_archivees": "Règles archivées ({count})",
+    "archivee": "Archivée",
+    "nom_archivee": "{name} (archivée)"
   },
   "wave": {
     "vague_en_attente": "Vague en attente ({n})",
@@ -153,7 +160,8 @@
     "brouillon_enregistre": "Brouillon enregistré.",
     "brouillon_ignore": "Brouillon ignoré.",
     "envois_arretes": "Envois automatiques arrêtés pour cette fiche.",
-    "envois_rearmes": "Envois automatiques réarmés pour cette fiche."
+    "envois_rearmes": "Envois automatiques réarmés pour cette fiche.",
+    "regle_restauree": "Règle restaurée — désactivée : active-la quand tu veux."
   },
   "settingsCard": {
     "envois_automatiques": "Envois automatiques",

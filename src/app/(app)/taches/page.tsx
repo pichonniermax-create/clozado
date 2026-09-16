@@ -3,6 +3,7 @@ import { Check, Pencil, RotateCcw, X } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
@@ -373,14 +374,19 @@ function TaskItem({
             </Button>
           </form>
           {!task.autoRule && (
-            <form
-              action={deleteTaskAction.bind(null, { taskId: task.id, backTo })}
-              className="border-t border-border pt-3"
-            >
-              <Button type="submit" variant="ghost" size="sm" className="text-destructive">
+            <div className="border-t border-border pt-3">
+              {/* Derrière la confirmation du socle (stabilisation, D5). */}
+              <ConfirmSubmit
+                action={deleteTaskAction.bind(null, { taskId: task.id, backTo })}
+                title={t("supprimer_tache_titre")}
+                description={t("supprimer_tache_texte", { title: task.title })}
+                confirmLabel={t("supprimer_cette_tache")}
+                cancelLabel={t("annuler")}
+                className="text-destructive"
+              >
                 {t("supprimer_cette_tache")}
-              </Button>
-            </form>
+              </ConfirmSubmit>
+            </div>
           )}
         </div>
       </details>

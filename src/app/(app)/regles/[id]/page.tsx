@@ -4,6 +4,7 @@ import { Archive, ScrollText } from "lucide-react";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { RuleForm } from "@/components/rules/rule-form";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getRule, listRuleFormOptions } from "@/db/queries/rules";
 import { archiveRuleAction, setRuleEnabledAction, updateRuleAction } from "@/lib/rules/actions";
@@ -47,12 +48,18 @@ export default async function EditRulePage({ params }: { params: Promise<{ id: s
                 {rule.enabled ? tl("desactiver") : tl("activer")}
               </Button>
             </form>
-            <form action={archiveRuleAction.bind(null, { ruleId: rule.id })}>
-              <Button type="submit" variant="ghost" aria-label={tl("archiver_la_regle", { name: rule.name })} title={tl("archiver_le_journal_reste")}>
-                <Archive />
-                {tl("archiver")}
-              </Button>
-            </form>
+            <ConfirmSubmit
+              action={archiveRuleAction.bind(null, { ruleId: rule.id })}
+              title={tl("archiver_titre", { name: rule.name })}
+              description={tl("archiver_texte")}
+              confirmLabel={tl("archiver")}
+              cancelLabel={tl("annuler")}
+              size="default"
+              triggerLabel={tl("archiver_le_journal_reste")}
+            >
+              <Archive />
+              {tl("archiver")}
+            </ConfirmSubmit>
             <Link href={`/regles/journal?regle=${rule.id}`} className={buttonVariants({ variant: "ghost" })}>
               <ScrollText />
               {tl("journal")}

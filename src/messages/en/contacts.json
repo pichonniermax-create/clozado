@@ -133,7 +133,10 @@
       "clicked": "clicked"
     },
     "nouvelle_affaire": "New deal",
-    "annuler": "Cancel"
+    "annuler": "Cancel",
+    "fusionner_titre": "Merge “{other}” into “{name}”?",
+    "fusionner_texte": "The deals, tasks, interactions and tags of “{other}” move to this record, then “{other}” is closed for good (identity erased). This cannot be undone.",
+    "fusionner": "Merge"
   },
   "detailNotFound": {
     "cette_fiche_n_existe_pas": "This record doesn’t exist.",

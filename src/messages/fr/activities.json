@@ -28,7 +28,11 @@
     "rien_encore_les_appels_rendez_vous_2f2c": "Rien encore. Les appels, rendez-vous et notes se consignent ci-dessus ; les étapes, partages et tâches achevées arrivent tout seuls.",
     "supprimer_cette_interaction": "Supprimer cette interaction",
     "systeme": "Système",
-    "type_d_interaction": "Type d’interaction"
+    "type_d_interaction": "Type d’interaction",
+    "supprimer_interaction_titre": "Supprimer cette interaction ?",
+    "supprimer_interaction_texte": "Elle disparaît du journal et de l’export de la fiche. Ce geste ne se défait pas.",
+    "supprimer": "Supprimer",
+    "annuler": "Annuler"
   },
   "kinds": {
     "call": "Appel",

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Copy, Ellipsis, Mail, PowerOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { DetailsCard } from "@/components/ui/details-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -211,11 +212,15 @@ export default async function TargetPage({
                       {[c.email, c.kind === "person" ? c.companyName : null, c.city].filter(Boolean).join(" · ") || "—"}
                     </span>
                   </Link>
-                  <form action={removeMemberAction.bind(null, target.id, c.id)}>
-                    <Button type="submit" variant="ghost" size="sm">
-                      {t("retirer")}
-                    </Button>
-                  </form>
+                  <ConfirmSubmit
+                    action={removeMemberAction.bind(null, target.id, c.id)}
+                    title={t("retirer_titre", { name: c.name })}
+                    description={t("retirer_texte")}
+                    confirmLabel={t("retirer")}
+                    cancelLabel={t("annuler")}
+                  >
+                    {t("retirer")}
+                  </ConfirmSubmit>
                 </ListRow>
               ) : (
                 <ListRowLink

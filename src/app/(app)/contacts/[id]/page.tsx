@@ -7,6 +7,7 @@ import { suppressionOfContact } from "@/db/queries/email-events";
 import { getContactIndicators, listSentNewslettersOfContact } from "@/db/queries/engagement";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -178,11 +179,17 @@ export default async function ContactPage({
                     {[d.email, d.companyName].filter(Boolean).map((x) => ` · ${x}`)}
                   </span>
                 </span>
-                <form action={mergeContactsAction.bind(null, contact.id, d.id)}>
-                  <Button type="submit" variant="outline" size="sm">
-                    {tr("fusionner_dans_cette_fiche")}
-                  </Button>
-                </form>
+                {/* Irréversible (l'autre fiche devient une pierre tombale) : derrière la confirmation du socle (stabilisation, D1). */}
+                <ConfirmSubmit
+                  action={mergeContactsAction.bind(null, contact.id, d.id)}
+                  title={tr("fusionner_titre", { name: contact.name, other: d.name })}
+                  description={tr("fusionner_texte", { other: d.name })}
+                  confirmLabel={tr("fusionner")}
+                  cancelLabel={tr("annuler")}
+                  variant="outline"
+                >
+                  {tr("fusionner_dans_cette_fiche")}
+                </ConfirmSubmit>
               </li>
             ))}
           </ul>

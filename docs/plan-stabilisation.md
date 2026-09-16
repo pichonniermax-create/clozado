@@ -525,5 +525,17 @@ chantier B, dont la migration ne sera rédigée qu'après tes réponses.
   la persona « Thomas Renard » de la démo reçoit une adresse réelle par
   `scripts/demo-member.ts` (réversible), et le lien de connexion n'est plus
   refusé à une personne réelle rattachée à la démo (`src/auth.ts`).
+- **Chantier A, étape 2 — gestes irréversibles (D1, D3, D4, D5, D6) — faite
+  le 2026-09-16.** Fusion de contacts, suppression d'une interaction, d'une
+  tâche, retrait d'un membre de cible et archivage d'une règle passent par
+  `ConfirmSubmit` (qui gagne `triggerLabel` pour les déclencheurs-icônes) ;
+  les règles archivées vivent repliées sous la liste avec « Restaurer »
+  (`restoreRule`, revient désactivée) et se filtrent dans le journal ; les
+  articles de veille écartés vivent repliés sous le fil avec « Reprendre »
+  (`listDismissedWatchItems`) ; le nom d'une fiche ne se recompose qu'avec
+  prénom ET nom (`displayNameAfterUpdate`, cinq tests). Preuve : sept
+  contrôles ajoutés à `scripts/test-isolation.ts` (archiver / lister /
+  restaurer, refus depuis une autre organisation, nom conservé puis
+  recomposé), joués contre la base ; les confirmations se voient à l'écran.
 
 STOP.

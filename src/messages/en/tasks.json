@@ -49,7 +49,10 @@
     "tu_es_en_vue_globale_choisis_3e1f": "You’re in global view: choose an organization in the super admin bar at the top of the screen to see its tasks.",
     "unite_de_recurrence": "Recurrence unit",
     "modifier_la_tache": "Edit task",
-    "tache_automatique_explication": "Created on its own by the follow-up (unanswered share, stalled deal, unsettled commission): completing it counts as “handled”."
+    "tache_automatique_explication": "Created on its own by the follow-up (unanswered share, stalled deal, unsettled commission): completing it counts as “handled”.",
+    "supprimer_tache_titre": "Delete this task?",
+    "supprimer_tache_texte": "“{title}” disappears for good. A completed task can simply stay in “Completed”.",
+    "annuler": "Cancel"
   },
   "priorities": {
     "high": "High",

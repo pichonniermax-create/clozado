@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { autoRuleLabel } from "@/components/tasks/labels";
@@ -215,20 +216,20 @@ function JournalRow({
             <Badge variant="secondary">{autoRuleLabel(entry.autoRule, tt)}</Badge>
           )}
           {entry.activityId && (
-            <form
-              action={deleteActivityAction.bind(null, { backTo, activityId: entry.activityId })}
-              className="ml-auto"
-            >
-              <Button
-                type="submit"
-                variant="ghost"
+            <div className="ml-auto">
+              {/* Une interaction saisie se supprime — derrière la confirmation du socle (stabilisation, D5). */}
+              <ConfirmSubmit
+                action={deleteActivityAction.bind(null, { backTo, activityId: entry.activityId })}
+                title={t("supprimer_interaction_titre")}
+                description={t("supprimer_interaction_texte")}
+                confirmLabel={t("supprimer")}
+                cancelLabel={t("annuler")}
                 size="icon-sm"
-                aria-label={t("supprimer_cette_interaction")}
-                title={t("supprimer_cette_interaction")}
+                triggerLabel={t("supprimer_cette_interaction")}
               >
                 <Trash2 />
-              </Button>
-            </form>
+              </ConfirmSubmit>
+            </div>
           )}
         </div>
         {body && <p className="text-sm whitespace-pre-line text-muted-foreground">{body}</p>}

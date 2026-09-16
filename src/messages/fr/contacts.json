@@ -133,7 +133,10 @@
       "clicked": "cliqué"
     },
     "nouvelle_affaire": "Nouvelle affaire",
-    "annuler": "Annuler"
+    "annuler": "Annuler",
+    "fusionner_titre": "Fusionner « {other} » dans « {name} » ?",
+    "fusionner_texte": "Les affaires, tâches, interactions et étiquettes de « {other} » passent sur cette fiche, puis « {other} » est fermée définitivement (identité effacée). Ce geste ne se défait pas.",
+    "fusionner": "Fusionner"
   },
   "detailNotFound": {
     "cette_fiche_n_existe_pas": "Cette fiche n’existe pas.",
