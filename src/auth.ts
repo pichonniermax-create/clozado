@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import NextAuth, { AuthError, type NextAuthConfig } from "next-auth";
 import Resend from "next-auth/providers/resend";
-import { isReservedExampleAddress } from "@/lib/demo/constants";
+import { isKnownSignInEmail, magicLinkMayBeSentTo } from "@/lib/auth/magic-link-guard";
 import { renderMagicLinkEmail } from "@/lib/email/magic-link";
 import { sendEmail } from "@/lib/email/resend";
 import { productSender } from "@/lib/email/sender";
@@ -59,11 +59,9 @@ export const authConfig: NextAuthConfig = {
       async sendVerificationRequest({ identifier, url, token }) {
         // LA DÉMO (docs/module-demo.md §1.2) : jamais d'email vers une adresse réservée aux
         // exemples — toutes les personas de la démo en portent une — ; la page « vérifie ta
-        // boîte » s'affiche quand même, rien ne le dit à un inconnu. Une PERSONNE RÉELLE
-        // rattachée à l'organisation de démo (le compte member de test, scripts/demo-member.ts)
-        // reçoit son lien : c'est un email du produit, pas un envoi de l'organisation
-        // (plan de stabilisation, complément à l'étape 1 du chantier A).
-        if (isReservedExampleAddress(identifier)) return;
+        // boîte » s'affiche quand même, rien ne le dit à un inconnu. La garde vit dans
+        // src/lib/auth/magic-link-guard.ts, exercée par test-isolation contre la base.
+        if (!magicLinkMayBeSentTo(identifier)) return;
         const email = await renderMagicLinkEmail(identifier, url);
         // La clé d'idempotence : l'empreinte du jeton — unique par demande, jamais le jeton lui-même chez un tiers.
         const idempotencyKey = `magic-link/${createHash("sha256").update(token).digest("hex")}`;
@@ -81,11 +79,7 @@ export const authConfig: NextAuthConfig = {
     // Pas d'auto-inscription : seul un email déjà créé en base (par un
     // super_admin ou l'admin de son organisation) peut se connecter.
     async signIn({ user }) {
-      if (!user.email) return false;
-      const existing = await db.query.users.findFirst({
-        where: eq(users.email, user.email),
-      });
-      return Boolean(existing);
+      return isKnownSignInEmail(user.email);
     },
     // On enrichit le jeton avec le rôle et l'organisation, lus en base.
     async jwt({ token, user }) {

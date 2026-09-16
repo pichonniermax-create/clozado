@@ -395,6 +395,63 @@ async function main() {
     await contactsQ.updateContact(a.admin, a.contactId, { name: "Jean Durand", firstName: "Jean", lastName: "Durand" });
     expect("updateContact(prénom + nom) recompose « Jean Durand »", (await db.query.contacts.findFirst({ where: eq(contacts.id, a.contactId) }))?.name === "Jean Durand");
 
+    console.log("\n--- La garde de connexion de la démo : qui reçoit un lien de connexion, qui n'en reçoit pas");
+    const guard = await import("../src/lib/auth/magic-link-guard");
+    const { DEMO_ORGANIZATION_ID, isReservedExampleAddress } = await import("../src/lib/demo/constants");
+    const demoUsers = await db.select({ email: users.email, role: users.role }).from(users).where(eq(users.organizationId, DEMO_ORGANIZATION_ID));
+    if (demoUsers.length === 0) {
+      console.log("  (aucune organisation de démo sur cette base : contrôles sautés)");
+    } else {
+      expect("une adresse jamais rattachée à aucun compte ne reçoit aucun lien", (await guard.canReceiveMagicLink(`inconnu-${Date.now()}@gmail.com`)) === false);
+      const fictional = demoUsers.filter((u) => isReservedExampleAddress(u.email));
+      expect(`les personas de la démo à adresse fictive (${fictional.length}) ne reçoivent aucun lien`, fictional.length > 0 && (await Promise.all(fictional.map((u) => guard.canReceiveMagicLink(u.email)))).every((v) => v === false));
+      const real = demoUsers.filter((u) => !isReservedExampleAddress(u.email));
+      expect(
+        `seules les adresses réelles rattachées par script reçoivent un lien (${real.length} : ${real.map((u) => `${u.role} ${u.email.replace(/^(.).*@/, "$1…@")}`).join(", ") || "aucune"})`,
+        (await Promise.all(real.map((u) => guard.canReceiveMagicLink(u.email)))).every((v) => v === true)
+      );
+      expect("le compte jetable de ce script (adresse .invalid) ne reçoit aucun lien non plus", (await guard.canReceiveMagicLink(`admin@${SLUGS[0]}.invalid`)) === false);
+    }
+
+    console.log("\n--- La démo publique reste en lecture seule (sonde HTTP sur le site en ligne)");
+    // Le site EN LIGNE par défaut : `.env.local` porte APP_URL=http://localhost:3000 (le serveur local), qui ne
+    // prouverait rien. PROBE_URL surcharge ; un APP_URL en https est accepté (Vercel).
+    const appUrl = (process.env.PROBE_URL ?? (process.env.APP_URL?.startsWith("https://") ? process.env.APP_URL : "https://clozado.vercel.app")).replace(/\/$/, "");
+    // Une sonde réseau échoue parfois d'un aléa (DNS, reprise TLS) : un second essai avant de conclure, et la cause dans le détail.
+    const probe = async (input: string, init?: RequestInit): Promise<Response> => {
+      try {
+        return await fetch(input, init);
+      } catch {
+        await new Promise((r) => setTimeout(r, 1500));
+        return fetch(input, init);
+      }
+    };
+    try {
+      const entry = await probe(`${appUrl}/demo`, { redirect: "manual" });
+      if (entry.status === 404) {
+        console.log("  (démo publique fermée : contrôles sautés)");
+      } else {
+        const setCookie = entry.headers.get("set-cookie") ?? "";
+        const cookie = /clozado-demo=([^;]+)/.exec(setCookie)?.[1];
+        expect(`GET /demo → 303 vers /dashboard?visite=1 avec un cookie de visite (${entry.status})`, entry.status === 303 && (entry.headers.get("location") ?? "").includes("/dashboard") && Boolean(cookie));
+        if (cookie) {
+          const headers = { cookie: `clozado-demo=${cookie}` };
+          const read = await probe(`${appUrl}/contacts`, { headers, redirect: "manual" });
+          expect(`GET /contacts avec le cookie → lecture permise (${read.status})`, read.status === 200);
+          const write = await probe(`${appUrl}/contacts`, { method: "POST", headers, redirect: "manual", body: "" });
+          expect(`POST /contacts avec le cookie → 303 vers ?demo=lecture-seule (${write.status})`, write.status === 303 && (write.headers.get("location") ?? "").includes("demo=lecture-seule"));
+          const settings = await probe(`${appUrl}/settings`, { headers, redirect: "manual" });
+          expect(`GET /settings avec le cookie → 303 vers /dashboard?demo=lecture-seule (${settings.status})`, settings.status === 303 && (settings.headers.get("location") ?? "").includes("demo=lecture-seule"));
+          const api = await probe(`${appUrl}/api/contacts/00000000-0000-4000-8000-000000000000/export`, { method: "POST", headers, redirect: "manual", body: "" });
+          expect(`POST /api/… avec le cookie → 403 demo_read_only (${api.status})`, api.status === 403);
+        }
+      }
+    } catch (error) {
+      const cause = (error as { cause?: { errors?: { code?: string; address?: string; message?: string }[]; code?: string; message?: string } }).cause;
+      const detail = cause?.errors ? cause.errors.map((e) => `${e.code ?? "?"} ${e.address ?? ""} ${e.message ?? ""}`).join(" | ") : `${cause?.code ?? ""} ${cause?.message ?? String(cause ?? "?")}`;
+      ko("sonde HTTP de la démo publique", `${String(error)} — cause : ${detail}`);
+    }
+
     console.log("\n--- La base elle-même : une ligne qui mélange deux organisations est rejetée (FK composites)");
     const fkViolation = async (label: string, statement: Promise<unknown>) => {
       try {

@@ -232,6 +232,14 @@ tout. Un admin a un bouton « Toute l'équipe » (paramètre d'URL, mémorisé e
 cookie) qui regroupe par personne. Le badge suit le même filtre. P1 et P3 de
 §1 (responsable posé par défaut) sont ce qui rend ce filtre juste.
 
+**Le même défaut sur les listes** (ajouté le 2026-09-16 après le test en
+member) : sur `/taches`, `/contacts` et `/affaires` (vue liste), le filtre
+par conseiller vaut **la personne connectée** par défaut dès que
+l'organisation compte plus d'une personne — « Tout le monde » à un clic,
+mémorisé en cookie, pour un member comme pour un admin. Aujourd'hui Thomas
+ouvre `/taches` sur « Tout le monde » et voit les 44 fiches du cabinet
+avant de filtrer. Le kanban ne change pas (il ne filtre rien) — **V14**.
+
 **Ce qui disparaît ou fusionne**
 
 | Aujourd'hui | Devient |
@@ -497,6 +505,7 @@ une adresse réelle autre que la tienne.
 | V11 | Semer quatre motifs de perte par défaut dans la langue de l'organisation (proposition : « Taux ou conditions concurrents », « Projet abandonné ou reporté », « Sans réponse », « Hors critères ») pour toute organisation qui n'en a aucun | oui ; libellés à ta main |
 | V12 | Réécrire la phrase d'accueil « Clozado n'est pas un CRM » et la métadonnée « assistance marketing » | à toi : c'est le discours de vente |
 | V13 | La visite guidée ne se lance plus seule ; premiers pas réordonnés (contacts, affaire, adresse postale, marque…) | oui, si tu veux que la première semaine commence par le CRM |
+| V14 | Sur `/taches`, `/contacts` et la liste des affaires, le filtre par conseiller vaut la personne connectée par défaut (organisation à plusieurs), « Tout le monde » à un clic, mémorisé | oui |
 
 Aucune de ces décisions n'est nécessaire au chantier A. Toutes le sont au
 chantier B, dont la migration ne sera rédigée qu'après tes réponses.
@@ -537,5 +546,22 @@ chantier B, dont la migration ne sera rédigée qu'après tes réponses.
   contrôles ajoutés à `scripts/test-isolation.ts` (archiver / lister /
   restaurer, refus depuis une autre organisation, nom conservé puis
   recomposé), joués contre la base ; les confirmations se voient à l'écran.
+  **D2 (formulaire de règle qui perd la saisie) n'est pas dans cette étape :
+  il est planifié en étape 5 (§6, chantier A), avec l'import et les emails,
+  parce que c'est un M (formulaire contrôlé, `useActionState`) et non un
+  `ConfirmSubmit`.**
+- **Complément à l'étape 2 — la garde de connexion de la démo, prouvée (le
+  2026-09-16).** La garde du lien magique changée au complément de l'étape 1
+  aurait dû passer par un STOP (changement d'authentification en
+  production). Avant : refus si l'adresse est réservée aux exemples OU si le
+  compte appartient à une organisation de démo. Après : refus si l'adresse
+  est réservée aux exemples — le callback `signIn` refusant par ailleurs
+  toute adresse absente de `users`. Les deux gardes vivent dans
+  `src/lib/auth/magic-link-guard.ts` ; `scripts/test-isolation.ts` prouve
+  contre la base qu'une adresse jamais rattachée, les personas fictives et
+  le compte jetable du script ne reçoivent aucun lien, que seules les
+  adresses réelles posées par script en reçoivent, et par sonde HTTP sur le
+  site que la démo publique reste en lecture seule (écriture → 303
+  `?demo=lecture-seule`, réglages interdits, API → 403).
 
 STOP.
