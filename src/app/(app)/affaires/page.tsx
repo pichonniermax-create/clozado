@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ContactPicker } from "@/components/contacts/contact-picker";
 import { errorMessage, withError } from "@/lib/form-actions";
 import { redirect } from "next/navigation";
 import { ArrowDown, ArrowUp, Columns3, Rows3 } from "lucide-react";
@@ -156,6 +157,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
     const clientName = String(formData.get("clientName") ?? "").trim();
     const typeId = String(formData.get("typeId") ?? "").trim();
     const contactId = String(formData.get("contactId") ?? "").trim() || null;
+    const ownerId = String(formData.get("ownerId") ?? "").trim() || null;
     const statusId = String(formData.get("statusId") ?? "").trim() || undefined;
     const backTo = `/affaires?vue=${formData.get("vue")}&pipeline=${formData.get("pipelineId")}`;
     // Chaque manque a sa phrase et ramène au formulaire ouvert (stabilisation, E4) — avant, « Créer l'affaire » ne
@@ -168,15 +170,18 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
     const rawAmount = String(formData.get("estimatedAmount") ?? "").trim();
     let destination = backTo;
     try {
-      await createDealAction({
+      const deal = await createDealAction({
         title,
         clientName,
         typeId,
         statusId,
         contactId,
+        ownerId,
         estimatedAmount: rawAmount || null,
         description: String(formData.get("description") ?? "").trim() || null,
       });
+      // Vers la fiche créée (stabilisation, P1) : c'est là qu'on complète — pas un retour à la liste.
+      destination = `/affaires/${deal.id}`;
     } catch (error) {
       destination = withError(`${backTo}&nouveau=1`, await errorMessage(error));
     }
@@ -272,9 +277,6 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
             {/* L'affaire naît dans le pipeline affiché, à sa première étape. */}
             <input type="hidden" name="statusId" value={stages[0]?.id ?? ""} />
             {prefillContact && (
-              <input type="hidden" name="contactId" value={prefillContact.id} />
-            )}
-            {prefillContact && (
               <p className="text-sm text-muted-foreground">
                 {tr.rich("cette_affaire_sera_reliee_a_la_eee1", { name: prefillContact.name, span: (chunks) => <span className="font-medium text-foreground">{chunks}</span> })}
               </p>
@@ -284,12 +286,13 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
                 <Input id="title" name="title" placeholder={tr("financement_appartement_lyon")} required />
               </Field>
               <Field label={tr("client_concerne")} htmlFor="clientName">
-                <Input
-                  id="clientName"
-                  name="clientName"
+                {/* Une fiche existante par son nom, ou un nom libre (stabilisation, P1). */}
+                <ContactPicker
+                  inputId="clientName"
+                  initialName={prefillContact?.name ?? ""}
+                  initialContactId={prefillContact?.id ?? null}
                   placeholder={tr("m_et_mme_perrin")}
-                  defaultValue={prefillContact?.name ?? ""}
-                  required={!prefillContact}
+                  required
                 />
               </Field>
               <Field label={tr("type")} htmlFor="typeId">
@@ -314,6 +317,21 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
               <Field label={tr("montant_estime", { currency: fmt.currency })} htmlFor="estimatedAmount">
                 <Input id="estimatedAmount" name="estimatedAmount" type="number" min="0" />
               </Field>
+              {/* Le responsable, la personne connectée par défaut (stabilisation, P1) ; à plusieurs, le choix. */}
+              {orgUsers.length > 1 ? (
+                <Field label={tr("responsable")} htmlFor="ownerId">
+                  <NativeSelect id="ownerId" name="ownerId" defaultValue={user.id} className="w-full">
+                    <option value="">{tr("personne")}</option>
+                    {orgUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name || u.email}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              ) : (
+                <input type="hidden" name="ownerId" value={user.id} />
+              )}
             </div>
             <Field label={tr("description")} htmlFor="description">
               <Textarea id="description" name="description" className="min-h-16" />

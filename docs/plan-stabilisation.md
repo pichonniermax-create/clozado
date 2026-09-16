@@ -582,5 +582,24 @@ chantier B, dont la migration ne sera rédigée qu'après tes réponses.
   `actionResult`, `validateContactInput` par tests unitaires (dix cas) ;
   libellés vides refusés avec leur clé dans `scripts/test-isolation.ts`
   contre la base ; le reste se voit à l'écran.
+- **Chantier A, étape 4 — l'affaire complète (P1, P2, P3) — faite le
+  2026-09-16 ; P8 (redirections de connexion) présenté, en attente d'accord.**
+  P1 : `createDeal` pose le responsable (la personne qui crée, sauf choix
+  explicite ; jamais un id étranger), le formulaire de création choisit le
+  client par son nom parmi les fiches existantes (`ContactPicker`, la
+  recherche de la palette) ou garde un nom libre, propose le responsable
+  quand l'organisation compte plusieurs personnes, et mène à la fiche
+  créée ; `updateDealDetails` accepte `contactId` (fiche de l'organisation,
+  vivante, nom copié) et la fiche d'affaire a « Rattacher une fiche
+  contact ». P2 : les types d'affaire vivent dans la carte des pipelines
+  (renommée « Pipelines et types d'affaire », ancre `#types`) — liste,
+  renommer, ajouter, jamais supprimer ; un espace neuf naît avec un type
+  « Dossier » (`defaultDealTypeValues`, dans le lot de création, dans sa
+  langue) : plus de blocage « Choisis le type ». P3 : le conseiller d'un
+  nouveau contact est la personne connectée ; le sélecteur n'apparaît qu'à
+  plusieurs. Preuve contre la base : responsable par défaut, « Personne »
+  explicite, responsable étranger refusé, rattachement d'une fiche avec
+  copie du nom, fiche étrangère refusée, espace neuf créé par
+  `createOrganizationWithAdmin` avec son type « Dossier » puis supprimé.
 
 STOP.

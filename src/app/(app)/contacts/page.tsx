@@ -89,7 +89,7 @@ export default async function ContactsPage({
 
       {/* Reste dans le DOM même repliée : la visite guidée l'éclaire (`contacts-nouveau`) et `?nouveau=1` l'ouvre. */}
       <DetailsCard summary={t("nouveau_contact")} defaultOpen={params.nouveau === "1"} tour="contacts-nouveau">
-        <ContactCreateForm orgUsers={orgUsers} />
+        <ContactCreateForm orgUsers={orgUsers} currentUserId={user.id} />
       </DetailsCard>
 
       <section className="flex flex-col gap-3">

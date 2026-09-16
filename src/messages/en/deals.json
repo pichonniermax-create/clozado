@@ -45,7 +45,9 @@
     "vide_celle_de_l_etape_f17a": "Empty = the stage’s probability.",
     "depuis_n": "for {n}",
     "affaire_close_pas_de_partage": "This deal is closed: it can no longer be shared. Its past shares stay listed above.",
-    "partager_cette_affaire": "Share this deal"
+    "partager_cette_affaire": "Share this deal",
+    "rattacher_une_fiche_contact": "Attach a contact record",
+    "rattacher": "Attach"
   },
   "detailNotFound": {
     "cette_affaire_n_existe_pas": "This deal doesn’t exist.",
@@ -120,7 +122,8 @@
     "tu_es_en_vue_globale": "You’re in global view",
     "type": "Type",
     "un_pipeline_est_une_famille_d_ad50": "A pipeline is a family of deals with its own stages (credit, investment, transaction…). It’s created from Brand & settings.",
-    "cloture_depassee": "Expected close date passed"
+    "cloture_depassee": "Expected close date passed",
+    "personne": "Nobody"
   },
   "queries": {
     "defaultPipeline": "Deals",
@@ -131,7 +134,8 @@
       "acceptee": "Accepted",
       "perdue": "Lost"
     },
-    "nouveau": "New"
+    "nouveau": "New",
+    "defaultDealType": "Deal"
   },
   "selectionBanner": {
     "a_la_date_de_la_perte": "{period} (by loss date)",

@@ -19,6 +19,7 @@ const SECTIONS = [
   { id: "logo", key: "logo" },
   { id: "pack-metier", key: "pack_metier" },
   { id: "pipelines", key: "pipelines" },
+  { id: "types", key: "types" },
   { id: "collecte", key: "collecte" },
   { id: "motifs", key: "motifs" },
 ] as const;

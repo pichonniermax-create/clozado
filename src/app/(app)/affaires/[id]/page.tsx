@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ContactPicker } from "@/components/contacts/contact-picker";
 import { withError } from "@/lib/form-actions";
 import { nullIfNotFound } from "@/lib/errors";
 import { notFound, redirect } from "next/navigation";
@@ -119,6 +120,17 @@ export default async function DealPage({
   const activePartners = partners.filter(
     (p) => p.active && p.organizationId === deal.organizationId
   );
+
+  // Rattacher une fiche contact après coup (stabilisation, P1) : une affaire née d'un nom libre pouvait rester
+  // sans fiche pour toujours.
+  async function attachContact(formData: FormData) {
+    "use server";
+    const contactId = String(formData.get("contactId") ?? "").trim();
+    const back = `/affaires/${id}`;
+    if (!contactId) redirect(withError(back, (await getTranslations("errors"))("choisis_une_fiche_dans_la_liste")));
+    const saved = await updateDealDetailsAction(id, { contactId });
+    redirect(saved.ok ? back : withError(back, saved.error));
+  }
 
   // UN seul formulaire pour l'étape et les détails (audit UI du 2026-09-14) : avant, « Déplacer » (étape) et
   // « Enregistrer » (montant, probabilité…) étaient deux formulaires côte à côte — corriger le montant puis changer
@@ -337,7 +349,15 @@ export default async function DealPage({
             </p>
           )}
           {!deal.contactId ? (
-            <p className="text-sm text-muted-foreground">{tr("sans_fiche_contact_aucun_lead_ne_fe08")}</p>
+            <form action={attachContact} className="flex flex-col gap-2">
+              <p className="text-sm text-muted-foreground">{tr("sans_fiche_contact_aucun_lead_ne_fe08")}</p>
+              <div className="flex flex-wrap items-end gap-2">
+                <Field label={tr("rattacher_une_fiche_contact")} htmlFor="attachContact" className="min-w-64 flex-1">
+                  <ContactPicker inputId="attachContact" initialName="" initialContactId={null} placeholder={deal.clientName} required allowFreeText={false} />
+                </Field>
+                <Button type="submit" variant="outline">{tr("rattacher")}</Button>
+              </div>
+            </form>
           ) : contactLeads.length === 0 ? (
             <p className="text-sm text-muted-foreground">{tr("ce_contact_n_a_recu_aucun_7e40")}</p>
           ) : (

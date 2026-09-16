@@ -140,6 +140,7 @@
   "le_nom_du_partenaire_est_obligatoire": "Le nom du partenaire est obligatoire.",
   "la_date_de_naissance_est_illisible": "La date de naissance est illisible : une date du calendrier, au format AAAA-MM-JJ.",
   "la_saisie_est_trop_longue_ou_invalide": "Un champ est trop long ou mal formé : vérifie la saisie.",
+  "choisis_une_fiche_dans_la_liste": "Choisis une fiche dans la liste proposée.",
   "le_titre_est_obligatoire": "Le titre est obligatoire.",
   "lead_introuvable_pour_cette_organisation": "Lead introuvable pour cette organisation.",
   "les_conditions_de_la_regle_sont_illisibles": "Les conditions de la règle sont illisibles — recharge l’écran et réessaie.",

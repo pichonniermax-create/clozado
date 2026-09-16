@@ -257,10 +257,18 @@
       "pack_metier": "Pack métier",
       "pipelines": "Pipelines",
       "collecte": "Collecte",
-      "motifs": "Motifs de perte"
+      "motifs": "Motifs de perte",
+      "types": "Types d’affaire"
     },
     "choisis_un_pack_avant_d_enregistrer": "Choisis un pack métier avant d’enregistrer.",
-    "le_nom_affiche_est_obligatoire": "Le nom affiché est obligatoire."
+    "le_nom_affiche_est_obligatoire": "Le nom affiché est obligatoire.",
+    "pipelines_et_types_d_affaire": "Pipelines et types d’affaire",
+    "types_d_affaire": "Types d’affaire",
+    "le_vocabulaire_de_tes_affaires": "Le vocabulaire de tes affaires — « Crédit immobilier », « Assurance-vie », « Transaction »… — proposé à la création d’une affaire. Un type se renomme, ne se supprime pas : les affaires le citent.",
+    "aucun_type_pour_l_instant": "Aucun type pour l’instant.",
+    "libelle_du_type": "Libellé du type",
+    "nouveau_type": "Nouveau type",
+    "credit_immobilier_assurance_vie": "Crédit immobilier, Assurance-vie…"
   },
   "queries": {
     "fields": {

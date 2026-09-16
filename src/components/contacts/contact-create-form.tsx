@@ -5,13 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { createContactAction, type CreateContactState } from "@/lib/contacts/actions";
 import { useTranslations } from "next-intl";
@@ -26,7 +20,7 @@ type OrgUser = { id: string; name: string | null; email: string };
  * qui venait d'être saisi doit rester à l'écran (React 19 vide un
  * formulaire non contrôlé après l'action).
  */
-export function ContactCreateForm({ orgUsers }: { orgUsers: OrgUser[] }) {
+export function ContactCreateForm({ orgUsers, currentUserId }: { orgUsers: OrgUser[]; currentUserId: string }) {
   const t = useTranslations("contacts.contactCreateForm");
   const [state, action, pending] = useActionState(createContactAction, initialState);
   const [kind, setKind] = useState<"person" | "company">("person");
@@ -106,28 +100,22 @@ export function ContactCreateForm({ orgUsers }: { orgUsers: OrgUser[] }) {
         <Field label={t("pays")} htmlFor="country">
           <Input id="country" name="country" value={val("country")} onChange={set("country")} />
         </Field>
-        {orgUsers.length > 0 && (
+        {/* Le conseiller, la personne connectée par défaut (stabilisation, P3) — seule, elle n'a rien à choisir ;
+            à plusieurs, le select natif du socle, comme sur la fiche. Avant : « Personne » par défaut, et un
+            sélecteur affiché dès un seul utilisateur. */}
+        {orgUsers.length > 1 ? (
           <Field label={t("conseiller_attribue")} htmlFor="ownerId">
-            <Select
-              name="ownerId"
-              items={[
-                { label: t("personne"), value: "" },
-                ...orgUsers.map((u) => ({ label: u.name || u.email, value: u.id })),
-              ]}
-            >
-              <SelectTrigger id="ownerId" className="w-full">
-                <SelectValue placeholder={t("personne")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">{t("personne")}</SelectItem>
-                {orgUsers.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name || u.email}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <NativeSelect id="ownerId" name="ownerId" defaultValue={currentUserId}>
+              <option value="">{t("personne")}</option>
+              {orgUsers.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name || u.email}
+                </option>
+              ))}
+            </NativeSelect>
           </Field>
+        ) : (
+          <input type="hidden" name="ownerId" value={currentUserId} />
         )}
       </div>
       <Field label={t("notes")} htmlFor="notes">

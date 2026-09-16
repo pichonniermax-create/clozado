@@ -249,5 +249,11 @@
     "objectif_de_l_email_a_preciser_2f4d": "Objectif de l’email : (à préciser avant de générer)",
     "plusieurs_fiches_portent_a_departager_a_a3f7": "Plusieurs fiches portent « {email} » — à départager à la main avant de compléter.",
     "trop_de_lignes_l_import_est_f3ad": "Trop de lignes ({count}) : l’import est limité à {maxImportRows} par passage."
+  },
+  "contactPicker": {
+    "reliee_a_la_fiche": "Reliée à la fiche {name}.",
+    "aucune_fiche_le_nom_reste": "Aucune fiche à ce nom : le nom sera gardé tel quel, tu pourras rattacher une fiche plus tard.",
+    "aucune_fiche_a_ce_nom": "Aucune fiche à ce nom.",
+    "tape_un_nom": "Tape un nom : une fiche existante se propose."
   }
 }

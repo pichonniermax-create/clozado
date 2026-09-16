@@ -249,5 +249,11 @@
     "objectif_de_l_email_a_preciser_2f4d": "Email goal: (to be specified before generating)",
     "plusieurs_fiches_portent_a_departager_a_a3f7": "Several records carry “{email}” — sort them out by hand before completing.",
     "trop_de_lignes_l_import_est_f3ad": "Too many rows ({count}): imports are limited to {maxImportRows} per run."
+  },
+  "contactPicker": {
+    "reliee_a_la_fiche": "Linked to the record {name}.",
+    "aucune_fiche_le_nom_reste": "No record with this name: the name is kept as typed, you can attach a record later.",
+    "aucune_fiche_a_ce_nom": "No record with this name.",
+    "tape_un_nom": "Type a name: an existing record shows up."
   }
 }

@@ -140,6 +140,7 @@
   "le_nom_du_partenaire_est_obligatoire": "The partner’s name is required.",
   "la_date_de_naissance_est_illisible": "The birth date is unreadable: a calendar date, in YYYY-MM-DD format.",
   "la_saisie_est_trop_longue_ou_invalide": "A field is too long or malformed: check what you typed.",
+  "choisis_une_fiche_dans_la_liste": "Choose a record from the list.",
   "le_titre_est_obligatoire": "The title is required.",
   "lead_introuvable_pour_cette_organisation": "Lead not found for this organization.",
   "les_conditions_de_la_regle_sont_illisibles": "The rule conditions are unreadable — reload the screen and try again.",

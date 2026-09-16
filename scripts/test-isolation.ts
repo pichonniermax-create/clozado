@@ -56,10 +56,10 @@ async function main() {
   const { organizations, users, contacts, deals, tasks, activities, dealEvents, dealStageChanges, dealShares, dealTypes, dealStatuses, contactAccessLog, partners, commissions, pipelines } = schema;
 
   // Jamais deux passages simultanés, et jamais de reliquat d'un passage interrompu.
-  const leftovers = await db.select({ id: organizations.id }).from(organizations).where(inArray(organizations.slug, [...SLUGS]));
+  const leftovers = await db.select({ id: organizations.id }).from(organizations).where(inArray(organizations.slug, [...SLUGS, "_iso-c"]));
   if (leftovers.length > 0) {
     console.log("Reliquats d'un passage précédent : suppression avant de commencer.");
-    await db.delete(organizations).where(inArray(organizations.slug, [...SLUGS]));
+    await db.delete(organizations).where(inArray(organizations.slug, [...SLUGS, "_iso-c"]));
   }
 
   type Fixture = {
@@ -400,6 +400,31 @@ async function main() {
     await expectAppError("updateStage(A, libellé vide) → phrase", () => pipelinesQ.updateStage(a!.admin, a!.statuses[0].id, { label: "", color: null, probability: null, outcome: null }), "le_libelle_de_l_etape_est_obligatoire");
     await pipelinesQ.updatePipelineLabel(a.admin, a.pipelineId, "Crédit");
     expect("updatePipelineLabel(A, « Crédit ») passe", (await db.query.pipelines.findFirst({ where: eq(pipelines.id, a.pipelineId) }))?.label === "Crédit");
+
+    console.log("\n--- Stabilisation, chantier A étape 4 : l'affaire complète, le type par défaut d'un espace neuf");
+    const [typeA] = await db.select().from(dealTypes).where(eq(dealTypes.organizationId, a.orgId));
+    const owned = await dealsQ.createDeal(a.admin, a.userId, { title: "Avec responsable", clientName: "Client", typeId: typeA.id });
+    expect("createDeal sans responsable explicite → la personne qui crée", owned.ownerId === a.userId);
+    const unowned = await dealsQ.createDeal(a.admin, a.userId, { title: "Sans responsable", clientName: "Client", typeId: typeA.id, ownerId: null });
+    expect("createDeal avec « Personne » explicite → aucun responsable", unowned.ownerId === null);
+    await expectAppError("createDeal(A, responsable = admin de B) refuse", () => dealsQ.createDeal(a!.admin, a!.userId, { title: "x", clientName: "x", typeId: typeA.id, ownerId: b!.userId }), "ce_conseiller_n_appartient_pas_a_l_dc88");
+    await dealsQ.updateDealDetails(a.admin, unowned.id, { contactId: a.contactId });
+    const attached = await db.query.deals.findFirst({ where: eq(deals.id, unowned.id) });
+    const contactName = (await db.query.contacts.findFirst({ where: eq(contacts.id, a.contactId) }))?.name;
+    expect("updateDealDetails(contactId) rattache la fiche et copie son nom", attached?.contactId === a.contactId && attached.clientName === contactName, `contact=${attached?.contactId} client=${attached?.clientName}`);
+    await expectThrow("updateDealDetails(A, contactId = contact de B) refuse", () => dealsQ.updateDealDetails(a!.admin, unowned.id, { contactId: b!.contactId }));
+    const signup = await import("../src/db/queries/signup");
+    const created = await signup.createOrganizationWithAdmin({ organizationName: "Isolation C", email: "admin@_iso-c.invalid" });
+    if (!created.ok) {
+      ko("createOrganizationWithAdmin(C) a refusé", created.reason);
+    } else {
+      const typesC = await db.select().from(dealTypes).where(eq(dealTypes.organizationId, created.organizationId));
+      expect("un espace neuf naît avec un type d'affaire par défaut (slug « dossier », libellé « Dossier »)", typesC.length === 1 && typesC[0].slug === "dossier" && typesC[0].label === "Dossier", typesC.map((t) => `${t.slug}:${t.label}`).join(","));
+      // Le garde de la base ne laisse supprimer qu'une fixture dont le slug commence par « _ » : on le lui donne avant.
+      await db.update(organizations).set({ slug: "_iso-c" }).where(eq(organizations.id, created.organizationId));
+      await db.delete(organizations).where(eq(organizations.id, created.organizationId));
+      expect("l'espace jetable C est supprimé", (await db.select({ n: count() }).from(organizations).where(eq(organizations.id, created.organizationId)))[0].n === 0);
+    }
 
     console.log("\n--- La garde de connexion de la démo : qui reçoit un lien de connexion, qui n'en reçoit pas");
     const guard = await import("../src/lib/auth/magic-link-guard");

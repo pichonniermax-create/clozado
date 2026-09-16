@@ -8,7 +8,7 @@ import {
   type CreateDealInput,
   type DealDetailsInput,
 } from "@/db/queries/deals";
-import { createDealType } from "@/db/queries/deal-types";
+import { createDealType, renameDealType } from "@/db/queries/deal-types";
 import { createLossReason, deleteLossReason } from "@/db/queries/loss-reasons";
 import {
   createPipeline,
@@ -57,6 +57,11 @@ export async function createDealAction(input: CreateDealInput) {
 export async function createDealTypeAction(label: string) {
   const user = await requireUser();
   return createDealType(user, label);
+}
+
+export async function renameDealTypeAction(id: string, label: string) {
+  const user = await requireUser();
+  return renameDealType(user, id, label);
 }
 
 /** Renvoie { share, token } — le jeton en clair, UNE SEULE FOIS : à afficher immédiatement côté client, jamais récupérable après cet appel. */

@@ -12,7 +12,7 @@ import {
   lossReasons,
   users,
 } from "@/db/schema";
-import { assertOrgAccess, orgScope } from "@/db/scope";
+import { assertOrgAccess, assertUserInOrg, orgScope } from "@/db/scope";
 import { dealSelectionCondition, type DealSelection } from "@/lib/metrics/funnel";
 import { latestLeadBefore } from "./acquisition";
 import { getDefaultDealStatus } from "./deal-statuses";
@@ -52,6 +52,8 @@ export type CreateDealInput = {
   statusId?: string;
   /** Fiche contact à relier (facultatif) — le nom du client est alors copié depuis la fiche si absent. */
   contactId?: string | null;
+  /** Le responsable : absent = la personne qui crée ; null = explicitement personne (stabilisation, P1). */
+  ownerId?: string | null;
   estimatedAmount?: string | null;
   description?: string | null;
 };
@@ -70,6 +72,7 @@ export const CREATE_DEAL_SCHEMA = z.strictObject({
   typeId: z.uuid(),
   statusId: z.uuid().optional(),
   contactId: z.uuid().nullable().optional(),
+  ownerId: z.uuid().nullable().optional(),
   estimatedAmount: optionalText(40),
   description: optionalText(10_000),
 });
@@ -116,6 +119,11 @@ export async function createDeal(
     if (!clientName) clientName = contact.name;
   }
 
+  // Le responsable (stabilisation, P1) : la personne qui crée, sauf choix explicite (« Personne » = null) — avant,
+  // jamais posé : « — » en liste, « Personne » sur la fiche, hors du filtre par conseiller. Jamais un id étranger.
+  const ownerId = input.ownerId === undefined ? createdBy : input.ownerId;
+  if (ownerId) await assertUserInOrg(ownerId, user.organizationId);
+
   // L'origine : le lead le plus récent du contact reçu AVANT la création —
   // figée ici, jamais rattachée automatiquement après coup (un lead
   // postérieur n'a pas généré l'affaire) ; modifiable à la main, journalisé.
@@ -140,6 +148,7 @@ export async function createDeal(
       pipelineId: status.pipelineId,
       estimatedAmount: input.estimatedAmount ?? null,
       description: input.description ?? null,
+      ownerId,
       createdBy,
     }),
     db.insert(dealStageChanges).values({
@@ -237,6 +246,8 @@ export type DealDetailsInput = {
   probability?: string | null;
   expectedCloseDate?: string | null;
   ownerId?: string | null;
+  /** Rattacher une fiche contact après coup (jamais détacher) — stabilisation, P1. */
+  contactId?: string | null;
   /** Pris en compte seulement si l'étape courante est marquée perdue. */
   lossReasonId?: string | null;
 };
@@ -246,6 +257,7 @@ export const DEAL_DETAILS_SCHEMA = z.strictObject({
   probability: optionalText(10),
   expectedCloseDate: optionalText(10),
   ownerId: z.uuid().nullable().optional(),
+  contactId: z.uuid().nullable().optional(),
   lossReasonId: z.uuid().nullable().optional(),
 });
 
@@ -260,6 +272,17 @@ export async function updateDealDetails(user: OrgScopeUser, dealId: string, rawI
     if (!owner || owner.organizationId !== deal.organizationId) {
       throw new AppError("ce_conseiller_n_appartient_pas_a_l_2bd0");
     }
+  }
+  // Rattacher une fiche (stabilisation, P1) : une fiche de l'organisation, vivante ; le nom du client suit — la
+  // même copie qu'à la création. Le rattachement ne se défait pas ici (une fiche supprimée devient une tombale).
+  let contactPatch: { contactId: string; clientName: string } | null = null;
+  if (input.contactId) {
+    const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, input.contactId) });
+    if (!contact || contact.organizationId !== deal.organizationId) {
+      throw new AppError("fiche_contact_introuvable_pour_cette_organisation", undefined, 404);
+    }
+    if (contact.deletedAt) throw new AppError("cette_fiche_contact_a_ete_supprimee_elle_160e");
+    contactPatch = { contactId: contact.id, clientName: contact.name };
   }
   let lossReasonId = deal.lossReasonId;
   if (input.lossReasonId !== undefined) {
@@ -282,6 +305,7 @@ export async function updateDealDetails(user: OrgScopeUser, dealId: string, rawI
       expectedCloseDate:
         input.expectedCloseDate === undefined ? deal.expectedCloseDate : input.expectedCloseDate,
       ownerId: input.ownerId === undefined ? deal.ownerId : input.ownerId,
+      ...(contactPatch ?? {}),
       lossReasonId,
       updatedAt: new Date(),
     })

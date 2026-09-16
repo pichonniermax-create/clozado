@@ -1,7 +1,8 @@
 import { randomUUID } from "crypto";
+import { defaultDealTypeValues } from "./deal-types";
 import { eq, like } from "drizzle-orm";
 import { db } from "@/db";
-import { organizations, siteKeys, users } from "@/db/schema";
+import { organizations, siteKeys, users, dealTypes } from "@/db/schema";
 import { generateSiteKey } from "@/lib/acquisition/keys";
 import { buildDefaultPipelineInserts } from "./deal-statuses";
 import { translatorFor } from "@/i18n/translator";
@@ -104,6 +105,8 @@ export async function createOrganizationWithAdmin(input: {
     db.insert(organizations).values({ id: organizationId, name, slug, defaultLocale: locale }),
     db.insert(users).values({ email, role: "admin", organizationId }),
     ...buildDefaultPipelineInserts(organizationId, defaults),
+    // Le type d'affaire par défaut (stabilisation, P2) : une affaire se crée dès la première connexion.
+    db.insert(dealTypes).values(defaultDealTypeValues(organizationId, defaults)),
     // La clé de site publique de l'organisation (collecte des visites) — dès la naissance.
     db.insert(siteKeys).values({ organizationId, key: generateSiteKey() }),
   ]);

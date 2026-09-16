@@ -33,14 +33,17 @@ import {
 import { listLossReasons } from "@/db/queries/loss-reasons";
 import { listPipelinesWithStages } from "@/db/queries/pipelines";
 import {
+  createDealTypeAction,
   createLossReasonAction,
   createPipelineAction,
   createStageAction,
   deleteLossReasonAction,
   moveStageAction,
+  renameDealTypeAction,
   updatePipelineLabelAction,
   updateStageAction,
 } from "@/lib/deals/actions";
+import { listDealTypes } from "@/db/queries/deal-types";
 import { DEFAULT_BRAND_PRIMARY } from "@/lib/brand";
 import { BrandColorPicker } from "@/components/brand/brand-color-picker";
 import { BrandLogoUploader } from "@/components/brand/brand-logo-uploader";
@@ -224,7 +227,29 @@ export default async function SettingsPage() {
     receivingDomain = null;
   }
   const nothingConnected = collection.lastEventAt === null && collection.lastLeadAt === null;
+  // Les types d'affaire (stabilisation, P2) : gérés dans la carte des pipelines, pas dans une carte de plus.
+  const dealTypeRows = await listDealTypes(user);
 
+  async function addDealTypeForm(formData: FormData) {
+    "use server";
+    let destination = "/settings#types";
+    try {
+      await createDealTypeAction(String(formData.get("label") ?? ""));
+    } catch (error) {
+      destination = withError("/settings#types", await errorMessage(error));
+    }
+    redirect(destination);
+  }
+  async function renameDealTypeForm(formData: FormData) {
+    "use server";
+    let destination = "/settings#types";
+    try {
+      await renameDealTypeAction(String(formData.get("typeId") ?? ""), String(formData.get("label") ?? ""));
+    } catch (error) {
+      destination = withError("/settings#types", await errorMessage(error));
+    }
+    redirect(destination);
+  }
   async function saveStage(formData: FormData) {
     "use server";
     let destination = "/settings";
@@ -584,9 +609,9 @@ export default async function SettingsPage() {
       ))}
 
       {!readOnly && (
-        <Card>
+        <Card id="types" className="scroll-mt-32">
           <CardHeader>
-            <CardTitle>{t("nouveau_pipeline")}</CardTitle>
+            <CardTitle>{t("pipelines_et_types_d_affaire")}</CardTitle>
             <CardDescription>
               {t("une_famille_d_affaires_avec_ses_e8c5")}
             </CardDescription>
@@ -598,6 +623,32 @@ export default async function SettingsPage() {
               </Field>
               <Button type="submit">{t("creer")}</Button>
             </form>
+            {/* Les types d'affaire dans la même carte (stabilisation, P2) : le second type n'avait aucun écran, et
+                les réglages comptent déjà douze cartes. Un type se renomme, ne se supprime pas (les affaires le citent). */}
+            <div className="mt-6 flex flex-col gap-3 border-t border-border pt-5">
+              <div className="flex flex-col gap-1">
+                <h3 className="text-sm font-semibold">{t("types_d_affaire")}</h3>
+                <p className="text-sm text-muted-foreground">{t("le_vocabulaire_de_tes_affaires")}</p>
+              </div>
+              {dealTypeRows.length === 0 && <EmptyState>{t("aucun_type_pour_l_instant")}</EmptyState>}
+              {dealTypeRows.map((type) => (
+                <form key={type.id} action={renameDealTypeForm} className="flex max-w-xl items-center gap-2">
+                  <input type="hidden" name="typeId" value={type.id} />
+                  <Input name="label" defaultValue={type.label} required className="flex-1" aria-label={t("libelle_du_type")} />
+                  <Button type="submit" variant="ghost" size="sm">
+                    {t("renommer")}
+                  </Button>
+                </form>
+              ))}
+              <form action={addDealTypeForm} className="flex max-w-xl items-end gap-2 pt-1">
+                <Field label={t("nouveau_type")} htmlFor="newDealTypeLabel" className="flex-1">
+                  <Input id="newDealTypeLabel" name="label" placeholder={t("credit_immobilier_assurance_vie")} required />
+                </Field>
+                <Button type="submit" variant="outline">
+                  {t("ajouter")}
+                </Button>
+              </form>
+            </div>
           </CardContent>
         </Card>
       )}

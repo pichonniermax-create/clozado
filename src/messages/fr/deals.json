@@ -45,7 +45,9 @@
     "vide_celle_de_l_etape_f17a": "Vide = celle de l’étape.",
     "depuis_n": "depuis {n}",
     "affaire_close_pas_de_partage": "Cette affaire est close : elle ne se partage plus. Ses partages passés restent au-dessus.",
-    "partager_cette_affaire": "Partager cette affaire"
+    "partager_cette_affaire": "Partager cette affaire",
+    "rattacher_une_fiche_contact": "Rattacher une fiche contact",
+    "rattacher": "Rattacher"
   },
   "detailNotFound": {
     "cette_affaire_n_existe_pas": "Cette affaire n’existe pas.",
@@ -120,7 +122,8 @@
     "tu_es_en_vue_globale": "Tu es en vue globale",
     "type": "Type",
     "un_pipeline_est_une_famille_d_ad50": "Un pipeline est une famille d’affaires avec ses propres étapes (crédit, placement, transaction…). Il se crée depuis Marque & réglages.",
-    "cloture_depassee": "Clôture prévue dépassée"
+    "cloture_depassee": "Clôture prévue dépassée",
+    "personne": "Personne"
   },
   "queries": {
     "defaultPipeline": "Affaires",
@@ -131,7 +134,8 @@
       "acceptee": "Acceptée",
       "perdue": "Perdue"
     },
-    "nouveau": "Nouveau"
+    "nouveau": "Nouveau",
+    "defaultDealType": "Dossier"
   },
   "selectionBanner": {
     "a_la_date_de_la_perte": "{period} (à la date de la perte)",
