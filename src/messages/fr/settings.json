@@ -145,7 +145,7 @@
     "dates_heures_et_echeances_se_lisent_a7b8": "Dates, heures et échéances se lisent dans ce fuseau.",
     "dernier_evenement_le": "dernier événement le {formatDateTime}",
     "dernier_le": "dernier le {formatDateTime}",
-    "dernier_usage_le": "· dernier usage le {formatDateTime}",
+    "dernier_usage_le": " · dernier usage le {formatDateTime}",
     "descendre": "Descendre {label}",
     "deux_entrees_les_leads_envoyes_par_ee12": "Deux entrées : les leads, envoyés par tes simulateurs côté serveur avec une clé d’API ; les visites et simulations, envoyées par une ligne de script posée sur tes sites, acceptées seulement depuis les domaines déclarés ci-dessous.",
     "devise": "Devise",
@@ -163,7 +163,7 @@
     "gagne": "Gagné",
     "identifiant_une_seule_couleur_le_systeme_0d04": "Identifiant : {slug}. Une seule couleur : le système en dérive les boutons, les liens, les fonds légers et la ligne active de la navigation, en garantissant que tout reste lisible.",
     "inter": "Inter",
-    "jamais_utilisee": "· jamais utilisée",
+    "jamais_utilisee": " · jamais utilisée",
     "l_adresse_de_la_politique_de_confidentialite_ne_semble_pas_valide": "L’adresse de la politique de confidentialité ne semble pas valide (elle commence par https://).",
     "l_adresse_de_reponse_ne_semble_ac1b": "L’adresse de réponse ne semble pas valide.",
     "la_couleur_n_est_pas_un_466e": "La couleur n’est pas un code hexadécimal valide.",
@@ -217,7 +217,7 @@
     },
     "renommer": "Renommer",
     "requetes_refusees_a_corriger_sinon_la_f8d0": "Requêtes refusées — à corriger, sinon la collecte reste muette",
-    "revoquee_le": "· révoquée le {formatDateTime}",
+    "revoquee_le": " · révoquée le {formatDateTime}",
     "revoquer": "Révoquer",
     "revoquer_cette_cle_de_site": "Révoquer cette clé de site",
     "rien_n_est_accepte_tant_que_d6a1": "Rien n’est accepté tant que cette liste est vide — c’est voulu : sans elle, n’importe qui pourrait polluer ta collecte. Les refus sont comptés plus haut.",
@@ -283,6 +283,7 @@
     },
     "origine_detachee": "Origine détachée",
     "origine_non_renseignee": "origine non renseignée",
-    "site_principal": "Site principal"
+    "site_principal": "Site principal",
+    "origine_rattachee": "Origine rattachée : {origin}"
   }
 }

@@ -148,7 +148,7 @@ export function KanbanBoard({
                       className="size-2 shrink-0 rounded-full"
                       style={{ backgroundColor: safeColor(stage.color, "var(--muted-foreground)") }}
                     />
-                    <span className="truncate">{stage.label}</span>
+                    <span className="break-words">{stage.label}</span>
                     {stage.outcome && (
                       <span className="text-xs font-normal text-muted-foreground">
                         {stage.outcome === "won" ? tr("gagne") : tr("perdu")}
@@ -187,8 +187,8 @@ export function KanbanBoard({
                             <GripVertical className="size-3.5" />
                           </span>
                           <Link href={`/affaires/${card.id}`} className="block min-w-0 flex-1" draggable={false}>
-                            <p className="line-clamp-2 text-sm leading-snug font-medium">{card.title}</p>
-                            <p className="truncate text-xs text-muted-foreground">{card.clientName}</p>
+                            <p className="text-sm leading-snug font-medium break-words">{card.title}</p>
+                            <p className="text-xs text-muted-foreground break-words">{card.clientName}</p>
                             <p className="mt-1 flex items-center justify-between gap-2 text-xs">
                               <span className="font-medium tabular-nums">
                                 {card.estimatedAmount ? fmt.money(card.estimatedAmount) : "—"}
@@ -203,7 +203,7 @@ export function KanbanBoard({
                               </span>
                             </p>
                             {card.ownerName && (
-                              <p className="mt-1 truncate text-xs text-muted-foreground">{card.ownerName}</p>
+                              <p className="mt-1 text-xs text-muted-foreground break-words">{card.ownerName}</p>
                             )}
                           </Link>
                           <DropdownMenu>

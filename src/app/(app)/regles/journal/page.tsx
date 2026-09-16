@@ -73,8 +73,8 @@ export default async function RuleJournalPage({
               <li key={row.id} className="grid grid-cols-1 gap-x-4 gap-y-1 px-4 py-2.5 text-sm sm:grid-cols-[7.5rem_minmax(0,1fr)_auto] sm:items-center">
                 <span className="text-xs text-muted-foreground tabular-nums">{fmt.dateTime(row.occurredAt)}</span>
                 <span className="flex min-w-0 flex-col">
-                  <span className="truncate font-medium">{row.ruleName}</span>
-                  <span className="truncate text-xs text-muted-foreground">
+                  <span className="font-medium break-words">{row.ruleName}</span>
+                  <span className="text-xs text-muted-foreground break-words">
                     <Link href={`/contacts/${row.contactId}`} className="underline underline-offset-2 hover:text-foreground">
                       {row.contactName}
                     </Link>

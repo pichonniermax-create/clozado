@@ -153,7 +153,7 @@ export function SendStatusCard(props: SendCardProps) {
                   <ul className="flex flex-col gap-0.5 text-xs">
                     {stats.links.map((l) => (
                       <li key={l.url} className="flex items-baseline justify-between gap-3">
-                        <a href={l.url} target="_blank" rel="noreferrer" className="truncate underline underline-offset-2">{l.url}</a>
+                        <a href={l.url} target="_blank" rel="noreferrer" className="break-all underline underline-offset-2">{l.url}</a>
                         <span className="shrink-0 tabular-nums text-muted-foreground">{t("clics", { count: l.clicks })}</span>
                       </li>
                     ))}

@@ -64,11 +64,33 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
   const [collapsed, setCollapsed] = useState(false);
   const scrolledFor = useRef<string | null>(null);
 
-  // L'état de départ (première visite, ou visite forcée) s'écrit une fois, pour survivre à la navigation.
+  // L'état de départ (première visite) s'écrit une fois, pour survivre à la navigation.
   useEffect(() => {
-    if (forced || !initialState) writeCookie({ step: 0, status: "en_cours" });
+    if (!initialState) writeCookie({ step: 0, status: "en_cours" });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- au montage seulement
   }, []);
+
+  // « Visite guidée » (menu de compte, palette, premiers pas, bandeau de la démo) mène à `/dashboard?visite=1`. La carte
+  // vit dans le layout, qui SURVIT à la navigation : `?visite=1` n'était lu qu'au montage — une visite fermée ne
+  // repartait donc jamais d'un clic, seul un rechargement complet la relançait (chantier C, correctif 1). Ici, chaque
+  // apparition du paramètre remet la visite au premier pas (état dérivé, posé pendant le rendu), puis l'effet écrit le
+  // cookie et nettoie l'adresse (sans rechargement) pour qu'un rechargement ou un lien copié ne la relance pas.
+  const [lastForced, setLastForced] = useState(forced);
+  if (forced !== lastForced) {
+    setLastForced(forced);
+    if (forced) {
+      setState({ step: 0, status: "en_cours" });
+      setCollapsed(false);
+    }
+  }
+  useEffect(() => {
+    if (!forced) return;
+    writeCookie({ step: 0, status: "en_cours" });
+    const next = new URLSearchParams(params.toString());
+    next.delete(TOUR_PARAM);
+    const query = next.toString();
+    window.history.replaceState(window.history.state, "", `${pathname}${query ? `?${query}` : ""}${window.location.hash}`);
+  }, [forced, params, pathname]);
 
   const step = TOUR_STEPS[state.step];
   const running = state.status === "en_cours";

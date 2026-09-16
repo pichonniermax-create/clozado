@@ -58,7 +58,7 @@ export function TaskSection({
             <li key={task.id} className="flex items-center gap-3 px-4 py-3">
               <CompleteTaskButton taskId={task.id} backTo={backTo} title={task.title} />
               <div className="flex min-w-0 flex-1 flex-col">
-                <span className="line-clamp-2 text-sm font-medium sm:line-clamp-1">{task.title}</span>
+                <span className="text-sm font-medium break-words">{task.title}</span>
                 <TaskMetaLine task={task} hideContactId={contactId} hideDealId={dealId} />
               </div>
               {task.autoRule && (

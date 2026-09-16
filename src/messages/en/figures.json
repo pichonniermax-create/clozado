@@ -72,7 +72,7 @@
     }
   },
   "page": {
-    "a_completer": "· {incomplete} to complete",
+    "a_completer": " · {incomplete} to complete",
     "a_completer_b061": "To complete",
     "ajouter_le_chiffre": "Add the figure",
     "ajouter_un_chiffre": "Add a figure",
@@ -93,8 +93,8 @@
     "indicateur_indicateurs_de_marche_suivi_suivis": "{count} market {count, plural, one {indicator} other {indicators}} tracked",
     "libelle": "Label",
     "lien_de_la_source_facultatif": "Source link (optional)",
-    "lu": "· read {formatRelativeTime}",
-    "modifie_le": "· edited on {formatDate}",
+    "lu": " · read {formatRelativeTime}",
+    "modifie_le": " · edited on {formatDate}",
     "modifier": "Edit",
     "n_2025_juin_2026_au_30_juin_60fc": "“2025”, “June 2026”, “as of June 30, 2026”…",
     "ne_plus_suivre": "Stop tracking",
@@ -105,7 +105,7 @@
     "source": "Source",
     "source_manquante": "source missing",
     "source_muette_aucune_valeur_encore_lue": "Silent source ({lastError}) — no value read yet.",
-    "source_muette_depuis_derniere_valeur_conservee": "· source silent since ({lastError}): last value kept",
+    "source_muette_depuis_derniere_valeur_conservee": " · source silent since ({lastError}): last value kept",
     "suivre": "Track",
     "suivre_les_indicateurs_du_metier": "Track the {count} indicators for “{label}”",
     "supprimer": "Delete",

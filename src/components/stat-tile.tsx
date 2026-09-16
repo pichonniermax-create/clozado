@@ -52,7 +52,7 @@ export function StatTile({
       </div>
       {/* Deux tuiles par ligne à 390 px (≈ 170 px chacune) : corps réduit et césure autorisée pour « 1 376 000 € ». */}
       <p className="min-w-0 text-2xl font-semibold tracking-tight [overflow-wrap:anywhere] sm:text-3xl">{value}</p>
-      {hint && <p className="line-clamp-2 text-xs text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-xs text-muted-foreground text-pretty">{hint}</p>}
     </>
   );
 

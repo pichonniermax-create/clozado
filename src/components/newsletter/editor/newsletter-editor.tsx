@@ -388,7 +388,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
           <Select
             value={targetId}
             onValueChange={(v) => setTargetId(String(v))}
-            items={targets.map((t) => ({ label: targetLabel(t), value: t.id }))}
+            items={targets.map((t) => ({ label: targetLabel(t, tr), value: t.id }))}
           >
             <SelectTrigger className="h-8 w-full sm:w-72">
               <SelectValue placeholder={tr("choisir_la_cible")} />
@@ -396,7 +396,7 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
             <SelectContent>
               {targets.map((t) => (
                 <SelectItem key={t.id} value={t.id}>
-                  {targetLabel(t)}
+                  {targetLabel(t, tr)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -644,8 +644,9 @@ export function NewsletterEditor({ targets, brand, signatory, initialTargetId, i
   );
 }
 
-function targetLabel(t: EditorTarget): string {
-  return `${t.label} · ${t.count} contact${t.count > 1 ? "s" : ""}`;
+/** « Clients · 12 contacts » — le pluriel vient des messages (chantier C, correctif 3 : un « s » français collé en anglais). */
+function targetLabel(target: EditorTarget, tr: (key: "cible_n_contacts", values: { label: string; count: number }) => string): string {
+  return tr("cible_n_contacts", { label: target.label, count: target.count });
 }
 
 /**

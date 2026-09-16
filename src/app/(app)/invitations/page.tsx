@@ -184,7 +184,7 @@ async function InvitationRow({ row, origin }: { row: InvitationListItem; origin:
           <StatusBadge tone={STATUS_TONE[row.status]}>{t(`statut.${row.status}`)}</StatusBadge>
           {row.status === "utilisee" && row.organization && <Badge variant="outline">{row.organization.name}</Badge>}
         </span>
-        <span className="truncate text-xs text-muted-foreground">{row.email ?? t("lien_ouvert")}</span>
+        <span className="text-xs text-muted-foreground break-all">{row.email ?? t("lien_ouvert")}</span>
         <span className="text-xs text-muted-foreground">{meta.join(" · ")}</span>
         {row.status === "utilisee" && row.usedAt && (
           <span className="text-xs text-muted-foreground">

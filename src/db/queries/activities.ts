@@ -133,7 +133,7 @@ function fieldLabel(field: string, t: TranslatorOf<"activities.queries">): strin
 
 function actorLabelOf(r: ActorRow, t: TranslatorOf<"activities.queries">): string | null {
   if (r.actorUserId) return r.actorUserName || r.actorUserEmail || t("utilisateur");
-  if (r.actorPartnerId) return `${r.actorPartnerName ?? "Partenaire"} (partenaire)`;
+  if (r.actorPartnerId) return t("acteur_partenaire", { name: r.actorPartnerName ?? t("partenaire") });
   return null;
 }
 

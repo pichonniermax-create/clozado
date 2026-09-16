@@ -208,8 +208,8 @@ export default async function TargetPage({
               isStatic ? (
                 <ListRow key={c.id}>
                   <Link href={`/contacts/${c.id}`} className="flex min-w-0 flex-col hover:underline">
-                    <span className="truncate text-sm font-medium">{c.name}</span>
-                    <span className="truncate text-xs tabular-nums text-muted-foreground">
+                    <span className="text-sm font-medium break-words">{c.name}</span>
+                    <span className="text-xs tabular-nums text-muted-foreground break-words">
                       {[c.email, c.kind === "person" ? c.companyName : null, c.city].filter(Boolean).join(" · ") || "—"}
                     </span>
                   </Link>

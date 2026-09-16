@@ -11,6 +11,7 @@ import { MetricDefinitions } from "@/components/analytics/metric-definitions";
 import { periodPhrase } from "@/lib/metrics/period-phrase";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { buttonVariants } from "@/components/ui/button";
+import { ColumnChooserTable } from "@/components/ui/column-chooser-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { listOrigins } from "@/db/queries/acquisition";
 import { listOrgUsers } from "@/db/queries/contacts";
@@ -287,14 +288,8 @@ function OriginsSection({ rows, parsed }: { rows: OriginFunnelRow[]; parsed: Par
   const t = useTranslations("analytics.funnel");
   const tf = useTranslations("analytics.funnelSteps");
   const fmt = use(getFormats());
-  // Dix colonnes : le tableau défile dans son cadre, l'origine reste collée à gauche ; les deux colonnes de simulations
-  // (déjà lues dans la chaîne) n'apparaissent qu'à partir de xl (audit UI du 2026-09-14 : à 1440 px, la dernière colonne était coupée).
-  const header = (label: string, align: "left" | "right" = "right", extra = "", title?: string) => (
-    <th scope="col" title={title} className={`px-3 py-2.5 font-medium whitespace-nowrap ${align === "right" ? "text-right" : "text-left"} ${extra}`}>
-      {label}
-    </th>
-  );
-  const cell = (content: ReactNode, extra = "") => <td className={`px-3 py-3 text-right align-top whitespace-nowrap tabular-nums ${extra}`}>{content}</td>;
+  // Dix colonnes, dont six essentielles par défaut (chantier C, correctif 4) : le tableau tient sans défilement horizontal
+  // sur un ordinateur portable ; l'origine reste collée à gauche, les autres colonnes se cochent dans « Colonnes ».
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-sm font-semibold">
@@ -315,49 +310,45 @@ function OriginsSection({ rows, parsed }: { rows: OriginFunnelRow[]; parsed: Par
           {t("une_origine_un_simulateur_une_page_2643")}
         </EmptyState>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full min-w-[52rem] text-sm xl:min-w-[60rem]">
-            <caption className="sr-only">{t("par_origine_laquelle_genere_des_affaires_6ba2")}</caption>
-            <thead>
-              <tr className="border-b border-border text-xs text-muted-foreground">
-                {header(t("origine"), "left", "sticky left-0 z-10 bg-card")}
-                {header(t("visiteurs"))}
-                {header(t("sim_demarrees"), "right", "hidden xl:table-cell", t("simulations_demarrees"))}
-                {header(t("sim_terminees"), "right", "hidden xl:table-cell", t("simulations_terminees"))}
-                {header(t("leads"))}
-                {header(t("contacts_etablis"))}
-                {header(t("affaires"))}
-                {header(t("gagnees"))}
-                {header(t("lead_affaire"))}
-                {header(t("affaire_gagnee"))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {rows.map((row) => (
-                <tr key={row.key}>
-                  <th scope="row" className="sticky left-0 z-10 min-w-36 bg-card px-3 py-3 text-left align-top font-medium">
-                    <Link
-                      href={`${BASE_PATH}${metricQueryString(parsed.params, { origine: row.key })}`}
-                      className={DATA_LINK_CLASS}
-                      title={t("filtrer_l_ecran_sur_cette_origine")}
-                    >
-                      {row.label}
-                    </Link>
-                  </th>
-                  {cell(<CountCell count={row.visitors} />)}
-                  {cell(<CountCell count={row.started} />, "hidden xl:table-cell")}
-                  {cell(<CountCell count={row.completed} />, "hidden xl:table-cell")}
-                  {cell(<CountCell count={row.leads} />)}
-                  {cell(<CountCell count={row.contacted} />)}
-                  {cell(<CountCell count={row.deals} />)}
-                  {cell(<CountCell count={row.won} />)}
-                  {cell(rateText(row.leadToDeal, fmt, tf, true))}
-                  {cell(rateText(row.dealToWon, fmt, tf, true))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ColumnChooserTable
+          storageKey="analytique-funnel-origines"
+          caption={t("par_origine_laquelle_genere_des_affaires_6ba2")}
+          columns={[
+            { key: "origine", label: t("origine"), align: "left" },
+            { key: "visiteurs", label: t("visiteurs") },
+            { key: "sim_demarrees", label: <span title={t("simulations_demarrees")}>{t("sim_demarrees")}</span>, defaultVisible: false },
+            { key: "sim_terminees", label: <span title={t("simulations_terminees")}>{t("sim_terminees")}</span>, defaultVisible: false },
+            { key: "leads", label: t("leads") },
+            { key: "contacts_etablis", label: t("contacts_etablis"), defaultVisible: false },
+            { key: "affaires", label: t("affaires") },
+            { key: "gagnees", label: t("gagnees") },
+            { key: "lead_affaire", label: t("lead_affaire") },
+            { key: "affaire_gagnee", label: t("affaire_gagnee"), defaultVisible: false },
+          ]}
+          rows={rows.map((row) => ({
+            key: row.key,
+            cells: {
+              origine: (
+                <Link
+                  href={`${BASE_PATH}${metricQueryString(parsed.params, { origine: row.key })}`}
+                  className={DATA_LINK_CLASS}
+                  title={t("filtrer_l_ecran_sur_cette_origine")}
+                >
+                  {row.label}
+                </Link>
+              ),
+              visiteurs: <CountCell count={row.visitors} />,
+              sim_demarrees: <CountCell count={row.started} />,
+              sim_terminees: <CountCell count={row.completed} />,
+              leads: <CountCell count={row.leads} />,
+              contacts_etablis: <CountCell count={row.contacted} />,
+              affaires: <CountCell count={row.deals} />,
+              gagnees: <CountCell count={row.won} />,
+              lead_affaire: rateText(row.leadToDeal, fmt, tf, true),
+              affaire_gagnee: rateText(row.dealToWon, fmt, tf, true),
+            },
+          }))}
+        />
       )}
     </section>
   );

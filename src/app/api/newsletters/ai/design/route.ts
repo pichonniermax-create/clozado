@@ -164,7 +164,7 @@ export async function POST(request: Request) {
         // message fait pour une personne ; tout le reste (SDK, réseau, zod)
         // est journalisé et remplacé par la phrase générique.
         let message: string;
-        if (err instanceof AITruncatedError) message = err.message;
+        if (err instanceof AITruncatedError) message = t("reponse_ia_tronquee_reessaie");
         else if (isAppError(err)) message = await errorMessage(err);
         else {
           log.error("ai_design_stream_error", { route: ROUTE, organizationId, error: err });

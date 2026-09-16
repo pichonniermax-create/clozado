@@ -224,8 +224,8 @@
     "voir_les_partenaires_ouvrir_le_pipeline": "<link>See partners</link><link2>Open the pipeline</link2>",
     "inactif": "inactive",
     "n_en_attente": "{n} pending",
-    "n_expires": "{n} expired",
-    "n_revoques": "{n} revoked",
+    "n_expires": "{n, plural, one {# expired} other {# expired}}",
+    "n_revoques": "{n, plural, one {# revoked} other {# revoked}}",
     "n_sans_montant": "{n} without an amount"
   },
   "pertes": {
@@ -269,5 +269,9 @@
     "montant_inconnu_n_sans_montant": "{n, plural, one {# deal without an amount} other {# deals without an amount}}",
     "gagnees_sur_la_meme_periode": "Won over the same period",
     "taux_de_perte_titre": "Loss rate"
+  },
+  "export": {
+    "vue_inconnue": "Unknown view: vue=delais, funnel, pertes, partenaires or tableau-de-bord.",
+    "choisis_une_organisation": "The export is made for one organisation: pick an organisation in the super admin bar."
   }
 }

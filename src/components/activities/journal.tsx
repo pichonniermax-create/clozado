@@ -57,7 +57,7 @@ export function Journal({
   dealId,
   context,
   erreur,
-  title = "Activité",
+  title,
   description,
   emptyText,
 }: {
@@ -78,12 +78,14 @@ export function Journal({
   const ta = useTranslations("activities");
   const quickEntry = context !== "org";
   const count = journal.entries.length;
+  // Le titre par défaut vient des messages, pas d'un texte en dur (chantier C, correctif 3 : « Activité » restait en français en anglais).
+  const heading = title ?? t("activite");
 
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-sm font-semibold">
-          {title}
+          {heading}
           {count > 0 && ` (${count}${journal.truncated ? "+" : ""})`}
         </h2>
         {journal.truncated && (
@@ -229,7 +231,7 @@ function JournalRow({
         </div>
         {body && <p className="text-sm whitespace-pre-line text-muted-foreground">{body}</p>}
         {entry.url && (
-          <a href={entry.url} target="_blank" rel="noreferrer" className="truncate text-xs underline underline-offset-2">{entry.url}</a>
+          <a href={entry.url} target="_blank" rel="noreferrer" className="text-xs break-all underline underline-offset-2">{entry.url}</a>
         )}
         <p className="text-xs tabular-nums text-muted-foreground">
           {entry.actorLabel ?? t("systeme")} · {fmt.dateTime(entry.at)}

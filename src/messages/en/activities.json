@@ -17,11 +17,11 @@
     "email_outbound": "Email sent to the contact"
   },
   "journal": {
-    "affaire": "· deal <link>{dealTitle}</link>",
+    "affaire": " · deal <link>{dealTitle}</link>",
     "ce_qui_s_est_dit_ce_870e": "What was said, what was agreed…",
     "compte_rendu": "Summary",
     "consigner": "Log",
-    "contact": "· contact <link>{contactName}</link>",
+    "contact": " · contact <link>{contactName}</link>",
     "date_et_heure": "Date and time",
     "date_vide_maintenant_le_journal_consigne_7b91": "Empty date = now. The log records what has happened — for an upcoming meeting, create a task.",
     "gagnee": "(won)",
@@ -37,7 +37,8 @@
     "annuler": "Cancel",
     "sens_de_l_email": "Email direction",
     "recu_du_contact": "Received from the contact",
-    "envoye_au_contact": "Sent to the contact"
+    "envoye_au_contact": "Sent to the contact",
+    "activite": "Activity"
   },
   "kinds": {
     "call": "Call",
@@ -79,7 +80,9 @@
     },
     "nouvelle_fiche_creee": "New record created.",
     "origine_non_renseignee": "origin not provided",
-    "utilisateur": "User"
+    "utilisateur": "User",
+    "acteur_partenaire": "{name} (partner)",
+    "partenaire": "Partner"
   },
   "types": {
     "call": "Call",

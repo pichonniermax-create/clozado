@@ -96,7 +96,7 @@
     "rediger_une_newsletter_pour_ce_contact": "Write a newsletter for this contact",
     "societe": "Company",
     "suivi_par": "Handled by {n}",
-    "sujets": "· topics: {join}",
+    "sujets": " · topics: {join}",
     "supprimee": "Deleted",
     "supprimer_ce_contact": "Delete this contact",
     "systeme": "system",
@@ -156,7 +156,7 @@
     "ce_fichier_ne_contient_pas_de_1c5a": "This file has no usable rows (a header plus at least one row).",
     "champs_remplis": "Fields filled",
     "colonne_du_fichier": "File column",
-    "completee_completees": "· {count} {count, plural, one {record} other {records}} completed",
+    "completee_completees": " · {count} {count, plural, one {record} other {records}} completed",
     "correspondance_des_colonnes_ligne_lignes": "Column mapping — {fileName} · {count} {count, plural, one {row} other {rows}}",
     "devient": "Becomes",
     "exemple_1re_ligne": "Example (1st row)",
@@ -186,7 +186,7 @@
     "l_import_a_echoue_en_route_55f6": "The import failed along the way (network or server) — your preparation is intact, try again from this same screen.",
     "la_completer_seuls_ses_champs_vides_44ea": "Complete it — only its empty fields receive the file’s values.<span>Never overwrites: a value already entered here stays as it is. The right choice for re-importing your CRM’s export.</span>",
     "ligne": "Row",
-    "ligne_lignes_ecartee_ecartees": "· {count} {count, plural, one {row} other {rows}} skipped",
+    "ligne_lignes_ecartee_ecartees": " · {count} {count, plural, one {row} other {rows}} skipped",
     "premiere_ligne_en_tetes_separateur_point_76d7": "First row = headers. Semicolon, comma or tab separator — detected automatically. All imported records are people.",
     "raison": "Reason",
     "sans_titre": "(untitled)",
@@ -259,7 +259,9 @@
     "ignoree_apparait_plus_haut_reconnue_par": "Skipped: the same person appears earlier in the file ({identity}).",
     "ignoree_existe_deja_reconnue_par": "Skipped: already in your contacts — recognised by {identity}.",
     "plusieurs_fiches_reconnues_par": "Several records recognised by {identity} — sort them out by hand before completing.",
-    "deja_a_jour_reconnue_par": "Already up to date: the record recognised by {identity} had nothing to complete."
+    "deja_a_jour_reconnue_par": "Already up to date: the record recognised by {identity} had nothing to complete.",
+    "chez_societe": "at {company}",
+    "affaire_a_l_etape": "“{title}” (stage {stage})"
   },
   "contactPicker": {
     "reliee_a_la_fiche": "Linked to the record {name}.",

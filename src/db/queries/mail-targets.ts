@@ -565,9 +565,9 @@ export async function updateMailTarget(user: OrgScopeUser, id: string, input: Ma
 }
 
 /** Une copie complète (critères, identité, membres d'une sélection) — la voie recommandée quand une cible a déjà servi et qu'on veut la faire évoluer. */
-export async function duplicateMailTarget(user: OrgScopeUser, id: string) {
+export async function duplicateMailTarget(user: OrgScopeUser, id: string, t: TranslatorOf<"targets.queries">) {
   const source = await getMailTarget(user, id);
-  const label = `${source.label} (copie)`;
+  const label = t("copie_de", { label: source.label });
   const [slug, position] = await Promise.all([
     availableSlug(source.organizationId, label),
     nextPosition(source.organizationId),

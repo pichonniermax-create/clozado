@@ -182,7 +182,7 @@ export default async function RulesPage({ searchParams }: { searchParams: Promis
             <li key={rule.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
               <Link href={`/regles/${rule.id}`} className="group/rule flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="flex flex-wrap items-center gap-2">
-                  <span className="line-clamp-2 text-sm font-medium underline-offset-2 group-hover/rule:underline">{rule.name}</span>
+                  <span className="text-sm font-medium break-words underline-offset-2 group-hover/rule:underline">{rule.name}</span>
                   {!rule.enabled && <StatusBadge>{t("list.desactivee")}</StatusBadge>}
                   {rule.action === "send_email" && <StatusBadge tone="info">{t("list.envoi_automatique")}</StatusBadge>}
                 </span>
@@ -230,7 +230,7 @@ export default async function RulesPage({ searchParams }: { searchParams: Promis
             {archivedRules.map(({ rule }) => (
               <li key={rule.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center">
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="line-clamp-2 text-sm font-medium">{rule.name}</span>
+                  <span className="text-sm font-medium break-words">{rule.name}</span>
                   <span className="text-xs text-muted-foreground">{describeRule(rule, options, t)}</span>
                 </div>
                 <form action={restoreRuleAction.bind(null, { ruleId: rule.id })} className="shrink-0 sm:ml-auto">

@@ -97,6 +97,7 @@ export async function createOrganizationWithAdmin(input: {
   const slug = await availableSlug(name);
   // Une organisation neuve parle sa langue (`default_locale`) : les statuts et le pipeline par défaut sont écrits dedans.
   const defaults = await translatorFor(locale, "deals.queries");
+  const settingsDefaults = await translatorFor(locale, "settings.queries");
 
   // Un seul lot atomique — comme `createDealShare` : le driver neon-http ne
   // supporte pas `db.transaction()`. Une organisation sans admin, sans son
@@ -108,7 +109,8 @@ export async function createOrganizationWithAdmin(input: {
     // Le type d'affaire par défaut (stabilisation, P2) : une affaire se crée dès la première connexion.
     db.insert(dealTypes).values(defaultDealTypeValues(organizationId, defaults)),
     // La clé de site publique de l'organisation (collecte des visites) — dès la naissance.
-    db.insert(siteKeys).values({ organizationId, key: generateSiteKey() }),
+    // La clé de site naît avec un libellé dans la langue de l'espace — avant, le défaut de la base (« Site principal ») s'affichait en anglais.
+    db.insert(siteKeys).values({ organizationId, key: generateSiteKey(), label: settingsDefaults("site_principal") }),
   ]);
 
   return { ok: true, organizationId, slug };

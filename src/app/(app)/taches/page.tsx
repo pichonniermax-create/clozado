@@ -199,7 +199,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
               <li key={task.id} className="flex items-center gap-3 px-4 py-2.5">
                 <Check aria-hidden className="size-4 shrink-0 text-muted-foreground" />
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-sm text-muted-foreground line-through">
+                  <span className="text-sm text-muted-foreground line-through break-words">
                     {task.title}
                   </span>
                   {task.completedAt && (
@@ -294,7 +294,7 @@ function TaskItem({
       <div className="flex items-center gap-3 pr-10">
         <CompleteTaskButton taskId={task.id} backTo={backTo} title={task.title} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="line-clamp-2 text-sm font-medium sm:line-clamp-1">{task.title}</span>
+          <span className="text-sm font-medium break-words">{task.title}</span>
           <TaskMetaLine task={task} />
         </div>
         {task.autoRule && (

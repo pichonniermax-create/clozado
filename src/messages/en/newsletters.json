@@ -2,7 +2,8 @@
   "apiAiDesign": {
     "erreur_de_generation_ia": "AI generation error.",
     "l_ia_n_est_pas_configuree": "AI is not configured on this server.",
-    "requete_invalide": "Invalid request."
+    "requete_invalide": "Invalid request.",
+    "reponse_ia_tronquee_reessaie": "The AI answer was cut off before the end: run the generation again."
   },
   "apiRender": {
     "requete_invalide": "Invalid request."
@@ -116,9 +117,9 @@
     "choisis_une_cible_decris_ce_que_baa4": "Choose an audience, describe what the email should say, and the composer writes it with the identity of the person you’re writing to.",
     "ecrire_la_premiere_voir_les_cibles": "<link>Write the first one</link><link2>See audiences</link2>",
     "envoyee": "Sent",
-    "envoyee_le": "· sent on {formatDate}{value}",
+    "envoyee_le": " · sent on {formatDate}{value}",
     "les_emails_que_tu_prepares_pour_b188": "The emails you prepare for your audiences. A draft becomes a mailing once you mark it “sent”: its audience is then frozen.",
-    "modifiee_le": "· edited on {formatDateTime}",
+    "modifiee_le": " · edited on {formatDateTime}",
     "newsletters": "Newsletters",
     "nouvelle_newsletter": "New newsletter",
     "objet_a_ecrire": "Subject to write",
@@ -179,7 +180,8 @@
     "source_sources_hors_matiere_retirees": "{count, plural, one {One cited source outside the material was removed} other {# cited sources outside the material were removed}} — only attached articles can be cited.",
     "le_bloc_sources_est_vide": "The Sources block is empty: choose the articles to cite, or delete it.",
     "sujets_traites_declares": "Topics covered: {join} — editable when marking as sent.",
-    "deja_recu_n": "Already received by these contacts: {count, plural, one {# newsletter} other {# newsletters}} — don’t repeat"
+    "deja_recu_n": "Already received by these contacts: {count, plural, one {# newsletter} other {# newsletters}} — don’t repeat",
+    "cible_n_contacts": "{label} · {count, plural, one {# contact} other {# contacts}}"
   },
   "saveIndicator": {
     "enregistre": "Saved {formatSavedAt}",

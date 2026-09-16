@@ -145,7 +145,7 @@
     "dates_heures_et_echeances_se_lisent_a7b8": "Dates, times and due dates are read in this time zone.",
     "dernier_evenement_le": "last event on {formatDateTime}",
     "dernier_le": "last on {formatDateTime}",
-    "dernier_usage_le": "· last used on {formatDateTime}",
+    "dernier_usage_le": " · last used on {formatDateTime}",
     "descendre": "Move {label} down",
     "deux_entrees_les_leads_envoyes_par_ee12": "Two inputs: leads, sent by your simulators server-side with an API key; visits and simulations, sent by a script line placed on your sites, accepted only from the domains declared below.",
     "devise": "Currency",
@@ -163,7 +163,7 @@
     "gagne": "Won",
     "identifiant_une_seule_couleur_le_systeme_0d04": "Identifier: {slug}. A single color: the system derives buttons, links, light backgrounds and the active navigation row from it, making sure everything stays readable.",
     "inter": "Inter",
-    "jamais_utilisee": "· never used",
+    "jamais_utilisee": " · never used",
     "l_adresse_de_la_politique_de_confidentialite_ne_semble_pas_valide": "The privacy policy address doesn’t look valid (it starts with https://).",
     "l_adresse_de_reponse_ne_semble_ac1b": "The reply-to address doesn’t look valid.",
     "la_couleur_n_est_pas_un_466e": "The color isn’t a valid hex code.",
@@ -217,7 +217,7 @@
     },
     "renommer": "Rename",
     "requetes_refusees_a_corriger_sinon_la_f8d0": "Rejected requests — fix them, or capture stays silent",
-    "revoquee_le": "· revoked on {formatDateTime}",
+    "revoquee_le": " · revoked on {formatDateTime}",
     "revoquer": "Revoke",
     "revoquer_cette_cle_de_site": "Revoke this site key",
     "rien_n_est_accepte_tant_que_d6a1": "Nothing is accepted while this list is empty — on purpose: without it, anyone could pollute your capture. Rejections are counted above.",
@@ -283,6 +283,7 @@
     },
     "origine_detachee": "Detached origin",
     "origine_non_renseignee": "origin not provided",
-    "site_principal": "Main site"
+    "site_principal": "Main site",
+    "origine_rattachee": "Origin attached: {origin}"
   }
 }

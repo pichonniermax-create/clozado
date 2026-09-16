@@ -76,14 +76,14 @@ export default async function NewslettersPage() {
               // + « Supprimer » + chevron le réduisaient à douze caractères sur un téléphone.
               <li key={n.id} className="flex items-center gap-1 pr-2">
                 <Link href={`/newsletters/${n.id}`} className="flex min-w-0 flex-1 flex-col px-4 py-3 transition-colors hover:bg-accent/40">
-                  <span className="line-clamp-2 text-sm font-medium sm:line-clamp-none sm:truncate">{n.title}</span>
+                  <span className="text-sm font-medium break-words">{n.title}</span>
                   <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground tabular-nums">
                     {n.sentAt ? (
                       <StatusBadge tone="success">{n.sendMode === "sent" ? t("envoyee") : t("marquee_envoyee")}</StatusBadge>
                     ) : (
                       <StatusBadge>{t("brouillon")}</StatusBadge>
                     )}
-                    <span className="min-w-0 truncate">
+                    <span className="min-w-0 break-words">
                       {n.subject ?? t("objet_a_ecrire")}{" "}
                       {n.sentAt
                         ? t("envoyee_le", { formatDate: fmt.date(n.sentAt), value: snapshot ? t("a_contact_contacts", { count: snapshot.count, label: snapshot.label }) : "" })

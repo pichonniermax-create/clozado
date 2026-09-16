@@ -594,9 +594,9 @@ async function ListeView({
                       <Link href={`/affaires/${deal.id}`} className="font-medium hover:underline">
                         {deal.title}
                       </Link>
-                      <span className="block truncate text-xs text-muted-foreground">{typeLabel}</span>
+                      <span className="block text-xs text-muted-foreground break-words">{typeLabel}</span>
                     </td>
-                    <td className="max-w-40 truncate px-4 py-2.5">{deal.clientName}</td>
+                    <td className="px-4 py-2.5 break-words">{deal.clientName}</td>
                     <td className="px-4 py-2.5">
                       <DealStatusBadge label={stageLabel} color={stageColor} />
                       {stageOutcome === "lost" && lossReasonLabel && (
@@ -612,7 +612,7 @@ async function ListeView({
                     <td className={cn("px-4 py-2.5 tabular-nums", overdue && "font-medium text-destructive")} title={overdue ? t("cloture_depassee") : undefined}>
                       {deal.expectedCloseDate ? fmt.date(deal.expectedCloseDate) : "—"}
                     </td>
-                    <td className="max-w-32 truncate px-4 py-2.5">{ownerName ?? "—"}</td>
+                    <td className="px-4 py-2.5 break-words">{ownerName ?? "—"}</td>
                   </tr>
                 );
               })}

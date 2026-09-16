@@ -48,7 +48,7 @@
     "au_moins_une_affaire_dans_le_2e40": "At least one deal in pipeline",
     "aucun_appel_email_rendez_vous_ni_f65e": "No call, email, meeting or note logged during that time.",
     "aucune_etiquette_dans_ton_organisation_pour_3f45": "No tags in your organization yet — they’re created from a contact record.",
-    "calcul": "· counting…",
+    "calcul": " · counting…",
     "calcul_du_nombre_de_contacts": "Counting contacts…",
     "comment_la_fiche_est_entree": "How the record came in",
     "conseiller_attribue": "Assigned advisor",
@@ -56,7 +56,7 @@
     "creee_il_y_a_moins_de": "Newer than",
     "creee_il_y_a_plus_de": "Older than",
     "de": "from",
-    "dont_sans_adresse_email": "· <span>{withoutEmail}</span> of them without an email address",
+    "dont_sans_adresse_email": " · <span>{withoutEmail}</span> of them without an email address",
     "france": "France",
     "jours": "days",
     "jours_sans_interaction": "Days without interaction",
@@ -186,7 +186,8 @@
     "tu_es_en_vue_globale_choisis_de39": "You’re in the global view: choose an organization in the super admin banner at the top of the screen before creating an audience."
   },
   "queries": {
-    "selection_manuelle": "Manual selection"
+    "selection_manuelle": "Manual selection",
+    "copie_de": "{label} (copy)"
   },
   "sources": {
     "external": "External system",

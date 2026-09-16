@@ -99,7 +99,7 @@ export async function duplicateTargetAction(id: string) {
   const user = await requireUser();
   let destination: string;
   try {
-    const copy = await duplicateMailTarget(user, id);
+    const copy = await duplicateMailTarget(user, id, await getTranslations("targets.queries"));
     destination = `/cibles/${copy.id}`;
   } catch (error) {
     destination = withError(`/cibles/${id}`, await errorMessage(error));

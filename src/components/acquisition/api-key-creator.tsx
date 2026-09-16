@@ -38,14 +38,21 @@ export function ApiKeyCreator() {
       {state.error && (
         <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{state.error}</p>
       )}
-      <form action={action} className="flex flex-wrap items-end gap-2">
-        <Field label={t("nouvelle_cle_d_api")} htmlFor="api-key-label" hint={t("un_nom_par_integration_simulateur_credit_b255")} className="flex-1">
-          <Input id="api-key-label" name="label" required placeholder={t("simulateur_credit_serveur")} />
-        </Field>
-        <Button type="submit" variant="outline" disabled={pending}>
-          <KeyRound />
-          {t("creer_la_cle")}
-        </Button>
+      {/* La même grille que la clé de site (chantier C, correctif 2) : champ et bouton sur une ligne, l'aide dessous —
+          alignée sur le bas de l'aide, le bouton tombait sous le champ. */}
+      <form action={action} className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-end gap-2">
+          <Field label={t("nouvelle_cle_d_api")} htmlFor="api-key-label" className="w-full sm:w-96">
+            <Input id="api-key-label" name="label" required placeholder={t("simulateur_credit_serveur")} aria-describedby="api-key-label-hint" />
+          </Field>
+          <Button type="submit" variant="outline" disabled={pending}>
+            <KeyRound />
+            {t("creer_la_cle")}
+          </Button>
+        </div>
+        <p id="api-key-label-hint" className="text-xs text-muted-foreground">
+          {t("un_nom_par_integration_simulateur_credit_b255")}
+        </p>
       </form>
     </div>
   );

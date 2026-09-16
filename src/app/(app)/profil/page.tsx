@@ -49,7 +49,7 @@ export default async function ProfilePage() {
           </Avatar>
           <div className="flex min-w-0 flex-col gap-1">
             <CardTitle>{displayName}</CardTitle>
-            <CardDescription className="truncate">{profile.email}</CardDescription>
+            <CardDescription className="break-all">{profile.email}</CardDescription>
           </div>
         </CardHeader>
         <CardContent>

@@ -36,5 +36,10 @@
     "raccourci_mac": "⌘K",
     "raccourci_pc": "Ctrl K",
     "echap": "Échap"
+  },
+  "columnChooser": {
+    "colonnes": "Colonnes",
+    "colonnes_affichees": "Colonnes affichées",
+    "reinitialiser": "Réinitialiser les colonnes"
   }
 }

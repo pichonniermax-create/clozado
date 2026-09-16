@@ -878,7 +878,7 @@ export async function buildContactNewsletterBrief(user: OrgScopeUser, contactId:
   // « Directrice financière chez Cap Test » forme un seul groupe — la
   // virgule sépare les groupes, pas la fonction de la société.
   const role = isPerson
-    ? [contact.jobTitle, contact.companyName ? `chez ${contact.companyName}` : null].filter(Boolean).join(" ")
+    ? [contact.jobTitle, contact.companyName ? t("chez_societe", { company: contact.companyName }) : null].filter(Boolean).join(" ")
     : "";
   const who = [contact.name, role || null, contact.city].filter(Boolean).join(", ");
 
@@ -886,7 +886,7 @@ export async function buildContactNewsletterBrief(user: OrgScopeUser, contactId:
   if (tagRows.length > 0) lines.push(t("etiquettes", { join: tagRows.map((t) => t.label).join(", ") }));
   if (openDeals.length > 0) {
     lines.push(
-      t("affaires_en_cours", { join: openDeals.map((d) => `« ${d.title} » (étape ${d.stageLabel})`).join(" ; ") })
+      t("affaires_en_cours", { join: openDeals.map((d) => t("affaire_a_l_etape", { title: d.title, stage: d.stageLabel })).join(" ; ") })
     );
   }
   lines.push(t("objectif_de_l_email_a_preciser_2f4d"));

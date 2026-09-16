@@ -96,7 +96,7 @@
     "rediger_une_newsletter_pour_ce_contact": "Rédiger une newsletter pour ce contact",
     "societe": "Société",
     "suivi_par": "Suivi par {n}",
-    "sujets": "· sujets : {join}",
+    "sujets": " · sujets : {join}",
     "supprimee": "Supprimée",
     "supprimer_ce_contact": "Supprimer ce contact",
     "systeme": "système",
@@ -156,7 +156,7 @@
     "ce_fichier_ne_contient_pas_de_1c5a": "Ce fichier ne contient pas de lignes exploitables (en-tête + au moins une ligne).",
     "champs_remplis": "Champs remplis",
     "colonne_du_fichier": "Colonne du fichier",
-    "completee_completees": "· {count} {count, plural, one {complétée} other {complétées}}",
+    "completee_completees": " · {count} {count, plural, one {complétée} other {complétées}}",
     "correspondance_des_colonnes_ligne_lignes": "Correspondance des colonnes — {fileName} · {count} {count, plural, one {ligne} other {lignes}}",
     "devient": "Devient",
     "exemple_1re_ligne": "Exemple (1re ligne)",
@@ -186,7 +186,7 @@
     "l_import_a_echoue_en_route_55f6": "L’import a échoué en route (réseau ou serveur) — ta préparation est intacte, réessaie depuis ce même écran.",
     "la_completer_seuls_ses_champs_vides_44ea": "La compléter — seuls ses champs vides reçoivent les valeurs du fichier.<span>Jamais d’écrasement : une valeur déjà saisie ici reste telle quelle. C’est le bon choix pour réimporter l’export de ton CRM.</span>",
     "ligne": "Ligne",
-    "ligne_lignes_ecartee_ecartees": "· {count} {count, plural, one {ligne} other {lignes}} {count, plural, one {écartée} other {écartées}}",
+    "ligne_lignes_ecartee_ecartees": " · {count} {count, plural, one {ligne} other {lignes}} {count, plural, one {écartée} other {écartées}}",
     "premiere_ligne_en_tetes_separateur_point_76d7": "Première ligne = en-têtes. Séparateur point-virgule, virgule ou tabulation — détecté tout seul. Toutes les fiches importées sont des personnes.",
     "raison": "Raison",
     "sans_titre": "(sans titre)",
@@ -259,7 +259,9 @@
     "ignoree_apparait_plus_haut_reconnue_par": "Ignorée : la même personne apparaît plus haut dans le fichier ({identity}).",
     "ignoree_existe_deja_reconnue_par": "Ignorée : existe déjà dans tes contacts — reconnue par {identity}.",
     "plusieurs_fiches_reconnues_par": "Plusieurs fiches reconnues par {identity} — à départager à la main avant de compléter.",
-    "deja_a_jour_reconnue_par": "Déjà à jour : la fiche reconnue par {identity} n’avait rien à compléter."
+    "deja_a_jour_reconnue_par": "Déjà à jour : la fiche reconnue par {identity} n’avait rien à compléter.",
+    "chez_societe": "chez {company}",
+    "affaire_a_l_etape": "« {title} » (étape {stage})"
   },
   "contactPicker": {
     "reliee_a_la_fiche": "Reliée à la fiche {name}.",

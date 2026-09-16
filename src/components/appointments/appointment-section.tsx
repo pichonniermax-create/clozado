@@ -50,7 +50,7 @@ export function AppointmentSection({
           {appointments.map((a) => (
             <li key={a.id} className="flex items-center gap-3 px-4 py-3">
               <div className="flex min-w-0 flex-1 flex-col">
-                <span className={`truncate text-sm font-medium${a.status === "canceled" ? " text-muted-foreground line-through" : ""}`}>
+                <span className={`text-sm font-medium break-words${a.status === "canceled" ? " text-muted-foreground line-through" : ""}`}>
                   {fmt.dateTime(a.startsAt)}
                   {a.title ? ` · ${a.title}` : ""}
                 </span>

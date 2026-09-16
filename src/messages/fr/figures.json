@@ -72,7 +72,7 @@
     }
   },
   "page": {
-    "a_completer": "· {incomplete} à compléter",
+    "a_completer": " · {incomplete} à compléter",
     "a_completer_b061": "À compléter",
     "ajouter_le_chiffre": "Ajouter le chiffre",
     "ajouter_un_chiffre": "Ajouter un chiffre",
@@ -93,8 +93,8 @@
     "indicateur_indicateurs_de_marche_suivi_suivis": "{count} {count, plural, one {indicateur} other {indicateurs}} de marché {count, plural, one {suivi} other {suivis}}",
     "libelle": "Libellé",
     "lien_de_la_source_facultatif": "Lien de la source (facultatif)",
-    "lu": "· lu {formatRelativeTime}",
-    "modifie_le": "· modifié le {formatDate}",
+    "lu": " · lu {formatRelativeTime}",
+    "modifie_le": " · modifié le {formatDate}",
     "modifier": "Modifier",
     "n_2025_juin_2026_au_30_juin_60fc": "« 2025 », « juin 2026 », « au 30 juin 2026 »…",
     "ne_plus_suivre": "Ne plus suivre",
@@ -105,7 +105,7 @@
     "source": "Source",
     "source_manquante": "source manquante",
     "source_muette_aucune_valeur_encore_lue": "Source muette ({lastError}) — aucune valeur encore lue.",
-    "source_muette_depuis_derniere_valeur_conservee": "· source muette depuis ({lastError}) : dernière valeur conservée",
+    "source_muette_depuis_derniere_valeur_conservee": " · source muette depuis ({lastError}) : dernière valeur conservée",
     "suivre": "Suivre",
     "suivre_les_indicateurs_du_metier": "Suivre les {count} indicateurs du métier « {label} »",
     "supprimer": "Supprimer",

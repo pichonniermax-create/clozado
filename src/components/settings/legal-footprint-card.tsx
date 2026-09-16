@@ -1,3 +1,4 @@
+import { use } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
@@ -6,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Organization } from "@/db/schema";
 import { saveLegalFootprintAction } from "@/lib/email/actions";
 import { footerProfileOf } from "@/lib/email/footer-profiles";
+import { getFormats } from "@/i18n/formats";
 import { useTranslations } from "next-intl";
 import { NativeSelect } from "@/components/ui/native-select";
 
@@ -20,7 +22,9 @@ const COUNTRIES = ["FR", "BE", "LU", "CH", "MC", "GB", "CA", "US", "DE", "ES", "
 export function LegalFootprintCard({ org, readOnly }: { org: Pick<Organization, "country" | "postalAddress" | "legalMention" | "privacyPolicyUrl">; readOnly: boolean }) {
   const t = useTranslations("settings.legalCard");
   const profile = footerProfileOf(org);
-  const countryName = (code: string) => new Intl.DisplayNames(["fr", "en"], { type: "region" }).of(code) ?? code;
+  // Dans la langue de la personne, pas toujours en français (chantier C, correctif 3).
+  const fmt = use(getFormats());
+  const countryName = (code: string) => fmt.country(code) ?? code;
   return (
     <Card id="pied-de-page" className="scroll-mt-32">
       <CardHeader>

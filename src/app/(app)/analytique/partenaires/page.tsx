@@ -9,6 +9,7 @@ import { MetricDefinitions } from "@/components/analytics/metric-definitions";
 import { periodPhrase } from "@/lib/metrics/period-phrase";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { buttonVariants } from "@/components/ui/button";
+import { ColumnChooserTable } from "@/components/ui/column-chooser-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { listOrigins } from "@/db/queries/acquisition";
 import { listOrgUsers } from "@/db/queries/contacts";
@@ -192,84 +193,77 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
                 {t("les_partages_se_mesurent_par_confrere_eb43")}
               </EmptyState>
             ) : (
-              // Onze colonnes : le tableau défile DANS son cadre, jamais la page (audit UI du 2026-09-14) ; la colonne du
-              // partenaire reste collée à gauche pendant le défilement, pour savoir de qui on lit les chiffres.
-              <div className="overflow-x-auto rounded-xl border border-border bg-card">
-                <table className="w-full min-w-[64rem] text-sm">
-                  <caption className="sr-only">{t("par_partenaire")}</caption>
-                  <thead>
-                    <tr className="border-b border-border text-xs text-muted-foreground">
-                      <th scope="col" className="sticky left-0 z-10 bg-card px-3 py-2.5 text-left font-medium">
-                        {t("partenaire")}
-                      </th>
-                      {th(t("partages"))}
-                      {th(t("acceptes"))}
-                      {th(t("refuses"))}
-                      {th(t("sans_reponse"))}
-                      {th(<DefinitionLink id="partner_acceptance_rate">{t("acceptation")}</DefinitionLink>)}
-                      {th(<DefinitionLink id="partner_response_delay">{t("delai_de_reponse")}</DefinitionLink>)}
-                      {th(t("gagnees"))}
-                      {th(<DefinitionLink id="partner_transformation_rate">{t("transformation")}</DefinitionLink>)}
-                      {th(<DefinitionLink id="partner_commissions">{t("commissions_acquises")}</DefinitionLink>)}
-                      {th(t("commissions_prevues"))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {report.partners.map((p) => (
-                      <tr key={p.partnerId}>
-                        <th scope="row" className="sticky left-0 z-10 min-w-40 bg-card px-3 py-3 text-left align-top font-medium">
-                          <Link href={`/partenaires/${p.partnerId}`} className={DATA_LINK_CLASS}>
-                            {p.name}
-                          </Link>
-                          {(p.company || p.profession || !p.active) && (
-                            <span className="block text-xs font-normal text-muted-foreground">
-                              {[p.profession, p.company, p.active ? null : t("inactif")].filter(Boolean).join(" · ")}
-                            </span>
-                          )}
-                        </th>
-                        {td(p.sent)}
-                        {td(p.accepted)}
-                        {td(p.declined)}
-                        {td(
-                          <>
-                            {p.pending + p.expired + p.revoked}
-                            {p.pending + p.expired + p.revoked > 0 && (
-                              <span className="block text-xs text-muted-foreground">
-                                {[p.pending > 0 && t("n_en_attente", { n: p.pending }), p.expired > 0 && t("n_expires", { n: p.expired }), p.revoked > 0 && t("n_revoques", { n: p.revoked })]
-                                  .filter(Boolean)
-                                  .join(" · ")}
-                              </span>
-                            )}
-                          </>
+              // Onze colonnes, dont six essentielles par défaut (chantier C, correctif 4) : le tableau tient sans défilement
+              // horizontal sur un ordinateur portable ; le partenaire reste collé à gauche, les autres colonnes se cochent
+              // dans « Colonnes ». Les cellules sont rendues ici, côté serveur — le composant ne fait que montrer ou cacher.
+              <ColumnChooserTable
+                storageKey="analytique-partenaires"
+                caption={t("par_partenaire")}
+                columns={[
+                  { key: "partenaire", label: t("partenaire"), align: "left" },
+                  { key: "partages", label: t("partages") },
+                  { key: "acceptes", label: t("acceptes") },
+                  { key: "refuses", label: t("refuses"), defaultVisible: false },
+                  { key: "sans_reponse", label: t("sans_reponse"), defaultVisible: false },
+                  { key: "acceptation", label: <DefinitionLink id="partner_acceptance_rate">{t("acceptation")}</DefinitionLink> },
+                  { key: "delai", label: <DefinitionLink id="partner_response_delay">{t("delai_de_reponse")}</DefinitionLink>, defaultVisible: false },
+                  { key: "gagnees", label: t("gagnees") },
+                  { key: "transformation", label: <DefinitionLink id="partner_transformation_rate">{t("transformation")}</DefinitionLink>, defaultVisible: false },
+                  { key: "acquises", label: <DefinitionLink id="partner_commissions">{t("commissions_acquises")}</DefinitionLink> },
+                  { key: "prevues", label: t("commissions_prevues"), defaultVisible: false },
+                ]}
+                rows={report.partners.map((p) => ({
+                  key: p.partnerId,
+                  cells: {
+                    partenaire: (
+                      <>
+                        <Link href={`/partenaires/${p.partnerId}`} className={DATA_LINK_CLASS}>
+                          {p.name}
+                        </Link>
+                        {(p.company || p.profession || !p.active) && (
+                          <span className="block text-xs font-normal text-muted-foreground">
+                            {[p.profession, p.company, p.active ? null : t("inactif")].filter(Boolean).join(" · ")}
+                          </span>
                         )}
-                        {td(rateText(p.acceptanceRate, fmt, tf, true))}
-                        {td(<DelayCell stat={p.responseDelay} />)}
-                        {td(p.won)}
-                        {td(rateText(p.transformationRate, fmt, tf, true))}
-                        {td(<MoneyCell money={p.earned} />)}
-                        {td(<MoneyCell money={p.planned} />)}
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t border-border bg-muted/40 font-medium">
-                      <th scope="row" className="sticky left-0 z-10 bg-muted px-3 py-3 text-left align-top">
-                        {t("ensemble")}
-                      </th>
-                      {td(totals.sent)}
-                      {td(totals.accepted)}
-                      {td(totals.declined)}
-                      {td(totals.noResponse)}
-                      {td(rateText(totals.acceptanceRate, fmt, tf, true))}
-                      {td(MASKED)}
-                      {td(totals.won)}
-                      {td(rateText(totals.transformationRate, fmt, tf, true))}
-                      {td(<MoneyCell money={totals.earned} />)}
-                      {td(<MoneyCell money={totals.planned} />)}
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+                      </>
+                    ),
+                    partages: p.sent,
+                    acceptes: p.accepted,
+                    refuses: p.declined,
+                    sans_reponse: (
+                      <>
+                        {p.pending + p.expired + p.revoked}
+                        {p.pending + p.expired + p.revoked > 0 && (
+                          <span className="block text-xs text-muted-foreground">
+                            {[p.pending > 0 && t("n_en_attente", { n: p.pending }), p.expired > 0 && t("n_expires", { n: p.expired }), p.revoked > 0 && t("n_revoques", { n: p.revoked })]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </span>
+                        )}
+                      </>
+                    ),
+                    acceptation: rateText(p.acceptanceRate, fmt, tf, true),
+                    delai: <DelayCell stat={p.responseDelay} />,
+                    gagnees: p.won,
+                    transformation: rateText(p.transformationRate, fmt, tf, true),
+                    acquises: <MoneyCell money={p.earned} />,
+                    prevues: <MoneyCell money={p.planned} />,
+                  },
+                }))}
+                foot={{
+                  partenaire: t("ensemble"),
+                  partages: totals.sent,
+                  acceptes: totals.accepted,
+                  refuses: totals.declined,
+                  sans_reponse: totals.noResponse,
+                  acceptation: rateText(totals.acceptanceRate, fmt, tf, true),
+                  delai: MASKED,
+                  gagnees: totals.won,
+                  transformation: rateText(totals.transformationRate, fmt, tf, true),
+                  acquises: <MoneyCell money={totals.earned} />,
+                  prevues: <MoneyCell money={totals.planned} />,
+                }}
+              />
             )}
           </section>
 

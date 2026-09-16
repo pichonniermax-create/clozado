@@ -31,7 +31,9 @@ export function SettingsNav() {
       aria-label={t("titre")}
       className="sticky top-14 z-10 -mx-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur md:mx-0 md:rounded-xl md:border md:px-2"
     >
-      <ul className="flex gap-1 overflow-x-auto [scrollbar-width:none]">
+      {/* Douze liens : sur un téléphone, la rangée défile ; dès `md`, elle SE REPLIE sur deux lignes — avant, elle défilait aussi sur un
+          portable, sans barre visible : les dernières sections (collecte, motifs) étaient hors champ (chantier C, correctifs 4 et 5). */}
+      <ul className="flex gap-1 overflow-x-auto [scrollbar-width:none] md:flex-wrap md:overflow-visible">
         {SECTIONS.map((section) => (
           <li key={section.id} className="shrink-0">
             <a

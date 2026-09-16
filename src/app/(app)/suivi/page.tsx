@@ -237,11 +237,11 @@ function ActionRow({
       <div className="flex min-w-0 flex-1 flex-col">
         <Link
           href={`/affaires/${dealId}`}
-          className="text-sm font-medium underline-offset-2 hover:underline focus-visible:underline sm:truncate"
+          className="text-sm font-medium break-words underline-offset-2 hover:underline focus-visible:underline"
         >
           {dealTitle}
         </Link>
-        <span className="text-xs tabular-nums text-muted-foreground sm:truncate">
+        <span className="text-xs tabular-nums text-muted-foreground break-words">
           {partnerName} · {detail}
         </span>
       </div>
@@ -308,7 +308,7 @@ function UnpaidCommissionRow({ row }: { row: UnpaidCommission }) {
 function NeutralRow({ row }: { row: FollowUpShare }) {
   return (
     <ListRow className="gap-3 py-2.5">
-      <Link href={`/affaires/${row.dealId}`} className="min-w-0 truncate text-sm hover:underline">
+      <Link href={`/affaires/${row.dealId}`} className="min-w-0 text-sm break-words hover:underline">
         <span className="font-medium">{row.dealTitle}</span>
         <span className="text-muted-foreground"> · {row.partnerName}</span>
       </Link>

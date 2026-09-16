@@ -180,7 +180,7 @@ export default async function CompetitorsPage() {
           <ul className="divide-y divide-border">
             {archived.map((competitor) => (
               <li key={competitor.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                <span className="truncate">{competitor.label}</span>
+                <span className="break-words">{competitor.label}</span>
                 <form action={restoreCompetitorAction.bind(null, competitor.id)}>
                   <Button type="submit" variant="ghost" size="sm">
                     {tp("reactiver")}
@@ -406,7 +406,7 @@ function CompetitorsSection({ competitors, stats, articles }: { competitors: Wat
                       </a>
                       {!competitor.feedUrl && <Badge variant="outline">{tr("sans_flux_cherche_par_domaine")}</Badge>}
                     </span>
-                    <span className="truncate text-xs tabular-nums text-muted-foreground" title={competitor.feedUrl ?? undefined}>
+                    <span className="text-xs tabular-nums text-muted-foreground break-all" title={competitor.feedUrl ?? undefined}>
                       {[
                         fmt.country(competitor.country),
                         competitor.lang === "en" ? tp("anglais") : competitor.lang === "fr" ? tp("francais") : null,

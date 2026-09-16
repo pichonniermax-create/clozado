@@ -2,7 +2,8 @@
   "apiAiDesign": {
     "erreur_de_generation_ia": "Erreur de génération IA.",
     "l_ia_n_est_pas_configuree": "L’IA n’est pas configurée sur ce serveur.",
-    "requete_invalide": "Requête invalide."
+    "requete_invalide": "Requête invalide.",
+    "reponse_ia_tronquee_reessaie": "La réponse de l’IA a été coupée avant la fin : relance la génération."
   },
   "apiRender": {
     "requete_invalide": "Requête invalide."
@@ -116,9 +117,9 @@
     "choisis_une_cible_decris_ce_que_baa4": "Choisis une cible, décris ce que l’email doit dire, et le composer rédige avec l’identité de la personne à qui tu écris.",
     "ecrire_la_premiere_voir_les_cibles": "<link>Écrire la première</link><link2>Voir les cibles</link2>",
     "envoyee": "Envoyée",
-    "envoyee_le": "· envoyée le {formatDate}{value}",
+    "envoyee_le": " · envoyée le {formatDate}{value}",
     "les_emails_que_tu_prepares_pour_b188": "Les emails que tu prépares pour tes cibles. Un brouillon devient un envoi quand tu le marques « envoyée » : l’audience est alors figée.",
-    "modifiee_le": "· modifiée le {formatDateTime}",
+    "modifiee_le": " · modifiée le {formatDateTime}",
     "newsletters": "Newsletters",
     "nouvelle_newsletter": "Nouvelle newsletter",
     "objet_a_ecrire": "Objet à écrire",
@@ -179,7 +180,8 @@
     "source_sources_hors_matiere_retirees": "{count, plural, one {Une source citée hors de la matière a été retirée} other {# sources citées hors de la matière ont été retirées}} — seuls les articles rattachés se citent.",
     "le_bloc_sources_est_vide": "Le bloc Sources est vide : choisis les articles à citer, ou supprime-le.",
     "sujets_traites_declares": "Sujets traités : {join} — modifiables au marquage « envoyée ».",
-    "deja_recu_n": "Déjà reçu par ces contacts : {count, plural, one {# newsletter} other {# newsletters}} — à ne pas répéter"
+    "deja_recu_n": "Déjà reçu par ces contacts : {count, plural, one {# newsletter} other {# newsletters}} — à ne pas répéter",
+    "cible_n_contacts": "{label} · {count, plural, one {# contact} other {# contacts}}"
   },
   "saveIndicator": {
     "enregistre": "Enregistré {formatSavedAt}",

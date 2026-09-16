@@ -32,13 +32,12 @@ export async function GET(req: Request) {
   const user = await requireUser();
   const url = new URL(req.url);
   const view = parseExportView(url.searchParams.get("vue"));
+  const t = await getTranslations("analytics.export");
   if (!view) {
-    return new NextResponse("Vue inconnue : vue=delais, funnel, pertes, partenaires ou tableau-de-bord.", { status: 400 });
+    return new NextResponse(t("vue_inconnue"), { status: 400 });
   }
   if (!user.organizationId) {
-    return new NextResponse("L'export se fait pour une organisation précise : choisis une organisation dans le bandeau super admin.", {
-      status: 400,
-    });
+    return new NextResponse(t("choisis_une_organisation"), { status: 400 });
   }
 
   const raw: MetricSearchParams = Object.fromEntries(url.searchParams);

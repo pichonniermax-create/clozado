@@ -48,7 +48,7 @@
     "au_moins_une_affaire_dans_le_2e40": "Au moins une affaire dans le pipeline",
     "aucun_appel_email_rendez_vous_ni_f65e": "Aucun appel, email, rendez-vous ni note consigné pendant cette durée.",
     "aucune_etiquette_dans_ton_organisation_pour_3f45": "Aucune étiquette dans ton organisation pour l’instant — elles se créent depuis une fiche contact.",
-    "calcul": "· calcul…",
+    "calcul": " · calcul…",
     "calcul_du_nombre_de_contacts": "Calcul du nombre de contacts…",
     "comment_la_fiche_est_entree": "Comment la fiche est entrée",
     "conseiller_attribue": "Conseiller attribué",
@@ -56,7 +56,7 @@
     "creee_il_y_a_moins_de": "Créée il y a moins de",
     "creee_il_y_a_plus_de": "Créée il y a plus de",
     "de": "de",
-    "dont_sans_adresse_email": "· dont <span>{withoutEmail}</span> sans adresse email",
+    "dont_sans_adresse_email": " · dont <span>{withoutEmail}</span> sans adresse email",
     "france": "France",
     "jours": "jours",
     "jours_sans_interaction": "Jours sans interaction",
@@ -186,7 +186,8 @@
     "tu_es_en_vue_globale_choisis_de39": "Tu es en vue globale : choisis une organisation dans le bandeau super admin en haut de l’écran avant de créer une cible."
   },
   "queries": {
-    "selection_manuelle": "Sélection manuelle"
+    "selection_manuelle": "Sélection manuelle",
+    "copie_de": "{label} (copie)"
   },
   "sources": {
     "external": "Système externe",

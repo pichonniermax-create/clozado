@@ -108,14 +108,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   bouton court à droite, pas un lien de deux lignes qui mangeait le nom (audit UI du 2026-09-14). */}
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="flex min-w-0 items-center gap-2">
-                  <span className="truncate text-sm font-medium">{org.name}</span>
+                  <span className="text-sm font-medium break-words">{org.name}</span>
                   {org.isDemo && (
                     <Badge variant="secondary" className="shrink-0">
                       {td("badge")}
                     </Badge>
                   )}
                 </span>
-                <span className="truncate text-xs text-muted-foreground">{org.slug}</span>
+                <span className="text-xs text-muted-foreground break-all">{org.slug}</span>
               </span>
               <form action={workIn} className="shrink-0">
                 <input type="hidden" name="orgId" value={org.id} />
@@ -375,7 +375,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <li key={task.id} className="flex items-center gap-3 px-4 py-3">
                   <CompleteTaskButton taskId={task.id} backTo="/dashboard" title={task.title} />
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="line-clamp-2 text-sm font-medium sm:line-clamp-1">{task.title}</span>
+                    <span className="text-sm font-medium break-words">{task.title}</span>
                     <TaskMetaLine task={task} />
                   </div>
                   {task.autoRule && (

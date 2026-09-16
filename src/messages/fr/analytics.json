@@ -269,5 +269,9 @@
     "montant_inconnu_n_sans_montant": "{n, plural, one {# affaire sans montant} other {# affaires sans montant}}",
     "gagnees_sur_la_meme_periode": "Gagnées sur la même période",
     "taux_de_perte_titre": "Taux de perte"
+  },
+  "export": {
+    "vue_inconnue": "Vue inconnue : vue=delais, funnel, pertes, partenaires ou tableau-de-bord.",
+    "choisis_une_organisation": "L’export se fait pour une organisation précise : choisis une organisation dans le bandeau super admin."
   }
 }

@@ -72,7 +72,10 @@ export default async function TargetsPage() {
             <>
               {proposals.length > 0 && (
                 <form action={createPackTargetsAction}>
-                  <Button type="submit">{packLabel}</Button>
+                  {/* Un libellé long (« Créer les 5 cibles du pack “Tout métier” ») : le bouton se replie au lieu de déborder à 390 px (chantier C, correctif 5). */}
+                  <Button type="submit" className="h-auto min-h-9 whitespace-normal text-center">
+                    {packLabel}
+                  </Button>
                 </form>
               )}
               <Link href="/cibles/new" className={buttonVariants({ variant: "outline" })}>
@@ -84,6 +87,7 @@ export default async function TargetsPage() {
           {tr("une_cible_c_est_un_segment_d9ec", { count: proposals.length })}
           {!chosen && (
             <>
+              {" "}
               {tr.rich("aucun_pack_metier_n_est_choisi_f16a", { link: (chunks) => <Link href="/settings#pack-metier" className="underline underline-offset-2">{chunks}</Link> })}
             </>
           )}

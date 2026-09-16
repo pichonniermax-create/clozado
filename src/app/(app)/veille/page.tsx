@@ -232,7 +232,7 @@ export default async function WatchPage() {
                 <ul className="flex flex-col divide-y divide-border">
                   {dismissed.map((item) => (
                     <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                      <a href={item.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate text-sm underline-offset-2 hover:underline">
+                      <a href={item.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 text-sm break-words underline-offset-2 hover:underline">
                         {item.title}
                       </a>
                       <form action={restoreItemAction.bind(null, item.id)}>
@@ -357,10 +357,10 @@ function BasketSection({ basket, targets }: { basket: WatchItemRow[]; targets: {
         {basket.map((item) => (
           <li key={item.id} className="flex items-center justify-between gap-3 text-sm">
             <span className="min-w-0 flex flex-col">
-              <a href={item.url} target="_blank" rel="noopener noreferrer" className="truncate font-medium hover:underline">
+              <a href={item.url} target="_blank" rel="noopener noreferrer" className="font-medium break-words hover:underline">
                 {item.title}
               </a>
-              <span className="truncate text-xs tabular-nums text-muted-foreground">
+              <span className="text-xs tabular-nums text-muted-foreground break-words">
                 {[item.publisher, item.publishedAt ? fmt.date(item.publishedAt) : null].filter(Boolean).join(" · ")}
                 {item.usedIn > 0 ? tr("deja_utilise_dans_newsletter_newsletters", { usedIn: item.usedIn }) : ""}
               </span>
@@ -547,7 +547,7 @@ function TopicsSection({ topics, archived, defaultOpen }: { topics: WatchTopic[]
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0 flex flex-col">
                   <span className="text-sm font-medium">{topic.label}</span>
-                  <span className="truncate text-xs tabular-nums text-muted-foreground">
+                  <span className="text-xs tabular-nums text-muted-foreground break-words">
                     {topic.searchTerms.length ? topic.searchTerms.join(" · ") : t("recherche_par_son_libelle")} —{" "}
                     {fmt.list(topic.searchLanguages.map((l) => (l === "en" ? t("anglais") : t("francais"))))} —{" "}
                     {topic.lastSearchedAt ? t("cherche", { formatRelativeTime: fmt.relative(topic.lastSearchedAt) }) : t("jamais_cherche")}
@@ -617,7 +617,7 @@ function SourcesSection({ sources, archived, topics }: { sources: WatchSource[];
                       </a>
                       {!source.feedUrl && <Badge variant="outline">{tr("sans_flux_cherchee_par_domaine")}</Badge>}
                     </span>
-                    <span className="truncate text-xs tabular-nums text-muted-foreground" title={source.feedUrl ?? undefined}>
+                    <span className="text-xs tabular-nums text-muted-foreground break-all" title={source.feedUrl ?? undefined}>
                       {[
                         fmt.country(source.country),
                         source.lang === "en" ? tr("anglais") : source.lang === "fr" ? tr("francais") : null,
@@ -705,7 +705,7 @@ function SourcesSection({ sources, archived, topics }: { sources: WatchSource[];
           <ul className="divide-y divide-border">
             {archived.map((source) => (
               <li key={source.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                <span className="truncate">{source.label}</span>
+                <span className="break-words">{source.label}</span>
                 <form action={restoreSourceAction.bind(null, source.id)}>
                   <Button type="submit" variant="ghost" size="sm">
                     {tr("reactiver")}

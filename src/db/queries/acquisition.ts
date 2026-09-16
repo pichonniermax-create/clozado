@@ -595,7 +595,7 @@ export async function setDealOrigin(user: OrgScopeUser, actorUserId: string, dea
     if (!deal.contactId || lead.contactId !== deal.contactId) {
       throw new AppError("ce_lead_n_appartient_pas_au_contact_c80a");
     }
-    message = `Origine rattachée : ${leadOriginLabel(lead, t)}`;
+    message = t("origine_rattachee", { origin: leadOriginLabel(lead, t) });
   }
 
   await db.batch([
