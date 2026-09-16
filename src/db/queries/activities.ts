@@ -20,6 +20,7 @@ import { assertOrgAccess } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
 import { listContactEmailEntries } from "./engagement";
+import { stopAutoSendOnReply } from "./inbound";
 import type { TranslatorOf } from "@/i18n/translator";
 
 /**
@@ -99,6 +100,8 @@ export type JournalEntry = {
   contactName: string | null;
   /** Renseigné pour une interaction saisie à la main — la seule entrée qui se supprime. */
   activityId: string | null;
+  /** Le sens d'un email consigné (reçu du contact, envoyé vers lui) ; null pour tout le reste. */
+  direction?: "inbound" | "outbound" | null;
   /** Lead reçu : l'origine (configurée, sinon le texte reçu, sinon le simulateur). */
   originLabel: string | null;
   /** Le lien cliqué dans un email (chantier engagement) ; absent ailleurs. */
@@ -181,6 +184,7 @@ async function collectJournal(scope: JournalScope, limit: number, t: TranslatorO
             id: activities.id,
             type: activities.type,
             content: activities.content,
+            direction: activities.direction,
             occurredAt: activities.occurredAt,
             contactId: activities.contactId,
             contactName: contacts.name,
@@ -348,6 +352,7 @@ async function collectJournal(scope: JournalScope, limit: number, t: TranslatorO
       contactName: r.contactName,
       activityId: r.id,
       originLabel: null,
+      direction: r.direction as JournalEntry["direction"],
     });
   }
   for (const r of stageRows) {
@@ -590,6 +595,11 @@ export async function createActivity(user: OrgScopeUser, createdBy: string, inpu
       createdBy,
     })
     .returning();
+  // Un email REÇU du contact, d'où qu'il soit consigné (saisie rapide, confirmation d'un email ingéré), vaut
+  // « a répondu » : la vague automatique s'arrête pour lui (§5.3 ; stabilisation, P4) — jamais réarmée d'ici.
+  if (activity.type === "email" && activity.direction === "inbound" && activity.contactId) {
+    await stopAutoSendOnReply(activity.organizationId, activity.contactId);
+  }
   return activity;
 }
 

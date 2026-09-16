@@ -153,7 +153,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
 
       {openCount === 0 ? (
         <EmptyState
-          title={t("rien_a_faire_pour_l_instant", { value: params.conseiller ? t("pour_ce_conseiller") : "" })}
+          title={t("rien_a_faire_pour_l_instant", { value: params.conseiller ? ` ${t("pour_ce_conseiller")}` : "" })}
           action={
             <a href="#nouvelle-tache" className={buttonVariants({ variant: "outline" })}>
               {t("creer_une_tache")}

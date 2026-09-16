@@ -22,6 +22,7 @@ import { resolveSender } from "@/lib/email/sender";
 import { getTranslations } from "next-intl/server";
 import { settingsOfOrganization } from "@/i18n/locale-lookup";
 import { DEFAULT_LOCALE } from "@/i18n/locales";
+import { readFlash } from "@/lib/flash";
 
 export default async function EditNewsletterPage(props: PageProps<"/newsletters/[id]">) {
   const tr = await getTranslations("newsletters.detail");
@@ -29,7 +30,8 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
   const contentLocale = user.organizationId ? (await settingsOfOrganization(user.organizationId)).locale : DEFAULT_LOCALE;
   const { id } = await props.params;
   const query = await props.searchParams;
-  const sendError = query[SEND_ERROR_PARAM];
+  // Le jeton signé de l'adresse → la phrase, ou rien (stabilisation, S5).
+  const sendError = readFlash(query[SEND_ERROR_PARAM]);
 
   const data = await nullIfNotFound(loadNewsletter(id));
   if (!data) {
@@ -127,7 +129,7 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
         simulated={org.isDemo}
         sentToday={sentToday}
         phase={phase}
-        error={typeof sendError === "string" ? sendError : undefined}
+        error={sendError}
       />
     </>
   );

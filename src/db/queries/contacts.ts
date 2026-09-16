@@ -22,6 +22,7 @@ import {
 } from "@/db/schema";
 import { assertOrgAccess, assertUserInOrg, orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
+import { nameCityKey, phoneKey } from "@/lib/contacts/match-keys";
 import { displayNameAfterUpdate } from "@/lib/contacts/display-name";
 import { listOpenTasksForContact } from "./tasks";
 import { AppError } from "@/lib/errors";
@@ -348,6 +349,13 @@ export async function logContactAccess(
   });
 }
 
+/** Le nombre TOTAL d'accès à une fiche — le titre du journal le dit, la liste n'en montre que les derniers (stabilisation, P7). */
+export async function countContactAccessLog(user: OrgScopeUser, contactId: string): Promise<number> {
+  await getContact(user, contactId); // borne l'accès à l'organisation
+  const [row] = await db.select({ n: count() }).from(contactAccessLog).where(eq(contactAccessLog.contactId, contactId));
+  return Number(row?.n ?? 0);
+}
+
 /** Les derniers accès à une fiche, avec le nom du lecteur — pour l'affichage sur la fiche. */
 export async function listContactAccessLog(user: OrgScopeUser, contactId: string, limit = 15) {
   await getContact(user, contactId); // borne l'accès à l'organisation
@@ -627,10 +635,13 @@ export type ImportRowInput = {
  */
 export type ImportMode = "skip" | "complete";
 
+/** Sur quoi une ligne a été reconnue comme une fiche existante : l'email, sinon le téléphone, sinon le nom et la ville (stabilisation, D7). */
+export type ImportMatchedBy = "email" | "phone" | "name_city";
+
 export type ImportReport = {
   inserted: number;
-  /** Lignes qui ont complété une fiche existante, avec les champs remplis. */
-  completed: { line: number; contactId: string; name: string; fields: string[] }[];
+  /** Lignes qui ont complété une fiche existante, avec les champs remplis et ce qui a servi à la reconnaître. */
+  completed: { line: number; contactId: string; name: string; fields: string[]; matchedBy: ImportMatchedBy }[];
   skipped: { line: number; reason: string }[];
   error: string | null;
 };
@@ -638,8 +649,12 @@ export type ImportReport = {
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_IMPORT_ROWS = 5000;
 
-/** Champs qu'une ligne d'import peut remplir sur une fiche existante — jamais name/email (l'identité qui a servi à apparier). */
-const COMPLETABLE: { field: Exclude<ImportField, "name" | "email"> }[] = [
+/**
+ * Champs qu'une ligne d'import peut remplir sur une fiche existante — jamais le nom ; l'email seulement quand la fiche
+ * a été reconnue autrement (par téléphone, par nom et ville) et n'en a pas encore : l'identité qui a servi à apparier ne se réécrit pas.
+ */
+const COMPLETABLE: { field: Exclude<ImportField, "name"> }[] = [
+  { field: "email" },
   { field: "firstName" },
   { field: "lastName" },
   { field: "phone" },
@@ -654,7 +669,11 @@ const COMPLETABLE: { field: Exclude<ImportField, "name" | "email"> }[] = [
 /**
  * Import partiel assumé : chaque ligne est validée indépendamment, les
  * valides entrent, les autres sortent dans le rapport ligne par ligne avec
- * leur numéro réel dans le fichier.
+ * leur numéro réel dans le fichier. Une fiche déjà connue est reconnue par
+ * l'email, sinon par le téléphone normalisé, sinon par le nom exact et la
+ * ville (stabilisation, D7 : avant, une ligne sans email créait toujours une
+ * fiche — réimporter un fichier sans emails doublait la base) ; le rapport
+ * dit sur quoi chaque ligne a été reconnue.
  */
 export async function importContacts(
   user: OrgScopeUser,
@@ -677,22 +696,26 @@ export async function importContacts(
     };
   }
 
-  // Toutes les fiches vivantes à email, indexées par email — plusieurs
-  // fiches peuvent partager un email (rien ne l'interdit en base).
+  // Toutes les fiches vivantes, indexées par chacune de leurs identités — plusieurs
+  // fiches peuvent partager un email ou un téléphone (rien ne l'interdit en base).
   const existing = await db
     .select()
     .from(contacts)
     .where(and(eq(contacts.organizationId, user.organizationId), isNull(contacts.deletedAt)));
-  const byEmail = new Map<string, Contact[]>();
+  const indexes: Record<ImportMatchedBy, Map<string, Contact[]>> = { email: new Map(), phone: new Map(), name_city: new Map() };
+  const index = (by: ImportMatchedBy, key: string | null, c: Contact) => {
+    if (!key) return;
+    indexes[by].set(key, [...(indexes[by].get(key) ?? []), c]);
+  };
   for (const c of existing) {
-    const key = c.email?.toLowerCase();
-    if (!key) continue;
-    byEmail.set(key, [...(byEmail.get(key) ?? []), c]);
+    index("email", c.email?.toLowerCase() || null, c);
+    index("phone", phoneKey(c.phone), c);
+    index("name_city", nameCityKey(c.name, c.city), c);
   }
 
   const report: ImportReport = { inserted: 0, completed: [], skipped: [], error: null };
   const toInsert: (typeof contacts.$inferInsert)[] = [];
-  const toComplete: { line: number; contact: Contact; updates: Partial<Record<string, string>>; fields: string[] }[] = [];
+  const toComplete: { line: number; contact: Contact; updates: Partial<Record<string, string>>; fields: string[]; matchedBy: ImportMatchedBy }[] = [];
   const seenInFile = new Set<string>();
 
   for (const row of rows) {
@@ -708,30 +731,39 @@ export async function importContacts(
       report.skipped.push({ line: row.line, reason: t("email_invalide", { email }) });
       continue;
     }
+    // Les identités de la ligne, dans l'ordre où elles reconnaissent une fiche ; chacune dite en clair pour le rapport.
+    const identities: { by: ImportMatchedBy; key: string; label: string }[] = [];
     const emailKey = email?.toLowerCase();
-    if (emailKey && seenInFile.has(emailKey)) {
-      report.skipped.push({ line: row.line, reason: t("ignoree_apparait_plus_haut_dans_le_de7d", { email: (email) ?? "" }) });
+    if (emailKey) identities.push({ by: "email", key: emailKey, label: t("identite_email", { value: email ?? "" }) });
+    const phone = phoneKey(v.phone);
+    if (phone) identities.push({ by: "phone", key: phone, label: t("identite_telephone", { value: v.phone?.trim() ?? "" }) });
+    const nameCity = nameCityKey(name, v.city);
+    if (nameCity) identities.push({ by: "name_city", key: nameCity, label: t("identite_nom_ville", { name, city: v.city?.trim() ?? "" }) });
+
+    const seen = identities.find((identity) => seenInFile.has(`${identity.by}:${identity.key}`));
+    if (seen) {
+      report.skipped.push({ line: row.line, reason: t("ignoree_apparait_plus_haut_reconnue_par", { identity: seen.label }) });
       continue;
     }
-    if (emailKey) seenInFile.add(emailKey);
+    for (const identity of identities) seenInFile.add(`${identity.by}:${identity.key}`);
 
-    const matches = emailKey ? (byEmail.get(emailKey) ?? []) : [];
-    if (matches.length > 0) {
+    const recognized = identities.map((identity) => ({ ...identity, matches: indexes[identity.by].get(identity.key) ?? [] })).find((identity) => identity.matches.length > 0);
+    if (recognized) {
+      const { matches, label, by } = recognized;
       if (mode === "skip") {
-        report.skipped.push({ line: row.line, reason: t("ignoree_existe_deja_dans_tes_contacts", { email: (email) ?? "" }) });
+        report.skipped.push({ line: row.line, reason: t("ignoree_existe_deja_reconnue_par", { identity: label }) });
         continue;
       }
       if (matches.length > 1) {
-        report.skipped.push({
-          line: row.line,
-          reason: t("plusieurs_fiches_portent_a_departager_a_a3f7", { email: (email) ?? "" }),
-        });
+        report.skipped.push({ line: row.line, reason: t("plusieurs_fiches_reconnues_par", { identity: label }) });
         continue;
       }
       const target = matches[0];
       const updates: Partial<Record<string, string>> = {};
       const fields: string[] = [];
       for (const { field } of COMPLETABLE) {
+        // L'email ne se pose que sur une fiche reconnue autrement : une ligne reconnue par son email n'a rien à lui apprendre.
+        if (field === "email" && by === "email") continue;
         const incoming = v[field]?.trim();
         if (incoming && !target[field]) {
           updates[field] = incoming;
@@ -739,10 +771,10 @@ export async function importContacts(
         }
       }
       if (fields.length === 0) {
-        report.skipped.push({ line: row.line, reason: t("deja_a_jour_n_avait_rien_0d9e", { email: (email) ?? "" }) });
+        report.skipped.push({ line: row.line, reason: t("deja_a_jour_reconnue_par", { identity: label }) });
         continue;
       }
-      toComplete.push({ line: row.line, contact: target, updates, fields });
+      toComplete.push({ line: row.line, contact: target, updates, fields, matchedBy: by });
       continue;
     }
 
@@ -785,7 +817,7 @@ export async function importContacts(
         ) as unknown as Parameters<typeof db.batch>[0]
       );
       for (const c of chunk) {
-        report.completed.push({ line: c.line, contactId: c.contact.id, name: c.contact.name, fields: c.fields });
+        report.completed.push({ line: c.line, contactId: c.contact.id, name: c.contact.name, fields: c.fields, matchedBy: c.matchedBy });
       }
     }
   } catch (error) {

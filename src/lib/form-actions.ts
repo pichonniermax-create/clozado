@@ -1,11 +1,14 @@
 import { getTranslations } from "next-intl/server";
 import { isAppError } from "@/lib/errors";
+import { signFlash } from "@/lib/flash";
 
 /**
  * Retour d'une action serveur vers l'écran appelant, l'erreur éventuelle
  * en paramètre d'URL montrée une fois : se tromper dans un formulaire n'est
  * pas une panne, on ne bascule pas sur un écran d'erreur. Partagé par
- * tous les modules.
+ * tous les modules. La phrase part SIGNÉE (`signFlash`, stabilisation, S5) :
+ * l'écran qui la lit (`readFlash`, ou `FlashToaster` par `revealFlash`)
+ * n'affiche jamais une phrase qu'un lien aurait apportée.
  */
 
 export function withError(backTo: string, message: string, param = "erreur"): string {
@@ -14,7 +17,7 @@ export function withError(backTo: string, message: string, param = "erreur"): st
   // navigateur sur la veille (message d'ajout d'une source jamais affiché).
   const [path, hash] = backTo.split("#", 2);
   const separator = path.includes("?") ? "&" : "?";
-  return `${path}${separator}${param}=${encodeURIComponent(message)}${hash ? `#${hash}` : ""}`;
+  return `${path}${separator}${param}=${encodeURIComponent(signFlash(message))}${hash ? `#${hash}` : ""}`;
 }
 
 /**

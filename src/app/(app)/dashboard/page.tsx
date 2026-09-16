@@ -349,7 +349,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           value={unpaidTotal > 0 ? (fmt.money(unpaidTotal) ?? "—") : "—"}
           hint={`${t("commission_confirmee_commissions_confirmees", { n: board.unpaidCommissions.length })}`}
           icon={<Banknote />}
-          tone="success"
+          // « — » n'est pas zéro pour la tuile : la couleur ne se pose que sur un montant (stabilisation, P7).
+          tone={unpaidTotal > 0 ? "success" : "neutral"}
           href="/suivi"
         />
       </div>

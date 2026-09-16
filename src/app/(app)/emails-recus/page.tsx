@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ListCard, ListRow } from "@/components/ui/list-card";
 import {
   countInboundByTab,
+  countRejectionsByReason,
   findContactCandidates,
   INBOUND_PAGE_SIZE,
   isInboundTab,
@@ -56,7 +57,14 @@ export default async function EmailsRecusPage({
     );
   }
 
-  const [counts, rows, org] = await Promise.all([countInboundByTab(user), listInboundEmails(user, tab, page), getOwnOrganization(user)]);
+  const [counts, rows, org, rejectionsByReason] = await Promise.all([
+    countInboundByTab(user),
+    listInboundEmails(user, tab, page),
+    getOwnOrganization(user),
+    // Les refus par motif, en tête de l'onglet « Refusés » (stabilisation, P5) : un email refusé se compte, jamais en silence.
+    tab === "rejected" ? countRejectionsByReason(user) : Promise.resolve([]),
+  ]);
+  const tr = await getTranslations("inbound.rejection");
   // Les candidats ne servent qu'à l'onglet « à confirmer » : ailleurs, le sort est déjà écrit.
   const candidates =
     tab === "pending"
@@ -124,6 +132,16 @@ export default async function EmailsRecusPage({
       </nav>
 
       <section className="flex flex-col gap-3">
+        {tab === "rejected" && rejectionsByReason.length > 0 && (
+          <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span>{t("refus_par_motif")}</span>
+            {rejectionsByReason.map(({ reason, n }) => (
+              <Badge key={reason} variant="outline" className="border-warning/50 tabular-nums">
+                {tr(reason)} · {n}
+              </Badge>
+            ))}
+          </p>
+        )}
         {rows.length === 0 ? (
           <EmptyState title={t(`empty.${tab}`)}>{t(`emptyHint.${tab}`)}</EmptyState>
         ) : tab === "pending" ? (

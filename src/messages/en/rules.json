@@ -23,7 +23,7 @@
     "evaluer_maintenant": "Evaluate now",
     "dernier_passage_resultat": "Last pass on {when}: {matched} matched, {done} done, {skipped} skipped.",
     "evaluation_en_cours": "Evaluation in progress…",
-    "le_cron_quotidien_evalue_aussi": "The daily pass — before 9:00 am, with send resumption — also evaluates these rules: it prepares, it never sends.",
+    "le_cron_quotidien_evalue_aussi": "The daily morning pass — with send resumption — also evaluates these rules: it prepares, it never sends.",
     "aucune_regle_titre": "No rules yet",
     "archiver": "Archive",
     "archiver_titre": "Archive “{name}”?",
@@ -41,7 +41,10 @@
     "interrupteur_coupe_rien_ne_partira": "The master switch is off (Settings → Automatic sending): nothing will go out.",
     "hors_heures_de_bureau": "Outside office hours ({start}:00–{end}:00, weekdays, {timezone} time). You can still send: your click decides.",
     "envoyer_les_n_emails": "Send the {n} emails",
-    "demo_envois_simules": "Demo: the wave will be simulated — messages will show as sent, without any email leaving."
+    "demo_envois_simules": "Demo: the wave will be simulated — messages will show as sent, without any email leaving.",
+    "lire_le_brouillon": "read the draft",
+    "sur_la_fiche": "Send, edit or ignore this draft from the contact page",
+    "par_vagues_de": "One click sends at most {batch} emails: the next {rest} will go on the next click."
   },
   "editor": {
     "regles": "Rules",
@@ -98,7 +101,9 @@
     },
     "seuil": "Threshold",
     "jours": "days",
-    "annuler": "Cancel"
+    "annuler": "Cancel",
+    "enregistrement": "Saving…",
+    "accolades_interdites": "Forbidden braces in the template: {tokens}. Fix them before saving — allowed variables are listed above."
   },
   "journal": {
     "journal_des_regles": "Rules journal",

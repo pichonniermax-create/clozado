@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,13 +8,14 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { RuleFormOptions } from "@/db/queries/rules";
+import type { RuleFormState } from "@/lib/rules/actions";
 import {
   RULE_ACTIONS,
   RULE_TRIGGERS,
   needsTemplate,
   type RuleConditions,
 } from "@/lib/rules/criteria";
-import { RULE_TEMPLATE_VARIABLES, renderRuleTemplate } from "@/lib/rules/template";
+import { RULE_TEMPLATE_VARIABLES, invalidTemplateTokens, renderRuleTemplate } from "@/lib/rules/template";
 import { useTranslations } from "next-intl";
 import { NativeSelect } from "@/components/ui/native-select";
 
@@ -25,8 +26,23 @@ import { NativeSelect } from "@/components/ui/native-select";
  * écrivent un email, avec l'aperçu rendu en direct (valeurs d'exemple) ;
  * la case d'opt-in de l'envoi automatique est SOUS le gabarit affiché en
  * entier — la base la re-vérifie de toute façon (CHECK).
+ *
+ * Champs CONTRÔLÉS à dessein (stabilisation, D2) : quand l'action revient
+ * avec une erreur, ce qui venait d'être saisi reste à l'écran (React 19
+ * vide un formulaire non contrôlé après l'action) ; l'erreur se lit à côté
+ * du bouton. Les accolades interdites du gabarit sont signalées AVANT
+ * l'envoi : le contrôle est pur, il tourne ici, et la base le refait.
+ *
+ * Vu au navigateur : React 19 remet le formulaire à zéro quand l'action
+ * rend, même en échec, et un `<select>` contrôlé perd alors sa valeur dans
+ * le DOM sans que l'état change (les champs texte gardent la leur : React
+ * synchronise leur attribut `value`, pas l'option `selected`) — l'action
+ * repartait « Créer une tâche » alors que l'écran montrait le gabarit. Les
+ * champs sont donc REMONTÉS après chaque retour d'action (`generation`),
+ * ce qui réapplique l'état à tout le DOM.
  */
 
+type ConditionKey = "tagsAny" | "targetIds" | "ownerIds" | "partnerProfessions";
 
 type RuleFormValue = {
   name: string;
@@ -44,18 +60,37 @@ export function RuleForm({
   options,
   submitLabel,
 }: {
-  /** La server action du formulaire (créer ou enregistrer), déjà liée. */
-  action: (formData: FormData) => void | Promise<void>;
+  /** La server action du formulaire (créer ou enregistrer), déjà liée — elle rend son échec en état. */
+  action: (prev: RuleFormState, formData: FormData) => Promise<RuleFormState>;
   initial: RuleFormValue;
   template: { subject: string; body: string } | null;
   options: RuleFormOptions;
   submitLabel: string;
 }) {
   const t = useTranslations("rules.editor");
-  const [ruleAction, setRuleAction] = useState(initial.action);
+  const [state, formAction, pending] = useActionState(action, { error: null });
+  const [v, setV] = useState<RuleFormValue>(initial);
+  const [generation, setGeneration] = useState(0);
+  const firstState = useRef(true);
+  useEffect(() => {
+    // Le premier passage est le montage (l'état initial) : rien à remonter. Ensuite, chaque retour d'action est un nouvel objet.
+    if (firstState.current) {
+      firstState.current = false;
+      return;
+    }
+    setGeneration((value) => value + 1);
+  }, [state]);
   const [subject, setSubject] = useState(template?.subject ?? "");
   const [body, setBody] = useState(template?.body ?? "");
-  const withTemplate = needsTemplate(ruleAction);
+  const withTemplate = needsTemplate(v.action);
+  const invalidTokens = withTemplate ? [...new Set([...invalidTemplateTokens(subject), ...invalidTemplateTokens(body)])] : [];
+
+  const toggle = (key: ConditionKey, value: string, checked: boolean) =>
+    setV((prev) => {
+      const current = prev.conditions[key] ?? [];
+      const next = checked ? [...new Set([...current, value])] : current.filter((item) => item !== value);
+      return { ...prev, conditions: { ...prev.conditions, [key]: next } };
+    });
 
   const exampleValues = useMemo(
     () => ({
@@ -85,7 +120,13 @@ export function RuleForm({
         <div className="flex flex-wrap gap-x-4 gap-y-1 sm:gap-y-1.5">
           {items.map((item) => (
             <label key={item.id} className="flex min-h-9 items-center gap-2 text-sm sm:min-h-0">
-              <input type="checkbox" name={name} value={item.id} defaultChecked={initial.conditions[name]?.includes(item.id)} />
+              <input
+                type="checkbox"
+                name={name}
+                value={item.id}
+                checked={v.conditions[name]?.includes(item.id) ?? false}
+                onChange={(event) => toggle(name, item.id, event.target.checked)}
+              />
               {item.label}
             </label>
           ))}
@@ -95,19 +136,33 @@ export function RuleForm({
   );
 
   return (
-    <form action={action} className="flex flex-col gap-6">
+    <form action={formAction} className="flex flex-col gap-6">
+      <Fragment key={generation}>
       <Card>
         <CardHeader>
           <CardTitle>{t("la_regle")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <Field label={t("nom_de_la_regle")} htmlFor="rule-name" hint={t("il_devient_le_titre_des_taches")}>
-            <Input id="rule-name" name="name" required defaultValue={initial.name} className="max-w-xl" />
+            <Input
+              id="rule-name"
+              name="name"
+              required
+              value={v.name}
+              onChange={(event) => setV((prev) => ({ ...prev, name: event.target.value }))}
+              className="max-w-xl"
+            />
           </Field>
           {/* `items-start` : les libellés s'alignent en haut quels que soient les contrôles (un select et un champ n'ont pas la même hauteur). */}
           <div className="flex flex-wrap items-start gap-3">
             <Field label={t("declencheur")} htmlFor="rule-trigger">
-              <NativeSelect id="rule-trigger" name="trigger" defaultValue={initial.trigger} className="w-auto max-w-full">
+              <NativeSelect
+                id="rule-trigger"
+                name="trigger"
+                value={v.trigger}
+                onChange={(event) => setV((prev) => ({ ...prev, trigger: event.target.value }))}
+                className="w-auto max-w-full"
+              >
                 {RULE_TRIGGERS.map((trigger) => (
                   <option key={trigger} value={trigger}>
                     {t(`triggers.${trigger}`)}
@@ -125,7 +180,8 @@ export function RuleForm({
                   min={1}
                   max={365}
                   required
-                  defaultValue={initial.thresholdDays}
+                  value={v.thresholdDays}
+                  onChange={(event) => setV((prev) => ({ ...prev, thresholdDays: Number(event.target.value) }))}
                   className="w-20"
                 />
                 <span className="text-sm text-muted-foreground">{t("jours")}</span>
@@ -135,8 +191,9 @@ export function RuleForm({
               <NativeSelect
                 id="rule-action"
                 name="action"
-                value={ruleAction}
-                onChange={(event) => setRuleAction(event.target.value)} className="w-auto max-w-full"
+                value={v.action}
+                onChange={(event) => setV((prev) => ({ ...prev, action: event.target.value }))}
+                className="w-auto max-w-full"
               >
                 {RULE_ACTIONS.map((value) => (
                   <option key={value} value={value}>
@@ -170,7 +227,8 @@ export function RuleForm({
                       type="checkbox"
                       name="partnerProfessions"
                       value={profession}
-                      defaultChecked={initial.conditions.partnerProfessions?.includes(profession)}
+                      checked={v.conditions.partnerProfessions?.includes(profession) ?? false}
+                      onChange={(event) => toggle("partnerProfessions", profession, event.target.checked)}
                     />
                     {profession}
                   </label>
@@ -210,6 +268,11 @@ export function RuleForm({
             <p className="text-xs text-muted-foreground">
               {RULE_TEMPLATE_VARIABLES.map((variable) => `{${variable}}`).join(" · ")}
             </p>
+            {invalidTokens.length > 0 && (
+              <p role="alert" className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">
+                {t("accolades_interdites", { tokens: invalidTokens.join(" ") })}
+              </p>
+            )}
             {(subject || body) && (
               <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm">
                 <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("apercu_rendu_valeurs_d_exemple")}</p>
@@ -217,9 +280,15 @@ export function RuleForm({
                 <p className="whitespace-pre-wrap text-muted-foreground">{renderRuleTemplate(body, exampleValues)}</p>
               </div>
             )}
-            {ruleAction === "send_email" && (
+            {v.action === "send_email" && (
               <label className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">
-                <input type="checkbox" name="confirmAutoSend" defaultChecked={initial.autoSendConfirmed} className="mt-0.5" />
+                <input
+                  type="checkbox"
+                  name="confirmAutoSend"
+                  checked={v.autoSendConfirmed}
+                  onChange={(event) => setV((prev) => ({ ...prev, autoSendConfirmed: event.target.checked }))}
+                  className="mt-0.5"
+                />
                 <span>{t("opt_in_j_ai_relu_ce_gabarit")}</span>
               </label>
             )}
@@ -227,16 +296,25 @@ export function RuleForm({
         </Card>
       )}
 
-      {ruleAction === "send_email" && (
+      {v.action === "send_email" && (
         <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">{t("rappel_vague_rien_ne_part_sans_clic")}</p>
       )}
+      </Fragment>
 
-      {/* Une échappatoire explicite à côté du bouton d'envoi : avant, le retour se faisait par le fil, tout en haut. */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit">{submitLabel}</Button>
+      {/* Une échappatoire explicite à côté du bouton d'envoi : avant, le retour se faisait par le fil, tout en haut.
+          L'erreur de l'action vit ici aussi : elle se lit au clic, la saisie reste. */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" disabled={pending || invalidTokens.length > 0}>
+          {pending ? t("enregistrement") : submitLabel}
+        </Button>
         <Link href="/regles" className={buttonVariants({ variant: "ghost" })}>
           {t("annuler")}
         </Link>
+        {state.error && (
+          <p role="alert" className="min-w-0 flex-1 text-sm text-destructive text-pretty">
+            {state.error}
+          </p>
+        )}
       </div>
     </form>
   );

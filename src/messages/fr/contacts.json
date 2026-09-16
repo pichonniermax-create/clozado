@@ -136,7 +136,8 @@
     "annuler": "Annuler",
     "fusionner_titre": "Fusionner « {other} » dans « {name} » ?",
     "fusionner_texte": "Les affaires, tâches, interactions et étiquettes de « {other} » passent sur cette fiche, puis « {other} » est fermée définitivement (identité effacée). Ce geste ne se défait pas.",
-    "fusionner": "Fusionner"
+    "fusionner": "Fusionner",
+    "les_n_derniers_acces": "Les {n} derniers accès sont affichés."
   },
   "detailNotFound": {
     "cette_fiche_n_existe_pas": "Cette fiche n’existe pas.",
@@ -194,7 +195,13 @@
     "choisir_un_fichier_csv": "Choisir un fichier CSV",
     "ou_depose_le_ici": "ou dépose-le ici",
     "colonnes_reconnues": "Colonnes reconnues d’office — les autres te seront proposées à la correspondance",
-    "telecharger_un_modele": "Télécharger un modèle CSV"
+    "telecharger_un_modele": "Télécharger un modèle CSV",
+    "reconnue_par": "Reconnue par",
+    "matchedBy": {
+      "email": "l’email",
+      "phone": "le téléphone",
+      "name_city": "le nom et la ville"
+    }
   },
   "list": {
     "aucun_contact_ne_correspond_a_cette_e658": "Aucun contact ne correspond à cette recherche",
@@ -224,12 +231,12 @@
     "aucune_organisation_selectionnee_choisis_une_organisation_5b59": "Aucune organisation sélectionnée. Choisis une organisation dans le bandeau super admin en haut de l’écran avant d’importer.",
     "client_supprime": "Client supprimé",
     "contact_supprime": "Contact supprimé",
-    "deja_a_jour_n_avait_rien_0d9e": "Déjà à jour : « {email} » n’avait rien à compléter.",
     "destinataire": "Destinataire : {who}.",
     "email_invalide": "Email invalide : « {email} ».",
     "etiquettes": "Étiquettes : {join}.",
     "fiche_fusionnee": "Fiche fusionnée",
     "fields": {
+      "email": "email",
       "firstName": "prénom",
       "lastName": "nom",
       "phone": "téléphone",
@@ -240,15 +247,19 @@
       "country": "pays",
       "notes": "notes"
     },
-    "ignoree_apparait_plus_haut_dans_le_de7d": "Ignorée : « {email} » apparaît plus haut dans le fichier.",
-    "ignoree_existe_deja_dans_tes_contacts": "Ignorée : « {email} » existe déjà dans tes contacts.",
     "import_echoue_avant_la_premiere_fiche": "L’import a échoué avant la première fiche — sans doute un incident de notre côté, ta préparation n’est pas en cause. Réessaie.",
     "import_interrompu_apres": "L’import s’est interrompu après {inserted} création(s) et {completed} complétion(s) — relance le fichier : ce qui est déjà passé sera ignoré ou complété sans dégât.",
     "newsletter_pour": "Newsletter pour {name}",
     "nom_manquant": "Nom manquant.",
     "objectif_de_l_email_a_preciser_2f4d": "Objectif de l’email : (à préciser avant de générer)",
-    "plusieurs_fiches_portent_a_departager_a_a3f7": "Plusieurs fiches portent « {email} » — à départager à la main avant de compléter.",
-    "trop_de_lignes_l_import_est_f3ad": "Trop de lignes ({count}) : l’import est limité à {maxImportRows} par passage."
+    "trop_de_lignes_l_import_est_f3ad": "Trop de lignes ({count}) : l’import est limité à {maxImportRows} par passage.",
+    "identite_email": "l’email « {value} »",
+    "identite_telephone": "le téléphone « {value} »",
+    "identite_nom_ville": "le nom « {name} » et la ville « {city} »",
+    "ignoree_apparait_plus_haut_reconnue_par": "Ignorée : la même personne apparaît plus haut dans le fichier ({identity}).",
+    "ignoree_existe_deja_reconnue_par": "Ignorée : existe déjà dans tes contacts — reconnue par {identity}.",
+    "plusieurs_fiches_reconnues_par": "Plusieurs fiches reconnues par {identity} — à départager à la main avant de compléter.",
+    "deja_a_jour_reconnue_par": "Déjà à jour : la fiche reconnue par {identity} n’avait rien à compléter."
   },
   "contactPicker": {
     "reliee_a_la_fiche": "Reliée à la fiche {name}.",

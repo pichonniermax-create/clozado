@@ -23,7 +23,7 @@
     "evaluer_maintenant": "Évaluer maintenant",
     "dernier_passage_resultat": "Dernier passage le {when} : {matched} retenus, {done} faites, {skipped} non faites.",
     "evaluation_en_cours": "Évaluation en cours…",
-    "le_cron_quotidien_evalue_aussi": "Le passage quotidien — avant 9h00, avec la reprise des envois — évalue aussi ces règles : il prépare, il n’envoie jamais.",
+    "le_cron_quotidien_evalue_aussi": "Le passage quotidien du matin — avec la reprise des envois — évalue aussi ces règles : il prépare, il n’envoie jamais.",
     "aucune_regle_titre": "Aucune règle pour l’instant",
     "archiver": "Archiver",
     "archiver_titre": "Archiver « {name} » ?",
@@ -41,7 +41,10 @@
     "interrupteur_coupe_rien_ne_partira": "L’interrupteur général est coupé (Réglages → Envois automatiques) : rien ne partira.",
     "hors_heures_de_bureau": "Hors des heures de bureau ({start} h – {end} h, jours ouvrés, fuseau {timezone}). Tu peux envoyer quand même : c’est ton clic qui décide.",
     "envoyer_les_n_emails": "Envoyer les {n} emails",
-    "demo_envois_simules": "Démo : la vague sera simulée — les messages passeront « envoyés » sans qu’aucun email ne parte."
+    "demo_envois_simules": "Démo : la vague sera simulée — les messages passeront « envoyés » sans qu’aucun email ne parte.",
+    "lire_le_brouillon": "lire le brouillon",
+    "sur_la_fiche": "Envoyer, modifier ou ignorer ce brouillon depuis la fiche",
+    "par_vagues_de": "Un clic envoie {batch} emails au plus : les {rest} suivants partiront au clic suivant."
   },
   "editor": {
     "regles": "Règles",
@@ -98,7 +101,9 @@
     },
     "seuil": "Seuil",
     "jours": "jours",
-    "annuler": "Annuler"
+    "annuler": "Annuler",
+    "enregistrement": "Enregistrement…",
+    "accolades_interdites": "Accolades interdites dans le gabarit : {tokens}. Corrige-les avant d’enregistrer — variables permises ci-dessus."
   },
   "journal": {
     "journal_des_regles": "Journal des règles",

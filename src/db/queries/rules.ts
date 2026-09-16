@@ -728,6 +728,9 @@ export async function createRuleDraftMessage(input: {
   return rows[0].id;
 }
 
+/** Ce qu'UN clic sur la vague envoie au plus : le bouton dit ce nombre, jamais plus (stabilisation, P6). */
+export const WAVE_BATCH_SIZE = 200;
+
 export type DraftWithContact = { message: EmailMessage; contactDeletedAt: Date | null; contactStoppedAt: Date | null };
 
 /** Les lignes COMPLÈTES des brouillons automatiques (la vague), avec l'état du contact pour re-vérifier chaque garde-fou à l'envoi. */
@@ -744,7 +747,7 @@ export async function listAutomaticDraftRows(organizationId: string, filter: { r
     .leftJoin(contacts, eq(contacts.id, emailMessages.contactId))
     .where(and(...where))
     .orderBy(asc(emailMessages.createdAt))
-    .limit(200);
+    .limit(WAVE_BATCH_SIZE);
   return rows;
 }
 

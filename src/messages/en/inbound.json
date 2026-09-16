@@ -58,7 +58,7 @@
       "treated": "Nothing handled yet"
     },
     "emptyHint": {
-      "pending": "Forward an email to your ingestion address, or put it in blind copy when you write to a contact: the proposal shows up here.",
+      "pending": "Forward an email to your ingestion address, or copy it in (Bcc preferably) when you write to a contact: the proposal shows up here.",
       "rejected": "A rejected email appears here with its reason — unknown address, sender not a member, sender not authenticated, rate or size.",
       "treated": "Confirmed and ignored emails end up here, with the record they were linked to."
     },
@@ -76,9 +76,10 @@
       "treated": "Handled ({count})"
     },
     "transfere_a_ou_mets_en_copie": "Forward an email to {address}, or put that address in blind copy: the proposal shows up here.",
-    "transfere_ou_mets_en_copie_cachee": "Forward an email to your ingestion address, or put it in Bcc: the proposal lands here.",
+    "transfere_ou_mets_en_copie_cachee": "Forward an email to your ingestion address, or copy it in when you write to a contact — Bcc preferably, the address is a secret: the proposal shows up here.",
     "ton_adresse_d_ingestion": "Your ingestion address",
-    "regler_l_adresse": "Set up the address"
+    "regler_l_adresse": "Set up the address",
+    "refus_par_motif": "By reason:"
   },
   "rejection": {
     "rate_limited": "Too many emails received",

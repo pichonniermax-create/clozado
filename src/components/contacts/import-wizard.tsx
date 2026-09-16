@@ -220,6 +220,7 @@ export function ImportWizard() {
                     <th className="px-4 py-2 font-medium">{tr("ligne")}</th>
                     <th className="px-4 py-2 font-medium">{tr("fiche")}</th>
                     <th className="px-4 py-2 font-medium">{tr("champs_remplis")}</th>
+                    <th className="px-4 py-2 font-medium">{tr("reconnue_par")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -232,6 +233,7 @@ export function ImportWizard() {
                         </Link>
                       </td>
                       <td className="px-4 py-2">{c.fields.join(", ")}</td>
+                      <td className="px-4 py-2 text-muted-foreground">{tr(`matchedBy.${c.matchedBy}`)}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -601,5 +601,57 @@ chantier B, dont la migration ne sera rédigée qu'après tes réponses.
   explicite, responsable étranger refusé, rattachement d'une fiche avec
   copie du nom, fiche étrangère refusée, espace neuf créé par
   `createOrganizationWithAdmin` avec son type « Dossier » puis supprimé.
+- **Chantier A, étape 5 — formulaire de règle, import, emails (D2, D7, P4,
+  P5, P6, P7, S5) — faite le 2026-09-16.** S5 : la phrase d'un retour
+  d'action part SIGNÉE (HMAC sur `AUTH_SECRET`, `src/lib/flash.ts`) ;
+  `withError` signe, `FlashToaster` demande la phrase à `revealFlash`, les
+  fiches (contact, affaire, newsletter) lisent par `readFlash` — une phrase
+  posée dans un lien n'est jamais affichée ; **choix : la signature plutôt
+  que la clé dans l'URL** — même garantie (rien d'autre que ce que le
+  serveur a écrit ne s'affiche), et les 190 appelants de `withError` ne
+  changent pas. D2 : `RuleForm` est contrôlé, `createRuleAction` /
+  `updateRuleAction` rendent leur échec en état (`useActionState`), la
+  saisie reste, les accolades interdites du gabarit sont signalées avant
+  l'envoi (le contrôle pur `invalidTemplateTokens` tourne dans le
+  navigateur, le bouton attend). D7 : `importContacts` reconnaît une fiche
+  par l'email, sinon par le téléphone normalisé (neuf derniers chiffres,
+  sans indicatif supposé — `src/lib/contacts/match-keys.ts`), sinon par le
+  nom exact et la ville ; le rapport dit sur quoi chaque ligne a été
+  reconnue (colonne « Reconnue par », motifs d'écart en clair) ; l'email se
+  complète sur une fiche reconnue autrement. P4 : la saisie rapide demande
+  le sens d'un email (« Reçu du contact » / « Envoyé au contact »,
+  `QuickEntryType`), un email reçu arrête la vague (`createActivity` pose
+  l'arrêt « a répondu », d'où que l'email soit consigné — la confirmation
+  d'un email ingéré passe par le même chemin), le journal dit le sens.
+  P5 : l'adresse d'ingestion en copie visible est de nouveau reconnue
+  (`findIngestToken`, `src/lib/email/inbound/address.ts` — la refuser ne la
+  rendait pas moins visible, elle perdait l'email en silence ; l'écran
+  conseille la Cci) et l'onglet « Refusés » compte les refus par motif
+  (`countRejectionsByReason`). P6 : le bouton de la vague dit ce qu'un clic
+  envoie (`WAVE_BATCH_SIZE` = 200, le reste annoncé), le titre dit le vrai
+  total, chaque ligne s'ouvre sur le corps du brouillon, la phrase du
+  passage quotidien ne dit plus d'heure. P7 : « l'instant pour ce
+  conseiller » (espace), tuile « À encaisser » neutre à vide, l'expéditeur
+  effectif absent n'affiche plus une phrase vide, « Journal des accès (n) »
+  dit le vrai total et « les 15 derniers sont affichés ». Preuve : tests
+  unitaires (`flash.test.ts` — phrase relue, lien forgé ignoré, jeton
+  altéré ignoré ; `match-keys.test.ts` ; `inbound/address.test.ts` ;
+  `template.test.ts`) ; contre la base, `scripts/test-isolation.ts` :
+  import reconnu par téléphone puis par nom + ville, inconnu créé, doublon
+  de fichier écarté, B n'apparie jamais une fiche de A, email reçu → arrêt
+  « a répondu », email envoyé → rien, refus comptés par motif pour A et
+  invisibles de B ; au navigateur (build de production, organisation
+  jetable) : une phrase forgée dans `?erreur=` / `?info=` n'apparaît nulle
+  part et l'adresse est nettoyée, la confirmation signée « Règle créée. »
+  arrive en notification, le formulaire de règle signale `{age}` avant
+  l'envoi et garde nom, déclencheur, seuil, case cochée, action et gabarit
+  après l'échec serveur (opt-in manquant), la saisie rapide demande le sens
+  d'un email et « Email reçu du contact » arrête la vague, « pour ce
+  conseiller » a son espace, zéro erreur de page. **Trouvé au navigateur,
+  invisible à la lecture** : React 19 remet le formulaire à zéro quand
+  l'action rend, même en échec, et un `<select>` contrôlé perd sa valeur
+  dans le DOM (les champs texte gardent la leur) — la règle repartait
+  « Créer une tâche » ; les champs du formulaire sont remontés après chaque
+  retour d'action (`generation`). **P8 reste en attente d'accord.**
 
 STOP.

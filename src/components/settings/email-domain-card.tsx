@@ -57,7 +57,8 @@ export function EmailDomainCard({
           {t("domaine_d_envoi")}
           {verified ? <StatusBadge tone="success">{t("verifie")}</StatusBadge> : org.emailDomain && !unavailable ? <StatusBadge tone="warning">{t("en_attente")}</StatusBadge> : <StatusBadge>{t("repli")}</StatusBadge>}
         </CardTitle>
-        <CardDescription>{t("expediteur_effectif", { from: effectiveFrom })}</CardDescription>
+        {/* Sans EMAIL_SHARED_DOMAIN, l'expéditeur effectif est vide : la phrase ne s'affiche pas à moitié (stabilisation, P7). */}
+        {effectiveFrom && <CardDescription>{t("expediteur_effectif", { from: effectiveFrom })}</CardDescription>}
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {!org.emailDomain && (

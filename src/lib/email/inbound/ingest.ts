@@ -10,6 +10,7 @@ import {
   countRejectedFromSenderSince,
 } from "@/db/queries/inbound";
 import { inboundDomain } from "../config";
+import { findIngestToken } from "./address";
 import { downloadRawMessage, getReceivedEmail, type ReceivedEmail } from "../resend";
 import { authenticateSender } from "./authenticate";
 import { extractEmail, extractEmails, firstHeader, parseRawMessage } from "./mime";
@@ -71,27 +72,8 @@ export type ReceivedNotice = {
   createdAt?: string | null;
 };
 
-/**
- * L'adresse d'ingestion visée, cherchée dans TOUT ce qui désigne un
- * destinataire — `received_for` compris : quand le membre met l'adresse en
- * Cci (le cas « copie »), c'est la seule trace qu'il en reste.
- */
 /** Cinq traces visibles par jour et par expéditeur inconnu ; au-delà, un compteur seulement. */
 const UNKNOWN_SENDER_TRACES_PER_DAY = 5;
-
-export function findIngestToken(notice: ReceivedNotice, domain: string): string | null {
-  const suffix = `@${domain.toLowerCase()}`;
-  // `cc` n'en fait plus partie (chasse aux failles du 2026-09-14) : une adresse d'ingestion en copie visible se
-  // retrouvait chez tous les destinataires d'un fil — en Cci ou en destinataire direct seulement.
-  const candidates = [...(notice.receivedFor ?? []), ...(notice.to ?? []), ...(notice.bcc ?? [])];
-  for (const raw of candidates) {
-    const address = raw.trim().toLowerCase();
-    if (!address.endsWith(suffix)) continue;
-    const token = address.slice(0, -suffix.length).replace(/\+.*$/, "");
-    if (token) return token;
-  }
-  return null;
-}
 
 export async function ingestReceivedEmail(notice: ReceivedNotice): Promise<IngestOutcome> {
   const domain = inboundDomain();

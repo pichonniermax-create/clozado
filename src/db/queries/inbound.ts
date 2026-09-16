@@ -197,6 +197,20 @@ export async function countInboundByTab(user: OrgScopeUser): Promise<Record<Inbo
   return { pending: sum(TAB_STATUSES.pending), treated: sum(TAB_STATUSES.treated), rejected: sum(TAB_STATUSES.rejected) };
 }
 
+/** Les refus de l'organisation par motif, les plus nombreux d'abord — l'onglet « Refusés » les affiche en tête (stabilisation, P5). */
+export async function countRejectionsByReason(user: OrgScopeUser): Promise<{ reason: RejectionReason; n: number }[]> {
+  const scope = orgScope(user, inboundEmails.organizationId);
+  const conditions = [eq(inboundEmails.status, "rejected"), isNotNull(inboundEmails.rejectionReason)];
+  if (scope) conditions.push(scope);
+  const rows = await db
+    .select({ reason: inboundEmails.rejectionReason, n: count() })
+    .from(inboundEmails)
+    .where(and(...conditions))
+    .groupBy(inboundEmails.rejectionReason)
+    .orderBy(desc(count()));
+  return rows.map((r) => ({ reason: r.reason as RejectionReason, n: Number(r.n) }));
+}
+
 export type InboundListRow = InboundEmail & { contactName: string | null };
 
 export async function listInboundEmails(user: OrgScopeUser, tab: InboundTab, page: number): Promise<InboundListRow[]> {

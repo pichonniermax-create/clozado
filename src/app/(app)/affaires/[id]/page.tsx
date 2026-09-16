@@ -46,6 +46,7 @@ import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
 import type { TranslatorOf } from "@/i18n/translator";
 import { NativeSelect } from "@/components/ui/native-select";
+import { readFlash } from "@/lib/flash";
 
 /** L'état d'une commission, en mots — `deals.detail.commissionStates.<état>` ; un état inconnu s'affiche tel quel. */
 const COMMISSION_STATES = ["prevue", "confirmee", "reglee"] as const;
@@ -475,7 +476,7 @@ export default async function DealPage({
           backTo={`/affaires/${id}`}
           dealId={id}
           context="deal"
-          erreur={query[JOURNAL_ERROR_PARAM]}
+          erreur={readFlash(query[JOURNAL_ERROR_PARAM])}
           description={tr("interactions_etapes_franchies_partages_et_taches_3236")}
         />
       </div>

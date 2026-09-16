@@ -12,7 +12,9 @@
     "email_opened": "Email ouvert (approx.) : {body}",
     "email_clicked": "Clic dans « {body} »",
     "email_bounced": "Email rejeté : {body}",
-    "email_unsubscribed": "Désinscription depuis « {body} »"
+    "email_unsubscribed": "Désinscription depuis « {body} »",
+    "email_inbound": "Email reçu du contact",
+    "email_outbound": "Email envoyé au contact"
   },
   "journal": {
     "affaire": "· affaire <link>{dealTitle}</link>",
@@ -32,7 +34,10 @@
     "supprimer_interaction_titre": "Supprimer cette interaction ?",
     "supprimer_interaction_texte": "Elle disparaît du journal et de l’export de la fiche. Ce geste ne se défait pas.",
     "supprimer": "Supprimer",
-    "annuler": "Annuler"
+    "annuler": "Annuler",
+    "sens_de_l_email": "Sens de l’email",
+    "recu_du_contact": "Reçu du contact",
+    "envoye_au_contact": "Envoyé au contact"
   },
   "kinds": {
     "call": "Appel",

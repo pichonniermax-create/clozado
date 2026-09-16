@@ -30,3 +30,29 @@ export function generateIngestToken(): string {
 export function ingestAddress(token: string, domain: string): string {
   return `${token}@${domain}`;
 }
+
+/** Ce que le webhook `email.received` dit des destinataires — des métadonnées seulement. */
+export type RecipientNotice = { to?: string[]; cc?: string[]; bcc?: string[]; receivedFor?: string[] };
+
+/**
+ * L'adresse d'ingestion visée, cherchée dans TOUT ce qui désigne un
+ * destinataire — `received_for` compris : quand le membre met l'adresse en
+ * Cci (le cas « copie »), c'est la seule trace qu'il en reste. La copie
+ * VISIBLE (Cc) compte aussi (stabilisation, P5) : la chasse aux failles du
+ * 2026-09-14 l'avait écartée parce qu'une adresse en Cc se retrouve chez
+ * tous les destinataires du fil — mais la refuser ne la rend pas moins
+ * visible, ça perd seulement l'email du membre, en silence ; le secret
+ * protège l'entrée (couches 3 et 4 : expéditeur membre et authentifié),
+ * pas la lecture de l'adresse. L'écran conseille la Cci.
+ */
+export function findIngestToken(notice: RecipientNotice, domain: string): string | null {
+  const suffix = `@${domain.toLowerCase()}`;
+  const candidates = [...(notice.receivedFor ?? []), ...(notice.to ?? []), ...(notice.cc ?? []), ...(notice.bcc ?? [])];
+  for (const raw of candidates) {
+    const address = raw.trim().toLowerCase();
+    if (!address.endsWith(suffix)) continue;
+    const token = address.slice(0, -suffix.length).replace(/\+.*$/, "");
+    if (token) return token;
+  }
+  return null;
+}

@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { createActivity } from "@/db/queries/activities";
 import { createContact, getContact } from "@/db/queries/contacts";
-import { getInboundEmail, markInboundConfirmed, stopAutoSendOnReply } from "@/db/queries/inbound";
+import { getInboundEmail, markInboundConfirmed } from "@/db/queries/inbound";
 import { AppError } from "@/lib/errors";
 import type { OrgScopeUser } from "@/lib/session";
 
@@ -75,7 +75,7 @@ export async function confirmInboundEmail(user: OrgScopeUser, sessionUserId: str
   });
 
   await markInboundConfirmed(user, id, { contactId: contact.id, activityId: activity.id, confirmedBy: sessionUserId });
-  // Une réponse du contact arrête l'envoi automatique (§5.3) — jamais réarmé par l'ingestion.
-  if (direction === "inbound") await stopAutoSendOnReply(row.organizationId, contact.id);
+  // Une réponse du contact arrête l'envoi automatique (§5.3) — posé par `createActivity` pour tout email reçu,
+  // consigné ici ou à la main (stabilisation, P4) ; jamais réarmé par l'ingestion.
   return { contactId: contact.id };
 }

@@ -11,10 +11,12 @@ import { ListCard } from "@/components/ui/list-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getOwnOrganization } from "@/db/queries/organizations";
 import {
+  countAutomaticDrafts,
   getLatestRuleRun,
   listAutomaticDrafts,
   listRuleFormOptions,
   listRules,
+  WAVE_BATCH_SIZE,
   type RuleFormOptions,
 } from "@/db/queries/rules";
 import {
@@ -64,14 +66,17 @@ export default async function RulesPage({ searchParams }: { searchParams: Promis
   const org = await getOwnOrganization(user);
   if (!org) redirect("/dashboard");
 
-  const [, allRules, latestRun, drafts, options] = await Promise.all([
+  const [, allRules, latestRun, drafts, draftCount, options] = await Promise.all([
     searchParams,
     // Les archivées aussi (stabilisation, D4) : elles vivent repliées sous la liste, avec « Restaurer ».
     listRules(user, { includeArchived: true }),
     getLatestRuleRun(org.id),
     listAutomaticDrafts(user),
+    // Le vrai total (la liste est bornée) : le titre le dit, le bouton dit ce qu'un clic envoie (stabilisation, P6).
+    countAutomaticDrafts(user),
     listRuleFormOptions(user),
   ]);
+  const waveSize = Math.min(draftCount, WAVE_BATCH_SIZE);
   const inWindow = inOfficeWindow(org);
   const rules = allRules.filter(({ rule }) => !rule.archivedAt);
   const archivedRules = allRules.filter(({ rule }) => rule.archivedAt);
@@ -102,27 +107,41 @@ export default async function RulesPage({ searchParams }: { searchParams: Promis
       {drafts.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>{t("wave.vague_en_attente", { n: drafts.length })}</CardTitle>
+            <CardTitle>{t("wave.vague_en_attente", { n: draftCount })}</CardTitle>
             <CardDescription>{t("wave.relis_puis_envoie_les_garde_fous_sont_reverifies")}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <ul className="flex flex-col gap-1.5 text-sm">
               {drafts.slice(0, 20).map((draft) => (
-                <li key={draft.id} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-                  {draft.contactId ? (
-                    <Link href={`/contacts/${draft.contactId}`} className="font-medium underline underline-offset-2">
-                      {draft.contactName ?? draft.toEmail}
-                    </Link>
-                  ) : (
-                    <span className="font-medium">{draft.toEmail}</span>
-                  )}
-                  <span className="min-w-0 text-muted-foreground">{draft.subject}</span>
-                  {/* Le nom de la règle n'est pas un statut : un texte, pas un badge — un libellé long sortait de la carte. */}
-                  {draft.ruleName && <span className="min-w-0 text-xs text-muted-foreground">{draft.ruleName}</span>}
+                // Chaque ligne s'ouvre sur le brouillon lui-même (stabilisation, P6) : le corps se lit AVANT le clic qui l'envoie,
+                // comme sur la fiche — « relis, puis envoie » n'était qu'un objet et un nom.
+                <li key={draft.id}>
+                  <details className="group/draft">
+                    <summary className="flex min-w-0 cursor-pointer list-none flex-wrap items-center gap-x-2 gap-y-0.5 [&::-webkit-details-marker]:hidden">
+                      <span className="font-medium">{draft.contactName ?? draft.toEmail}</span>
+                      <span className="min-w-0 text-muted-foreground">{draft.subject}</span>
+                      {/* Le nom de la règle n'est pas un statut : un texte, pas un badge — un libellé long sortait de la carte. */}
+                      {draft.ruleName && <span className="min-w-0 text-xs text-muted-foreground">{draft.ruleName}</span>}
+                      <span className="text-xs text-muted-foreground underline underline-offset-2 group-open/draft:hidden">{t("wave.lire_le_brouillon")}</span>
+                    </summary>
+                    <div className="mt-1.5 mb-2 flex flex-col gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-2">
+                      <p className="text-xs text-muted-foreground">{draft.toEmail}</p>
+                      <p className="font-medium">{draft.subject}</p>
+                      <p className="whitespace-pre-wrap text-muted-foreground">{draft.body}</p>
+                      {draft.contactId && (
+                        <Link href={`/contacts/${draft.contactId}`} className="w-fit text-xs underline underline-offset-2">
+                          {t("wave.sur_la_fiche")}
+                        </Link>
+                      )}
+                    </div>
+                  </details>
                 </li>
               ))}
-              {drafts.length > 20 && <li className="text-xs text-muted-foreground">{t("wave.et_n_autres", { n: drafts.length - 20 })}</li>}
+              {draftCount > 20 && <li className="text-xs text-muted-foreground">{t("wave.et_n_autres", { n: draftCount - 20 })}</li>}
             </ul>
+            {draftCount > WAVE_BATCH_SIZE && (
+              <p className="text-xs text-muted-foreground">{t("wave.par_vagues_de", { batch: WAVE_BATCH_SIZE, rest: draftCount - WAVE_BATCH_SIZE })}</p>
+            )}
             {org.isDemo && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{t("wave.demo_envois_simules")}</p>}
             {!org.autoSendEnabled && (
               <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">{t("wave.interrupteur_coupe_rien_ne_partira")}</p>
@@ -135,7 +154,7 @@ export default async function RulesPage({ searchParams }: { searchParams: Promis
             <form action={sendWaveAction}>
               <Button type="submit" disabled={!org.autoSendEnabled}>
                 <Send />
-                {t("wave.envoyer_les_n_emails", { n: drafts.length })}
+                {t("wave.envoyer_les_n_emails", { n: waveSize })}
               </Button>
             </form>
           </CardContent>

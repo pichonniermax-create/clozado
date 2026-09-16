@@ -33,12 +33,18 @@ export async function logActivityAction(context: FicheContext, formData: FormDat
   try {
     const type = String(formData.get("type") ?? "");
     if (!isActivityType(type)) throw new AppError("choisis_le_type_d_interaction");
+    // Un email consigné dit son sens (stabilisation, P4) : « reçu » vaut « a répondu » et arrête la vague.
+    const direction = type === "email" ? String(formData.get("direction") ?? "") : null;
+    if (type === "email" && direction !== "inbound" && direction !== "outbound") {
+      throw new AppError("precise_si_cet_email_vient_du_contact_ou_part_vers_lui");
+    }
     await createActivity(user, user.id, {
       type,
       content: String(formData.get("content") ?? ""),
       occurredAt: parseLocalDateTime(String(formData.get("occurredAt") ?? ""), (await resolveRequestSettings()).timeZone),
       contactId: context.contactId ?? null,
       dealId: context.dealId ?? null,
+      direction: direction === "inbound" || direction === "outbound" ? direction : null,
     });
   } catch (error) {
     destination = withError(context.backTo, await errorMessage(error), JOURNAL_ERROR_PARAM);

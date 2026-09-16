@@ -136,7 +136,8 @@
     "annuler": "Cancel",
     "fusionner_titre": "Merge “{other}” into “{name}”?",
     "fusionner_texte": "The deals, tasks, interactions and tags of “{other}” move to this record, then “{other}” is closed for good (identity erased). This cannot be undone.",
-    "fusionner": "Merge"
+    "fusionner": "Merge",
+    "les_n_derniers_acces": "The last {n} accesses are shown."
   },
   "detailNotFound": {
     "cette_fiche_n_existe_pas": "This record doesn’t exist.",
@@ -194,7 +195,13 @@
     "choisir_un_fichier_csv": "Choose a CSV file",
     "ou_depose_le_ici": "or drop it here",
     "colonnes_reconnues": "Columns recognised automatically — the others will be offered for mapping",
-    "telecharger_un_modele": "Download a CSV template"
+    "telecharger_un_modele": "Download a CSV template",
+    "reconnue_par": "Recognised by",
+    "matchedBy": {
+      "email": "email",
+      "phone": "phone number",
+      "name_city": "name and city"
+    }
   },
   "list": {
     "aucun_contact_ne_correspond_a_cette_e658": "No contacts match this search",
@@ -224,12 +231,12 @@
     "aucune_organisation_selectionnee_choisis_une_organisation_5b59": "No organization selected. Pick an organization in the super admin banner at the top of the screen before importing.",
     "client_supprime": "Deleted client",
     "contact_supprime": "Deleted contact",
-    "deja_a_jour_n_avait_rien_0d9e": "Already up to date: “{email}” had nothing to complete.",
     "destinataire": "Recipient: {who}.",
     "email_invalide": "Invalid email: “{email}”.",
     "etiquettes": "Tags: {join}.",
     "fiche_fusionnee": "Merged record",
     "fields": {
+      "email": "email",
       "firstName": "first name",
       "lastName": "last name",
       "phone": "phone",
@@ -240,15 +247,19 @@
       "country": "country",
       "notes": "notes"
     },
-    "ignoree_apparait_plus_haut_dans_le_de7d": "Skipped: “{email}” appears earlier in the file.",
-    "ignoree_existe_deja_dans_tes_contacts": "Skipped: “{email}” already exists in your contacts.",
     "import_echoue_avant_la_premiere_fiche": "The import failed before the first contact — most likely an incident on our side, your preparation is not at fault. Try again.",
     "import_interrompu_apres": "The import stopped after {inserted} creation(s) and {completed} completion(s) — run the file again: what already went through will be skipped or completed without harm.",
     "newsletter_pour": "Newsletter for {name}",
     "nom_manquant": "Missing name.",
     "objectif_de_l_email_a_preciser_2f4d": "Email goal: (to be specified before generating)",
-    "plusieurs_fiches_portent_a_departager_a_a3f7": "Several records carry “{email}” — sort them out by hand before completing.",
-    "trop_de_lignes_l_import_est_f3ad": "Too many rows ({count}): imports are limited to {maxImportRows} per run."
+    "trop_de_lignes_l_import_est_f3ad": "Too many rows ({count}): imports are limited to {maxImportRows} per run.",
+    "identite_email": "the email “{value}”",
+    "identite_telephone": "the phone number “{value}”",
+    "identite_nom_ville": "the name “{name}” and the city “{city}”",
+    "ignoree_apparait_plus_haut_reconnue_par": "Skipped: the same person appears earlier in the file ({identity}).",
+    "ignoree_existe_deja_reconnue_par": "Skipped: already in your contacts — recognised by {identity}.",
+    "plusieurs_fiches_reconnues_par": "Several records recognised by {identity} — sort them out by hand before completing.",
+    "deja_a_jour_reconnue_par": "Already up to date: the record recognised by {identity} had nothing to complete."
   },
   "contactPicker": {
     "reliee_a_la_fiche": "Linked to the record {name}.",

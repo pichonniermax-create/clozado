@@ -426,6 +426,87 @@ async function main() {
       expect("l'espace jetable C est supprimé", (await db.select({ n: count() }).from(organizations).where(eq(organizations.id, created.organizationId)))[0].n === 0);
     }
 
+    console.log("\n--- Stabilisation, chantier A étape 5 : l'import reconnaît par téléphone et par nom + ville, un email reçu arrête la vague, les refus d'ingestion se comptent par organisation");
+    // Deux fiches connues de A, sans email : l'une reconnaissable par son téléphone, l'autre par son nom et sa ville.
+    const [paul, elodie] = await db
+      .insert(contacts)
+      .values([
+        { organizationId: a.orgId, kind: "person", name: "Paul Import", phone: "+33 6 12 34 56 78" },
+        { organizationId: a.orgId, kind: "person", name: "Élodie Durand", city: "Saint-Étienne" },
+      ])
+      .returning({ id: contacts.id });
+    const report = await contactsQ.importContacts(
+      a.admin,
+      a.userId,
+      [
+        { line: 2, values: { name: "Paul Import", phone: "06 12 34 56 78", companyName: "Import SA" } },
+        { line: 3, values: { name: "elodie durand", city: "saint-etienne", email: "elodie@_iso-a.invalid" } },
+        { line: 4, values: { name: "Inconnu Nouveau", phone: "07 00 00 00 00" } },
+        { line: 5, values: { name: "Paul Import", phone: "+33612345678" } },
+      ],
+      "complete",
+      tc
+    );
+    expect(
+      "ligne sans email reconnue par le TÉLÉPHONE → la fiche est complétée, pas doublée",
+      report.completed.some((c) => c.line === 2 && c.matchedBy === "phone" && c.contactId === paul.id),
+      JSON.stringify(report)
+    );
+    expect(
+      "ligne reconnue par le NOM + la VILLE (accents et casse ignorés) → complétée, l'email posé",
+      report.completed.some((c) => c.line === 3 && c.matchedBy === "name_city" && c.contactId === elodie.id && c.fields.includes("email")),
+      JSON.stringify(report.completed)
+    );
+    expect(
+      "ligne inconnue → créée ; même téléphone plus bas dans le fichier → écartée",
+      report.inserted === 1 && report.skipped.length === 1 && report.skipped[0].line === 5,
+      JSON.stringify({ inserted: report.inserted, skipped: report.skipped })
+    );
+    const paulAfter = await db.query.contacts.findFirst({ where: eq(contacts.id, paul.id) });
+    expect("la fiche reconnue garde son nom et gagne la société", paulAfter?.name === "Paul Import" && paulAfter.companyName === "Import SA");
+    const crossed = await contactsQ.importContacts(b.admin, b.userId, [{ line: 2, values: { name: "Paul Import", phone: "06 12 34 56 78" } }], "complete", tc);
+    expect("B n'apparie jamais une fiche de A : le même téléphone crée une fiche chez B", crossed.inserted === 1 && crossed.completed.length === 0);
+
+    // P4 — un email REÇU consigné à la main vaut « a répondu ».
+    const replied = await activitiesQ.createActivity(a.admin, a.userId, { type: "email", direction: "inbound", content: "il a répondu", contactId: paul.id });
+    const stopped = await db.query.contacts.findFirst({ where: eq(contacts.id, paul.id) });
+    expect(
+      "un email REÇU consigné dans la saisie rapide arrête la vague automatique (motif « a répondu »)",
+      Boolean(replied.id) && stopped?.autoSendStoppedAt !== null && stopped?.autoSendStopReason === "replied",
+      `stoppedAt=${stopped?.autoSendStoppedAt} reason=${stopped?.autoSendStopReason}`
+    );
+    await activitiesQ.createActivity(a.admin, a.userId, { type: "email", direction: "outbound", content: "je lui écris", contactId: elodie.id });
+    const untouched = await db.query.contacts.findFirst({ where: eq(contacts.id, elodie.id) });
+    expect("un email ENVOYÉ consigné à la main n'arrête rien", untouched?.autoSendStoppedAt === null);
+
+    // P5 — les refus d'ingestion se comptent par motif, dans l'organisation seulement.
+    const inboundQ = await import("../src/db/queries/inbound");
+    const rejected = await inboundQ.insertInboundEmail({
+      organizationId: a.orgId,
+      providerEmailId: `iso-${Date.now()}`,
+      messageIdHeader: null,
+      receivedAt: new Date(),
+      senderEmail: "inconnu@example.org",
+      senderUserId: null,
+      authResult: "unavailable",
+      authDetail: null,
+      status: "rejected",
+      rejectionReason: "sender_not_member",
+      mode: null,
+      subject: "Refusé",
+      counterpartEmail: null,
+      counterpartName: null,
+      originalDate: null,
+      proposal: null,
+      bodyText: null,
+      sizeBytes: null,
+    });
+    const byReasonA = await inboundQ.countRejectionsByReason(a.admin);
+    const byReasonB = await inboundQ.countRejectionsByReason(b.admin);
+    expect("les refus d'ingestion de A se comptent par motif", byReasonA.some((r) => r.reason === "sender_not_member" && r.n === 1), JSON.stringify(byReasonA));
+    expect("B ne voit aucun refus de A", byReasonB.length === 0, JSON.stringify(byReasonB));
+    if (rejected) await db.delete(schema.inboundEmails).where(eq(schema.inboundEmails.id, rejected.id));
+
     console.log("\n--- La garde de connexion de la démo : qui reçoit un lien de connexion, qui n'en reçoit pas");
     const guard = await import("../src/lib/auth/magic-link-guard");
     const { DEMO_ORGANIZATION_ID, isReservedExampleAddress } = await import("../src/lib/demo/constants");

@@ -30,6 +30,7 @@ import { listRuleDraftsOfContact } from "@/db/queries/rules";
 import {
   findDuplicateCandidates,
   getContactPageData,
+  countContactAccessLog,
   listContactAccessLog,
   listOrgUsers,
   logContactAccess,
@@ -52,6 +53,7 @@ import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import type { TranslatorOf } from "@/i18n/translator";
 import { NativeSelect } from "@/components/ui/native-select";
+import { readFlash } from "@/lib/flash";
 
 /** L'état de l'email réellement envoyé à cette personne pour une newsletter : remis, ouvert (approx.), cliqué, rejeté… — vide pour un envoi déclaré à la main. */
 function emailStateOf(m: { status: string; firstOpenedAt: Date | null; firstClickedAt: Date | null } | undefined, t: TranslatorOf<"contacts.detail">): string {
@@ -81,6 +83,8 @@ export default async function ContactPage({
   const user = await requireUser();
   const { id } = await params;
   const query = await searchParams;
+  // Les retours d'action portent un jeton signé (stabilisation, S5) : seule une phrase écrite par le serveur s'affiche.
+  const newsletterError = readFlash(query.erreurNewsletter);
 
   const data = await nullIfNotFound(getContactPageData(user, id));
   if (!data) notFound();
@@ -93,8 +97,9 @@ export default async function ContactPage({
   // Un visiteur de la démo publique ne laisse pas de trace : aucune écriture pour lui (docs/module-demo.md §1.4).
   if (!user.readOnly) await logContactAccess(contact, user.id, "view");
 
-  const [accessLog, orgUsers, duplicates, journal, mailTargets, contactTargets, received, indicators, suppression, sentMessages, contactAppointments, ruleDrafts] = await Promise.all([
+  const [accessLog, accessTotal, orgUsers, duplicates, journal, mailTargets, contactTargets, received, indicators, suppression, sentMessages, contactAppointments, ruleDrafts] = await Promise.all([
     listContactAccessLog(user, id),
+    countContactAccessLog(user, id),
     listOrgUsers(user),
     contact.deletedAt
       ? Promise.resolve([])
@@ -294,15 +299,15 @@ export default async function ContactPage({
         appointments={contactAppointments}
         backTo={`/contacts/${contact.id}`}
         contactId={contact.id}
-        erreur={query[APPOINTMENT_ERROR_PARAM]}
+        erreur={readFlash(query[APPOINTMENT_ERROR_PARAM])}
       />
 
       <ContactAutoSendPanel
         contact={contact}
         drafts={ruleDrafts}
         backTo={`/contacts/${contact.id}`}
-        erreur={query[RELANCE_ERROR_PARAM]}
-        info={query[RELANCE_INFO_PARAM]}
+        erreur={readFlash(query[RELANCE_ERROR_PARAM])}
+        info={readFlash(query[RELANCE_INFO_PARAM])}
       />
 
       {/* Le journal unifié : ce qui s'est passé avec cette personne — ses
@@ -314,7 +319,7 @@ export default async function ContactPage({
           backTo={`/contacts/${contact.id}`}
           contactId={contact.id}
           context="contact"
-          erreur={query[JOURNAL_ERROR_PARAM]}
+          erreur={readFlash(query[JOURNAL_ERROR_PARAM])}
           description={tr("appels_emails_rendez_vous_et_notes_920c")}
         />
       )}
@@ -340,9 +345,9 @@ export default async function ContactPage({
             ))}
           </ListCard>
         )}
-        {query.erreurNewsletter && (
+        {newsletterError && (
           <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">
-            {query.erreurNewsletter}
+            {newsletterError}
           </p>
         )}
         {mailTargets.length > 0 ? (
@@ -510,7 +515,10 @@ export default async function ContactPage({
         </form>
       </DetailsCard>
 
-      <DetailsCard variant="archive" summary={tr("journal_des_acces", { count: accessLog.length })} flush>
+      <DetailsCard variant="archive" summary={tr("journal_des_acces", { count: accessTotal })} flush>
+        {accessTotal > accessLog.length && (
+          <p className="px-4 pt-2.5 text-xs text-muted-foreground">{tr("les_n_derniers_acces", { n: accessLog.length })}</p>
+        )}
         <ul className="divide-y divide-border">
           {accessLog.map((entry) => (
             <ListRow key={entry.id} className="py-2.5">

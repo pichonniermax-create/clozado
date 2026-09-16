@@ -18,6 +18,8 @@ const EMAIL_KINDS = new Set<JournalEntry["kind"]>(["email_sent", "email_opened",
 
 export function journalHeadline(entry: JournalEntry, t: ActivitiesTranslator): string {
   if (entry.kind === "task_done" && entry.body) return t("headlines.task_done", { body: entry.body });
+  // Un email consigné dit son sens (stabilisation, P4) ; les anciens, sans sens, restent « Email ».
+  if (entry.kind === "email" && entry.direction) return t(`headlines.email_${entry.direction}`);
   if (EMAIL_KINDS.has(entry.kind) && entry.body) {
     return t(`headlines.${entry.kind as "email_sent" | "email_opened" | "email_clicked" | "email_bounced" | "email_unsubscribed"}`, { body: entry.body });
   }

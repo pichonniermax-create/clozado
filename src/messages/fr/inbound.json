@@ -58,7 +58,7 @@
       "treated": "Rien de traité pour l’instant"
     },
     "emptyHint": {
-      "pending": "Transfère un email à ton adresse d’ingestion, ou mets-la en copie cachée quand tu écris à un contact : la proposition arrive ici.",
+      "pending": "Transfère un email à ton adresse d’ingestion, ou mets-la en copie (cachée de préférence) quand tu écris à un contact : la proposition arrive ici.",
       "rejected": "Un email refusé apparaît ici avec son motif — adresse inconnue, expéditeur non membre, expéditeur non authentifié, débit ou taille.",
       "treated": "Les emails confirmés et ignorés se retrouvent ici, avec la fiche à laquelle ils ont été rattachés."
     },
@@ -76,9 +76,10 @@
       "treated": "Traités ({count})"
     },
     "transfere_a_ou_mets_en_copie": "Transfère un email à {address}, ou mets cette adresse en copie cachée : la proposition arrive ici.",
-    "transfere_ou_mets_en_copie_cachee": "Transfère un email à ton adresse d’ingestion, ou mets-la en copie cachée : la proposition arrive ici.",
+    "transfere_ou_mets_en_copie_cachee": "Transfère un email à ton adresse d’ingestion, ou mets-la en copie quand tu écris à un contact — cachée de préférence, l’adresse est un secret : la proposition arrive ici.",
     "ton_adresse_d_ingestion": "Ton adresse d’ingestion",
-    "regler_l_adresse": "Régler l’adresse"
+    "regler_l_adresse": "Régler l’adresse",
+    "refus_par_motif": "Par motif :"
   },
   "rejection": {
     "rate_limited": "Trop d’emails reçus",

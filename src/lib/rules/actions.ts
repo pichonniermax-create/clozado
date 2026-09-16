@@ -56,32 +56,39 @@ function ruleInputFromForm(formData: FormData): RuleInput {
   };
 }
 
-export async function createRuleAction(formData: FormData) {
+/**
+ * Le formulaire d'une règle rend son échec EN ÉTAT (`useActionState`),
+ * comme celui d'une cible : avant, l'action revenait par redirection avec
+ * l'erreur en paramètre d'URL, et React 19 vidait le formulaire — la
+ * première règle d'un pilote, perdue à la première faute (stabilisation, D2).
+ * Le succès, lui, redirige vers la liste avec sa confirmation.
+ */
+export type RuleFormState = { error: string | null };
+
+export async function createRuleAction(_prev: RuleFormState, formData: FormData): Promise<RuleFormState> {
   const t = await getTranslations("rules.actions");
   const user = await requireUser();
   const session = await requireSessionUser();
-  let destination = withError(RULES_PATH, t("regle_creee"), "info");
   try {
     await createRule(user, session.id, ruleInputFromForm(formData));
   } catch (error) {
-    destination = withError("/regles/new", await errorMessage(error));
+    return { error: await errorMessage(error) };
   }
   revalidatePath(RULES_PATH);
-  redirect(destination);
+  redirect(withError(RULES_PATH, t("regle_creee"), "info"));
 }
 
-export async function updateRuleAction(ruleId: string, formData: FormData) {
+export async function updateRuleAction(ruleId: string, _prev: RuleFormState, formData: FormData): Promise<RuleFormState> {
   const t = await getTranslations("rules.actions");
   const user = await requireUser();
   const session = await requireSessionUser();
-  let destination = withError(RULES_PATH, t("regle_enregistree"), "info");
   try {
     await updateRule(user, ruleId, session.id, ruleInputFromForm(formData));
   } catch (error) {
-    destination = withError(`/regles/${ruleId}`, await errorMessage(error));
+    return { error: await errorMessage(error) };
   }
   revalidatePath(RULES_PATH);
-  redirect(destination);
+  redirect(withError(RULES_PATH, t("regle_enregistree"), "info"));
 }
 
 export async function setRuleEnabledAction(context: { ruleId: string; enabled: boolean }) {
