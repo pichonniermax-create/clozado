@@ -358,6 +358,24 @@ export async function createTask(user: OrgScopeUser, createdBy: string, input: T
   // Le responsable désigné appartient à l'organisation (chasse aux failles du 2026-09-14) : sinon un
   // identifiant d'un autre espace faisait afficher ici le nom et l'adresse d'une personne étrangère.
   if (typeof input.assigneeId === "string") await assertUserInOrg(input.assigneeId, org.id);
+  // Les rattachements aussi (stabilisation, S3) : ils arrivent d'un contexte lié côté client, donc forgeable.
+  // La base refusait déjà un id étranger (FK composites), mais par une erreur 23503 illisible ; ici, la même
+  // vérification que `createActivity` — une fiche d'un autre espace ou supprimée est refusée avec sa phrase.
+  const contactId = input.contactId ?? null;
+  const dealId = input.dealId ?? null;
+  if (dealId) {
+    const deal = await db.query.deals.findFirst({ where: eq(deals.id, dealId), columns: { organizationId: true } });
+    if (!deal) throw new AppError("affaire_introuvable", undefined, 404);
+    assertOrgAccess(user, deal.organizationId);
+    if (deal.organizationId !== org.id) throw new AppError("acces_refuse_cette_donnee_n_appartient_pas_044a", undefined, 403);
+  }
+  if (contactId) {
+    const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, contactId), columns: { organizationId: true, deletedAt: true } });
+    if (!contact) throw new AppError("contact_introuvable", undefined, 404);
+    assertOrgAccess(user, contact.organizationId);
+    if (contact.organizationId !== org.id) throw new AppError("acces_refuse_cette_donnee_n_appartient_pas_044a", undefined, 403);
+    if (contact.deletedAt) throw new AppError("cette_fiche_a_ete_supprimee_on_n_c812");
+  }
 
   const [task] = await db
     .insert(tasks)
@@ -370,8 +388,8 @@ export async function createTask(user: OrgScopeUser, createdBy: string, input: T
       // Sans indication, la tâche est pour celui qui la crée — le cas de
       // l'ajout rapide depuis une fiche.
       assigneeId: input.assigneeId === undefined ? createdBy : input.assigneeId,
-      contactId: input.contactId ?? null,
-      dealId: input.dealId ?? null,
+      contactId,
+      dealId,
       ...recurrence,
       createdBy,
     })

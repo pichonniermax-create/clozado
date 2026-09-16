@@ -6,7 +6,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { mailTargets, newsletterBlocks, newsletters } from "@/db/schema";
 import { parseLocalDateTime } from "@/db/queries/activities";
-import { attachNewsletterSources, markNewsletterSent, normalizeTopics, unmarkNewsletterSent, updateNewsletterTopics } from "@/db/queries/newsletters";
+import { attachNewsletterSources, getNewsletterOrThrow, markNewsletterSent, normalizeTopics, unmarkNewsletterSent, updateNewsletterTopics } from "@/db/queries/newsletters";
 import { assertOrgAccess, orgScope } from "@/db/scope";
 import { SEND_ERROR_PARAM } from "@/components/newsletter/labels";
 import { errorMessage, withError } from "@/lib/form-actions";
@@ -79,6 +79,12 @@ export async function saveNewsletter(input: SaveNewsletterInput) {
       throw new AppError("newsletter_introuvable", undefined, 404);
     }
     assertOrgAccess(user, existing.organizationId);
+    // La cible et la newsletter sont vérifiées l'une CONTRE l'autre, pas seulement chacune contre la personne
+    // (stabilisation, S4) : pour un super admin en vue globale, les deux gardes passent séparément et une
+    // newsletter de A pouvait recevoir la cible de B — `newsletters.target_id` n'a pas de FK composite.
+    if (target.organizationId !== existing.organizationId) {
+      throw new AppError("la_cible_et_la_newsletter_n_appartiennent_3901", undefined, 403);
+    }
 
     await db
       .update(newsletters)
@@ -168,6 +174,9 @@ export async function loadNewsletter(id: string) {
 
 export async function listNewsletters() {
   const user = await requireUser();
+  // Vue globale du super admin : rien, comme les autres listes (stabilisation, S4) — un agrégat ne traverse
+  // jamais la frontière entre deux organisations, l'écran le dit et propose de choisir une organisation.
+  if (!user.organizationId) return [];
   const scope = orgScope(user, newsletters.organizationId);
   const query = db.select().from(newsletters).orderBy(desc(newsletters.updatedAt));
   return scope ? query.where(scope) : query;
@@ -286,6 +295,9 @@ export async function resumeSendAction(id: string) {
   const user = await requireUser();
   let destination = `/newsletters/${id}#envoi`;
   try {
+    // La newsletter D'ABORD (stabilisation, S2) : `getLatestSend` ne connaît pas l'organisation, et l'erreur
+    // renvoyée différait selon qu'une autre organisation avait un envoi ouvert — un oracle d'existence.
+    await getNewsletterOrThrow(user, id);
     const send = await getLatestSend(id);
     if (!send || send.finishedAt) throw new AppError("cet_envoi_est_termine");
     await unpauseSend(user, send.id);

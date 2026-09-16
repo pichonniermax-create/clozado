@@ -26,7 +26,19 @@ import { getTranslations } from "next-intl/server";
 export default async function NewslettersPage() {
   const t = await getTranslations("newsletters.list");
   const fmt = await getFormats();
-  await requireUser();
+  const user = await requireUser();
+
+  // Vue globale du super admin (stabilisation, S4) : le seul écran d'« Outils » qui mélangeait toutes les
+  // organisations — le même état que les cibles, les règles, les emails reçus.
+  if (!user.organizationId) {
+    return (
+      <>
+        <PageHeader tour="newsletters" title={t("newsletters")} description={t("les_emails_que_tu_prepares_pour_b188")} />
+        <EmptyState>{t("tu_es_en_vue_globale_choisis_f905")}</EmptyState>
+      </>
+    );
+  }
+
   const items = await listNewsletters();
 
   return (

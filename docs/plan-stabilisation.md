@@ -501,4 +501,20 @@ une adresse réelle autre que la tienne.
 Aucune de ces décisions n'est nécessaire au chantier A. Toutes le sont au
 chantier B, dont la migration ne sera rédigée qu'après tes réponses.
 
+---
+
+## 8. Journal d'exécution
+
+- **Chantier A, étape 1 — sécurité (S1 à S4) — faite le 2026-09-16.**
+  `updateAutoSendSettings` passe par `assertOrgAdmin` ; `resumeSendAction`
+  vérifie la newsletter avant de lire son envoi ; `createTask` vérifie le
+  contact et l'affaire rattachés (refus lisible, plus de 23503) ; la fiche
+  d'affaire lit motifs et conseillers par `listLossReasonsOf` /
+  `listOrgUsersOf` (organisation de l'affaire) ; la liste des newsletters a
+  son état « vue globale » et `listNewsletters` rend vide sans organisation ;
+  `saveNewsletter` refuse une cible d'une autre organisation que la
+  newsletter. Preuve : neuf contrôles ajoutés à `scripts/test-isolation.ts`
+  (S1, S3, S4a), joués contre la base ; S2 et S4b-c prouvés par lecture et
+  par le build.
+
 STOP.

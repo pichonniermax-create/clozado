@@ -864,9 +864,14 @@ export async function buildContactNewsletterBrief(user: OrgScopeUser, contactId:
 /** Les conseillers de l'organisation (pour l'attribution). */
 export async function listOrgUsers(user: OrgScopeUser) {
   if (!user.organizationId) return [];
+  return listOrgUsersOf(user.organizationId);
+}
+
+/** Les conseillers d'UNE organisation donnée — pour une fiche dont l'organisation est déjà vérifiée (stabilisation, S4). */
+export async function listOrgUsersOf(organizationId: string) {
   return db
     .select({ id: users.id, name: users.name, email: users.email })
     .from(users)
-    .where(eq(users.organizationId, user.organizationId))
+    .where(eq(users.organizationId, organizationId))
     .orderBy(asc(users.name));
 }

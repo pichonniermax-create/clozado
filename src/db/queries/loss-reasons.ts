@@ -12,6 +12,19 @@ export async function listLossReasons(user: OrgScopeUser) {
   return scope ? query.where(scope) : query;
 }
 
+/**
+ * Les motifs d'UNE organisation donnée — pour une fiche dont l'organisation est déjà vérifiée (stabilisation,
+ * S4) : `listLossReasons(user)` ne filtre rien pour un super admin en vue globale, qui se voyait proposer sur une
+ * affaire les motifs de toutes les organisations.
+ */
+export async function listLossReasonsOf(organizationId: string) {
+  return db
+    .select()
+    .from(lossReasons)
+    .where(eq(lossReasons.organizationId, organizationId))
+    .orderBy(asc(lossReasons.position), asc(lossReasons.label));
+}
+
 export async function createLossReason(user: OrgScopeUser, label: string) {
   assertOrgAdmin(user);
   if (!user.organizationId) {

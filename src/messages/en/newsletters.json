@@ -126,7 +126,8 @@
     "marquee_envoyee": "Marked as sent",
     "supprimer_ce_brouillon": "Delete this draft?",
     "suppression_definitive": "The draft and its blocks are gone for good. A sent newsletter, on the other hand, cannot be deleted.",
-    "annuler": "Cancel"
+    "annuler": "Cancel",
+    "tu_es_en_vue_globale_choisis_f905": "You’re in the global view: choose an organization in the super admin banner at the top of the screen to see its newsletters."
   },
   "new": {
     "aucune_cible_pour_l_instant": "No audiences yet",

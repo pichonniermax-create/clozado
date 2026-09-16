@@ -20,7 +20,7 @@ import {
   type RuleRun,
   type RuleTemplate,
 } from "@/db/schema";
-import { assertOrgAccess, orgScope } from "@/db/scope";
+import { assertOrgAccess, assertOrgAdmin, orgScope } from "@/db/scope";
 import { localeOfOrganization } from "@/i18n/locale-lookup";
 import { translatorFor } from "@/i18n/translator";
 import { AppError } from "@/lib/errors";
@@ -837,6 +837,9 @@ export async function updateAutoSendSettings(
   user: OrgScopeUser,
   input: { autoSendEnabled: boolean; autoSendPeriodDays: number; officeHoursStart: number; officeHoursEnd: number }
 ): Promise<void> {
+  // Un réglage d'organisation : réservé à l'admin, vérifié ICI et pas seulement à l'écran (chantier de
+  // stabilisation, S1) — la carte est grisée pour un membre, mais une soumission forgée arrivait quand même.
+  assertOrgAdmin(user);
   const org = await getOwnOrganizationOrThrow(user);
   if (!Number.isInteger(input.autoSendPeriodDays) || input.autoSendPeriodDays < 1 || input.autoSendPeriodDays > 365) {
     throw new AppError("le_seuil_doit_etre_entre_1_et_365_jours");

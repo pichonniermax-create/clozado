@@ -104,6 +104,7 @@
   "l_image_reste_trop_lourde": "L’image reste trop lourde.",
   "l_interrupteur_general_est_coupe": "L’interrupteur général des envois automatiques est coupé (Réglages → Envois automatiques). Rien ne part.",
   "l_objet_est_vide_ecris_le_avant_d_envoyer": "L’objet est vide : écris-le avant d’envoyer.",
+  "la_cible_et_la_newsletter_n_appartiennent_3901": "La cible et la newsletter n’appartiennent pas à la même organisation.",
   "la_cible_de_cette_newsletter_est_introuvable": "La cible de cette newsletter est introuvable.",
   "la_collecte_n_a_pas_pu_demarrer": "La collecte n’a pas pu démarrer.",
   "la_date_d_envoi_est_illisible": "La date d’envoi est illisible.",

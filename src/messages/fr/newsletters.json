@@ -126,7 +126,8 @@
     "marquee_envoyee": "Marquée envoyée",
     "supprimer_ce_brouillon": "Supprimer ce brouillon ?",
     "suppression_definitive": "Le brouillon et ses blocs disparaissent définitivement. Une newsletter envoyée, elle, ne se supprime pas.",
-    "annuler": "Annuler"
+    "annuler": "Annuler",
+    "tu_es_en_vue_globale_choisis_f905": "Tu es en vue globale : choisis une organisation dans le bandeau super admin en haut de l’écran pour voir ses newsletters."
   },
   "new": {
     "aucune_cible_pour_l_instant": "Aucune cible pour l’instant",

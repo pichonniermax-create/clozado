@@ -104,6 +104,7 @@
   "l_image_reste_trop_lourde": "The image is still too heavy.",
   "l_interrupteur_general_est_coupe": "The automatic sending master switch is off (Settings → Automatic sending). Nothing goes out.",
   "l_objet_est_vide_ecris_le_avant_d_envoyer": "The subject is empty: write it before sending.",
+  "la_cible_et_la_newsletter_n_appartiennent_3901": "The audience and the newsletter don’t belong to the same organization.",
   "la_cible_de_cette_newsletter_est_introuvable": "This newsletter’s audience can’t be found.",
   "la_collecte_n_a_pas_pu_demarrer": "The collection run couldn’t start.",
   "la_date_d_envoi_est_illisible": "The send date can’t be read.",

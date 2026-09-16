@@ -22,8 +22,8 @@ import { leadOriginLabel, listLeadsForContact } from "@/db/queries/acquisition";
 import { listDealJournal } from "@/db/queries/activities";
 import { setDealOriginAction } from "@/lib/acquisition/actions";
 import { listCommissionsForDeal } from "@/db/queries/commissions";
-import { listLossReasons } from "@/db/queries/loss-reasons";
-import { listOrgUsers } from "@/db/queries/contacts";
+import { listLossReasonsOf } from "@/db/queries/loss-reasons";
+import { listOrgUsersOf } from "@/db/queries/contacts";
 import { listDealShares } from "@/db/queries/deal-shares";
 import {
   moveDealStageAction,
@@ -82,9 +82,11 @@ export default async function DealPage({
     listDealShares(user, id),
     listCommissionsForDeal(user, id),
     listDealJournal(user, id, await getTranslations("activities.queries")),
-    listLossReasons(user),
+    // Les motifs et les conseillers de L'ORGANISATION DE L'AFFAIRE (stabilisation, S4) : pour un super admin en
+    // vue globale, `listLossReasons(user)` rendait ceux de toutes les organisations et `listOrgUsers(user)` aucun.
+    listLossReasonsOf(deal.organizationId),
     getDealStageDurations(user, id),
-    listOrgUsers(user),
+    listOrgUsersOf(deal.organizationId),
     listOpenTasksForDeal(user, id),
     deal.contactId ? listLeadsForContact(user, deal.contactId) : Promise.resolve([]),
     // Le logo téléversé de l'organisation de l'affaire : l'aperçu du partage montre ce que le partenaire verra.

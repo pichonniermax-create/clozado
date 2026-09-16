@@ -341,6 +341,43 @@ async function main() {
     await pipelinesQ.updateStage(a.admin, a.statuses[0].id, { label: "Nouveau", color: "#AABBCC", probability: null, outcome: null });
     expect("updateStage(admin A, #AABBCC) normalise en #aabbcc", (await db.query.dealStatuses.findFirst({ where: eq(dealStatuses.id, a.statuses[0].id) }))?.color === "#aabbcc");
 
+    console.log("\n--- Stabilisation, chantier A étape 1 : porte admin des envois automatiques, rattachements de tâche, listes bornées à l'affaire");
+    const rulesQ = await import("../src/db/queries/rules");
+    const lossQ = await import("../src/db/queries/loss-reasons");
+    const { isAppError } = await import("../src/lib/errors");
+    const expectAppError = async (label: string, fn: () => Promise<unknown>, key: string) => {
+      try {
+        await fn();
+        ko(label, "aucune erreur levée");
+      } catch (error) {
+        expect(label, isAppError(error) && error.key === key, isAppError(error) ? `clé ${error.key}` : String(error).slice(0, 120));
+      }
+    };
+    // S1 — un membre ne règle pas les envois automatiques, même par soumission forgée.
+    await expectAppError(
+      "updateAutoSendSettings(membre de B) → 403, clé « seul l'admin »",
+      () => rulesQ.updateAutoSendSettings({ role: "member", organizationId: b!.orgId }, { autoSendEnabled: true, autoSendPeriodDays: 14, officeHoursStart: 9, officeHoursEnd: 18 }),
+      "acces_refuse_seul_l_admin_de_l_7ac9"
+    );
+    await rulesQ.updateAutoSendSettings(b.admin, { autoSendEnabled: false, autoSendPeriodDays: 21, officeHoursStart: 8, officeHoursEnd: 19 });
+    const orgB = await db.query.organizations.findFirst({ where: eq(organizations.id, b.orgId) });
+    expect("updateAutoSendSettings(admin de B) passe et écrit (période 21, bureau 8-19)", orgB?.autoSendPeriodDays === 21 && orgB.officeHoursStart === 8 && orgB.officeHoursEnd === 19);
+    // S3 — un rattachement forgé est refusé AVANT la base, avec une phrase.
+    await expectAppError("createTask(B, contactId = contact de A) → refus lisible", () => tasksQ.createTask(b!.admin, b!.userId, { title: "forgée", contactId: a!.contactId }), "acces_refuse_cette_donnee_n_appartient_pas_044a");
+    await expectAppError("createTask(B, dealId = affaire de A) → refus lisible", () => tasksQ.createTask(b!.admin, b!.userId, { title: "forgée", dealId: a!.dealId }), "acces_refuse_cette_donnee_n_appartient_pas_044a");
+    await expectAppError("createTask(B, contactId inconnu) → contact introuvable", () => tasksQ.createTask(b!.admin, b!.userId, { title: "forgée", contactId: "00000000-0000-4000-8000-000000000000" }), "contact_introuvable");
+    const [{ n: forgedTasks }] = await db.select({ n: count() }).from(tasks).where(and(eq(tasks.organizationId, b.orgId), eq(tasks.title, "forgée")));
+    expect("aucune tâche « forgée » écrite chez B", Number(forgedTasks) === 0);
+    const legit = await tasksQ.createTask(b.admin, b.userId, { title: "légitime", contactId: b.contactId, dealId: b.dealId });
+    expect("createTask(B, contact et affaire de B) passe", legit.contactId === b.contactId && legit.dealId === b.dealId);
+    // S4 — les listes d'une fiche d'affaire sont celles de SON organisation.
+    const reasonA = await lossQ.createLossReason(a.admin, "Motif A");
+    const reasonB = await lossQ.createLossReason(b.admin, "Motif B");
+    const ofA = await lossQ.listLossReasonsOf(a.orgId);
+    expect("listLossReasonsOf(A) = les motifs de A, jamais ceux de B", ofA.some((r) => r.id === reasonA?.id) && !ofA.some((r) => r.id === reasonB?.id));
+    const usersOfA = await contactsQ.listOrgUsersOf(a.orgId);
+    expect("listOrgUsersOf(A) = l'admin de A seulement", usersOfA.length === 1 && usersOfA[0].id === a.userId);
+
     console.log("\n--- La base elle-même : une ligne qui mélange deux organisations est rejetée (FK composites)");
     const fkViolation = async (label: string, statement: Promise<unknown>) => {
       try {
