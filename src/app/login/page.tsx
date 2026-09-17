@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { SignInForm } from "@/components/auth/sign-in-form";
+import { Button } from "@/components/ui/button";
+import { DetailsCard } from "@/components/ui/details-card";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { isPlausibleEmail } from "@/lib/email/address";
 import { getTranslations } from "next-intl/server";
 
 /**
@@ -21,12 +26,15 @@ const KNOWN_ERRORS = ["AccessDenied", "Verification"] as const;
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; code?: string; email?: string }>;
 }) {
   // Une session en cours ne voit jamais cet écran : le layout du segment la renvoie à son espace (stabilisation, P8).
-  const t = await getTranslations("auth.login");
-  const { error } = await searchParams;
+  const [t, tc, params] = await Promise.all([getTranslations("auth.login"), getTranslations("auth.code"), searchParams]);
+  const { error } = params;
   const errorMessage = error ? ((KNOWN_ERRORS as readonly string[]).includes(error) ? t(`errors.${error as (typeof KNOWN_ERRORS)[number]}`) : t("une_erreur_est_survenue")) : null;
+  // Le retour de la route du code (`?code=invalid|locked`) : une phrase, jamais un fait sur l'adresse.
+  const codeMessage = params.code === "locked" ? tc("trop_d_essais") : params.code ? tc("code_incorrect_ou_expire") : null;
+  const knownEmail = isPlausibleEmail(params.email ?? "") ? (params.email ?? "").toLowerCase() : "";
 
   return (
     <AuthShell
@@ -39,7 +47,27 @@ export default async function LoginPage({
         </>
       }
     >
-      <SignInForm initialError={errorMessage} />
+      <SignInForm initialError={errorMessage} initialEmail={knownEmail} />
+      {/* Le code à six chiffres reçu dans le même email (correctif du 2026-09-17) : pour quand le lien pose problème. */}
+      <DetailsCard id="code" variant="archive" summary={tc("j_ai_recu_un_code")} defaultOpen={Boolean(codeMessage)}>
+        <form method="post" action="/login/code/valider" className="flex flex-col gap-3">
+          <p className="text-xs text-muted-foreground">{tc("description")}</p>
+          <Field label={tc("email")} htmlFor="code-email">
+            <Input id="code-email" name="email" type="email" autoComplete="email" required defaultValue={knownEmail} />
+          </Field>
+          <Field label={tc("code")} htmlFor="code-value">
+            <Input id="code-value" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9 ]{6,7}" required placeholder="123 456" className="w-40 tracking-widest tabular-nums" aria-invalid={codeMessage ? true : undefined} aria-describedby={codeMessage ? "code-error" : undefined} />
+          </Field>
+          {codeMessage && (
+            <p id="code-error" role="alert" className="text-sm text-destructive">
+              {codeMessage}
+            </p>
+          )}
+          <Button type="submit" variant="outline" className="w-fit">
+            {tc("me_connecter_avec_le_code")}
+          </Button>
+        </form>
+      </DetailsCard>
     </AuthShell>
   );
 }

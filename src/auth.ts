@@ -4,11 +4,13 @@ import { eq } from "drizzle-orm";
 import NextAuth, { AuthError, type NextAuthConfig } from "next-auth";
 import Resend from "next-auth/providers/resend";
 import { isKnownSignInEmail, magicLinkMayBeSentTo } from "@/lib/auth/magic-link-guard";
+import { confirmationUrl, newLoginCode, parseCallbackUrl } from "@/lib/auth/magic-link";
 import { renderMagicLinkEmail } from "@/lib/email/magic-link";
 import { transactionalMail } from "@/lib/email/resend";
 import { productSender } from "@/lib/email/sender";
 import { db } from "@/db";
 import { DEFAULT_AUTH_SETTINGS, getAuthSettings, type AuthSettingsValues } from "@/db/queries/auth-settings";
+import { storeLoginCode } from "@/db/queries/login-codes";
 import { accounts, users, verificationTokens } from "@/db/schema";
 
 /**
@@ -51,10 +53,17 @@ const PAGES: NonNullable<NextAuthConfig["pages"]> = {
  * jetons de vérification) : l'email est NOTRE gabarit
  * (`renderMagicLinkEmail`, dans la langue du destinataire) et part par
  * NOTRE client (`sendEmail`, src/lib/email/resend.ts), pas par le `fetch`
- * du fournisseur. L'expéditeur est lu à l'envoi, jamais à l'import.
+ * du fournisseur.
+ *
+ * Le lien de l'email (correctif du 2026-09-17) N'EST PLUS le callback
+ * d'Auth.js — dont un simple GET consomme le jeton, ce qu'un scanner
+ * anti-spam ou l'aperçu de lien d'une messagerie fait avant la personne —
+ * mais NOTRE page de confirmation, qui ne consomme rien ; seul le bouton
+ * « Me connecter » (un POST) envoie le navigateur au callback. Le même
+ * email porte un code à six chiffres, saisissable sur la page de connexion.
  */
 async function sendVerificationRequest(
-  { identifier, url, token }: { identifier: string; url: string; token: string },
+  { identifier, url, token, expires }: { identifier: string; url: string; token: string; expires: Date },
   settings: AuthSettingsValues
 ): Promise<void> {
   // LA DÉMO (docs/module-demo.md §1.2) : jamais d'email vers une adresse réservée aux
@@ -62,7 +71,11 @@ async function sendVerificationRequest(
   // boîte » s'affiche quand même, rien ne le dit à un inconnu. La garde vit dans
   // src/lib/auth/magic-link-guard.ts, exercée par test-isolation contre la base.
   if (!magicLinkMayBeSentTo(identifier)) return;
-  const email = await renderMagicLinkEmail(identifier, url, { validityMinutes: settings.linkValidityMinutes });
+  const parts = parseCallbackUrl(url);
+  const link = parts ? confirmationUrl(parts) : url;
+  const code = newLoginCode();
+  await storeLoginCode(identifier, code, expires);
+  const email = await renderMagicLinkEmail(identifier, link, { code, validityMinutes: settings.linkValidityMinutes });
   // La clé d'idempotence : l'empreinte du jeton — unique par demande, jamais le jeton lui-même chez un tiers.
   const idempotencyKey = `magic-link/${createHash("sha256").update(token).digest("hex")}`;
   // Toute erreur (clé refusée, quota, délai, EMAIL_FROM absente) remonte en `AuthError`,

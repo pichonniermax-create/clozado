@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { clientIp } from "@/lib/client-ip";
+import { log } from "@/lib/log";
 import { DEMO_COOKIE, DEMO_EXEMPT_PATHS, DEMO_FORBIDDEN_PATHS, DEMO_READ_ONLY_PARAM, DEMO_READ_ONLY_VALUE, isNavigation } from "@/lib/demo/public";
 
 /**
@@ -23,10 +25,17 @@ import { DEMO_COOKIE, DEMO_EXEMPT_PATHS, DEMO_FORBIDDEN_PATHS, DEMO_READ_ONLY_PA
  * jamais été la protection.
  */
 const EXIT_PATHS = ["/login", "/inscription"];
+/** Les gestes explicites de la connexion (POST) : « Me connecter » depuis le lien reçu, le code à six chiffres. */
+const AUTH_GESTURE_PATHS = ["/login/confirmer/valider", "/login/code/valider"];
 
 export function proxy(request: NextRequest) {
-  if (!request.cookies.has(DEMO_COOKIE)) return NextResponse.next();
   const { pathname } = request.nextUrl;
+  // Le clic sur un lien de connexion, journalisé (correctif du 2026-09-17) : agent utilisateur et adresse — jamais le
+  // jeton, qui est dans l'adresse. C'est ce qui permet de voir si un scanner a ouvert le lien avant la personne.
+  if (pathname.startsWith("/api/auth/callback/")) {
+    log.info("magic_link_callback", { method: request.method, ip: clientIp(request.headers), userAgent: request.headers.get("user-agent") ?? "" });
+  }
+  if (!request.cookies.has(DEMO_COOKIE)) return NextResponse.next();
   const reading = request.method === "GET" || request.method === "HEAD";
   if (pathname === "/demo" || pathname.startsWith("/demo/")) return NextResponse.next();
   // La désinscription et la vitrine de partage ne dépendent d'aucune organisation active : le cookie de visite
@@ -39,7 +48,7 @@ export function proxy(request: NextRequest) {
     if (isNavigation(request.headers)) response.cookies.delete(DEMO_COOKIE);
     return response;
   }
-  if (reading && EXIT_PATHS.includes(pathname) && isNavigation(request.headers)) {
+  if (AUTH_GESTURE_PATHS.includes(pathname) || (reading && (EXIT_PATHS.includes(pathname) || pathname.startsWith("/login/")) && isNavigation(request.headers))) {
     const response = NextResponse.next();
     response.cookies.delete(DEMO_COOKIE);
     return response;
