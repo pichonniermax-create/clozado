@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { Check, Pencil, RotateCcw, X } from "lucide-react";
+import { Check, RotateCcw } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
@@ -11,9 +10,9 @@ import { Input } from "@/components/ui/input";
 import { ListCard } from "@/components/ui/list-card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { PageHeader } from "@/components/app-shell/page-header";
-import { Textarea } from "@/components/ui/textarea";
 import { CompleteTaskButton } from "@/components/tasks/complete-task-button";
 import { autoRuleLabel, TASK_PRIORITIES } from "@/components/tasks/labels";
+import { TaskEditor, type TaskEditorLabels } from "@/components/tasks/task-editor";
 import { TaskMetaLine } from "@/components/tasks/task-section";
 import { listOrgUsers } from "@/db/queries/contacts";
 import { defaultOwnerId } from "@/lib/default-owner";
@@ -92,6 +91,31 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   const backTo = pageHref(board.page);
 
   const openCount = board.counts.open;
+  // Les libellés du panneau d'édition, traduits UNE fois et passés par référence à chaque ligne (voir TaskEditor).
+  const tt = await getTranslations("tasks");
+  const labels: TaskEditorLabels = {
+    modifier: t("modifier_la_tache"),
+    titre: t("titre"),
+    echeance: t("echeance"),
+    priorite: t("priorite"),
+    responsable: t("responsable"),
+    recurrence: t("recurrence"),
+    notes: t("notes"),
+    enregistrer: t("enregistrer"),
+    personne: t("personne"),
+    tousLes: t("tous_les"),
+    pasDeRecurrence: t("pas_de_recurrence_toutes_les_n_a5aa"),
+    uniteDeRecurrence: t("unite_de_recurrence"),
+    jamais: t("jamais"),
+    jours: t("jours"),
+    semaines: t("semaines"),
+    mois: t("mois"),
+    ans: t("ans"),
+    priorites: { low: tt("priorities.low"), normal: tt("priorities.normal"), high: tt("priorities.high") },
+    supprimerTitre: t("supprimer_tache_titre"),
+    supprimerCetteTache: t("supprimer_cette_tache"),
+    annuler: t("annuler"),
+  };
 
   return (
     <>
@@ -165,10 +189,10 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         </EmptyState>
       ) : (
         <>
-          <TaskPile label={t("en_retard")} tasks={board.overdue} total={board.counts.overdue} tone="destructive" {...{ backTo, orgUsers }} />
-          <TaskPile label={t("aujourd_hui")} tasks={board.today} total={board.counts.today} {...{ backTo, orgUsers }} />
-          <TaskPile label={t("a_venir")} tasks={board.upcoming} total={board.counts.upcoming} {...{ backTo, orgUsers }} />
-          <TaskPile label={t("sans_echeance")} tasks={board.noDue} total={board.counts.noDue} {...{ backTo, orgUsers }} />
+          <TaskPile label={t("en_retard")} tasks={board.overdue} total={board.counts.overdue} tone="destructive" {...{ backTo, orgUsers, labels }} />
+          <TaskPile label={t("aujourd_hui")} tasks={board.today} total={board.counts.today} {...{ backTo, orgUsers, labels }} />
+          <TaskPile label={t("a_venir")} tasks={board.upcoming} total={board.counts.upcoming} {...{ backTo, orgUsers, labels }} />
+          <TaskPile label={t("sans_echeance")} tasks={board.noDue} total={board.counts.noDue} {...{ backTo, orgUsers, labels }} />
           {board.pageCount > 1 && (
             <nav className="flex items-center justify-between text-sm" aria-label={t("pages_de_taches")}>
               {board.page > 1 ? (
@@ -249,6 +273,7 @@ function TaskPile({
   tone,
   backTo,
   orgUsers,
+  labels,
 }: {
   label: string;
   /** Les lignes de la page courante. */
@@ -258,6 +283,7 @@ function TaskPile({
   tone?: "destructive";
   backTo: string;
   orgUsers: OrgUser[];
+  labels: TaskEditorLabels;
 }) {
   const t = useTranslations("tasks.page");
   if (tasks.length === 0) return null;
@@ -271,7 +297,7 @@ function TaskPile({
       />
       <ListCard>
         {tasks.map((task) => (
-          <TaskItem key={task.id} task={task} backTo={backTo} orgUsers={orgUsers} />
+          <TaskItem key={task.id} task={task} backTo={backTo} orgUsers={orgUsers} labels={labels} />
         ))}
       </ListCard>
     </section>
@@ -282,10 +308,12 @@ function TaskItem({
   task,
   backTo,
   orgUsers,
+  labels,
 }: {
   task: TaskRow;
   backTo: string;
   orgUsers: OrgUser[];
+  labels: TaskEditorLabels;
 }) {
   const t = useTranslations("tasks.page");
   const tt = useTranslations("tasks");
@@ -306,91 +334,26 @@ function TaskItem({
       </div>
 
       {/* L'édition derrière un crayon en fin de ligne (audit UI du 2026-09-14) : avant, une ligne « Modifier… » sous chacune
-          des tâches — quatorze fois à l'écran. La rangée reste HORS du <details> : un formulaire et des liens dans un
-          <summary> seraient du contenu interactif imbriqué. À la souris, le crayon n'apparaît qu'au survol, au clavier ou
-          une fois ouvert ; au doigt, toujours. */}
-      <details className="group">
-        <summary
-          aria-label={t("modifier_la_tache")}
-          title={t("modifier_la_tache")}
-          className={cn(
-            buttonVariants({ variant: "ghost", size: "icon-sm" }),
-            "absolute top-2.5 right-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden sm:opacity-0 sm:group-hover/row:opacity-100 sm:group-open:opacity-100 sm:focus-visible:opacity-100"
-          )}
-        >
-          <Pencil aria-hidden className="group-open:hidden" />
-          <X aria-hidden className="hidden group-open:block" />
-        </summary>
-        <div className="mt-3 flex flex-col gap-4 rounded-lg border border-border bg-muted/30 p-4 sm:ml-10">
-          {task.notes && task.autoRule && (
-            <p className="text-xs text-muted-foreground">{task.notes}</p>
-          )}
-          <form
-            action={updateTaskAction.bind(null, { taskId: task.id, backTo })}
-            className="flex flex-col gap-3"
-          >
-            <Field label={t("titre")} htmlFor={`title-${task.id}`}>
-              <Input id={`title-${task.id}`} name="title" defaultValue={task.title} required />
-            </Field>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Field label={t("echeance")} htmlFor={`dueDate-${task.id}`}>
-                <Input
-                  id={`dueDate-${task.id}`}
-                  name="dueDate"
-                  type="date"
-                  defaultValue={dueDateInputValue(task.dueAt)}
-                />
-              </Field>
-              <Field label={t("priorite")} htmlFor={`priority-${task.id}`}>
-                <PrioritySelect id={`priority-${task.id}`} defaultValue={task.priority} />
-              </Field>
-              <Field label={t("responsable")} htmlFor={`assignee-${task.id}`}>
-                <AssigneeSelect
-                  id={`assignee-${task.id}`}
-                  orgUsers={orgUsers}
-                  defaultValue={task.assigneeId ?? ""}
-                />
-              </Field>
-              <Field label={t("recurrence")} htmlFor={`recurUnit-${task.id}`}>
-                <RecurrenceFields
-                  idPrefix={task.id}
-                  defaultUnit={task.recurUnit ?? ""}
-                  defaultEvery={task.recurEvery ?? 1}
-                />
-              </Field>
-            </div>
-            {!task.autoRule && (
-              <Field label={t("notes")} htmlFor={`notes-${task.id}`}>
-                <Textarea
-                  id={`notes-${task.id}`}
-                  name="notes"
-                  defaultValue={task.notes ?? ""}
-                  className="min-h-12"
-                />
-              </Field>
-            )}
-            {task.autoRule && <input type="hidden" name="notes" value={task.notes ?? ""} />}
-            <Button type="submit" size="sm" className="w-fit">
-              {t("enregistrer")}
-            </Button>
-          </form>
-          {!task.autoRule && (
-            <div className="border-t border-border pt-3">
-              {/* Derrière la confirmation du socle (stabilisation, D5). */}
-              <ConfirmSubmit
-                action={deleteTaskAction.bind(null, { taskId: task.id, backTo })}
-                title={t("supprimer_tache_titre")}
-                description={t("supprimer_tache_texte", { title: task.title })}
-                confirmLabel={t("supprimer_cette_tache")}
-                cancelLabel={t("annuler")}
-                className="text-destructive"
-              >
-                {t("supprimer_cette_tache")}
-              </ConfirmSubmit>
-            </div>
-          )}
-        </div>
-      </details>
+          des tâches — quatorze fois à l'écran. Le formulaire, lui, n'est plus rendu par ligne : il se monte au clic sur le
+          crayon (performance, 2026-09-17 — 1,29 Mo pour cinquante lignes rendues avec leur panneau), voir TaskEditor. */}
+      <TaskEditor
+        task={{
+          id: task.id,
+          title: task.title,
+          dueDate: dueDateInputValue(task.dueAt),
+          priority: task.priority,
+          assigneeId: task.assigneeId ?? "",
+          recurUnit: task.recurUnit ?? "",
+          recurEvery: task.recurEvery ?? 1,
+          notes: task.notes ?? "",
+          autoRule: Boolean(task.autoRule),
+        }}
+        orgUsers={orgUsers}
+        labels={labels}
+        deleteDescription={t("supprimer_tache_texte", { title: task.title })}
+        update={updateTaskAction.bind(null, { taskId: task.id, backTo })}
+        remove={task.autoRule ? null : deleteTaskAction.bind(null, { taskId: task.id, backTo })}
+      />
     </li>
   );
 }
