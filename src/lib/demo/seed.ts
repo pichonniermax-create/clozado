@@ -583,7 +583,10 @@ export async function createDemoOrganization(options: { now?: Date; demoPublicEn
     const sendId = demoId(`send:${i}`);
     const html = n.blocks.map((b) => (b.type === "titre" ? `<h1>${b.payload.text}</h1>` : b.type === "texte" ? `<p>${b.payload.text}</p>` : b.type === "cta" ? `<p><a href="${b.payload.url}">${b.payload.buttonLabel}</a></p>` : "")).join("\n");
     const text = n.blocks.map((b) => (b.type === "titre" || b.type === "texte" ? b.payload.text : b.type === "cta" ? `${b.payload.buttonLabel} : ${b.payload.url}` : "")).filter(Boolean).join("\n\n");
-    sendRows.push({ id: sendId, organizationId: orgId, newsletterId: newsletterIds[i], startedBy: claire, startedAt: sentAt, finishedAt: new Date(sentAt.getTime() + 90_000), queued: members.length, sent: members.length, failed: 0, subject: n.subject, html, textBody: text });
+    // Les compteurs d'un envoi TERMINÉ, tels que `refreshSendCounters` les recompte depuis ses messages : plus rien en
+    // file, tout est parti (remis ou rejeté), rien en échec. Avant : `queued = sent`, et chaque newsletter envoyée de la
+    // démo affichait « 26 envoyés · 26 en attente » (audit newsletter du 2026-09-17, §A.3).
+    sendRows.push({ id: sendId, organizationId: orgId, newsletterId: newsletterIds[i], startedBy: claire, startedAt: sentAt, finishedAt: new Date(sentAt.getTime() + 90_000), queued: 0, sent: members.length, failed: 0, subject: n.subject, html, textBody: text });
     const unopened: number[] = [];
     let bounces = n.stats.bounced;
     let unsubscribes = n.stats.unsubscribed;
