@@ -16,6 +16,7 @@ import { CompleteTaskButton } from "@/components/tasks/complete-task-button";
 import { autoRuleLabel, TASK_PRIORITIES } from "@/components/tasks/labels";
 import { TaskMetaLine } from "@/components/tasks/task-section";
 import { listOrgUsers } from "@/db/queries/contacts";
+import { defaultOwnerId } from "@/lib/default-owner";
 import {
   TASKS_PAGE_SIZE,
   dueDateInputValue,
@@ -135,7 +136,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
               <PrioritySelect id="new-priority" defaultValue="normal" />
             </Field>
             <Field label={t("responsable")} htmlFor="new-assignee">
-              <AssigneeSelect id="new-assignee" orgUsers={orgUsers} defaultValue={user.id} />
+              <AssigneeSelect id="new-assignee" orgUsers={orgUsers} defaultValue={defaultOwnerId(user, orgUsers) ?? ""} />
             </Field>
             <Field
               label={t("recurrence")}

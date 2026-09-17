@@ -23,6 +23,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { listOrigins } from "@/db/queries/acquisition";
 import { getContact, listOrgUsers } from "@/db/queries/contacts";
+import { defaultOwnerId } from "@/lib/default-owner";
 import { listDealTypes } from "@/db/queries/deal-types";
 import {
   DEALS_PAGE_SIZE,
@@ -317,10 +318,11 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
               <Field label={tr("montant_estime", { currency: fmt.currency })} htmlFor="estimatedAmount">
                 <Input id="estimatedAmount" name="estimatedAmount" type="number" min="0" />
               </Field>
-              {/* Le responsable, la personne connectée par défaut (stabilisation, P1) ; à plusieurs, le choix. */}
+              {/* Le responsable, la personne connectée par défaut (stabilisation, P1) — ou l'admin le plus ancien pour un
+                  super admin en substitution (src/lib/default-owner.ts) ; à plusieurs, le choix. */}
               {orgUsers.length > 1 ? (
                 <Field label={tr("responsable")} htmlFor="ownerId">
-                  <NativeSelect id="ownerId" name="ownerId" defaultValue={user.id} className="w-full">
+                  <NativeSelect id="ownerId" name="ownerId" defaultValue={defaultOwnerId(user, orgUsers) ?? ""} className="w-full">
                     <option value="">{tr("personne")}</option>
                     {orgUsers.map((u) => (
                       <option key={u.id} value={u.id}>
@@ -330,7 +332,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
                   </NativeSelect>
                 </Field>
               ) : (
-                <input type="hidden" name="ownerId" value={user.id} />
+                <input type="hidden" name="ownerId" value={defaultOwnerId(user, orgUsers) ?? ""} />
               )}
             </div>
             <Field label={tr("description")} htmlFor="description">

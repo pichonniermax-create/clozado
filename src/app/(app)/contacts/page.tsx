@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ContactCreateForm } from "@/components/contacts/contact-create-form";
+import { defaultOwnerId } from "@/lib/default-owner";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
@@ -89,7 +90,8 @@ export default async function ContactsPage({
 
       {/* Reste dans le DOM même repliée : la visite guidée l'éclaire (`contacts-nouveau`) et `?nouveau=1` l'ouvre. */}
       <DetailsCard summary={t("nouveau_contact")} defaultOpen={params.nouveau === "1"} tour="contacts-nouveau">
-        <ContactCreateForm orgUsers={orgUsers} currentUserId={user.id} />
+        {/* Le responsable proposé : la personne connectée, ou l'admin le plus ancien pour un super admin en substitution. */}
+        <ContactCreateForm orgUsers={orgUsers} currentUserId={defaultOwnerId(user, orgUsers) ?? ""} />
       </DetailsCard>
 
       <section className="flex flex-col gap-3">

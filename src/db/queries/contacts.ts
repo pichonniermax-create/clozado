@@ -903,7 +903,8 @@ export async function listOrgUsers(user: OrgScopeUser) {
 /** Les conseillers d'UNE organisation donnée — pour une fiche dont l'organisation est déjà vérifiée (stabilisation, S4). */
 export async function listOrgUsersOf(organizationId: string) {
   return db
-    .select({ id: users.id, name: users.name, email: users.email })
+    // Rôle et date de création : ce qu'il faut pour désigner un responsable par défaut (src/lib/default-owner.ts).
+    .select({ id: users.id, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt })
     .from(users)
     .where(eq(users.organizationId, organizationId))
     .orderBy(asc(users.name));
