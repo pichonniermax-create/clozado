@@ -21,6 +21,7 @@
     "titre": "Palette de commandes",
     "ouvrir": "Rechercher ou aller à un écran",
     "rechercher": "Rechercher…",
+    "rechercher_long": "Contacts, affaires, partenaires, écrans…",
     "placeholder": "Un contact, une affaire, un partenaire, un écran…",
     "placeholder_sans_organisation": "Un écran…",
     "aucun_resultat": "Rien ne correspond.",

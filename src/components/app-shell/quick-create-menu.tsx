@@ -23,7 +23,9 @@ export function QuickCreateMenu() {
   const tn = useTranslations("nav");
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button size="sm" aria-label={t("nouveau")} />}>
+      {/* Les mêmes états que le déclencheur de recherche (chantier « barre du haut », 2026-09-17) : survol plus soutenu
+          (jeton dérivé), anneau de focus, fond enfoncé au clic, 150 ms, 40 px de haut, curseur main. */}
+      <DropdownMenuTrigger render={<Button className="h-10 cursor-pointer px-3 duration-150" aria-label={t("nouveau")} />}>
         <Plus />
         <span className="hidden sm:inline">{t("nouveau")}</span>
         <ChevronDown className="opacity-70" />

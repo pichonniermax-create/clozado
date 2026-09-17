@@ -171,17 +171,43 @@ export function CommandPalette({
 
   return (
     <>
+      {/* LE DÉCLENCHEUR (chantier « barre du haut », 2026-09-17) : quatre états lisibles sans comparer deux captures,
+          transition de 150 ms, aucun mouvement de mise en page (la bordure existe au repos, transparente). Repos : fond
+          gris clair, texte de substitution gris moyen, badge discret. Survol : fond plus soutenu, bordure visible,
+          texte et icône en couleur forte, curseur main — jamais l'ouverture. Focus clavier : l'anneau du socle, distinct
+          du survol. Actif : fond enfoncé. 40 px de haut, badge compris. Le raccourci suit la machine (⌘K / Ctrl K), le
+          texte annonce ce qu'on peut chercher — court dès md, long dès lg. Contraste du texte au survol : 15:1 (clair),
+          12:1 (sombre), mesuré sur les jetons. */}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden h-8 w-56 items-center gap-2 rounded-lg border border-input bg-background px-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none md:inline-flex lg:w-64"
+        className={cn(
+          "group/search hidden h-10 w-56 cursor-pointer items-center gap-2 rounded-lg border border-transparent bg-muted px-3 text-sm text-muted-foreground select-none",
+          "transition-[background-color,border-color,color,box-shadow] duration-150",
+          "hover:border-border hover:bg-accent hover:text-foreground",
+          "focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+          "active:bg-[color-mix(in_oklch,var(--accent),var(--foreground)_8%)]",
+          "md:inline-flex lg:w-[22rem]"
+        )}
         aria-label={t("ouvrir")}
+        aria-keyshortcuts={mac ? "Meta+K" : "Control+K"}
       >
-        <Search className="size-4 shrink-0" aria-hidden />
-        <span className="flex-1 truncate text-left">{t("rechercher")}</span>
-        <Kbd className="text-[0.65rem]">{mac ? t("raccourci_mac") : t("raccourci_pc")}</Kbd>
+        <Search className="size-4 shrink-0 transition-colors duration-150 group-hover/search:text-foreground" aria-hidden />
+        <span className="flex-1 truncate text-left lg:hidden">{t("rechercher")}</span>
+        <span className="hidden flex-1 truncate text-left lg:inline">{t("rechercher_long")}</span>
+        <Kbd className="bg-background/70 text-[0.65rem] transition-colors duration-150 group-hover/search:bg-background group-hover/search:text-foreground">
+          {mac ? t("raccourci_mac") : t("raccourci_pc")}
+        </Kbd>
       </button>
-      <Button type="button" variant="ghost" size="icon" className="md:hidden" aria-label={t("ouvrir")} onClick={() => setOpen(true)}>
+      {/* Sous md : l'icône seule, mêmes états, 40 px — elle ouvre la même palette. */}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="size-10 border-transparent bg-muted text-muted-foreground duration-150 hover:border-border hover:bg-accent hover:text-foreground active:bg-[color-mix(in_oklch,var(--accent),var(--foreground)_8%)] md:hidden"
+        aria-label={t("ouvrir")}
+        onClick={() => setOpen(true)}
+      >
         <Search />
       </Button>
 
