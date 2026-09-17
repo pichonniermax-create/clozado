@@ -27,14 +27,18 @@ export const resolveRequestSettings = cache(async (): Promise<FormatSettings> =>
   const session = await getSession().catch(() => null);
   const user = session?.user;
   if (!user?.id) return PRODUCT_FORMATS;
-  const locale = await localeOfUser({ id: user.id }).catch(() => DEFAULT_LOCALE);
   let organizationId = user.organizationId ?? null;
   if (user.role === "super_admin") {
     const store = await cookies().catch(() => null);
     organizationId = store?.get(ACTIVE_ORG_COOKIE)?.value ?? null;
   }
-  if (!organizationId) return { ...PRODUCT_FORMATS, locale };
-  const org = await settingsOfOrganization(organizationId).catch(() => PRODUCT_FORMATS);
+  // La langue de la personne et les réglages de l'organisation : deux lectures indépendantes, ensemble — sur le chemin
+  // critique de CHAQUE page (la configuration de next-intl les attend avant de rendre quoi que ce soit).
+  const [locale, org] = await Promise.all([
+    localeOfUser({ id: user.id }).catch(() => DEFAULT_LOCALE),
+    organizationId ? settingsOfOrganization(organizationId).catch(() => PRODUCT_FORMATS) : Promise.resolve(null),
+  ]);
+  if (!org) return { ...PRODUCT_FORMATS, locale };
   return { locale, currency: org.currency, timeZone: org.timeZone };
 });
 

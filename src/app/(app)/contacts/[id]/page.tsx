@@ -95,16 +95,19 @@ export default async function ContactPage({
   // Journal des accès : la consultation est tracée côté serveur, dédupliquée
   // à l'heure (exigence données personnelles, docs/module-relationnel.md §C).
   // Un visiteur de la démo publique ne laisse pas de trace : aucune écriture pour lui (docs/module-demo.md §1.4).
-  if (!user.readOnly) await logContactAccess(contact, user.id, "view");
+  // L'écriture part EN MÊME TEMPS que les treize lectures (performance, 2026-09-17) ; seul le journal des accès — sa
+  // liste et son total — l'attend, pour montrer cette consultation-ci comme avant.
+  const logged = user.readOnly ? Promise.resolve() : logContactAccess(contact, user.id, "view");
+  const ta = await getTranslations("activities.queries");
 
   const [accessLog, accessTotal, orgUsers, duplicates, journal, mailTargets, contactTargets, received, indicators, suppression, sentMessages, contactAppointments, ruleDrafts] = await Promise.all([
-    listContactAccessLog(user, id),
-    countContactAccessLog(user, id),
+    logged.then(() => listContactAccessLog(user, id)),
+    logged.then(() => countContactAccessLog(user, id)),
     listOrgUsers(user),
     contact.deletedAt
       ? Promise.resolve([])
       : findDuplicateCandidates(user, { name: contact.name, email: contact.email }, id),
-    contact.deletedAt ? Promise.resolve(null) : listContactJournal(user, id, await getTranslations("activities.queries")),
+    contact.deletedAt ? Promise.resolve(null) : listContactJournal(user, id, ta),
     contact.deletedAt ? Promise.resolve([]) : listMailTargets(user),
     // De quelles cibles cette fiche fait partie — recalculé maintenant, jamais une liste figée.
     contact.deletedAt ? Promise.resolve([]) : listTargetsOfContact(user, id),

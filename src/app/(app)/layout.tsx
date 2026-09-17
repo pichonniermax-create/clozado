@@ -59,6 +59,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   // Un visiteur de la démo publique : bandeau dédié, pas de réglages, pas de menu « Nouveau » (docs/module-demo.md §1.4).
   const readOnly = sessionUser.readOnly;
 
+  // Les compteurs de la barre latérale partent EN MÊME TEMPS que la marque, les organisations et la langue (performance,
+  // 2026-09-17) : ils ne dépendent que de l'utilisateur effectif. Ils ne sont LUS que si l'organisation existe (comme
+  // avant) ; sinon la promesse est abandonnée — le `catch` vide évite qu'un rejet jamais lu remonte au processus.
+  const badges = hasOrganization ? Promise.all([getFollowUpBoard(user), countTasksDueNow(user)]) : null;
+  badges?.catch(() => undefined);
   const [workspace, allOrganizations, localeChoice, cookieStore] = await Promise.all([
     getWorkspace(),
     isSuperAdmin ? getVisibleOrganizations(sessionUser) : Promise.resolve([]),
@@ -74,15 +79,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const org = workspace?.organization ?? null;
   const mark: WorkspaceMarkProps = workspace ? { logo: workspace.brand.logo.light, name: workspace.brand.name } : PRODUCT_MARK;
 
-  // Les compteurs de la barre latérale. Sur /suivi, le tableau est donc
-  // calculé deux fois pour une même requête (ici et dans la page) : c'est
-  // assumé — trois requêtes indexées sur de petites tables, contre le fait
-  // de voir « ce qu'il reste à traiter » depuis n'importe quel écran. À
-  // revoir si ces tables grossissent vraiment.
-  const [board, tasksDue] =
-    hasOrganization && org
-      ? await Promise.all([getFollowUpBoard(user), countTasksDueNow(user)])
-      : [null, 0];
+  // Les compteurs de la barre latérale. Sur /suivi et le tableau de bord, la page demande le même tableau : il n'est
+  // calculé qu'une fois par requête (`getFollowUpBoard` est mémoïsé) — voir « ce qu'il reste à traiter » depuis
+  // n'importe quel écran ne coûte plus une seconde lecture.
+  const [board, tasksDue] = badges && org ? await badges : [null, 0];
   const followUp = board
     ? board.pendingAlerts.length + board.acceptedStale.length + board.unpaidCommissions.length
     : 0;

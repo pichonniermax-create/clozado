@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { organizations, users } from "@/db/schema";
@@ -36,16 +37,19 @@ export async function localeOfOrganization(organizationId: string): Promise<AppL
 
 /**
  * Les RÉGLAGES d'affichage d'une organisation — langue par défaut, devise,
- * fuseau — pour ce qui s'écrit ou se lit en son nom hors requête.
+ * fuseau — pour ce qui s'écrit ou se lit en son nom hors requête. Une
+ * lecture par requête (`cache`, performance du 2026-09-17) : les formats
+ * de la requête, le fuseau des tâches (coquille, tableau de bord, écran des
+ * tâches) et les tâches automatiques la demandaient chacun.
  */
-export async function settingsOfOrganization(organizationId: string): Promise<FormatSettings> {
+export const settingsOfOrganization = cache(async (organizationId: string): Promise<FormatSettings> => {
   const row = await db
     .select({ locale: organizations.defaultLocale, currency: organizations.currency, timezone: organizations.timezone })
     .from(organizations)
     .where(eq(organizations.id, organizationId))
     .limit(1);
   return { locale: toAppLocale(row[0]?.locale), currency: toCurrency(row[0]?.currency), timeZone: toTimeZone(row[0]?.timezone) };
-}
+});
 
 /** Le fuseau d'une organisation — celui du produit sans organisation (vue globale). */
 export async function timeZoneOfOrganization(organizationId: string | null | undefined): Promise<string> {

@@ -203,19 +203,8 @@ export async function resolveRenderBrand(org: typeof organizations.$inferSelect,
   return toRenderBrand(org, await listOrganizationAssetMeta(org.id), origin);
 }
 
-/** L'organisation de l'utilisateur connecté, garde-fou d'isolation inclus (jamais un id fourni par l'appelant). */
-export async function getOwnOrganizationOrThrow(user: OrgScopeUser) {
-  if (!user.organizationId) {
-    throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_d6ca");
-  }
-  const org = await db.query.organizations.findFirst({
-    where: eq(organizations.id, user.organizationId),
-  });
-  if (!org) {
-    throw new AppError("organisation_introuvable", undefined, 404);
-  }
-  return org;
-}
+/** L'organisation de l'utilisateur connecté, garde-fou d'isolation inclus — définie avec les autres lectures d'organisation, mémoïsée par requête. */
+export { getOwnOrganizationOrThrow } from "./organizations";
 
 // ---------------------------------------------------------------------------
 // « Marquer comme envoyée » — le moment où l'audience est figée

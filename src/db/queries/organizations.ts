@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { organizations } from "@/db/schema";
@@ -21,13 +22,39 @@ export async function getVisibleOrganizations(user: OrgScopeUser) {
     : db.select().from(organizations);
 }
 
+/**
+ * UNE organisation par son id, UNE FOIS PAR REQUÊTE (performance,
+ * 2026-09-17) : la coquille (marque, badges), la page, le tableau de suivi
+ * et les tâches automatiques la relisaient chacun — quatre à six fois la
+ * même ligne par écran. `cache` de React la mémoïse pour la durée du
+ * rendu ; hors rendu (actions, routes, crons), l'appel reste une lecture
+ * ordinaire. Réservée aux appelants qui ont DÉJÀ vérifié l'accès (jamais
+ * exportée : l'isolation passe par `getOwnOrganization` ou
+ * `getOrganizationOfRecord`).
+ */
+const loadOrganization = cache(async (organizationId: string) => {
+  const org = await db.query.organizations.findFirst({
+    where: eq(organizations.id, organizationId),
+  });
+  return org ?? null;
+});
+
 /** L'organisation de l'utilisateur connecté (null pour un super_admin). */
 export async function getOwnOrganization(user: OrgScopeUser) {
   if (!user.organizationId) return null;
-  const org = await db.query.organizations.findFirst({
-    where: eq(organizations.id, user.organizationId),
-  });
-  return org ?? null;
+  return loadOrganization(user.organizationId);
+}
+
+/** L'organisation de l'utilisateur connecté, garde-fou d'isolation inclus (jamais un id fourni par l'appelant) ; une erreur lisible sans organisation choisie. */
+export async function getOwnOrganizationOrThrow(user: OrgScopeUser) {
+  if (!user.organizationId) {
+    throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_d6ca");
+  }
+  const org = await loadOrganization(user.organizationId);
+  if (!org) {
+    throw new AppError("organisation_introuvable", undefined, 404);
+  }
+  return org;
 }
 
 /**

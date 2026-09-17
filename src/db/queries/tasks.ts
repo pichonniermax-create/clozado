@@ -7,7 +7,7 @@ import { settingsOfOrganization, timeZoneOfOrganization } from "@/i18n/locale-lo
 import type { OrgScopeUser } from "@/lib/session";
 import { todayInTimeZone } from "@/lib/timezone";
 import { daysBetween, getFollowUpBoard, type FollowUpBoard } from "./deal-follow-up";
-import { getOwnOrganizationOrThrow } from "./newsletters";
+import { getOwnOrganizationOrThrow } from "./organizations";
 import { AppError } from "@/lib/errors";
 import { toAppLocale } from "@/i18n/locales";
 import { translatorFor } from "@/i18n/translator";
@@ -504,14 +504,22 @@ export async function deleteTask(user: OrgScopeUser, taskId: string) {
 export async function generateAutoTasks(user: OrgScopeUser, knownBoard?: FollowUpBoard): Promise<void> {
   // Un visiteur de la démo publique ne matérialise rien : aucune écriture pour lui (docs/module-demo.md §1.4).
   if (user.readOnly) return;
-  const org = await getOwnOrganizationOrThrow(user);
+  if (!user.organizationId) {
+    throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_d6ca");
+  }
+  // L'organisation, ses réglages et le tableau de suivi ne dépendent que de l'id : lus ensemble (performance, 2026-09-17)
+  // — avant, quatre allers-retours en série avant même de savoir s'il y avait quelque chose à matérialiser.
+  // Le tableau de bord l'a déjà calculé pour ses tuiles : on ne le recalcule pas (et `getFollowUpBoard` est mémoïsé par requête).
+  const [org, settings, board] = await Promise.all([
+    getOwnOrganizationOrThrow(user),
+    settingsOfOrganization(user.organizationId),
+    knownBoard ?? getFollowUpBoard(user),
+  ]);
   // Les tâches générées appartiennent à l'organisation : dans SA langue, pas dans celle de la personne qui a ouvert l'écran.
   const t = await translatorFor(toAppLocale(org.defaultLocale), "tasks.queries");
-  const fmt = createFormats(await settingsOfOrganization(org.id));
-  // Le tableau de bord l'a déjà calculé pour ses tuiles : on ne le recalcule pas.
-  const board = knownBoard ?? (await getFollowUpBoard(user));
+  const fmt = createFormats(settings);
   const now = new Date();
-  const today = todayAsStoredDate(await timeZoneOfOrganization(user.organizationId));
+  const today = todayAsStoredDate(settings.timeZone);
 
   // Une commission dont la date de confirmation est inconnue ne déclenche
   // pas la règle : on ne compte pas des jours depuis une date qu'on n'a pas.

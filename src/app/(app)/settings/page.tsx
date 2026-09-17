@@ -189,21 +189,23 @@ export default async function SettingsPage() {
     redirect("/dashboard");
   }
 
-  const org = await getOwnOrganization(user);
-  if (!org) {
-    redirect("/dashboard");
-  }
-
   const readOnly = user.role !== "admin";
-  const [pipelines, lossReasons, apiKeyRows, siteKeyRows, collection, appOrigin, assetMeta] = await Promise.all([
+  // Douze cartes, une seule vague de lectures (performance, 2026-09-17) : l'organisation et les types d'affaire partaient
+  // avant et après les autres, en série.
+  const [org, pipelines, lossReasons, apiKeyRows, siteKeyRows, collection, appOrigin, assetMeta, dealTypeRows] = await Promise.all([
+    getOwnOrganization(user),
     listPipelinesWithStages(user),
     listLossReasons(user),
     listApiKeys(user),
     listSiteKeys(user),
     getCollectionStatus(user),
     requestOrigin(),
-    listOrganizationAssetMeta(org.id),
+    listOrganizationAssetMeta(user.organizationId),
+    listDealTypes(user),
   ]);
+  if (!org) {
+    redirect("/dashboard");
+  }
   const savedHex = normalizeHex(org.primaryColor ?? "") ?? DEFAULT_BRAND_PRIMARY;
   // Les aperçus du logo se rendent sous les jetons dérivés de la couleur ENREGISTRÉE.
   const savedBrand = brandStyle(deriveBrandTokens(savedHex, "light").tokens);
@@ -227,8 +229,7 @@ export default async function SettingsPage() {
     receivingDomain = null;
   }
   const nothingConnected = collection.lastEventAt === null && collection.lastLeadAt === null;
-  // Les types d'affaire (stabilisation, P2) : gérés dans la carte des pipelines, pas dans une carte de plus.
-  const dealTypeRows = await listDealTypes(user);
+  // Les types d'affaire (stabilisation, P2) : gérés dans la carte des pipelines, pas dans une carte de plus (lus ci-dessus).
 
   async function addDealTypeForm(formData: FormData) {
     "use server";

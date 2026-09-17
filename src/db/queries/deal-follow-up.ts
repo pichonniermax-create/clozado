@@ -1,7 +1,9 @@
+import { cache } from "react";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { commissions, dealEvents, dealShares, deals, partners } from "@/db/schema";
-import { getOwnOrganizationOrThrow } from "./newsletters";
+import { getOwnOrganizationOrThrow } from "./organizations";
+import { AppError } from "@/lib/errors";
 import type { OrgScopeUser } from "@/lib/session";
 
 /**
@@ -84,9 +86,61 @@ export type FollowUpBoard = {
  * vérifient avant d'appeler — c'est ce qui manquait et faisait renvoyer un
  * 500 à /suivi en production.
  */
-export async function getFollowUpBoard(user: OrgScopeUser): Promise<FollowUpBoard> {
-  const org = await getOwnOrganizationOrThrow(user);
+/**
+ * MÉMOÏSÉ PAR REQUÊTE et PARALLÉLISÉ (performance, 2026-09-17) : la
+ * coquille (badge « Suivi ») et le tableau de bord le calculaient chacun,
+ * en quatre allers-retours en série. Désormais une fois par écran
+ * (`cache`, indexé par l'objet utilisateur que `requireUser` rend
+ * identique à tous les appelants), et en deux temps : l'organisation, les
+ * partages et les commissions ne dépendent que de l'id — ensemble — puis
+ * la dernière activité des partages acceptés, qui dépend des partages.
+ */
+export const getFollowUpBoard = cache(async (user: OrgScopeUser): Promise<FollowUpBoard> => {
+  if (!user.organizationId) {
+    throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_d6ca");
+  }
+  const organizationId = user.organizationId;
   const now = new Date();
+
+  const [org, rows, unpaidCommissions] = await Promise.all([
+    getOwnOrganizationOrThrow(user),
+    db
+      .select({
+        shareId: dealShares.id,
+        dealId: deals.id,
+        dealTitle: deals.title,
+        partnerName: partners.name,
+        status: dealShares.status,
+        sentAt: dealShares.sentAt,
+        respondedAt: dealShares.respondedAt,
+        expiresAt: dealShares.expiresAt,
+      })
+      .from(dealShares)
+      .innerJoin(deals, eq(dealShares.dealId, deals.id))
+      .innerJoin(partners, eq(dealShares.partnerId, partners.id))
+      .where(eq(dealShares.organizationId, organizationId))
+      .orderBy(desc(dealShares.sentAt)),
+    db
+      .select({
+        commissionId: commissions.id,
+        shareId: commissions.shareId,
+        dealId: deals.id,
+        dealTitle: deals.title,
+        partnerName: partners.name,
+        basis: commissions.basis,
+        rate: commissions.rate,
+        fixedAmount: commissions.fixedAmount,
+        computedAmount: commissions.computedAmount,
+        confirmedAt: commissions.confirmedAt,
+      })
+      .from(commissions)
+      .innerJoin(deals, eq(commissions.dealId, deals.id))
+      .innerJoin(dealShares, eq(commissions.shareId, dealShares.id))
+      .innerJoin(partners, eq(dealShares.partnerId, partners.id))
+      .where(and(eq(commissions.organizationId, organizationId), eq(commissions.state, "confirmee")))
+      // Les plus anciennes confirmations d'abord ; date inconnue en dernier.
+      .orderBy(sql`${commissions.confirmedAt} ASC NULLS LAST`),
+  ]);
 
   const thresholds = {
     pendingReminderDays: org.sharePendingReminderDays,
@@ -94,23 +148,6 @@ export async function getFollowUpBoard(user: OrgScopeUser): Promise<FollowUpBoar
     expiringSoonDays: org.shareExpiringSoonDays,
     acceptedStaleDays: org.dealAcceptedStaleDays,
   };
-
-  const rows = await db
-    .select({
-      shareId: dealShares.id,
-      dealId: deals.id,
-      dealTitle: deals.title,
-      partnerName: partners.name,
-      status: dealShares.status,
-      sentAt: dealShares.sentAt,
-      respondedAt: dealShares.respondedAt,
-      expiresAt: dealShares.expiresAt,
-    })
-    .from(dealShares)
-    .innerJoin(deals, eq(dealShares.dealId, deals.id))
-    .innerJoin(partners, eq(dealShares.partnerId, partners.id))
-    .where(eq(dealShares.organizationId, org.id))
-    .orderBy(desc(dealShares.sentAt));
 
   // Dernière activité (statut changé / commentaire / commission mise à
   // jour) par partage accepté — nécessaire pour la pile B seulement, une
@@ -177,27 +214,6 @@ export async function getFollowUpBoard(user: OrgScopeUser): Promise<FollowUpBoar
   });
   acceptedStale.sort((a, b) => b.daysSinceActivity - a.daysSinceActivity);
 
-  const unpaidCommissions = await db
-    .select({
-      commissionId: commissions.id,
-      shareId: commissions.shareId,
-      dealId: deals.id,
-      dealTitle: deals.title,
-      partnerName: partners.name,
-      basis: commissions.basis,
-      rate: commissions.rate,
-      fixedAmount: commissions.fixedAmount,
-      computedAmount: commissions.computedAmount,
-      confirmedAt: commissions.confirmedAt,
-    })
-    .from(commissions)
-    .innerJoin(deals, eq(commissions.dealId, deals.id))
-    .innerJoin(dealShares, eq(commissions.shareId, dealShares.id))
-    .innerJoin(partners, eq(dealShares.partnerId, partners.id))
-    .where(and(eq(commissions.organizationId, org.id), eq(commissions.state, "confirmee")))
-    // Les plus anciennes confirmations d'abord ; date inconnue en dernier.
-    .orderBy(sql`${commissions.confirmedAt} ASC NULLS LAST`);
-
   // "En cours" = niveau 2, TOUT LE RESTE actif — donc jamais ce qui est déjà
   // remonté dans une des trois piles d'action. Les piles A et B sortent
   // naturellement de la boucle ci-dessus (un partage y va OU dans inProgress),
@@ -216,4 +232,4 @@ export async function getFollowUpBoard(user: OrgScopeUser): Promise<FollowUpBoar
     inProgress: inProgressFiltered,
     closed,
   };
-}
+});

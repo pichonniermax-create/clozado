@@ -69,12 +69,12 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
 
   // La génération automatique tourne ICI, à la lecture — pas de tâche de
   // fond : ouvrir l'écran des tâches matérialise ce que le suivi signale
-  // (idempotent, voir generateAutoTasks).
-  await generateAutoTasks(user);
-
+  // (idempotent, voir generateAutoTasks). La liste l'attend (elle doit voir
+  // ce qui vient d'être écrit) ; les conseillers, non — lus pendant ce
+  // temps (performance, 2026-09-17).
   const page = Number(params.page) > 0 ? Number(params.page) : 1;
   const [board, orgUsers] = await Promise.all([
-    listTasksBoard(user, { assigneeId: params.conseiller || undefined, page }),
+    generateAutoTasks(user).then(() => listTasksBoard(user, { assigneeId: params.conseiller || undefined, page })),
     listOrgUsers(user),
   ]);
 

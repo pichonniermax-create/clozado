@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { organizationAssets, ORGANIZATION_ASSET_KINDS, type OrganizationAsset, type OrganizationAssetKind } from "@/db/schema";
@@ -58,11 +59,11 @@ export async function getOrganizationAsset(organizationId: string, kind: Organiz
 
 export type AssetMeta = { kind: OrganizationAssetKind; width: number; height: number; updatedAt: Date };
 
-/** Ce que les écrans ont besoin de savoir SANS charger les octets : quelles images existent, leur taille, leur version. */
-export async function listOrganizationAssetMeta(organizationId: string): Promise<AssetMeta[]> {
+/** Ce que les écrans ont besoin de savoir SANS charger les octets : quelles images existent, leur taille, leur version. Une lecture par requête (`cache`) : la coquille et l'écran des réglages la demandent tous deux. */
+export const listOrganizationAssetMeta = cache(async (organizationId: string): Promise<AssetMeta[]> => {
   const rows = await db
     .select({ kind: organizationAssets.kind, width: organizationAssets.width, height: organizationAssets.height, updatedAt: organizationAssets.updatedAt })
     .from(organizationAssets)
     .where(eq(organizationAssets.organizationId, organizationId));
   return rows.filter((r): r is AssetMeta => isAssetKind(r.kind)).map((r) => ({ ...r, kind: r.kind as OrganizationAssetKind }));
-}
+});

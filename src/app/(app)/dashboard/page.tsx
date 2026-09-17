@@ -205,21 +205,29 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     );
   }
 
-  const board = await getFollowUpBoard(user);
   // Comme l'écran des tâches : ouvrir le tableau de bord matérialise en
   // tâches ce que le suivi signale (idempotent, voir generateAutoTasks) —
   // sinon la tuile « À relancer » et la liste « à faire » se contrediraient
   // tant qu'on n'a pas ouvert /taches. Le tableau déjà calculé est réutilisé.
-  await generateAutoTasks(user, board);
-
-  const [org, open, anyDeal, contactsCount, partners, tasksDue, journal, onboardingFacts, cookieStore] = await Promise.all([
+  //
+  // Cette chaîne-là — le suivi, puis l'écriture des tâches automatiques, puis
+  // le « à faire » qui les lit — reste en série ; TOUT LE RESTE ne dépend que
+  // de l'organisation et part en même temps (performance, 2026-09-17 :
+  // avant, une vingtaine d'allers-retours dont la moitié en série).
+  const boardAndTasks = (async () => {
+    const board = await getFollowUpBoard(user);
+    await generateAutoTasks(user, board);
+    return { board, tasksDue: await getTasksDueSummary(user, TASKS_PREVIEW) };
+  })();
+  const ta = await getTranslations("activities.queries");
+  const [{ board, tasksDue }, org, open, anyDeal, contactsCount, partners, journal, onboardingFacts, cookieStore] = await Promise.all([
+    boardAndTasks,
     getOwnOrganization(user),
     openDeals(user),
     hasAnyDeal(user),
     countContacts(user),
     listPartners(user),
-    getTasksDueSummary(user, TASKS_PREVIEW),
-    listOrganizationJournal(user, JOURNAL_PREVIEW, await getTranslations("activities.queries")),
+    listOrganizationJournal(user, JOURNAL_PREVIEW, ta),
     getOnboardingFacts(user),
     cookies(),
   ]);

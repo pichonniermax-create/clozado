@@ -94,12 +94,14 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
     );
   }
 
-  const [pipelines, types, orgUsers, lossReasons, origins] = await Promise.all([
+  const [pipelines, types, orgUsers, lossReasons, origins, prefillContact] = await Promise.all([
     listPipelinesWithStages(user),
     listDealTypes(user),
     listOrgUsers(user),
     listLossReasons(user),
     sel.analytic ? listOrigins(user) : Promise.resolve([]),
+    // La fiche qui pré-remplit le formulaire (`?contact=`), lue avec le reste plutôt qu'après (performance, 2026-09-17).
+    params.contact ? getContact(user, params.contact).catch(() => null) : Promise.resolve(null),
   ]);
 
   if (pipelines.length === 0) {
@@ -128,10 +130,6 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
 
   const pipeline = pipelines.find((p) => p.id === params.pipeline) ?? pipelines[0];
   const stages = pipeline.stages;
-  const prefillContact = params.contact
-    ? await getContact(user, params.contact).catch(() => null)
-    : null;
-
   // Les paramètres de la sélection analytique voyagent avec le tri, la
   // pagination et les filtres natifs — et disparaissent en repassant au kanban.
   const selectionParams = sel.analytic ? selectionQuery(sel) : {};

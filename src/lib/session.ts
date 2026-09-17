@@ -46,12 +46,16 @@ export const ACTIVE_ORG_COOKIE = "clozado-active-org";
 
 /**
  * L'utilisateur de session BRUT (rôle réel, sans substitution), ou null
- * quand personne n'est connecté. LA SESSION DE VISITE d'abord, fermée par
+ * quand personne n'est connecté. MÉMOÏSÉ PAR REQUÊTE, comme la
+ * substitution ci-dessous (performance, 2026-09-17) : la coquille, la page
+ * et les composants reçoivent ainsi le MÊME objet — c'est ce qui permet
+ * aux lectures mémoïsées par `cache` et indexées par cet objet (le tableau
+ * de suivi, l'organisation) de ne s'exécuter qu'une fois par écran. LA SESSION DE VISITE d'abord, fermée par
  * défaut : quand le cookie de la démo publique est là et valide, c'est
  * elle qui gagne — même si une vraie session coexiste (quitter la démo la
  * rend). Voir docs/module-demo.md §1.4.
  */
-async function readSessionUser(): Promise<SessionUser | null> {
+const readSessionUser = cache(async (): Promise<SessionUser | null> => {
   const visitor = await readDemoVisitor();
   if (visitor) return visitor.user;
   const session = await getSession();
@@ -64,7 +68,7 @@ async function readSessionUser(): Promise<SessionUser | null> {
     organizationId: session.user.organizationId,
     readOnly: false,
   };
-}
+});
 
 /**
  * L'utilisateur de session BRUT, ou la redirection vers la connexion.
@@ -89,13 +93,13 @@ export async function requireSessionUser(): Promise<SessionUser> {
  * Le cookie n'est lu QUE pour un super admin : un utilisateur normal qui le
  * forgerait n'obtient rien (son rôle ne passe jamais par cette branche).
  */
-async function withActiveOrganization(user: SessionUser): Promise<SessionUser> {
+const withActiveOrganization = cache(async (user: SessionUser): Promise<SessionUser> => {
   if (user.role !== "super_admin") return user;
   const store = await cookies();
   const activeOrgId = store.get(ACTIVE_ORG_COOKIE)?.value;
   if (!activeOrgId) return user;
   return { ...user, role: "admin" as const, organizationId: activeOrgId };
-}
+});
 
 /**
  * À utiliser en haut de toute page et action protégée : l'utilisateur
