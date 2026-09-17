@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
-import { BookUser, Briefcase, Compass, CornerDownLeft, Search, Settings, Users, type LucideIcon } from "lucide-react";
+import { BookUser, Briefcase, Compass, CornerDownLeft, ListTodo, Search, Settings, Users, type LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { NAVIGATION, QUICK_CREATE } from "@/components/app-shell/navigation";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,12 @@ import { searchEverythingAction } from "@/lib/search/actions";
 import { TOUR_PARAM } from "@/lib/tour/steps";
 import { cn } from "@/lib/utils";
 
-type Group = "navigation" | "creer" | "contacts" | "affaires" | "partenaires" | "plus";
+type Group = "navigation" | "creer" | "contacts" | "affaires" | "partenaires" | "taches" | "plus";
 type Item = { id: string; group: Group; label: string; hint?: string | null; href: string; icon?: LucideIcon };
 
-const GROUP_ORDER: Group[] = ["contacts", "affaires", "partenaires", "navigation", "creer", "plus"];
-const HIT_ICON: Record<SearchHit["kind"], LucideIcon> = { contact: BookUser, deal: Briefcase, partner: Users };
-const HIT_GROUP: Record<SearchHit["kind"], Group> = { contact: "contacts", deal: "affaires", partner: "partenaires" };
+const GROUP_ORDER: Group[] = ["contacts", "affaires", "partenaires", "taches", "navigation", "creer", "plus"];
+const HIT_ICON: Record<SearchHit["kind"], LucideIcon> = { contact: BookUser, deal: Briefcase, partner: Users, task: ListTodo };
+const HIT_GROUP: Record<SearchHit["kind"], Group> = { contact: "contacts", deal: "affaires", partner: "partenaires", task: "taches" };
 /** Deux lettres au moins avant d'interroger le serveur. */
 const MIN_QUERY = 2;
 
@@ -45,7 +45,8 @@ function useIsMac(): boolean {
  * LA PALETTE DE COMMANDES (chantier UI/UX) — ⌘K / Ctrl+K depuis n'importe
  * quel écran : aller à un écran, créer (contact, affaire, tâche,
  * partenaire), et surtout RETROUVER une fiche par son nom — contacts,
- * affaires, partenaires — dans son organisation, en tapant deux lettres.
+ * affaires, partenaires, tâches ouvertes — dans son organisation, en
+ * tapant deux lettres.
  * Les écrans viennent du registre de navigation (une seule source, comme la
  * barre latérale) ; les fiches viennent d'une action serveur, org-scopée,
  * débouncée à la frappe. Tout au clavier : flèches, Entrée, Échap.

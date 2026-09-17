@@ -297,6 +297,19 @@ export async function getTasksDueSummary(user: OrgScopeUser, limit: number): Pro
   return { overdue: overdue?.n ?? 0, today: dueToday?.n ?? 0, rows: rows.map(toTaskRow) };
 }
 
+/** UNE tâche par son identifiant, dans le périmètre de la personne (orgScope) — ce que la palette de commandes ouvre ; null hors périmètre ou inconnue. */
+export async function getTaskRow(user: OrgScopeUser, taskId: string): Promise<TaskRow | null> {
+  const rows = await db
+    .select(taskSelection())
+    .from(tasks)
+    .leftJoin(users, eq(tasks.assigneeId, users.id))
+    .leftJoin(contacts, eq(tasks.contactId, contacts.id))
+    .leftJoin(deals, eq(tasks.dealId, deals.id))
+    .where(and(orgScope(user, tasks.organizationId), eq(tasks.id, taskId)))
+    .limit(1);
+  return rows[0] ? toTaskRow(rows[0]) : null;
+}
+
 /** Les tâches ouvertes d'une fiche (affaire ou contact) — les fiches n'affichent pas les achevées. */
 async function listOpenTasksFor(user: OrgScopeUser, subject: SQL) {
   const rows = await db

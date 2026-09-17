@@ -21,8 +21,8 @@
     "titre": "Palette de commandes",
     "ouvrir": "Rechercher ou aller à un écran",
     "rechercher": "Rechercher…",
-    "rechercher_long": "Contacts, affaires, partenaires, écrans…",
-    "placeholder": "Un contact, une affaire, un partenaire, un écran…",
+    "rechercher_long": "Contacts, affaires, partenaires, tâches, écrans…",
+    "placeholder": "Un contact, une affaire, un partenaire, une tâche, un écran…",
     "placeholder_sans_organisation": "Un écran…",
     "aucun_resultat": "Rien ne correspond.",
     "voir_tous_les_contacts_pour": "Tous les contacts pour « {query} »",
@@ -32,6 +32,7 @@
       "contacts": "Contacts",
       "affaires": "Affaires",
       "partenaires": "Partenaires",
+      "taches": "Tâches",
       "plus": "Plus"
     },
     "raccourci_mac": "⌘K",

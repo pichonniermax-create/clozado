@@ -21,8 +21,8 @@
     "titre": "Command palette",
     "ouvrir": "Search or jump to a screen",
     "rechercher": "Search…",
-    "rechercher_long": "Contacts, deals, partners, screens…",
-    "placeholder": "A contact, a deal, a partner, a screen…",
+    "rechercher_long": "Contacts, deals, partners, tasks, screens…",
+    "placeholder": "A contact, a deal, a partner, a task, a screen…",
     "placeholder_sans_organisation": "A screen…",
     "aucun_resultat": "Nothing matches.",
     "voir_tous_les_contacts_pour": "All contacts for “{query}”",
@@ -32,6 +32,7 @@
       "contacts": "Contacts",
       "affaires": "Deals",
       "partenaires": "Partners",
+      "taches": "Tasks",
       "plus": "More"
     },
     "raccourci_mac": "⌘K",

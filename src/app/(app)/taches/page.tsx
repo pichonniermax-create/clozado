@@ -20,6 +20,7 @@ import {
   TASKS_PAGE_SIZE,
   dueDateInputValue,
   generateAutoTasks,
+  getTaskRow,
   listTasksBoard,
   type TaskRow,
 } from "@/db/queries/tasks";
@@ -42,6 +43,8 @@ type Params = {
   erreur?: string;
   /** `?nouveau=1` : le formulaire de création arrive déplié (menu « Nouveau » de l'en-tête). */
   nouveau?: string;
+  /** `?tache=<id>` : la tâche ouverte depuis la palette de commandes, montrée en tête quelle que soit sa page. */
+  tache?: string;
 };
 
 type OrgUser = { id: string; name: string | null; email: string | null };
@@ -72,9 +75,10 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   // ce qui vient d'être écrit) ; les conseillers, non — lus pendant ce
   // temps (performance, 2026-09-17).
   const page = Number(params.page) > 0 ? Number(params.page) : 1;
-  const [board, orgUsers] = await Promise.all([
+  const [board, orgUsers, searched] = await Promise.all([
     generateAutoTasks(user).then(() => listTasksBoard(user, { assigneeId: params.conseiller || undefined, page })),
     listOrgUsers(user),
+    /^[0-9a-f-]{36}$/i.test(params.tache ?? "") ? getTaskRow(user, params.tache!) : Promise.resolve(null),
   ]);
 
   // L'URL de CET écran, filtres et page compris — les actions y reviennent.
@@ -82,6 +86,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   const pageHref = (p: number) => {
     const sp = new URLSearchParams();
     if (params.conseiller) sp.set("conseiller", params.conseiller);
+    if (searched) sp.set("tache", searched.id);
     if (p > 1) sp.set("page", String(p));
     const s = sp.toString();
     return `/taches${s ? `?${s}` : ""}`;
@@ -175,6 +180,30 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
           </Button>
         </form>
       </DetailsCard>
+
+      {/* La tâche ouverte depuis la palette (correctif du 2026-09-17) : en tête, éditable, même si sa page n'est pas celle-ci. */}
+      {searched && (
+        <section className="flex flex-col gap-3" data-recherche="tache">
+          <SectionHeading
+            title={t("depuis_la_recherche")}
+            trailing={
+              <Link href="/taches" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                {t("revenir_a_la_liste")}
+              </Link>
+            }
+          />
+          <ListCard className="ring-2 ring-ring/40">
+            {searched.status === "open" ? (
+              <TaskItem task={searched} backTo={backTo} orgUsers={orgUsers} labels={labels} />
+            ) : (
+              <li className="flex items-center gap-3 px-4 py-2.5">
+                <Check aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground line-through break-words">{searched.title}</span>
+              </li>
+            )}
+          </ListCard>
+        </section>
+      )}
 
       {openCount === 0 ? (
         <EmptyState
