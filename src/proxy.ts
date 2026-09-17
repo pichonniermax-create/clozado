@@ -35,6 +35,12 @@ export function proxy(request: NextRequest) {
   if (pathname.startsWith("/api/auth/callback/")) {
     log.info("magic_link_callback", { method: request.method, ip: clientIp(request.headers), userAgent: request.headers.get("user-agent") ?? "" });
   }
+  // Auth.js ajoute `?callbackUrl=` quand on entre par son adresse de connexion (/api/auth/signin) ; le produit n'en fait
+  // rien (la connexion mène toujours au tableau de bord) : une vraie redirection (307) vers /login nu — depuis la page,
+  // derrière son `loading.tsx`, ce ne serait qu'une instruction cliente dans un 200.
+  if (pathname === "/login" && request.nextUrl.searchParams.has("callbackUrl")) {
+    return NextResponse.redirect(new URL("/login", request.url), 307);
+  }
   if (!request.cookies.has(DEMO_COOKIE)) return NextResponse.next();
   const reading = request.method === "GET" || request.method === "HEAD";
   if (pathname === "/demo" || pathname.startsWith("/demo/")) return NextResponse.next();
