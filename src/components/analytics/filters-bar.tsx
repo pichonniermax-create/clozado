@@ -12,6 +12,7 @@ import {
 } from "@/lib/metrics";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
+import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 
 /**
@@ -23,10 +24,6 @@ import { NativeSelect } from "@/components/ui/native-select";
  * Un sélecteur n'apparaît que s'il a de quoi choisir (un seul conseiller,
  * un seul pipeline : rien à filtrer).
  */
-// Les mêmes jetons que l'Input du socle : hauteur, anneau de focus, corps de 16 px sous md (pas de zoom iOS), 40 px au doigt.
-const DATE_CLASS =
-  "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-10 md:text-sm dark:bg-input/30";
-
 export function AnalyticsFiltersBar({
   basePath,
   parsed,
@@ -94,11 +91,12 @@ export function AnalyticsFiltersBar({
         {params.periode && <input type="hidden" name="periode" value={params.periode} />}
         <label className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground sm:w-auto">
           {tr("du")}
-          <input type="date" name="du" defaultValue={params.du ?? ""} className={DATE_CLASS} aria-label={tr("debut_de_periode")} />
+          {/* Le champ du socle (40 px au doigt) : un clic dans le champ ouvre le sélecteur. */}
+          <Input type="date" name="du" defaultValue={params.du ?? ""} className="pointer-coarse:min-h-10" aria-label={tr("debut_de_periode")} />
         </label>
         <label className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground sm:w-auto">
           {tr("au_inclus")}
-          <input type="date" name="au" defaultValue={params.au ?? ""} className={DATE_CLASS} aria-label={tr("fin_de_periode")} />
+          <Input type="date" name="au" defaultValue={params.au ?? ""} className="pointer-coarse:min-h-10" aria-label={tr("fin_de_periode")} />
         </label>
         {users.length > 1 && (
           <NativeSelect name="conseiller" defaultValue={params.conseiller ?? ""} className="col-span-2 sm:w-auto sm:max-w-56" aria-label={tr("filtrer_par_conseiller")}>
