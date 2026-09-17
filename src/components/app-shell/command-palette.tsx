@@ -194,7 +194,16 @@ export function CommandPalette({
       >
         {/* `finalFocus={false}` : à la fermeture, Base UI rendrait le focus au bouton APRÈS son animation de sortie — une
             réouverture rapide (⌘K deux fois) voyait le focus repartir du champ vers le bouton, et la frappe se perdait. */}
-        <DialogContent showCloseButton={false} className="top-[12vh] gap-0 overflow-hidden p-0 sm:max-w-lg" initialFocus={inputRef} finalFocus={false}>
+        {/* Ancrée en haut (audit UX du 2026-09-17, constat 1) : la boîte de dialogue se centre par
+            `-translate-y-1/2` ; avec `top-[12vh]` seul, une liste pleine remontait au-dessus de la fenêtre
+            et le champ de saisie sortait de l'écran. `translate-y-0` annule la translation, la boîte est
+            bornée à la hauteur de la fenêtre (colonne flex) et c'est la LISTE qui défile, jamais la boîte. */}
+        <DialogContent
+          showCloseButton={false}
+          className="top-[12vh] flex max-h-[calc(100dvh-12vh-1rem)] translate-y-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-lg"
+          initialFocus={inputRef}
+          finalFocus={false}
+        >
           <DialogTitle className="sr-only">{t("titre")}</DialogTitle>
           <div className="flex items-center gap-2 border-b border-border px-3">
             <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -218,7 +227,7 @@ export function CommandPalette({
             />
             <Kbd className="hidden sm:inline-flex">{t("echap")}</Kbd>
           </div>
-          <ul id={listId} role="listbox" aria-label={t("titre")} className="max-h-[min(60vh,24rem)] overflow-y-auto p-1.5">
+          <ul id={listId} role="listbox" aria-label={t("titre")} className="min-h-0 max-h-96 flex-1 overflow-y-auto p-1.5">
             {items.length === 0 && <li className="px-3 py-8 text-center text-sm text-muted-foreground">{t("aucun_resultat")}</li>}
             {items.map((item, index) => {
               const heading = index === 0 || items[index - 1].group !== item.group ? t(`groupes.${item.group}`) : null;
