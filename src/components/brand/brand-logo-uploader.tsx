@@ -1,151 +1,193 @@
 "use client";
 
-import { useState } from "react";
-import { ImageUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Crop, ImageUp } from "lucide-react";
 import { WorkspaceMark } from "@/components/app-shell/workspace-mark";
+import { LogoCropper, type LogoCropperLabels } from "@/components/brand/logo-cropper";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { removeDarkLogoAction, removeLogoAction, saveLogoAction } from "@/lib/brand/actions";
 import type { BrandAssetUrls } from "@/lib/brand/assets";
+import { containRect, type CropRect, type Size } from "@/lib/brand/crop";
+import { loadImageFrom, rasterizeSource, renderCrop, type Rendered } from "@/lib/brand/render-crop";
 import { useTranslations } from "next-intl";
-import { AppError } from "@/lib/errors";
 
 /**
- * Le téléversement du logo (chantier marque blanche, étape 2). Tout le
- * travail d'image se fait ICI, dans le navigateur : l'image choisie (PNG,
- * JPEG, WebP, GIF, SVG) est dessinée sur un canevas, réduite à 1 200 × 400
- * au plus, rendue en PNG ; un SVG est rastérisé au passage (plus rien à
- * nettoyer côté serveur). L'icône est dérivée du logo : le logo posé
- * « contenu » dans un carré transparent de 128 × 128. Aucune dépendance.
+ * Le téléversement du logo (chantier marque blanche, étape 2), avec le
+ * CADRAGE (correctif du chantier C partie 1, 2026-09-17). Tout le travail
+ * d'image se fait ICI, dans le navigateur, sans dépendance :
  *
- * L'aperçu est EN SITUATION : la barre latérale (rendue par `WorkspaceMark`,
- * le composant même de la coquille), la page de partage, un email — pas
- * une vignette. Sans logo, c'est la marque par défaut. La page de connexion
- * n'y figure pas : elle reste celle du produit (cahier des charges).
+ * 1. l'image choisie (PNG, JPEG, WebP, GIF, SVG) est rastérisée en PNG —
+ *    la SOURCE, 1 600 px au plus — et conservée en base : recadrer plus
+ *    tard ne demande pas de renvoyer le fichier ;
+ * 2. deux cadres sur cette source : le LOGO (3:1 — barre latérale, page de
+ *    partage, emails) et l'ICÔNE d'onglet (carré) ; on zoome et on
+ *    repositionne dans chacun ; la version sombre a son propre cadre 3:1 ;
+ * 3. ce que les cadres contiennent est rendu à taille bornée (1 200 × 400,
+ *    128 × 128), le logo débarrassé de ses marges transparentes, le poids
+ *    borné — et c'est CE rendu que les aperçus en situation montrent (la
+ *    barre latérale par `WorkspaceMark`, le composant même de la coquille,
+ *    la page de partage, un email, un fond sombre, l'onglet) et que le
+ *    serveur reçoit, cadres compris.
  */
-const MAX_W = 1200;
-const MAX_H = 400;
-const ICON_SIZE = 128;
-const MAX_BYTES = 400_000;
+const LOGO_RATIO = 3;
+const LOGO_MAX: Size = { width: 1200, height: 400 };
+const ICON_MAX: Size = { width: 128, height: 128 };
+const SOURCE_MAX_SIDE = 1600;
+const SOURCE_MAX_BYTES = 1_000_000;
+const OUTPUT_MAX_BYTES = 400_000;
 
-type Prepared = { dataUrl: string; width: number; height: number };
+type Source = { img: HTMLImageElement; size: Size; url: string; /** L'image à envoyer — null quand la source est déjà enregistrée. */ dataUrl: string | null };
+export type BrandCrops = Partial<Record<"logo_light" | "logo_dark" | "icon", CropRect | null>>;
 
-function loadImage(file: File): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      resolve(img);
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new AppError("l_image_n_a_pas_pu_etre_f192"));
-    };
-    img.src = url;
-  });
-}
-
-/** Le PNG doit tenir dans la limite : au-delà, on réduit encore (30 % à chaque essai). */
-function toPng(draw: (scale: number) => HTMLCanvasElement): Prepared {
-  let scale = 1;
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const canvas = draw(scale);
-    const dataUrl = canvas.toDataURL("image/png");
-    const bytes = Math.floor(((dataUrl.length - "data:image/png;base64,".length) * 3) / 4);
-    if (bytes <= MAX_BYTES || attempt === 3) return { dataUrl, width: canvas.width, height: canvas.height };
-    scale *= 0.7;
+async function sourceFromFile(file: File): Promise<Source> {
+  const url = URL.createObjectURL(file);
+  try {
+    const chosen = await loadImageFrom(url, "l_image_n_a_pas_pu_etre_f192");
+    const raster = rasterizeSource(chosen, SOURCE_MAX_SIDE, SOURCE_MAX_BYTES);
+    const img = await loadImageFrom(raster.dataUrl, "l_image_n_a_pas_pu_etre_f192");
+    return { img, size: { width: raster.width, height: raster.height }, url: raster.dataUrl, dataUrl: raster.dataUrl };
+  } finally {
+    URL.revokeObjectURL(url);
   }
-  throw new AppError("l_image_reste_trop_lourde");
 }
 
-async function prepareLogo(file: File): Promise<Prepared> {
-  const img = await loadImage(file);
-  const naturalW = img.naturalWidth || MAX_W;
-  const naturalH = img.naturalHeight || MAX_H;
-  const fit = Math.min(1, MAX_W / naturalW, MAX_H / naturalH);
-  return toPng((scale) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(naturalW * fit * scale));
-    canvas.height = Math.max(1, Math.round(naturalH * fit * scale));
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new AppError("le_navigateur_ne_sait_pas_dessiner_l_d979");
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return canvas;
-  });
-}
-
-/** L'icône : le logo « contenu » dans un carré transparent — un logo large devient une bande centrée, c'est voulu. */
-async function prepareIcon(logo: Prepared): Promise<Prepared> {
-  const img = new Image();
-  await new Promise<void>((resolve, reject) => {
-    img.onload = () => resolve();
-    img.onerror = () => reject(new AppError("l_icone_n_a_pas_pu_etre_a8bc"));
-    img.src = logo.dataUrl;
-  });
-  const canvas = document.createElement("canvas");
-  canvas.width = ICON_SIZE;
-  canvas.height = ICON_SIZE;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new AppError("le_navigateur_ne_sait_pas_dessiner_l_d979");
-  const fit = Math.min((ICON_SIZE - 8) / logo.width, (ICON_SIZE - 8) / logo.height);
-  const w = logo.width * fit;
-  const h = logo.height * fit;
-  ctx.drawImage(img, (ICON_SIZE - w) / 2, (ICON_SIZE - h) / 2, w, h);
-  return { dataUrl: canvas.toDataURL("image/png"), width: ICON_SIZE, height: ICON_SIZE };
+/** La source déjà enregistrée, relue depuis notre route (même origine : le canevas reste utilisable). */
+async function sourceFromUrl(url: string): Promise<Source> {
+  const img = await loadImageFrom(url, "l_image_n_a_pas_pu_etre_f192");
+  return { img, size: { width: img.naturalWidth, height: img.naturalHeight }, url, dataUrl: null };
 }
 
 export function BrandLogoUploader({
   organizationName,
   urls,
+  crops = {},
   disabled,
   brandHex,
 }: {
   organizationName: string;
   /** Les images déjà enregistrées, avec leur version dans l'adresse. */
   urls: BrandAssetUrls;
+  /** Les cadres enregistrés avec les images dérivées — pour rouvrir le cadrage là où il a été laissé. */
+  crops?: BrandCrops;
   disabled?: boolean;
   /** La couleur de marque enregistrée, pour le bouton de l'aperçu email. */
   brandHex: string;
 }) {
   const t = useTranslations("brand.brandLogoUploader");
-  const [light, setLight] = useState<Prepared | null>(null);
-  const [dark, setDark] = useState<Prepared | null>(null);
-  const [icon, setIcon] = useState<Prepared | null>(null);
+  const [lightSource, setLightSource] = useState<Source | null>(null);
+  const [darkSource, setDarkSource] = useState<Source | null>(null);
+  const [logoRect, setLogoRect] = useState<CropRect | null>(null);
+  const [iconRect, setIconRect] = useState<CropRect | null>(null);
+  const [darkRect, setDarkRect] = useState<CropRect | null>(null);
+  // Chaque rendu garde le cadre dont il vient : tant que le cadre courant n'est pas celui du rendu, le rendu est en retard.
+  const [light, setLight] = useState<{ rendered: Rendered; rect: CropRect } | null>(null);
+  const [dark, setDark] = useState<{ rendered: Rendered; rect: CropRect } | null>(null);
+  const [icon, setIcon] = useState<{ rendered: Rendered; rect: CropRect } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const pending = Boolean((lightSource && (light?.rect !== logoRect || icon?.rect !== iconRect)) || (darkSource && dark?.rect !== darkRect));
 
-  const lightSrc = light?.dataUrl ?? urls.logo_light ?? null;
-  const darkSrc = dark?.dataUrl ?? urls.logo_dark ?? null;
-  const iconSrc = icon?.dataUrl ?? urls.icon ?? null;
+  const fail = (e: unknown) => setError(e instanceof Error ? e.message : t("l_image_n_a_pas_pu_3f3f"));
+
+  // Les rendus suivent les cadres, un instant après le dernier geste (un glissement en produit soixante par seconde).
+  useEffect(() => {
+    if (!lightSource || !logoRect || !iconRect) return;
+    const timer = setTimeout(() => {
+      try {
+        setLight({ rendered: renderCrop(lightSource.img, lightSource.size, logoRect, LOGO_MAX, true, OUTPUT_MAX_BYTES), rect: logoRect });
+        setIcon({ rendered: renderCrop(lightSource.img, lightSource.size, iconRect, ICON_MAX, false, OUTPUT_MAX_BYTES), rect: iconRect });
+      } catch (e) {
+        fail(e);
+      }
+    }, 120);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `fail` ne change pas de sens d'un rendu à l'autre
+  }, [lightSource, logoRect, iconRect]);
+  useEffect(() => {
+    if (!darkSource || !darkRect) return;
+    const timer = setTimeout(() => {
+      try {
+        setDark({ rendered: renderCrop(darkSource.img, darkSource.size, darkRect, LOGO_MAX, true, OUTPUT_MAX_BYTES), rect: darkRect });
+      } catch (e) {
+        fail(e);
+      }
+    }, 120);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [darkSource, darkRect]);
+
+  const lightSrc = light?.rendered.dataUrl ?? urls.logo_light ?? null;
+  const darkSrc = dark?.rendered.dataUrl ?? urls.logo_dark ?? null;
+  const iconSrc = icon?.rendered.dataUrl ?? urls.icon ?? null;
   const onDarkSrc = darkSrc ?? lightSrc;
   const hasSaved = Boolean(urls.logo_light || urls.logo_dark);
+
+  const startLight = (source: Source, logo: CropRect | null, iconCrop: CropRect | null) => {
+    setLightSource(source);
+    setLogoRect(logo ?? containRect(source.size, LOGO_RATIO));
+    setIconRect(iconCrop ?? containRect(source.size, 1));
+  };
+  const startDark = (source: Source, rect: CropRect | null) => {
+    setDarkSource(source);
+    setDarkRect(rect ?? containRect(source.size, LOGO_RATIO));
+  };
 
   const onFile = async (file: File | undefined, variant: "light" | "dark") => {
     if (!file) return;
     setError(null);
     setBusy(true);
     try {
-      const prepared = await prepareLogo(file);
-      if (variant === "light") {
-        setLight(prepared);
-        setIcon(await prepareIcon(prepared));
-      } else {
-        setDark(prepared);
-      }
+      const source = await sourceFromFile(file);
+      if (variant === "light") startLight(source, null, null);
+      else startDark(source, null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("l_image_n_a_pas_pu_3f3f"));
+      fail(e);
     } finally {
       setBusy(false);
     }
   };
 
+  /** « Recadrer » : la source enregistrée, avec les cadres tels qu'ils ont été laissés. */
+  const recrop = async (variant: "light" | "dark") => {
+    const url = variant === "light" ? urls.logo_light_source : urls.logo_dark_source;
+    if (!url) return;
+    setError(null);
+    setBusy(true);
+    try {
+      const source = await sourceFromUrl(url);
+      if (variant === "light") startLight(source, crops.logo_light ?? null, crops.icon ?? null);
+      else startDark(source, crops.logo_dark ?? null);
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cropperLabels: LogoCropperLabels = {
+    zoom: t("zoom"),
+    agrandir: t("agrandir"),
+    reduire: t("reduire"),
+    cadrerTout: t("cadrer_tout"),
+    glisser: t("glisser_pour_repositionner"),
+  };
+  const fileClass =
+    "block w-full text-sm file:mr-3 file:rounded-lg file:border file:border-border file:bg-background file:px-2.5 file:py-1 file:text-sm file:font-medium hover:file:bg-muted";
+
   return (
     <div className="flex flex-col gap-5">
-      <form action={saveLogoAction} className="flex flex-col gap-4">
-        <input type="hidden" name="logoLight" value={light?.dataUrl ?? ""} />
-        <input type="hidden" name="logoDark" value={dark?.dataUrl ?? ""} />
-        <input type="hidden" name="icon" value={icon?.dataUrl ?? ""} />
+      {/* `autoComplete="off"` : au rechargement, Chromium restaure les valeurs des champs — y compris des champs cachés
+          portant un rendu périmé ; ici tout vient de l'état du composant, jamais du navigateur. */}
+      <form action={saveLogoAction} autoComplete="off" className="flex flex-col gap-4">
+        <input type="hidden" name="logoLight" value={light?.rendered.dataUrl ?? ""} />
+        <input type="hidden" name="logoDark" value={dark?.rendered.dataUrl ?? ""} />
+        <input type="hidden" name="icon" value={icon?.rendered.dataUrl ?? ""} />
+        <input type="hidden" name="logoLightSource" value={lightSource?.dataUrl ?? ""} />
+        <input type="hidden" name="logoDarkSource" value={darkSource?.dataUrl ?? ""} />
+        <input type="hidden" name="cropLogo" value={logoRect ? JSON.stringify(logoRect) : ""} />
+        <input type="hidden" name="cropIcon" value={iconRect ? JSON.stringify(iconRect) : ""} />
+        <input type="hidden" name="cropDark" value={darkRect ? JSON.stringify(darkRect) : ""} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t("logo_pour_fond_clair")} htmlFor="logo-light" hint={t("png_jpeg_webp_ou_svg_redimensionne_440f")}>
             <input
@@ -154,7 +196,7 @@ export function BrandLogoUploader({
               accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
               disabled={disabled || busy}
               onChange={(e) => onFile(e.target.files?.[0], "light")}
-              className="block w-full text-sm file:mr-3 file:rounded-lg file:border file:border-border file:bg-background file:px-2.5 file:py-1 file:text-sm file:font-medium hover:file:bg-muted"
+              className={fileClass}
             />
           </Field>
           <Field label={t("logo_pour_fond_sombre_facultatif")} htmlFor="logo-dark" hint={t("utilise_sur_les_fonds_sombres_emails_9157")}>
@@ -164,10 +206,33 @@ export function BrandLogoUploader({
               accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
               disabled={disabled || busy}
               onChange={(e) => onFile(e.target.files?.[0], "dark")}
-              className="block w-full text-sm file:mr-3 file:rounded-lg file:border file:border-border file:bg-background file:px-2.5 file:py-1 file:text-sm file:font-medium hover:file:bg-muted"
+              className={fileClass}
             />
           </Field>
         </div>
+
+        {/* Le cadrage : dès qu'une source est là (fichier choisi, ou « Recadrer » sur une source enregistrée). */}
+        {lightSource && logoRect && iconRect && (
+          <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4" data-cadrage="light">
+            <span className="text-xs font-medium text-muted-foreground">{t("cadrage")}</span>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-[3fr_1fr]">
+              <Field label={t("cadre_du_logo")} htmlFor="cadre-logo">
+                <LogoCropper src={lightSource.url} source={lightSource.size} ratio={LOGO_RATIO} value={logoRect} onChange={setLogoRect} labels={cropperLabels} />
+              </Field>
+              <Field label={t("icone_d_onglet")} htmlFor="cadre-icone">
+                <LogoCropper src={lightSource.url} source={lightSource.size} ratio={1} value={iconRect} onChange={setIconRect} labels={cropperLabels} />
+              </Field>
+            </div>
+          </div>
+        )}
+        {darkSource && darkRect && (
+          <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4" data-cadrage="dark">
+            <Field label={t("cadre_version_sombre")} htmlFor="cadre-sombre">
+              <LogoCropper src={darkSource.url} source={darkSource.size} ratio={LOGO_RATIO} value={darkRect} onChange={setDarkRect} labels={cropperLabels} dark className="md:max-w-[75%]" />
+            </Field>
+          </div>
+        )}
+
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}
@@ -175,17 +240,31 @@ export function BrandLogoUploader({
         )}
         {(light || dark) && (
           <p className="text-xs text-muted-foreground tabular-nums">
-            {light ? t("logo_pret_px", { width: light.width, height: light.height }) : ""}
-            {dark ? t("version_sombre_prete_px", { width: dark.width, height: dark.height }) : ""}
-            {icon ? t("icone_derivee_px", { width: icon.width, height: icon.height }) : ""}
+            {light ? t("logo_pret_px", { width: light.rendered.width, height: light.rendered.height }) : ""}{" "}
+            {dark ? t("version_sombre_prete_px", { width: dark.rendered.width, height: dark.rendered.height }) : ""}{" "}
+            {icon ? t("icone_derivee_px", { width: icon.rendered.width, height: icon.rendered.height }) : ""}
           </p>
         )}
         {!disabled && (
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="submit" disabled={busy || (!light && !dark)}>
+            <Button type="submit" disabled={busy || pending || (!light && !dark)}>
               <ImageUp />
               {t("enregistrer_le_logo")}
             </Button>
+            {/* Recadrer une image déjà enregistrée : sa source est en base, rien à renvoyer. */}
+            {urls.logo_light_source && !lightSource && (
+              <Button type="button" variant="outline" disabled={busy} onClick={() => recrop("light")}>
+                <Crop />
+                {t("recadrer")}
+              </Button>
+            )}
+            {urls.logo_dark_source && !darkSource && (
+              <Button type="button" variant="outline" disabled={busy} onClick={() => recrop("dark")}>
+                <Crop />
+                {t("recadrer_la_version_sombre")}
+              </Button>
+            )}
+            {(urls.logo_light_source || urls.logo_dark_source) && <span className="text-xs text-muted-foreground">{t("source_conservee")}</span>}
           </div>
         )}
       </form>

@@ -32,6 +32,11 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Le logo et sa SOURCE (cadrage, 2026-09-17) voyagent en PNG base64 dans une action serveur : jusqu'à deux sources
+    // de 1 Mo et trois rendus de 400 Ko — au-delà du 1 Mo par défaut. Aucun autre formulaire n'approche cette taille.
+    serverActions: { bodySizeLimit: "6mb" },
+  },
   async headers() {
     return [
       { source: "/:path*", headers: SECURITY_HEADERS },

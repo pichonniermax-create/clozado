@@ -456,7 +456,7 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <div style={savedBrand}>
-            <BrandLogoUploader organizationName={org.name} urls={assetUrls} disabled={readOnly} brandHex={savedHex} />
+            <BrandLogoUploader organizationName={org.name} urls={assetUrls} crops={Object.fromEntries(assetMeta.map((m) => [m.kind, m.crop]))} disabled={readOnly} brandHex={savedHex} />
           </div>
         </CardContent>
       </Card>

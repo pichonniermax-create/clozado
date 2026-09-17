@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
-import { check, customType, integer, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { check, customType, integer, jsonb, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import type { CropRect } from "@/lib/brand/crop";
 import { organizations } from "./organizations";
 import { AppError } from "@/lib/errors";
 
@@ -25,8 +26,16 @@ export const bytea = customType<{ data: Buffer; driverData: string }>({
   },
 });
 
-export const ORGANIZATION_ASSET_KINDS = ["logo_light", "logo_dark", "icon"] as const;
+/**
+ * Les images DÉRIVÉES (servies : logo clair, logo sombre, icône) et les
+ * SOURCES (migration 0019, correctif cadrage du 2026-09-17) : l'image
+ * d'origine rastérisée de chaque logo, conservée pour recadrer plus tard
+ * sans réenvoyer le fichier. Chaque dérivée porte son cadre (`crop`, en
+ * pixels de sa source) pour rouvrir le cadrage là où il a été laissé.
+ */
+export const ORGANIZATION_ASSET_KINDS = ["logo_light", "logo_dark", "icon", "logo_light_source", "logo_dark_source"] as const;
 export type OrganizationAssetKind = (typeof ORGANIZATION_ASSET_KINDS)[number];
+export const ORGANIZATION_ASSET_SOURCE_KINDS = ["logo_light_source", "logo_dark_source"] as const satisfies readonly OrganizationAssetKind[];
 
 /**
  * Les IMAGES de la marque d'une organisation (chantier « marque blanche »,
@@ -50,11 +59,13 @@ export const organizationAssets = pgTable(
     bytes: bytea("bytes").notNull(),
     width: integer("width").notNull(),
     height: integer("height").notNull(),
+    /** Le cadre dont cette image dérivée est le rendu, en pixels de sa source — null pour une source, ou une image d'avant le cadrage. */
+    crop: jsonb("crop").$type<CropRect>(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     primaryKey({ columns: [table.organizationId, table.kind] }),
-    check("organization_assets_kind_check", sql`${table.kind} IN ('logo_light', 'logo_dark', 'icon')`),
+    check("organization_assets_kind_check", sql`${table.kind} IN ('logo_light', 'logo_dark', 'icon', 'logo_light_source', 'logo_dark_source')`),
   ]
 );
 
