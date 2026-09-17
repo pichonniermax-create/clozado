@@ -6,8 +6,10 @@ jamais une nouvelle carte de réglages ; chaque amélioration mesurée
 avant / après.
 
 Trois parties : **1. correctifs immédiats** (ce document, §1) ; **2. audit
-UX et pains métier** (`docs/audit-ux-et-metier.md`, document seul) ;
-**3. construction** après validation, ordonnée avec le chantier B.
+UX et pains métier** (`docs/audit-ux-et-metier.md`, document seul — FAIT
+le 2026-09-17 : mesures contre le site en ligne, scénarios de création
+chronométrés, pains sourcés, plan noté) ; **3. construction** après
+validation, ordonnée avec le chantier B.
 
 ## 1. Correctifs immédiats — faits le 2026-09-16
 
