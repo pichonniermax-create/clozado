@@ -6,6 +6,7 @@ import { DetailsCard } from "@/components/ui/details-card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { isPlausibleEmail } from "@/lib/email/address";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 /**
@@ -26,10 +27,13 @@ const KNOWN_ERRORS = ["AccessDenied", "Verification"] as const;
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; code?: string; email?: string }>;
+  searchParams: Promise<{ error?: string; code?: string; email?: string; callbackUrl?: string }>;
 }) {
   // Une session en cours ne voit jamais cet écran : le layout du segment la renvoie à son espace (stabilisation, P8).
   const [t, tc, params] = await Promise.all([getTranslations("auth.login"), getTranslations("auth.code"), searchParams]);
+  // Auth.js ajoute `?callbackUrl=` quand on arrive par son adresse de connexion ; le produit n'en fait rien (la connexion
+  // mène toujours au tableau de bord) : l'adresse est nettoyée pour ne pas montrer un paramètre qui ne sert à personne.
+  if (params.callbackUrl !== undefined) redirect("/login");
   const { error } = params;
   const errorMessage = error ? ((KNOWN_ERRORS as readonly string[]).includes(error) ? t(`errors.${error as (typeof KNOWN_ERRORS)[number]}`) : t("une_erreur_est_survenue")) : null;
   // Le retour de la route du code (`?code=invalid|locked`) : une phrase, jamais un fait sur l'adresse.
