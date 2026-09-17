@@ -46,7 +46,11 @@ function useIsMac(): boolean {
  * quel écran : aller à un écran, créer (contact, affaire, tâche,
  * partenaire), et surtout RETROUVER une fiche par son nom — contacts,
  * affaires, partenaires, tâches ouvertes — dans son organisation, en
- * tapant deux lettres.
+ * tapant deux lettres. À la fermeture, le focus REVIENT à ce qui l'a
+ * ouverte (le déclencheur, l'icône, ou le champ d'où ⌘K est parti) —
+ * rendu tout de suite, par nous, jamais après l'animation de sortie
+ * (c'est ce retour tardif de Base UI qui volait la frappe à une
+ * réouverture rapide, d'où `finalFocus={false}`).
  * Les écrans viennent du registre de navigation (une seule source, comme la
  * barre latérale) ; les fiches viennent d'une action serveur, org-scopée,
  * débouncée à la frappe. Tout au clavier : flèches, Entrée, Échap.
@@ -74,17 +78,32 @@ export function CommandPalette({
   const [, startTransition] = useTransition();
   const requestId = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  /** L'élément qui avait le focus à l'ouverture : il le retrouve à la fermeture. */
+  const returnFocusTo = useRef<HTMLElement | null>(null);
+
+  const openPalette = useCallback(() => {
+    returnFocusTo.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
+    setOpen(true);
+  }, []);
+  const closePalette = useCallback(() => {
+    setOpen(false);
+    setQuery("");
+    const target = returnFocusTo.current;
+    returnFocusTo.current = null;
+    if (target && target.isConnected) target.focus({ preventScroll: true });
+  }, []);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setOpen((value) => !value);
+        if (open) closePalette();
+        else openPalette();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [open, openPalette, closePalette]);
 
   // Les fiches : 180 ms après la dernière frappe, et jamais une réponse périmée par-dessus une plus récente.
   const needle = query.trim();
@@ -134,11 +153,10 @@ export function CommandPalette({
 
   const select = useCallback(
     (item: Item) => {
-      setOpen(false);
-      setQuery("");
+      closePalette();
       router.push(item.href);
     },
-    [router]
+    [router, closePalette]
   );
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -181,7 +199,7 @@ export function CommandPalette({
           12:1 (sombre), mesuré sur les jetons. */}
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={openPalette}
         className={cn(
           "group/search hidden h-10 w-56 cursor-pointer items-center gap-2 rounded-lg border border-transparent bg-muted px-3 text-sm text-muted-foreground select-none",
           "transition-[background-color,border-color,color,box-shadow] duration-150",
@@ -207,7 +225,7 @@ export function CommandPalette({
         size="icon"
         className="size-10 border-transparent bg-muted text-muted-foreground duration-150 hover:border-border hover:bg-accent hover:text-foreground active:bg-[color-mix(in_oklch,var(--accent),var(--foreground)_8%)] md:hidden"
         aria-label={t("ouvrir")}
-        onClick={() => setOpen(true)}
+        onClick={openPalette}
       >
         <Search />
       </Button>
@@ -215,8 +233,8 @@ export function CommandPalette({
       <Dialog
         open={open}
         onOpenChange={(next) => {
-          setOpen(next);
-          if (!next) setQuery("");
+          if (next) openPalette();
+          else closePalette();
         }}
       >
         {/* `finalFocus={false}` : à la fermeture, Base UI rendrait le focus au bouton APRÈS son animation de sortie — une
