@@ -83,5 +83,14 @@
     "toutes_les_taches": "All tasks",
     "vue_globale_super_admin_choisis_une_36d9": "Client workspaces, the demo and invitations.",
     "entrer": "Open"
+  },
+  "authSettings": {
+    "description": "How long a sign-in link and a session last, for the whole product.",
+    "duree_de_session_jours": "Session length (days)",
+    "enregistre": "Sign-in settings saved.",
+    "enregistrer": "Save",
+    "note": "A link works only once and is consumed only when “Sign me in” is clicked; the six-digit code follows the same validity. Link between 5 minutes and 24 hours, session between 1 and 90 days.",
+    "titre": "Sign-in",
+    "validite_du_lien_minutes": "Link validity (minutes)"
   }
 }

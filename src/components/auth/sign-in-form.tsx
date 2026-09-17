@@ -9,12 +9,22 @@ import { useTranslations } from "next-intl";
 
 const initialState: AuthFormState = { error: null };
 
-export function SignInForm({ initialError }: { initialError?: string | null }) {
+export function SignInForm({
+  initialError,
+  initialEmail = "",
+  submitLabel,
+}: {
+  initialError?: string | null;
+  /** L'adresse déjà connue (un lien expiré, une erreur) : pré-remplie, la personne n'a qu'à cliquer. */
+  initialEmail?: string;
+  /** Le libellé du bouton quand ce n'est pas la première demande (« Recevoir un nouveau lien »). */
+  submitLabel?: string;
+}) {
   const t = useTranslations("auth.signInForm");
   const [state, action, pending] = useActionState(signInAction, initialState);
   // Contrôlé : React 19 vide un formulaire non contrôlé après l'action, ce
   // qui obligeait à ressaisir son adresse après la moindre erreur.
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
 
   // `initialError` vient de ?error= dans l'URL (retour d'Auth.js) ; `state`
   // vient de la soumission en cours. La seconde prime : elle est plus récente.
@@ -46,7 +56,7 @@ export function SignInForm({ initialError }: { initialError?: string | null }) {
       )}
 
       <Button type="submit" disabled={pending}>
-        {pending ? t("envoi_en_cours") : t("recevoir_le_lien_de_connexion")}
+        {pending ? t("envoi_en_cours") : (submitLabel ?? t("recevoir_le_lien_de_connexion"))}
       </Button>
     </form>
   );

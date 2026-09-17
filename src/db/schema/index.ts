@@ -36,3 +36,4 @@ export * from "./appointments";
 export * from "./rules";
 export * from "./demo-resets";
 export * from "./workspace-invitations";
+export * from "./auth-settings";

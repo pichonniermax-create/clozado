@@ -141,6 +141,13 @@
       "when": 1789674332018,
       "tag": "0019_logo_cadrage",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789677315975,
+      "tag": "0020_auth_lien_et_codes",
+      "breakpoints": true
     }
   ]
 }

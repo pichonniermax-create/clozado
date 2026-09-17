@@ -83,5 +83,14 @@
     "toutes_les_taches": "Toutes les tâches",
     "vue_globale_super_admin_choisis_une_36d9": "Les espaces clients, la démo et les invitations.",
     "entrer": "Entrer"
+  },
+  "authSettings": {
+    "description": "La durée d’un lien de connexion et celle d’une session, pour tout le produit.",
+    "duree_de_session_jours": "Durée de session (jours)",
+    "enregistre": "Réglages de connexion enregistrés.",
+    "enregistrer": "Enregistrer",
+    "note": "Un lien ne sert qu’une fois et n’est consommé qu’au clic sur « Me connecter » ; le code à six chiffres suit la même durée. Lien entre 5 minutes et 24 heures, session entre 1 et 90 jours.",
+    "titre": "Connexion",
+    "validite_du_lien_minutes": "Validité du lien (minutes)"
   }
 }

@@ -30,7 +30,9 @@ import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist
 import { ONBOARDING_COOKIE, readOnboardingProgress } from "@/lib/onboarding/steps";
 import { parseTourState, TOUR_COOKIE, TOUR_PARAM } from "@/lib/tour/steps";
 import { cookies } from "next/headers";
-import { setActiveOrganizationAction } from "@/lib/admin/actions";
+import { setActiveOrganizationAction, updateAuthSettingsAction } from "@/lib/admin/actions";
+import { getAuthSettings } from "@/db/queries/auth-settings";
+import { Field } from "@/components/ui/field";
 import { createDemoAction, resetDemoAction, setDemoPublicAction } from "@/lib/demo/actions";
 import { listDemoJournal } from "@/lib/demo/journal";
 import { getDemoOrganization } from "@/lib/demo/seed";
@@ -71,12 +73,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       await setActiveOrganizationAction(String(formData.get("orgId")));
       redirect("/dashboard");
     }
-    const td = await getTranslations("demo.manager");
-    const [organizations, demo, journal, pendingInvitations] = await Promise.all([
+    const [td, ts] = await Promise.all([getTranslations("demo.manager"), getTranslations("dashboard.authSettings")]);
+    const [organizations, demo, journal, pendingInvitations, authSettingsValues] = await Promise.all([
       getVisibleOrganizations(user),
       getDemoOrganization(),
       listDemoJournal(1),
       countPendingInvitations(user),
+      getAuthSettings(),
     ]);
     const lastOperation = journal[0] ?? null;
     async function createDemo() {
@@ -140,6 +143,25 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <Link href="/invitations" className={buttonVariants({ variant: "outline", size: "sm" })}>
               {t("gerer_les_invitations")}
             </Link>
+          </CardContent>
+        </Card>
+        {/* Les durées de la connexion (correctif du 2026-09-17) : validité du lien et durée de session, pour tout le produit. */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{ts("titre")}</CardTitle>
+            <CardDescription>{ts("description")}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <form action={updateAuthSettingsAction} className="flex flex-wrap items-end gap-3">
+              <Field label={ts("validite_du_lien_minutes")} htmlFor="auth-link-minutes">
+                <Input id="auth-link-minutes" name="linkValidityMinutes" type="number" min={5} max={1440} step={1} required defaultValue={authSettingsValues.linkValidityMinutes} className="w-28" />
+              </Field>
+              <Field label={ts("duree_de_session_jours")} htmlFor="auth-session-days">
+                <Input id="auth-session-days" name="sessionDays" type="number" min={1} max={90} step={1} required defaultValue={authSettingsValues.sessionDays} className="w-28" />
+              </Field>
+              <Button type="submit" variant="outline">{ts("enregistrer")}</Button>
+            </form>
+            <p className="text-xs text-muted-foreground text-pretty">{ts("note")}</p>
           </CardContent>
         </Card>
         {/* L'espace gestionnaire de la démo (docs/module-demo.md §1.9) : création, interrupteur de la démo publique, dernière opération. */}
