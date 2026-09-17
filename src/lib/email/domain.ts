@@ -9,9 +9,9 @@ import { AppError } from "@/lib/errors";
 import { log } from "@/lib/log";
 import { checkRateLimit } from "@/lib/rate-limit";
 import type { OrgScopeUser } from "@/lib/session";
-import { inboundDomain, productMailbox, sharedSendingDomain } from "./config";
+import { inboundDomain, marketingSendingDomain, productMailbox, sharedSendingDomain } from "./config";
 import { bareAddress } from "./address";
-import { createDomain, deleteDomain, getDomain, listDomains, ResendError, verifyDomain, type DomainRecord, type ProviderDomain } from "./resend";
+import { marketingMail, ResendError, type DomainRecord, type ProviderDomain } from "./resend";
 
 /**
  * LE PARCOURS GUIDÉ DU DOMAINE D'EXPÉDITION (docs/module-engagement.md §3.2) :
@@ -130,6 +130,11 @@ function platformDomains(): string[] {
     /* non configuré : rien à réserver */
   }
   try {
+    add(marketingSendingDomain());
+  } catch {
+    /* idem */
+  }
+  try {
     add(inboundDomain());
   } catch {
     /* idem */
@@ -191,19 +196,19 @@ export async function declareEmailDomain(user: OrgScopeUser, input: string): Pro
   if (taken.length > 0) throw new AppError("domaine_deja_rattache_a_un_autre_espace", undefined, 409);
   let provider: ProviderDomain;
   try {
-    const existing = (await listDomains()).find((d) => d.name.toLowerCase() === domain);
+    const existing = (await marketingMail.listDomains()).find((d) => d.name.toLowerCase() === domain);
     if (existing) {
       // Un domaine ADOPTÉ exige la preuve de possession — lue dans le DNS AVANT de le rattacher.
       if (!(await hasOwnershipProof(domain, org.id))) {
         const record = ownershipRecord(domain, org.id);
         throw new AppError("domaine_existant_preuve_requise", { name: record.name, value: record.value });
       }
-      provider = await getDomain(existing.id);
+      provider = await marketingMail.getDomain(existing.id);
     } else {
       if (!checkRateLimit(`email-domain:create:${org.id}`, { limit: CREATIONS_PER_DAY, windowMs: 86_400_000 })) {
         throw new AppError("trop_de_declarations", undefined, 429);
       }
-      provider = await createDomain(domain);
+      provider = await marketingMail.createDomain(domain);
       log.info("email_domain_created", { organizationId: org.id, domain, providerId: provider.id });
     }
   } catch (error) {
@@ -236,10 +241,10 @@ export async function checkEmailDomain(user: OrgScopeUser): Promise<EmailDomainS
   let checkError: string | null = null;
   try {
     // La demande de vérification est asynchrone chez le fournisseur : on la lance, puis on lit l'état courant.
-    await verifyDomain(org.emailDomainProviderId).catch((error) => {
+    await marketingMail.verifyDomain(org.emailDomainProviderId).catch((error) => {
       checkError = error instanceof Error ? error.message : String(error);
     });
-    provider = await getDomain(org.emailDomainProviderId);
+    provider = await marketingMail.getDomain(org.emailDomainProviderId);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await saveEmailDomainState(user, {
@@ -269,7 +274,7 @@ export async function forgetEmailDomain(user: OrgScopeUser): Promise<void> {
   assertOrgAdmin(user);
   const org = await getOwnOrganizationOrThrow(user);
   if (org.emailDomainProviderId && !org.emailDomainVerifiedAt) {
-    await deleteDomain(org.emailDomainProviderId).catch((error: unknown) => {
+    await marketingMail.deleteDomain(org.emailDomainProviderId).catch((error: unknown) => {
       log.warn("email_domain_delete_failed", { organizationId: org.id, providerId: org.emailDomainProviderId, error });
     });
   }

@@ -16,7 +16,7 @@ import { requireSessionUser, requireUser } from "@/lib/session";
 import { countSendableMembers, countSentSince, getCampaignStats, getLatestSend, listTestMessages, sendPhase } from "@/db/queries/email-sends";
 import { getOrganizationOfRecord } from "@/db/queries/organizations";
 import { getUserProfile } from "@/db/queries/users";
-import { sharedSendingDomain } from "@/lib/email/config";
+import { marketingSendingDomain } from "@/lib/email/config";
 import { missingFooterFacts } from "@/lib/email/footer";
 import { resolveSender } from "@/lib/email/sender";
 import { getTranslations } from "next-intl/server";
@@ -70,7 +70,7 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
   let sender = null;
   let sharedDomain = "";
   try {
-    sharedDomain = sharedSendingDomain();
+    sharedDomain = marketingSendingDomain();
     const resolved = resolveSender(org, profile);
     sender = { from: resolved.from, replyTo: resolved.replyTo, fallback: resolved.fallback, sharedDomain };
   } catch {

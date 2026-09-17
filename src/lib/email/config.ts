@@ -1,4 +1,8 @@
 import { headers } from "next/headers";
+import { required } from "./env";
+
+export { EmailConfigError } from "./env";
+export { apiKeyFor, marketingApiKey, marketingFlowConfigured, marketingSendingDomain, transactionalApiKey, webhookSecrets, type MailFlow } from "./flows";
 
 /**
  * La configuration de l'envoi (chantier engagement, docs/module-engagement.md
@@ -8,29 +12,17 @@ import { headers } from "next/headers";
  * (« plus jamais onboarding@resend.dev »).
  */
 
-/** Une variable exigée : absente = le produit refuse d'envoyer et le dit. */
-function required(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value) throw new EmailConfigError(name);
-  return value;
-}
-
-export class EmailConfigError extends Error {
-  readonly variable: string;
-  constructor(variable: string) {
-    // eslint-disable-next-line local/no-visible-text -- message technique de configuration, jamais affiché à une personne
-    super(`email: la variable d'environnement ${variable} est absente`);
-    this.name = "EmailConfigError";
-    this.variable = variable;
-  }
-}
-
 /** L'expéditeur des emails du PRODUIT (lien de connexion, notifications à une personne) : « Clozado <connexion@mail.clozado.fr> ». */
 export function productMailbox(): string {
   return required("EMAIL_FROM");
 }
 
-/** Le sous-domaine mutualisé d'envoi — le repli de toute organisation sans domaine vérifié. */
+/**
+ * Le sous-domaine mutualisé HISTORIQUE (`mail.clozado.fr`) — celui du
+ * compte transactionnel. Le repli des envois au nom d'une organisation est
+ * `marketingSendingDomain()` (flows.ts), qui retombe sur celui-ci tant que
+ * le flux marketing n'a pas son domaine.
+ */
 export function sharedSendingDomain(): string {
   return required("EMAIL_SHARED_DOMAIN").toLowerCase();
 }
@@ -38,11 +30,6 @@ export function sharedSendingDomain(): string {
 /** Le domaine de réception des adresses d'ingestion (Partie 2). */
 export function inboundDomain(): string {
   return required("EMAIL_INBOUND_DOMAIN").toLowerCase();
-}
-
-/** La clé d'API du fournisseur d'envoi. */
-export function resendApiKey(): string {
-  return required("RESEND_API_KEY");
 }
 
 /**

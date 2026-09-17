@@ -5,7 +5,7 @@ import NextAuth, { AuthError, type NextAuthConfig } from "next-auth";
 import Resend from "next-auth/providers/resend";
 import { isKnownSignInEmail, magicLinkMayBeSentTo } from "@/lib/auth/magic-link-guard";
 import { renderMagicLinkEmail } from "@/lib/email/magic-link";
-import { sendEmail } from "@/lib/email/resend";
+import { transactionalMail } from "@/lib/email/resend";
 import { productSender } from "@/lib/email/sender";
 import { db } from "@/db";
 import { accounts, users, verificationTokens } from "@/db/schema";
@@ -68,7 +68,7 @@ export const authConfig: NextAuthConfig = {
         // Toute erreur (clé refusée, quota, délai, EMAIL_FROM absente) remonte en `AuthError`,
         // que `sendMagicLink` (src/lib/auth/actions.ts) traduit en « impossible d'envoyer ».
         try {
-          await sendEmail({ from: productSender().from, to: [identifier], subject: email.subject, html: email.html, text: email.text }, idempotencyKey);
+          await transactionalMail.sendEmail({ from: productSender().from, to: [identifier], subject: email.subject, html: email.html, text: email.text }, idempotencyKey);
         } catch (error) {
           throw new MagicLinkSendError(error);
         }

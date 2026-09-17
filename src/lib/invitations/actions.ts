@@ -10,7 +10,7 @@ import {
   revokeWorkspaceInvitation,
 } from "@/db/queries/workspace-invitations";
 import { renderInvitationEmail } from "@/lib/email/invitation";
-import { ResendError, sendEmail } from "@/lib/email/resend";
+import { ResendError, transactionalMail } from "@/lib/email/resend";
 import { productSender } from "@/lib/email/sender";
 import { errorMessage, withError } from "@/lib/form-actions";
 import { invitationUrl } from "@/lib/invitations/token";
@@ -78,7 +78,7 @@ export async function sendInvitationEmailAction(formData: FormData) {
     const url = invitationUrl(await requestOrigin(), token);
     const rendered = await renderInvitationEmail({ locale, organizationName: invitation.organizationName, url, expiresAt: invitation.expiresAt });
     // Une clé d'idempotence par envoi : un renvoi volontaire est un nouvel email, pas un doublon à absorber.
-    await sendEmail({ from: productSender().from, to: [email], subject: rendered.subject, html: rendered.html, text: rendered.text }, `invitation/${id}/${Date.now()}`);
+    await transactionalMail.sendEmail({ from: productSender().from, to: [email], subject: rendered.subject, html: rendered.html, text: rendered.text }, `invitation/${id}/${Date.now()}`);
     await markInvitationSent(user, id);
     destination = withError(PAGE, t("envoyee", { email }), "info");
   } catch (error) {

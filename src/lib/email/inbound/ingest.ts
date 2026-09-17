@@ -11,7 +11,7 @@ import {
 } from "@/db/queries/inbound";
 import { inboundDomain } from "../config";
 import { findIngestToken } from "./address";
-import { downloadRawMessage, getReceivedEmail, type ReceivedEmail } from "../resend";
+import { downloadRawMessage, transactionalMail, type ReceivedEmail } from "../resend";
 import { authenticateSender } from "./authenticate";
 import { extractEmail, extractEmails, firstHeader, parseRawMessage } from "./mime";
 import { parseInbound } from "./parse";
@@ -144,7 +144,7 @@ export async function ingestReceivedEmail(notice: ReceivedNotice): Promise<Inges
   // Le contenu lisible et le message brut — jamais les pièces jointes.
   let email: ReceivedEmail;
   try {
-    email = await getReceivedEmail(notice.emailId);
+    email = await transactionalMail.getReceivedEmail(notice.emailId);
   } catch {
     return reject("unreadable", { senderUserId: member.id });
   }

@@ -1,5 +1,5 @@
 import { isReservedExampleAddress } from "@/lib/demo/constants";
-import { resendApiKey } from "./config";
+import { apiKeyFor, type MailFlow } from "./flows";
 
 /**
  * Le client du fournisseur d'envoi (Resend), en `fetch` — zéro dépendance
@@ -9,6 +9,13 @@ import { resendApiKey } from "./config";
  * message brut (Partie 2). Toute erreur du fournisseur remonte
  * typée (`ResendError`) avec son statut, son code et le délai de reprise
  * qu'il demande — jamais avalée.
+ *
+ * DEUX CLIENTS, DEUX COMPTES (séparation des flux, audit newsletter du
+ * 2026-09-17, §B.8 ; règles dans `flows.ts`) : `transactionalMail` pour
+ * les emails du produit et la réception, `marketingMail` pour tout ce qui
+ * part au nom d'une organisation et pour ses domaines d'expédition. Chaque
+ * appel porte la clé de SON compte ; aucun point d'API n'est exporté sans
+ * flux.
  */
 
 const BASE_URL = "https://api.resend.com";
@@ -45,11 +52,11 @@ export class ResendError extends Error {
  */
 export const RESEND_TIMEOUT_MS = 15_000;
 
-async function call<T>(method: "GET" | "POST" | "PATCH" | "DELETE", path: string, body?: unknown, headers: Record<string, string> = {}): Promise<T> {
+async function call<T>(flow: MailFlow, method: "GET" | "POST" | "PATCH" | "DELETE", path: string, body?: unknown, headers: Record<string, string> = {}): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: {
-      Authorization: `Bearer ${resendApiKey()}`,
+      Authorization: `Bearer ${apiKeyFor(flow)}`,
       "Content-Type": "application/json",
       ...headers,
     },
@@ -119,20 +126,20 @@ function assertDeliverable(emails: OutgoingEmail[]): void {
   if (reserved) throw new ResendError(400, "reserved_recipient", `resend: reserved_recipient ${reserved}`, null);
 }
 
-export async function sendEmail(email: OutgoingEmail, idempotencyKey: string): Promise<{ id: string }> {
+async function sendEmailWith(flow: MailFlow, email: OutgoingEmail, idempotencyKey: string): Promise<{ id: string }> {
   assertDeliverable([email]);
-  return call<{ id: string }>("POST", "/emails", toPayload(email), { "Idempotency-Key": idempotencyKey });
+  return call<{ id: string }>(flow, "POST", "/emails", toPayload(email), { "Idempotency-Key": idempotencyKey });
 }
 
 /** Jusqu'à cent emails en une requête ; la réponse suit l'ordre de la demande. */
 export const BATCH_MAX = 100;
 
-export async function sendBatch(emails: OutgoingEmail[], idempotencyKey: string): Promise<{ id: string }[]> {
+async function sendBatchWith(flow: MailFlow, emails: OutgoingEmail[], idempotencyKey: string): Promise<{ id: string }[]> {
   if (emails.length === 0) return [];
   // eslint-disable-next-line local/no-visible-text -- invariant de programmation, jamais affiché à une personne
   if (emails.length > BATCH_MAX) throw new Error(`resend: un lot ne dépasse pas ${BATCH_MAX} emails`);
   assertDeliverable(emails);
-  const result = await call<{ data: { id: string }[] }>("POST", "/emails/batch", emails.map(toPayload), { "Idempotency-Key": idempotencyKey });
+  const result = await call<{ data: { id: string }[] }>(flow, "POST", "/emails/batch", emails.map(toPayload), { "Idempotency-Key": idempotencyKey });
   return result.data;
 }
 
@@ -162,18 +169,18 @@ export type ProviderDomain = {
 
 export const SENDING_REGION = "eu-west-1";
 
-export async function listDomains(): Promise<{ id: string; name: string; status: string; region: string }[]> {
-  const result = await call<{ data: { id: string; name: string; status: string; region: string }[] }>("GET", "/domains");
+async function listDomainsWith(flow: MailFlow): Promise<{ id: string; name: string; status: string; region: string }[]> {
+  const result = await call<{ data: { id: string; name: string; status: string; region: string }[] }>(flow, "GET", "/domains");
   return result.data;
 }
 
-export async function getDomain(id: string): Promise<ProviderDomain> {
-  return call<ProviderDomain>("GET", `/domains/${encodeURIComponent(id)}`);
+async function getDomainWith(flow: MailFlow, id: string): Promise<ProviderDomain> {
+  return call<ProviderDomain>(flow, "GET", `/domains/${encodeURIComponent(id)}`);
 }
 
 /** Déclare un domaine d'expédition : région européenne, suivi des ouvertures et des clics sous le sous-domaine `links`. */
-export async function createDomain(name: string): Promise<ProviderDomain> {
-  return call<ProviderDomain>("POST", "/domains", {
+async function createDomainWith(flow: MailFlow, name: string): Promise<ProviderDomain> {
+  return call<ProviderDomain>(flow, "POST", "/domains", {
     name,
     region: SENDING_REGION,
     open_tracking: true,
@@ -183,13 +190,13 @@ export async function createDomain(name: string): Promise<ProviderDomain> {
 }
 
 /** Demande la vérification (asynchrone) ; l'état se relit ensuite par `getDomain`. */
-export async function verifyDomain(id: string): Promise<void> {
-  await call<{ id: string }>("POST", `/domains/${encodeURIComponent(id)}/verify`);
+async function verifyDomainWith(flow: MailFlow, id: string): Promise<void> {
+  await call<{ id: string }>(flow, "POST", `/domains/${encodeURIComponent(id)}/verify`);
 }
 
 /** Retire un domaine chez le fournisseur (`DELETE /domains/{id}`) — un domaine jamais vérifié que l'organisation retire ne doit pas rester dans un quota partagé. */
-export async function deleteDomain(id: string): Promise<void> {
-  await call<{ deleted: boolean }>("DELETE", `/domains/${encodeURIComponent(id)}`);
+async function deleteDomainWith(flow: MailFlow, id: string): Promise<void> {
+  await call<{ deleted: boolean }>(flow, "DELETE", `/domains/${encodeURIComponent(id)}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -221,8 +228,8 @@ export type ReceivedEmail = {
   attachments?: { id: string; filename?: string; content_type?: string }[];
 };
 
-export async function getReceivedEmail(id: string): Promise<ReceivedEmail> {
-  return call<ReceivedEmail>("GET", `/emails/receiving/${encodeURIComponent(id)}`);
+async function getReceivedEmailWith(flow: MailFlow, id: string): Promise<ReceivedEmail> {
+  return call<ReceivedEmail>(flow, "GET", `/emails/receiving/${encodeURIComponent(id)}`);
 }
 
 /**
@@ -257,3 +264,34 @@ export async function downloadRawMessage(url: string, maxBytes: number): Promise
   }
   return { raw: Buffer.concat(chunks), bytes, tooLarge: false };
 }
+
+// ---------------------------------------------------------------------------
+// Les deux clients
+// ---------------------------------------------------------------------------
+
+function clientFor(flow: MailFlow) {
+  return {
+    flow,
+    /** Un email, avec sa clé d'idempotence : le même appel rejoué ne l'envoie pas deux fois (24 h). */
+    sendEmail: (email: OutgoingEmail, idempotencyKey: string) => sendEmailWith(flow, email, idempotencyKey),
+    /** Jusqu'à cent emails en une requête ; la réponse suit l'ordre de la demande. */
+    sendBatch: (emails: OutgoingEmail[], idempotencyKey: string) => sendBatchWith(flow, emails, idempotencyKey),
+    listDomains: () => listDomainsWith(flow),
+    getDomain: (id: string) => getDomainWith(flow, id),
+    /** Déclare un domaine d'expédition : région européenne, suivi des ouvertures et des clics sous le sous-domaine `links`. */
+    createDomain: (name: string) => createDomainWith(flow, name),
+    /** Demande la vérification (asynchrone) ; l'état se relit ensuite par `getDomain`. */
+    verifyDomain: (id: string) => verifyDomainWith(flow, id),
+    /** Retire un domaine chez le fournisseur — un domaine jamais vérifié que l'organisation retire ne doit pas rester dans un quota partagé. */
+    deleteDomain: (id: string) => deleteDomainWith(flow, id),
+    getReceivedEmail: (id: string) => getReceivedEmailWith(flow, id),
+  };
+}
+
+export type MailClient = ReturnType<typeof clientFor>;
+
+/** Les emails du PRODUIT (lien de connexion, invitations, notifications) et la réception des emails d'ingestion : le compte historique. */
+export const transactionalMail: MailClient = clientFor("transactional");
+
+/** Tout ce qui part AU NOM D'UNE ORGANISATION (newsletters, tests, relances) et ses domaines d'expédition : le second compte, s'il est configuré. */
+export const marketingMail: MailClient = clientFor("marketing");

@@ -19,7 +19,7 @@ import {
 import type { Organization, Rule, RuleRun, RuleTemplate } from "@/db/schema";
 import { toAppLocale } from "@/i18n/locales";
 import { translatorFor } from "@/i18n/translator";
-import { sendEmail } from "@/lib/email/resend";
+import { transactionalMail } from "@/lib/email/resend";
 import { productSender, resolveSender } from "@/lib/email/sender";
 import { log } from "@/lib/log";
 import { InvalidRuleConditionsError } from "@/lib/rules/criteria";
@@ -212,7 +212,7 @@ async function runNotifyOwner(context: ActionContext, contact: MatchedContact): 
   const intro = t("body", { rule: context.rule.name, contact: contact.name, organization: context.org.name });
   const link = `${context.origin}/contacts/${contact.id}`;
   try {
-    await sendEmail(
+    await transactionalMail.sendEmail(
       {
         from: productSender().from,
         to: [owner.email],

@@ -1,35 +1,18 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { addSuppression, getSuppression, recordEmailEvent, type EventType } from "@/db/queries/email-events";
 import { getMessageByProviderId } from "@/db/queries/email-sends";
 import type { ReceivedNotice } from "./inbound/ingest";
 
 /**
- * LES WEBHOOKS DU FOURNISSEUR (docs/module-engagement.md §3.5) — vérifiés
- * à la main (signature Svix : HMAC-SHA256 de `id.timestamp.corps` avec le
- * secret, horodatage à ±5 minutes, comparaison à temps constant), puis
- * traduits en événements de notre chronologie. Un webhook rejoué s'arrête
- * à l'unicité de son identifiant ; un message inconnu (le webhook arrive
- * avant que l'id du fournisseur soit écrit) est signalé pour que le
+ * LES WEBHOOKS DU FOURNISSEUR (docs/module-engagement.md §3.5) — signature
+ * Svix vérifiée à la main (`svix.ts` : HMAC-SHA256 de `id.timestamp.corps`
+ * avec le secret, horodatage à ±5 minutes, comparaison à temps constant),
+ * puis traduits en événements de notre chronologie. Un webhook rejoué
+ * s'arrête à l'unicité de son identifiant ; un message inconnu (le webhook
+ * arrive avant que l'id du fournisseur soit écrit) est signalé pour que le
  * fournisseur réessaie.
  */
 
-const TOLERANCE_SECONDS = 5 * 60;
-
-export function verifySvixSignature(headers: { id: string | null; timestamp: string | null; signature: string | null }, body: string, secret: string): boolean {
-  if (!headers.id || !headers.timestamp || !headers.signature) return false;
-  const ts = Number(headers.timestamp);
-  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > TOLERANCE_SECONDS) return false;
-  const key = Buffer.from(secret.startsWith("whsec_") ? secret.slice(6) : secret, "base64");
-  const expected = createHmac("sha256", key).update(`${headers.id}.${headers.timestamp}.${body}`).digest();
-  // L'en-tête peut porter plusieurs signatures (« v1,… v1,… ») : une seule doit correspondre.
-  for (const part of headers.signature.split(" ")) {
-    const [version, value] = part.split(",", 2);
-    if (version !== "v1" || !value) continue;
-    const candidate = Buffer.from(value, "base64");
-    if (candidate.length === expected.length && timingSafeEqual(candidate, expected)) return true;
-  }
-  return false;
-}
+export { verifySvixSignature, verifySvixSignatureWithAny } from "./svix";
 
 /** La charge d'un webhook Resend, dans ce qui nous concerne. */
 export type ResendWebhookEvent = {

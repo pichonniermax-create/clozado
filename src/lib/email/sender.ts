@@ -1,6 +1,6 @@
 import type { Organization, User } from "@/db/schema";
 import { bareAddress, formatMailbox } from "./address";
-import { productMailbox, sharedSendingDomain } from "./config";
+import { marketingSendingDomain, productMailbox } from "./config";
 
 /**
  * L'EXPÉDITEUR d'un email envoyé au nom d'une organisation — une seule
@@ -41,9 +41,9 @@ export function ownDomainUsable(org: SenderOrganization): boolean {
   return Boolean(own && domain && org.emailDomainVerifiedAt && own.endsWith(`@${domain}`));
 }
 
-/** L'adresse de l'organisation sur le sous-domaine mutualisé : `<slug>@mail.clozado.fr` — stable, unique (le slug l'est). */
+/** L'adresse de l'organisation sur le sous-domaine mutualisé du flux marketing : `<slug>@<domaine>` — stable, unique (le slug l'est). */
 export function sharedAddress(org: Pick<Organization, "slug">): string {
-  return `${org.slug}@${sharedSendingDomain()}`;
+  return `${org.slug}@${marketingSendingDomain()}`;
 }
 
 export function resolveSender(org: SenderOrganization, user: SenderUser | null): EmailSender {

@@ -1632,3 +1632,16 @@ appel local entre-temps) :
   « avant 9h00 » (« before 9:00 am »). Les textes existants ont été
   passés en revue le jour même (voir le commit qui suit cette entrée) ;
   toute nouvelle phrase sur un automatisme se relit à cette aune.
+- **Séparation des flux d'envoi** (2026-09-17, correctif 4 issu de
+  l'audit newsletter, `docs/audit-newsletter.md` §B.8) : deux clients
+  (`transactionalMail` pour les emails du produit et la réception,
+  `marketingMail` pour tout ce qui part au nom d'une organisation et ses
+  domaines), règles dans `src/lib/email/flows.ts` — `RESEND_MARKETING_API_KEY`,
+  `EMAIL_MARKETING_DOMAIN`, `RESEND_MARKETING_WEBHOOK_SECRET` (un SECOND
+  compte Resend : l'isolation vaut par le compte, une seconde clé du même
+  compte n'isolerait rien). Tant que ces variables sont absentes, le flux
+  marketing passe par le compte transactionnel comme avant et le journal le
+  dit une fois (`email_marketing_flow_not_isolated`). Le webhook accepte la
+  signature de l'un ou l'autre compte. Les §3.1 (expéditeur) et §7 (DNS)
+  ci-dessus décrivent l'état à un seul compte ; le domaine de repli des
+  organisations devient celui du compte marketing dès qu'il est posé.

@@ -58,7 +58,7 @@ import { SettingsNav } from "@/components/settings/settings-nav";
 import { AutoSendCard } from "@/components/settings/auto-send-card";
 import { IngestAddressCard } from "@/components/settings/ingest-address-card";
 import { LegalFootprintCard } from "@/components/settings/legal-footprint-card";
-import { inboundDomain, sharedSendingDomain } from "@/lib/email/config";
+import { inboundDomain, marketingSendingDomain } from "@/lib/email/config";
 import { resolveSender } from "@/lib/email/sender";
 import { errorMessage, withError } from "@/lib/form-actions";
 import { BUSINESS_PACK_LIST, resolveBusinessPack } from "@/lib/metrics";
@@ -213,7 +213,7 @@ export default async function SettingsPage() {
   let sharedDomain = "";
   let effectiveFrom = "";
   try {
-    sharedDomain = sharedSendingDomain();
+    sharedDomain = marketingSendingDomain();
     effectiveFrom = resolveSender(org, null).from;
   } catch {
     sharedDomain = "";

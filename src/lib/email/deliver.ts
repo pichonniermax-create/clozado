@@ -1,7 +1,7 @@
 import type { EmailMessage } from "@/db/schema";
 import { DEMO_PROVIDER_PREFIX } from "@/lib/demo/constants";
 import { isDemoOrganization } from "@/lib/demo/guard";
-import { BATCH_MAX, ResendError, sendBatch, sendEmail, type OutgoingEmail } from "./resend";
+import { BATCH_MAX, marketingMail, ResendError, type OutgoingEmail } from "./resend";
 
 /**
  * LA REMISE AU FOURNISSEUR d'un lot de messages déjà écrits en base
@@ -70,10 +70,10 @@ export async function deliverMessages(messages: EmailMessage[], content: SendCon
   const emails = messages.map((m) => buildOutgoing(m, content, origin));
   try {
     if (messages.length === 1) {
-      const { id } = await sendEmail(emails[0], keyFor(messages));
+      const { id } = await marketingMail.sendEmail(emails[0], keyFor(messages));
       return { status: "sent", results: [{ id: messages[0].id, providerMessageId: id }] };
     }
-    const ids = await sendBatch(emails, keyFor(messages));
+    const ids = await marketingMail.sendBatch(emails, keyFor(messages));
     return { status: "sent", results: messages.map((m, i) => ({ id: m.id, providerMessageId: ids[i]?.id ?? "" })).filter((r) => r.providerMessageId) };
   } catch (error) {
     // Un délai dépassé (`TimeoutError`, `AbortError`), une panne réseau : le
