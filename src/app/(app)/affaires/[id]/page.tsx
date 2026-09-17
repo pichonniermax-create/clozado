@@ -20,6 +20,7 @@ import { ShareStatusBadge } from "@/components/deal-shares/share-status-badge";
 import { TaskSection } from "@/components/tasks/task-section";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Input } from "@/components/ui/input";
 import { leadOriginLabel, listLeadsForContact } from "@/db/queries/acquisition";
 import { listDealJournal } from "@/db/queries/activities";
@@ -226,13 +227,7 @@ export default async function DealPage({
 
             <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2 lg:grid-cols-4">
               <Field label={tr("montant_estime", { currency: fmt.currency })} htmlFor="estimatedAmount">
-                <Input
-                  id="estimatedAmount"
-                  name="estimatedAmount"
-                  type="number"
-                  min="0"
-                  defaultValue={deal.estimatedAmount ?? ""}
-                />
+                <AmountInput id="estimatedAmount" name="estimatedAmount" defaultValue={deal.estimatedAmount} />
               </Field>
               <Field
                 label={tr("probabilite")}

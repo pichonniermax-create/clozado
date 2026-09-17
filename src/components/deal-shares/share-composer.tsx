@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -381,24 +382,12 @@ export function ShareComposer({
                   />
                 </Field>
                 <Field label={t("montant_de_reference", { currency: fmt.currency })} htmlFor="baseAmount">
-                  <Input
-                    id="baseAmount"
-                    type="number"
-                    min="0"
-                    value={baseAmount}
-                    onChange={(e) => setBaseAmount(e.target.value)}
-                  />
+                  <AmountInput id="baseAmount" value={baseAmount} onChange={setBaseAmount} />
                 </Field>
               </div>
             ) : (
               <Field label={t("montant", { currency: fmt.currency })} htmlFor="fixedAmount">
-                <Input
-                  id="fixedAmount"
-                  type="number"
-                  min="0"
-                  value={fixedAmount}
-                  onChange={(e) => setFixedAmount(e.target.value)}
-                />
+                <AmountInput id="fixedAmount" value={fixedAmount} onChange={setFixedAmount} />
               </Field>
             )}
 

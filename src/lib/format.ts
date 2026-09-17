@@ -35,12 +35,20 @@ export function createFormats(settings: FormatSettings) {
   const unit = (value: number, unitName: "minute" | "hour" | "day", digits: number) =>
     number({ style: "unit", unit: unitName, unitDisplay: "short", maximumFractionDigits: digits }).format(value).replace(/\s/g, NNBSP);
 
-  /** « 12 000 € », « €12,000 » — dans la devise de l'organisation, sans décimales. */
+  /**
+   * « 12 000 € », « €12,000 » — dans la devise de l'organisation. Un montant
+   * entier s'affiche sans décimales ; les centimes n'apparaissent que si la
+   * valeur en a (« 1 234,50 € »), jamais des « ,00 » inutiles — la même
+   * règle que le champ de saisie (src/lib/amount-input.ts). LA seule mise en
+   * forme d'un montant du produit : fiche affaire, cartes et totaux du
+   * kanban, listes, tableau de bord, suivi, analytique, commissions.
+   */
   const money = (amount: string | number | null): string | null => {
     if (amount == null) return null;
     const n = Number(amount);
     if (Number.isNaN(n)) return null;
-    return number({ style: "currency", currency, maximumFractionDigits: 0 }).format(n);
+    const hasCents = Math.round(Math.abs(n) * 100) % 100 !== 0;
+    return number({ style: "currency", currency, minimumFractionDigits: hasCents ? 2 : 0, maximumFractionDigits: 2 }).format(n);
   };
 
   /** « 1,5 % » / « 1.5 % » — le séparateur de la langue, l'unité collée au nombre. */

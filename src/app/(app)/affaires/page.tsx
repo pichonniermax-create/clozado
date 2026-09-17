@@ -9,6 +9,7 @@ import { DealStatusBadge } from "@/components/deals/deal-status-badge";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Input } from "@/components/ui/input";
 import { KanbanBoard } from "@/components/deals/kanban-board";
 import { DealSelectionBanner, describeDealSelection, selectionQuery } from "@/components/deals/selection-banner";
@@ -314,7 +315,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
                 </Select>
               </Field>
               <Field label={tr("montant_estime", { currency: fmt.currency })} htmlFor="estimatedAmount">
-                <Input id="estimatedAmount" name="estimatedAmount" type="number" min="0" />
+                <AmountInput id="estimatedAmount" name="estimatedAmount" />
               </Field>
               {/* Le responsable, la personne connectée par défaut (stabilisation, P1) — ou l'admin le plus ancien pour un
                   super admin en substitution (src/lib/default-owner.ts) ; à plusieurs, le choix. */}
