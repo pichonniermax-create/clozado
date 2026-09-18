@@ -5,6 +5,7 @@ import { menuPrincipal, path, sousEntrees, type RouteKey } from "@/lib/routes";
 import { LOGIN_URL, SITE_CONFIG } from "@/lib/site-config";
 import { ActionLink } from "./action-link";
 import { BrandMark } from "./brand-mark";
+import { NavDeroulant } from "./nav-deroulant";
 import { Container } from "./layout-primitives";
 
 /**
@@ -39,37 +40,26 @@ export function SiteHeader({ locale }: { locale: Locale }) {
             <ul className="flex items-center gap-0.5">
               {entrees.map((cle) => {
                 const filles = sousEntrees(cle);
+                const classeLien =
+                  "lien-nav inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 ease-out hover:text-foreground";
+                if (filles.length === 0) {
+                  return (
+                    <li key={cle}>
+                      <Link href={path(locale, cle)} className={classeLien}>
+                        {common.nav[cle]}
+                      </Link>
+                    </li>
+                  );
+                }
                 return (
-                  <li key={cle} className={filles.length > 0 ? "groupe-nav relative" : undefined}>
-                    <Link
-                      href={path(locale, cle)}
-                      className="lien-nav inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 ease-out hover:text-foreground"
-                    >
-                      {common.nav[cle]}
-                    </Link>
-
-                    {/* LE DÉROULANT, sans une ligne de JavaScript : il s'ouvre au
-                        survol ET au focus (`:focus-within`), donc au clavier. Ses
-                        liens sont masqués par `visibility` tant qu'il est fermé —
-                        ils ne sont alors ni lus, ni atteignables par tabulation. */}
-                    {filles.length > 0 && (
-                      <div className="deroulant absolute left-0 top-full pt-2">
-                        <ul className="w-72 rounded-xl border border-border bg-card p-2">
-                          <li className="label px-3 py-2">{common.actions.voirLesMetiers}</li>
-                          {filles.map((fille) => (
-                            <li key={fille}>
-                              <Link
-                                href={path(locale, fille)}
-                                className="flex min-h-11 items-center rounded-lg px-3 text-sm text-foreground transition-colors duration-200 ease-out hover:bg-muted"
-                              >
-                                {common.nav[fille]}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </li>
+                  <NavDeroulant
+                    key={cle}
+                    href={path(locale, cle)}
+                    libelle={common.nav[cle]}
+                    intitule={common.actions.voirLesMetiers}
+                    classeLien={classeLien}
+                    entrees={filles.map((fille) => ({ href: path(locale, fille), libelle: common.nav[fille] }))}
+                  />
                 );
               })}
             </ul>

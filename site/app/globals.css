@@ -512,8 +512,12 @@
       opacity 150ms ease-out,
       visibility 0s linear 150ms;
   }
-  .groupe-nav:hover > .deroulant,
-  .groupe-nav:focus-within > .deroulant {
+  /* SANS JAVASCRIPT : survol et focus, comme avant — le panneau reste
+     atteignable. Le composant pose `data-js` en arrivant, et ces deux
+     règles s'effacent au profit de son état. */
+  .groupe-nav:not([data-js]):hover > .deroulant,
+  .groupe-nav:not([data-js]):focus-within > .deroulant,
+  .groupe-nav[data-ouvert="oui"] > .deroulant {
     opacity: 1;
     visibility: visible;
     transition:
