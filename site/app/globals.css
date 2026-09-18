@@ -494,3 +494,35 @@
     }
   }
 }
+
+/*
+ * LE DÉROULANT DE LA BARRE — sans une ligne de JavaScript.
+ *
+ * Il s'ouvre au survol de l'entrée ET au focus clavier (`:focus-within`) :
+ * on tabule sur « Produit », le panneau s'ouvre, la tabulation suivante
+ * entre dedans. Fermé, il est masqué par `visibility` — donc retiré du
+ * parcours au clavier et des lecteurs d'écran, ce qu'un simple `opacity: 0`
+ * ne fait pas.
+ */
+@layer components {
+  .deroulant {
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 150ms ease-out,
+      visibility 0s linear 150ms;
+  }
+  .groupe-nav:hover > .deroulant,
+  .groupe-nav:focus-within > .deroulant {
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity 150ms ease-out,
+      visibility 0s;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .deroulant {
+      transition: none;
+    }
+  }
+}

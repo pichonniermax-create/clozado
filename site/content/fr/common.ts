@@ -23,18 +23,22 @@ export const common = {
 
   nav: {
     accueil: "Accueil",
+    produit: "Produit",
     cgp: "Gestion de patrimoine",
     courtiers: "Courtage",
     immobilier: "Transaction immobilière",
-    tarifs: "Tarifs",
+    conformite: "Conformité",
     demo: "Démonstration",
+    blog: "Blog",
+    aPropos: "À propos",
+    carrieres: "Carrières",
     mentionsLegales: "Mentions légales",
     confidentialite: "Confidentialité",
   },
 
   groupes: {
-    metiers: "Métiers",
     produit: "Produit",
+    societe: "Société",
     legal: "Informations légales",
   },
 
@@ -43,6 +47,7 @@ export const common = {
     ouvrirLaDemo: "Ouvrir la démonstration",
     ouvrirLaDemoAide: "La démonstration s’ouvre dans un nouvel onglet, sur l’application",
     seConnecter: "Se connecter",
+    voirLesMetiers: "Par métier",
     enSavoirPlus: "En savoir plus",
     nouvelOnglet: "(nouvel onglet)",
   },

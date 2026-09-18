@@ -2,12 +2,15 @@
   "name": "clozado-site",
   "version": "0.1.0",
   "private": true,
-  "engines": { "node": ">=24 <25" },
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/verifier-libelles.mjs && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "verifier:libelles": "node scripts/verifier-libelles.mjs"
   },
   "dependencies": {
     "next": "^16.3.5",

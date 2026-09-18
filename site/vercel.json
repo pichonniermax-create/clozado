@@ -10,7 +10,7 @@
     },
     {
       "source": "/offre",
-      "destination": "/fr/tarifs",
+      "destination": "/fr/demo",
       "statusCode": 301
     },
     {
@@ -81,6 +81,16 @@
     {
       "source": "/signup",
       "destination": "https://app.clozado.fr",
+      "statusCode": 308
+    },
+    {
+      "source": "/tarifs",
+      "destination": "/fr/demo",
+      "statusCode": 308
+    },
+    {
+      "source": "/fr/tarifs",
+      "destination": "/fr/demo",
       "statusCode": 308
     }
   ],

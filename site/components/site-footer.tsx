@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { getDictionary, IS_MONOLINGUAL, LOCALES, LOCALE_LABEL, type Locale } from "@/lib/i18n";
-import { navRoutes, path, ROUTES, type RouteKey } from "@/lib/routes";
+import { groupeDuPied, path, ROUTES, type RouteKey } from "@/lib/routes";
 import { BrandMark } from "./brand-mark";
 import { Container } from "./layout-primitives";
 
-const GROUPES: { cle: "metiers" | "produit"; routes: (locale: Locale) => RouteKey[] }[] = [
-  { cle: "metiers", routes: () => navRoutes("metiers") },
-  { cle: "produit", routes: () => navRoutes("produit") },
+const GROUPES: { cle: "produit" | "societe"; routes: () => RouteKey[] }[] = [
+  { cle: "produit", routes: () => groupeDuPied("produit") },
+  { cle: "societe", routes: () => groupeDuPied("societe") },
 ];
 
 const LEGAL: RouteKey[] = ["mentionsLegales", "confidentialite"];
@@ -20,7 +20,7 @@ const LEGAL: RouteKey[] = ["mentionsLegales", "confidentialite"];
  */
 export function SiteFooter({ locale }: { locale: Locale }) {
   const { common } = getDictionary(locale);
-  const groupes = GROUPES.map((g) => ({ cle: g.cle, entrees: g.routes(locale) })).filter(
+  const groupes = GROUPES.map((g) => ({ cle: g.cle, entrees: g.routes() })).filter(
     (g) => g.entrees.length > 0
   );
   const legal = LEGAL.filter((cle) => ROUTES[cle].built);

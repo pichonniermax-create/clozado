@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { getDictionary, type Locale } from "@/lib/i18n";
-import { navRoutes, path, type RouteKey } from "@/lib/routes";
+import { menuPrincipal, path, sousEntrees, type RouteKey } from "@/lib/routes";
 import { LOGIN_URL, SITE_CONFIG } from "@/lib/site-config";
 import { ActionLink } from "./action-link";
 import { BrandMark } from "./brand-mark";
@@ -27,7 +27,7 @@ import { Container } from "./layout-primitives";
  */
 export function SiteHeader({ locale }: { locale: Locale }) {
   const { common } = getDictionary(locale);
-  const entrees: RouteKey[] = [...navRoutes("metiers"), ...navRoutes("produit")];
+  const entrees: RouteKey[] = menuPrincipal();
 
   return (
     <header className="entete sticky top-0 z-20 border-b bg-background/90 backdrop-blur-sm">
@@ -36,17 +36,42 @@ export function SiteHeader({ locale }: { locale: Locale }) {
 
         {entrees.length > 0 && (
           <nav aria-label={common.coquille.navigationPrincipale} className="hidden md:block">
-            <ul className="flex items-center gap-1">
-              {entrees.map((cle) => (
-                <li key={cle}>
-                  <Link
-                    href={path(locale, cle)}
-                    className="lien-nav inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 ease-out hover:text-foreground"
-                  >
-                    {common.nav[cle]}
-                  </Link>
-                </li>
-              ))}
+            <ul className="flex items-center gap-0.5">
+              {entrees.map((cle) => {
+                const filles = sousEntrees(cle);
+                return (
+                  <li key={cle} className={filles.length > 0 ? "groupe-nav relative" : undefined}>
+                    <Link
+                      href={path(locale, cle)}
+                      className="lien-nav inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 ease-out hover:text-foreground"
+                    >
+                      {common.nav[cle]}
+                    </Link>
+
+                    {/* LE DÉROULANT, sans une ligne de JavaScript : il s'ouvre au
+                        survol ET au focus (`:focus-within`), donc au clavier. Ses
+                        liens sont masqués par `visibility` tant qu'il est fermé —
+                        ils ne sont alors ni lus, ni atteignables par tabulation. */}
+                    {filles.length > 0 && (
+                      <div className="deroulant absolute left-0 top-full pt-2">
+                        <ul className="w-72 rounded-xl border border-border bg-card p-2">
+                          <li className="label px-3 py-2">{common.actions.voirLesMetiers}</li>
+                          {filles.map((fille) => (
+                            <li key={fille}>
+                              <Link
+                                href={path(locale, fille)}
+                                className="flex min-h-11 items-center rounded-lg px-3 text-sm text-foreground transition-colors duration-200 ease-out hover:bg-muted"
+                              >
+                                {common.nav[fille]}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </nav>
         )}
@@ -95,6 +120,20 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                       >
                         {common.nav[cle]}
                       </a>
+                      {sousEntrees(cle).length > 0 && (
+                        <ul className="mb-1 ml-3 flex flex-col border-l border-border pl-2">
+                          {sousEntrees(cle).map((fille) => (
+                            <li key={fille}>
+                              <a
+                                href={path(locale, fille)}
+                                className="flex min-h-11 items-center rounded-lg px-3 text-sm text-muted-foreground hover:bg-muted"
+                              >
+                                {common.nav[fille]}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </li>
                   ))}
                   <li className="mt-1 border-t border-border pt-2">
