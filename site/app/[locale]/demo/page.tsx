@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ActionLink } from "@/components/action-link";
-import { Container, Section } from "@/components/layout-primitives";
+import { Puce } from "@/components/layout-primitives";
+import { Mouvement } from "@/components/mouvement";
+import { SectionEditoriale } from "@/components/section-editoriale";
 import { getDictionary, isLocale, type Locale } from "@/lib/i18n";
 import { pageMetadata } from "@/lib/metadata";
 import { DEMO_URL, SITE_CONFIG } from "@/lib/site-config";
-import { sansOrphelin } from "@/lib/titres";
+import { classeTitre, sansOrphelin } from "@/lib/titres";
 
 export async function generateMetadata(props: PageProps<"/[locale]/demo">): Promise<Metadata> {
   const { locale } = await props.params;
@@ -68,64 +70,75 @@ function Geste({
  * mobile. Chacune dit ce qu'elle donne, ce qu'on y verra, et porte son
  * propre bouton. Aucun appel à l'action commun ne vient les brouiller.
  */
+/** La colonne unique de la page — la même pour toutes ses sections. */
+const COLONNE = "lg:col-start-4 lg:col-span-9";
+
 export default async function Demo(props: PageProps<"/[locale]/demo">) {
   const { locale } = await props.params;
   if (!isLocale(locale)) notFound();
   const { demo } = getDictionary(locale);
 
   return (
-    <>
-      <Container className="py-16 sm:py-20">
-        <div className="max-w-3xl">
-          <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl lg:leading-[1.1]">{sansOrphelin(demo.hero.titre)}</h1>
-          <p className="mt-6 text-pretty text-lg leading-relaxed text-muted-foreground sm:text-xl">
-            {demo.hero.chapo}
-          </p>
-        </div>
+    <div className="editorial">
+      <Mouvement />
 
-        <div className="grille-cartes mt-12" data-colonnes="2-lg" style={{ "--ecart": "1.5rem" } as React.CSSProperties}>
-          <Geste
-            locale={locale}
-            surtitre={demo.ouvrir.surtitre}
-            titre={demo.ouvrir.titre}
-            texte={demo.ouvrir.texte}
-            elementsTitre={demo.ouvrir.elementsTitre}
-            elements={demo.ouvrir.elements}
-            action={demo.ouvrir.action}
-            href={DEMO_URL}
-            variante="primaire"
-          />
-          <Geste
-            locale={locale}
-            surtitre={demo.reserver.surtitre}
-            titre={demo.reserver.titre}
-            texte={demo.reserver.texte}
-            elementsTitre={demo.reserver.elementsTitre}
-            elements={demo.reserver.elements}
-            action={demo.reserver.action}
-            href={SITE_CONFIG.bookingUrl}
-            variante="primaire"
-          />
-        </div>
-      </Container>
+      <section className="border-b border-border">
+        <div className="editorial-conteneur py-12 sm:py-14 lg:py-12">
+          <div className="grid grid-cols-12 gap-x-6 gap-y-10">
+            <div data-entree className={`col-span-12 ${COLONNE}`}>
+              <h1 className={`${classeTitre(demo.hero.titre)} text-foreground`}>{sansOrphelin(demo.hero.titre)}</h1>
+              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{demo.hero.chapo}</p>
+            </div>
 
-      <Section intitule={demo.limites.intitule} titre={demo.limites.titre}>
-        <ul className="flex max-w-2xl flex-col gap-3">
-          {demo.limites.elements.map((element) => (
-            <li key={element} className="flex gap-3 text-base leading-relaxed">
-              <span aria-hidden className="mt-2.5 size-1.5 shrink-0 rounded-full bg-muted-foreground" />
-              <span className="text-muted-foreground">{element}</span>
+            <div
+              className={`grille-cartes col-span-12 ${COLONNE}`}
+              data-colonnes="2-lg"
+              style={{ "--ecart": "1.5rem" } as React.CSSProperties}
+            >
+              <Geste
+                locale={locale}
+                surtitre={demo.ouvrir.surtitre}
+                titre={demo.ouvrir.titre}
+                texte={demo.ouvrir.texte}
+                elementsTitre={demo.ouvrir.elementsTitre}
+                elements={demo.ouvrir.elements}
+                action={demo.ouvrir.action}
+                href={DEMO_URL}
+                variante="primaire"
+              />
+              <Geste
+                locale={locale}
+                surtitre={demo.reserver.surtitre}
+                titre={demo.reserver.titre}
+                texte={demo.reserver.texte}
+                elementsTitre={demo.reserver.elementsTitre}
+                elements={demo.reserver.elements}
+                action={demo.reserver.action}
+                href={SITE_CONFIG.bookingUrl}
+                variante="primaire"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <SectionEditoriale numero="01" intitule={demo.limites.intitule} titre={demo.limites.titre} largeurContenu={COLONNE}>
+        <ul className="flex flex-col gap-4">
+          {demo.limites.elements.map((element, rang) => (
+            <li key={element} data-entree data-rang={rang} className="flex gap-4 leading-relaxed">
+              <Puce />
+              <span className="mesure text-muted-foreground">{element}</span>
             </li>
           ))}
         </ul>
-      </Section>
+      </SectionEditoriale>
 
-      <Section>
-        <div className="max-w-2xl">
-          <h2 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">{sansOrphelin(demo.final.titre)}</h2>
-          <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">{demo.final.texte}</p>
+      <SectionEditoriale numero="02" ton="doux" largeurContenu={COLONNE}>
+        <div data-entree>
+          <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(demo.final.titre)}</h2>
+          <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{demo.final.texte}</p>
         </div>
-      </Section>
-    </>
+      </SectionEditoriale>
+    </div>
   );
 }

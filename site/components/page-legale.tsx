@@ -1,6 +1,5 @@
 import type { BlocLegal, PageLegale } from "@/content/types";
-import { Container } from "./layout-primitives";
-import { sansOrphelin } from "@/lib/titres";
+import { classeTitre, sansOrphelin } from "@/lib/titres";
 
 function Bloc({ bloc }: { bloc: BlocLegal }) {
   if (bloc.type === "texte") {
@@ -35,30 +34,47 @@ function Bloc({ bloc }: { bloc: BlocLegal }) {
  * partagent celui-ci, pour que leur mise en page ne diverge jamais.
  *
  * Une colonne étroite, le texte à une longueur de ligne lisible, et les
- * sections numérotées par leur titre en `h2` : c'est un document, pas une
+ * sections annoncées par leur titre en `h2` : c'est un document, pas une
  * page de vente — aucune carte, aucun appel à l'action.
+ *
+ * Elle suit le SYSTÈME ÉDITORIAL depuis le 2026-09-18 : même conteneur,
+ * même rythme vertical et une seule colonne de contenu, celle des autres
+ * pages. Elle vivait jusque-là sur l'ancien gabarit, avec son propre rythme
+ * et sa propre largeur.
  */
 export function PageLegaleRendu({ contenu }: { contenu: PageLegale }) {
   return (
-    <Container className="py-16 sm:py-20">
-      <div className="max-w-3xl">
-        <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">{sansOrphelin(contenu.titre)}</h1>
-        <p className="mt-4 text-pretty text-lg leading-relaxed text-muted-foreground">{contenu.chapo}</p>
-        <p className="mt-2 text-sm text-muted-foreground">{contenu.miseAJour}</p>
-
-        <div className="mt-12 flex flex-col gap-12">
-          {contenu.sections.map((section) => (
-            <section key={section.titre}>
-              <h2 className="text-xl font-semibold tracking-tight">{sansOrphelin(section.titre)}</h2>
-              <div className="mt-4 flex flex-col gap-4">
-                {section.blocs.map((bloc, index) => (
-                  <Bloc key={index} bloc={bloc} />
-                ))}
-              </div>
-            </section>
-          ))}
+    <div className="editorial">
+      <section className="border-b border-border">
+        <div className="editorial-conteneur py-12 sm:py-14 lg:py-12">
+          <div className="grid grid-cols-12 gap-x-6">
+            <div className="col-span-12 lg:col-start-4 lg:col-span-8">
+              <h1 className={`${classeTitre(contenu.titre)} text-foreground`}>{sansOrphelin(contenu.titre)}</h1>
+              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{contenu.chapo}</p>
+              <p className="mt-3 text-sm text-muted-foreground">{contenu.miseAJour}</p>
+            </div>
+          </div>
         </div>
-      </div>
-    </Container>
+      </section>
+
+      <section className="py-20 sm:py-28 lg:py-36">
+        <div className="editorial-conteneur">
+          <div className="grid grid-cols-12 gap-x-6">
+            <div className="col-span-12 flex flex-col gap-14 lg:col-start-4 lg:col-span-8">
+              {contenu.sections.map((section) => (
+                <section key={section.titre}>
+                  <h2 className="text-titre-3 text-foreground">{sansOrphelin(section.titre)}</h2>
+                  <div className="mt-6 flex flex-col gap-4">
+                    {section.blocs.map((bloc, index) => (
+                      <Bloc key={index} bloc={bloc} />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }

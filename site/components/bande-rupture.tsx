@@ -1,4 +1,3 @@
-import { Container } from "./layout-primitives";
 import { sansOrphelin } from "@/lib/titres";
 
 /**
@@ -21,19 +20,42 @@ export function BandeRupture({
   elements: readonly { titre: string; texte: string }[];
 }) {
   return (
-    <section className="border-y border-border bg-card py-20 sm:py-24 lg:py-32">
-      <Container largeur="large">
-        <h2 data-entree className="max-w-5xl text-balance text-titre-2 text-foreground">{sansOrphelin(titre)}</h2>
-        <div aria-hidden data-entree data-rang={1} className="mt-8 h-1 w-16 rounded-full bg-primary" />
-        <dl className="grille-cartes grille-large mt-12" data-colonnes="3">
-          {elements.map((element, rang) => (
-            <div key={element.titre} data-entree data-rang={rang + 2} className="border-t border-border pt-6">
-              <dt className="font-semibold text-foreground">{sansOrphelin(element.titre)}</dt>
-              <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{element.texte}</dd>
-            </div>
-          ))}
-        </dl>
-      </Container>
+    <section className="border-y border-border bg-card py-20 sm:py-28 lg:py-36">
+      <div className="editorial-conteneur">
+        <div className="grid grid-cols-12 gap-x-6">
+          <div className="col-span-12 lg:col-start-4 lg:col-span-9">
+            <h2
+              data-entree
+              className="max-w-5xl text-balance text-titre-2 text-foreground"
+            >
+              {sansOrphelin(titre)}
+            </h2>
+            <div
+              aria-hidden
+              data-entree
+              data-rang={1}
+              className="mt-8 h-1 w-16 rounded-full bg-primary"
+            />
+            <dl className="grille-cartes grille-large mt-12" data-colonnes="3">
+              {elements.map((element, rang) => (
+                <div
+                  key={element.titre}
+                  data-entree
+                  data-rang={rang + 2}
+                  className="border-t border-border pt-6"
+                >
+                  <dt className="font-semibold text-foreground">
+                    {sansOrphelin(element.titre)}
+                  </dt>
+                  <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    {element.texte}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

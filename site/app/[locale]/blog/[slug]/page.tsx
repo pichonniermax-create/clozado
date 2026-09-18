@@ -66,7 +66,7 @@ export default async function Article(props: PageProps<"/[locale]/blog/[slug]">)
       <article className="border-b border-border">
         <div className="editorial-conteneur py-14 sm:py-20 lg:py-24">
           <div className="grid grid-cols-12 gap-x-6">
-            <div data-entree className="col-span-12 min-w-0 lg:col-start-3 lg:col-span-8">
+            <div data-entree className="col-span-12 min-w-0 lg:col-start-4 lg:col-span-8">
               <Link href={path(locale, "blog")} className="label hover:text-foreground">
                 {blog.article.retour}
               </Link>

@@ -1,5 +1,6 @@
 import { getDictionary, type Locale } from "@/lib/i18n";
-import { Card, Section } from "./layout-primitives";
+import { Card } from "./layout-primitives";
+import { SectionEditoriale } from "./section-editoriale";
 
 /**
  * L'EMPLACEMENT des références clients — vide aujourd'hui, donc INVISIBLE :
@@ -13,7 +14,7 @@ export function References({ locale }: { locale: Locale }) {
   if (common.references.elements.length === 0) return null;
 
   return (
-    <Section titre={common.references.titre}>
+    <SectionEditoriale titre={common.references.titre} largeurContenu="lg:col-start-4 lg:col-span-9">
       <ul className="grille-cartes" data-colonnes="3">
         {common.references.elements.map((reference) => (
           <li key={reference.nom}>
@@ -25,6 +26,6 @@ export function References({ locale }: { locale: Locale }) {
           </li>
         ))}
       </ul>
-    </Section>
+    </SectionEditoriale>
   );
 }

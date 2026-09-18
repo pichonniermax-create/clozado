@@ -1,7 +1,8 @@
 import { ActionLink } from "@/components/action-link";
 import { EcranRegles, EcranTableauDeBord } from "@/components/ecran-produit";
 import { EcranChronologie, EcranJaugeParcours, EcranTableauCourtage } from "@/components/ecrans-metiers";
-import { Card, Container, Puce, Section } from "@/components/layout-primitives";
+import { Card, Puce } from "@/components/layout-primitives";
+import { SectionEditoriale } from "@/components/section-editoriale";
 import { Mouvement } from "@/components/mouvement";
 import type { ContenuMetier, Element } from "@/content/types";
 import { getDictionary, type Locale } from "@/lib/i18n";
@@ -70,6 +71,13 @@ function SousTitre({ children }: { children: string }) {
  * Aucun texte ici : tout vient de `content/<langue>/<métier>.ts`, dont la
  * forme est vérifiée à la compilation (`ContenuMetier`).
  */
+/**
+ * LA COLONNE DE CONTENU DE LA PAGE — une seule, pour toutes ses sections.
+ * Elles étaient centrées à quatre largeurs différentes, si bien que le
+ * contenu commençait à quatre abscisses différentes selon la section.
+ */
+const COLONNE = "lg:col-start-4 lg:col-span-9";
+
 export function PageMetier({
   locale,
   contenu,
@@ -108,14 +116,14 @@ export function PageMetier({
   );
 
   return (
-    <>
+    <div className="editorial">
       <Mouvement />
 
       {/* PREMIER ÉCRAN — le propos du métier à gauche, ce qui attend une
           action à droite. Les colonnes s'alignent en haut : le titre est
           très grand, l'aligner au milieu le ferait flotter au-dessus du vide. */}
       <section className="border-b border-border">
-        <Container largeur="large" className="py-12 sm:py-14 lg:py-12">
+        <div className="editorial-conteneur py-12 sm:py-14 lg:py-12">
           <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
             <div data-entree className="min-w-0 lg:col-span-7">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -131,28 +139,31 @@ export function PageMetier({
               <p className="mesure mt-4 text-sm text-muted-foreground">{mentionEcrans}</p>
             </div>
           </div>
-        </Container>
+        </div>
       </section>
 
-      <Section intitule={contenu.coince.intitule} titre={contenu.coince.titre} bordered={false}>
+      <SectionEditoriale numero="01" intitule={contenu.coince.intitule} titre={contenu.coince.titre} largeurContenu={COLONNE}>
         <ListeNumerotee elements={contenu.coince.elements} />
-      </Section>
+      </SectionEditoriale>
 
-      <Section
+      <SectionEditoriale
+        numero="02"
         intitule={contenu.reponse.intitule}
         titre={contenu.reponse.titre}
         chapo={contenu.reponse.chapo}
         ton="doux"
+        largeurContenu={COLONNE}
       >
         <ListeNumerotee elements={contenu.reponse.elements} />
-      </Section>
+      </SectionEditoriale>
 
       {/* LES INDICATEURS — la liste de ce métier, et l'écran où on les lit. */}
-      <Section
+      <SectionEditoriale
+        numero="03"
         intitule={contenu.indicateurs.intitule}
         titre={contenu.indicateurs.titre}
         chapo={contenu.indicateurs.chapo}
-        largeur="large"
+        largeurContenu={COLONNE}
       >
         <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
           <div data-entree className="min-w-0 lg:col-span-5">
@@ -167,15 +178,16 @@ export function PageMetier({
             <EcranTableauDeBord ecran={ecrans.tableauDeBord} />
           </div>
         </div>
-      </Section>
+      </SectionEditoriale>
 
       {/* CE QU'ON ÉCRIT, ET À QUI — en face des règles qui l'écrivent. */}
-      <Section
+      <SectionEditoriale
+        numero="04"
         intitule={contenu.communication.intitule}
         titre={contenu.communication.titre}
         chapo={contenu.communication.chapo}
-        largeur="large"
         ton="doux"
+        largeurContenu={COLONNE}
       >
         <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
           <div className="flex min-w-0 flex-col gap-12 lg:col-span-7">
@@ -217,13 +229,14 @@ export function PageMetier({
             <EcranRegles ecran={ecrans.regles} />
           </div>
         </div>
-      </Section>
+      </SectionEditoriale>
 
-      <Section
+      <SectionEditoriale
+        numero="05"
         intitule={contenu.conformite.intitule}
         titre={contenu.conformite.titre}
         chapo={contenu.conformite.chapo}
-        largeur="lisible"
+        largeurContenu={COLONNE}
       >
         <dl className="grille-cartes grille-large" data-colonnes="2">
           {contenu.conformite.elements.map((element, rang) => (
@@ -236,13 +249,13 @@ export function PageMetier({
         {/* L'avertissement est du texte, pas un encart alarmant : il dit une limite, il ne signale pas un danger. */}
         <p
           data-entree
-          className="mt-12 max-w-3xl border-l-2 border-border pl-6 text-sm leading-relaxed text-muted-foreground"
+          className="mesure mt-12 border-l border-border pl-6 text-sm leading-relaxed text-muted-foreground"
         >
           {contenu.conformite.avertissement}
         </p>
-      </Section>
+      </SectionEditoriale>
 
-      <Section intitule={contenu.perimetre.intitule} titre={contenu.perimetre.titre} largeur="etroite">
+      <SectionEditoriale numero="06" intitule={contenu.perimetre.intitule} titre={contenu.perimetre.titre} ton="doux" largeurContenu={COLONNE}>
         <ul className="flex flex-col gap-4">
           {contenu.perimetre.elements.map((element, rang) => (
             <li key={element} data-entree data-rang={rang} className="flex gap-4 text-base leading-relaxed">
@@ -251,17 +264,22 @@ export function PageMetier({
             </li>
           ))}
         </ul>
-      </Section>
+      </SectionEditoriale>
 
-      <Section>
-        <div data-entree className="rounded-xl border border-border bg-card px-6 py-16 sm:px-12">
-          <div className="max-w-3xl">
+      <section className="border-t border-border py-20 sm:py-28 lg:py-36">
+        <div className="editorial-conteneur">
+          <div className="grid grid-cols-12 gap-x-6">
+            <div
+              data-entree
+              className="col-span-12 rounded-xl border border-border bg-card px-6 py-16 sm:px-12 lg:col-start-4 lg:col-span-9"
+            >
             <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(contenu.final.titre)}</h2>
             <p className="mt-6 text-pretty text-chapo text-muted-foreground">{contenu.final.texte}</p>
-            <div className="mt-8">{appels}</div>
+              <div className="mt-8">{appels}</div>
+            </div>
           </div>
         </div>
-      </Section>
-    </>
+      </section>
+    </div>
   );
 }

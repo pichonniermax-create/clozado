@@ -51,7 +51,7 @@ export function EcranChronologie({
     <Cadre nom={ecran.nom} resume={ecran.resume} legende={ecran.legende} className={className}>
       <div className="flex items-baseline justify-between gap-4 border-b border-border px-4 py-3 sm:px-5">
         <p className="ecran-mention">{ecran.ancienneteLibelle}</p>
-        <p className="tabulaire text-lg font-semibold text-foreground">{ecran.ancienneteValeur}</p>
+        <p className="tabulaire text-xl font-semibold text-foreground">{ecran.ancienneteValeur}</p>
       </div>
       <ol className="px-4 py-4 sm:px-5">
         {ecran.etapes.map((etape, rang) => (
@@ -138,7 +138,7 @@ export function EcranTableauCourtage({
                 <td className="ecran-cellule text-right text-muted-foreground">{ligne.ancien}</td>
               </tr>
             ))}
-            <tr className="border-t-2 border-border bg-muted/60">
+            <tr className="border-t border-border bg-muted/60">
               <th scope="row" className="ecran-cellule font-semibold text-foreground">{ecran.banques.total.nom}</th>
               <td className="ecran-cellule text-right font-semibold text-foreground">{ecran.banques.total.dossiers}</td>
               <td className="ecran-cellule text-right font-semibold text-foreground">{ecran.banques.total.moyen}</td>
@@ -169,7 +169,7 @@ export function EcranTableauCourtage({
                   <td className="ecran-cellule text-right text-foreground">{ligne.montant}</td>
                 </tr>
               ))}
-              <tr className="border-t-2 border-border bg-muted/60">
+              <tr className="border-t border-border bg-muted/60">
                 <th scope="row" className="ecran-cellule font-semibold text-foreground">{ecran.commissions.total.nom}</th>
                 <td className="ecran-cellule text-right font-semibold text-foreground">{ecran.commissions.total.dossiers}</td>
                 <td className="ecran-cellule text-right font-semibold text-foreground">{ecran.commissions.total.montant}</td>

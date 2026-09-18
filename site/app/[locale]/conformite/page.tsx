@@ -89,7 +89,7 @@ export default async function Conformite(props: PageProps<"/[locale]/conformite"
         ton="doux"
         largeurContenu="lg:col-start-4 lg:col-span-7"
       >
-        <p data-entree className="mesure border-l-2 border-border pl-6 leading-relaxed text-muted-foreground">
+        <p data-entree className="mesure border-l border-border pl-6 leading-relaxed text-muted-foreground">
           {conformite.limite.texte}
         </p>
       </SectionEditoriale>
@@ -99,7 +99,7 @@ export default async function Conformite(props: PageProps<"/[locale]/conformite"
           <div className="grid grid-cols-12 gap-x-6">
             <div
               data-entree
-              className="col-span-12 rounded-xl border border-border bg-card px-6 py-16 sm:px-12 lg:col-start-3 lg:col-span-10"
+              className="col-span-12 rounded-xl border border-border bg-card px-6 py-16 sm:px-12 lg:col-start-4 lg:col-span-9"
             >
               <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(conformite.final.titre)}</h2>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{conformite.final.texte}</p>

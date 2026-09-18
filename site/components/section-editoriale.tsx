@@ -49,7 +49,11 @@ export function SectionEditoriale({
             </p>
           )}
           {aEnTete && (
-            <header data-entree data-rang={1} className={cn("col-span-12", numero && "lg:col-start-4 lg:col-span-8")}>
+            <header
+              data-entree
+              data-rang={1}
+              className={cn("col-span-12", numero ? "lg:col-start-4 lg:col-span-8" : largeurContenu)}
+            >
               {intitule && <p className="label">{intitule}</p>}
               {titre && <h2 className="mt-6 text-balance text-titre-2 text-foreground">{sansOrphelin(titre)}</h2>}
               {chapo && <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{chapo}</p>}

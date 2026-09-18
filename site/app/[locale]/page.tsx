@@ -144,7 +144,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
         intitule={accueil.preuves.intitule}
         titre={accueil.preuves.titre}
         ton="doux"
-        largeurContenu="lg:col-start-2 lg:col-span-11"
+        largeurContenu="lg:col-start-4 lg:col-span-9"
       >
         <div className="flex flex-col gap-20 lg:gap-32">
           {accueil.preuves.elements.map((preuve, index) => (
@@ -283,7 +283,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
           <div className="grid grid-cols-12 gap-x-6">
             <div
               data-entree
-              className="col-span-12 rounded-xl border border-border bg-card px-6 py-16 sm:px-12 lg:col-start-3 lg:col-span-10"
+              className="col-span-12 rounded-xl border border-border bg-card px-6 py-16 sm:px-12 lg:col-start-4 lg:col-span-9"
             >
               <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(accueil.final.titre)}</h2>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{accueil.final.texte}</p>
