@@ -69,7 +69,7 @@ export function Section({
     >
       <Container largeur={largeur}>
         {aEnTete && (
-          <header className="max-w-2xl">
+          <header data-entree className="max-w-2xl">
             {intitule && (
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{intitule}</p>
             )}
@@ -88,7 +88,10 @@ export function Section({
 /** Une carte de contenu : le même fond, le même filet et le même rayon partout. */
 export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("rounded-xl border border-border bg-card p-6 text-card-foreground", className)}>{children}</div>
+    <div className={cn(
+      "rounded-xl border border-border bg-card p-6 text-card-foreground transition-colors duration-200 ease-out hover:border-primary",
+      className
+    )}>{children}</div>
   );
 }
 

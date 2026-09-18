@@ -112,3 +112,247 @@
     }
   }
 }
+
+/*
+ * LE MOUVEMENT — accueil seulement, et seulement si JavaScript répond.
+ *
+ * Tout ce qui suit est conditionné par `[data-mouvement]`, posé sur
+ * `<html>` par un script synchrone au tout début de la page d'accueil.
+ * Sans JavaScript, l'attribut n'existe pas : rien n'est masqué, rien
+ * n'attend, la page est celle d'avant. C'est la règle qui rend ces
+ * animations sûres — un bloc caché par CSS qu'aucun script ne révèle
+ * serait une page blanche.
+ *
+ * RIEN NE BOUGE POUR DÉCORER. L'entrée montre qu'un bloc arrive, la
+ * cascade montre qu'une liste se remplit, un compteur montre qu'un nombre
+ * est compté, une barre montre une proportion, l'en-tête montre qu'on a
+ * quitté le haut de la page. Aucune boucle, sauf le cycle des onglets, qui
+ * montre qu'il y a trois écrans à voir.
+ *
+ * Toutes les durées tiennent entre 150 et 250 ms, en `ease-out` — sauf les
+ * compteurs et les barres (600 ms), qui ne sont pas des transitions d'état
+ * mais la lecture d'une valeur.
+ */
+@layer components {
+  /* 1. L'ENTRÉE AU SCROLL. `--delai` porte la cascade entre voisins. */
+  [data-mouvement] [data-entree] {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  [data-mouvement] [data-entree].est-visible {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 220ms ease-out var(--delai, 0ms),
+      transform 220ms ease-out var(--delai, 0ms);
+  }
+
+  /* 2. L'EN-TÊTE. Au-delà de 80 px, elle se resserre et pose son filet. */
+  .entete {
+    border-bottom-color: transparent;
+    transition: border-color 200ms ease-out;
+  }
+  [data-defile] .entete {
+    border-bottom-color: var(--border);
+  }
+  .entete-rangee {
+    height: 4rem;
+    transition: height 200ms ease-out;
+  }
+  [data-defile] .entete-rangee {
+    height: 3.25rem;
+  }
+
+  /* Le souligné d'un lien de navigation : il pousse depuis la gauche, et
+     reste posé sur la page où l'on est (`aria-current`). */
+  .lien-nav {
+    position: relative;
+  }
+  .lien-nav::after {
+    content: "";
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.375rem;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--primary);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 180ms ease-out;
+  }
+  .lien-nav:hover::after,
+  .lien-nav:focus-visible::after,
+  .lien-nav[aria-current="page"]::after {
+    transform: scaleX(1);
+  }
+
+  /* 3. LES ÉCRANS. Les lignes se posent l'une après l'autre, les barres du
+     funnel se remplissent de la gauche vers la droite. */
+  [data-mouvement] [data-ligne] {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  [data-mouvement] [data-ligne].est-visible {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 200ms ease-out var(--delai, 0ms),
+      transform 200ms ease-out var(--delai, 0ms);
+  }
+  .barre-passage {
+    display: block;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--foreground);
+    opacity: 0.18;
+    width: var(--part, 0%);
+  }
+  [data-mouvement] .barre-passage {
+    width: 0;
+    transition: width 600ms ease-out var(--delai, 0ms);
+  }
+  [data-mouvement] .est-anime .barre-passage {
+    width: var(--part, 0%);
+  }
+
+  /* 4. LE CYCLE DES ONGLETS. Les trois vues sont empilées dans la même
+     case de grille : la hauteur ne saute pas d'une vue à l'autre. */
+  /* La liste d'onglets n'existe QUE si le script répond : sans lui, elle
+     serait une rangée de boutons morts — un piège au clavier. Sans script,
+     la première vue reste seule affichée, et la page se lit entière. */
+  .liste-onglets {
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  [data-mouvement] .liste-onglets {
+    display: flex;
+  }
+  [data-mouvement] .liste-onglets + .pile-vues {
+    margin-top: 1rem;
+  }
+
+  /* Les vues empilées doivent pouvoir rétrécir : un élément de grille a
+     `min-width: auto`, et le tableau du funnel poussait sinon toute la page
+     à sa largeur minimale sur un téléphone. */
+  .pile-vues {
+    display: grid;
+    min-width: 0;
+  }
+  .pile-vues > * {
+    grid-area: 1 / 1;
+    min-width: 0;
+  }
+  .vue {
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 200ms ease-out,
+      visibility 0s linear 200ms;
+  }
+  .vue[data-actif="oui"] {
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity 200ms ease-out,
+      visibility 0s;
+  }
+
+  /*
+   * LE MOUVEMENT RÉDUIT. Demandé par le système, tout devient instantané :
+   * aucune transition, aucun décalage, et le cycle des onglets ne démarre
+   * pas (c'est le composant qui le tient) — il se fige sur sa première vue.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    [data-mouvement] [data-entree],
+    [data-mouvement] [data-ligne] {
+      opacity: 1;
+      transform: none;
+    }
+    [data-mouvement] [data-entree],
+    [data-mouvement] [data-entree].est-visible,
+    [data-mouvement] [data-ligne],
+    [data-mouvement] [data-ligne].est-visible,
+    .entete,
+    .entete-rangee,
+    .lien-nav::after,
+    .vue,
+    [data-mouvement] .barre-passage {
+      transition: none;
+    }
+    [data-mouvement] .barre-passage {
+      width: var(--part, 0%);
+    }
+  }
+}
+
+/*
+ * LES CLASSES DES ÉCRANS REDESSINÉS.
+ *
+ * Ces blocs répètent les mêmes quinze utilitaires sur des dizaines de
+ * lignes, et chaque page les paie DEUX FOIS : une fois dans le HTML, une
+ * fois dans la charge d'hydratation que Next sérialise à côté. Les nommer
+ * ici les paie une seule fois, dans la feuille de style mise en cache.
+ * `@apply` garde la source unique : ce sont les mêmes jetons.
+ */
+@layer components {
+  .ecran-cadre {
+    @apply overflow-hidden rounded-xl border border-border bg-card;
+  }
+  .ecran-entete {
+    @apply flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border px-4 py-4 sm:px-5;
+  }
+  .ecran-pile-entete {
+    @apply flex flex-wrap items-center gap-x-3 gap-y-1 bg-muted/60 px-4 py-3 sm:px-5;
+  }
+  .ecran-nom {
+    @apply text-sm font-semibold text-foreground;
+  }
+  .ecran-resume {
+    @apply text-sm text-muted-foreground;
+  }
+  .ecran-ligne {
+    @apply flex items-center gap-4 border-b border-border px-4 py-3 transition-colors duration-200 ease-out last:border-b-0 hover:border-primary sm:px-5;
+  }
+  .ecran-ligne-bloc {
+    @apply border-b border-border px-4 py-4 transition-colors duration-200 ease-out last:border-b-0 hover:border-primary sm:px-5;
+  }
+  .ecran-ligne-titre {
+    @apply truncate text-sm font-medium text-foreground;
+  }
+  .ecran-ligne-detail {
+    @apply mt-1 truncate text-xs tabular-nums text-muted-foreground;
+  }
+  .ecran-mention {
+    @apply text-xs text-muted-foreground;
+  }
+  .ecran-tuile {
+    @apply bg-card px-4 py-4 sm:px-5;
+  }
+  .ecran-tuile-valeur {
+    @apply mt-2 text-2xl font-bold tabular-nums tracking-tight text-foreground;
+  }
+  .ecran-compte {
+    @apply rounded-full bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums text-foreground;
+  }
+  .faux-bouton {
+    @apply inline-flex shrink-0 items-center rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground;
+  }
+  .faux-bouton-plein {
+    @apply border-transparent bg-primary text-primary-foreground;
+  }
+  .ecran-col {
+    @apply px-4 py-3 text-xs font-semibold text-muted-foreground sm:px-5;
+  }
+  .ecran-cellule {
+    @apply px-4 py-3 text-sm tabular-nums sm:px-5;
+  }
+  .ecran-rangee {
+    @apply border-b border-border transition-colors duration-200 ease-out last:border-b-0 hover:border-primary;
+  }
+  .piste-passage {
+    @apply mt-1 ml-auto block h-[3px] w-24 rounded-full bg-border;
+  }
+}

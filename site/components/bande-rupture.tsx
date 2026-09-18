@@ -22,11 +22,11 @@ export function BandeRupture({
   return (
     <section className="border-y border-border bg-card py-20 sm:py-24 lg:py-32">
       <Container largeur="large">
-        <h2 className="max-w-5xl text-balance text-titre-2 text-foreground">{titre}</h2>
-        <div aria-hidden className="mt-8 h-1 w-16 rounded-full bg-primary" />
+        <h2 data-entree className="max-w-5xl text-balance text-titre-2 text-foreground">{titre}</h2>
+        <div aria-hidden data-entree data-rang={1} className="mt-8 h-1 w-16 rounded-full bg-primary" />
         <dl className="mt-12 grid gap-8 sm:grid-cols-3 sm:gap-12">
-          {elements.map((element) => (
-            <div key={element.titre} className="border-t border-border pt-6">
+          {elements.map((element, rang) => (
+            <div key={element.titre} data-entree data-rang={rang + 2} className="border-t border-border pt-6">
               <dt className="font-semibold text-foreground">{element.titre}</dt>
               <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{element.texte}</dd>
             </div>

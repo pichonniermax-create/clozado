@@ -104,6 +104,14 @@ export const accueil = {
    * Règle tenue : ce qui se lit à l'écran vit ici, jamais dans un composant.
    */
   ecrans: {
+    /** Les trois vues du premier écran, et le nom de leur groupe pour les lecteurs d'écran. */
+    onglets: {
+      libelleListe: "Choisir un écran du produit",
+      suivi: "Suivi",
+      tableauDeBord: "Tableau de bord",
+      funnel: "Funnel",
+    },
+
     suivi: {
       nom: "Suivi",
       resume: "14 éléments attendent une action : relances, dossiers sans suite, commissions dues.",

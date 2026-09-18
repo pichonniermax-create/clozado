@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { ActionLink } from "@/components/action-link";
 import { BandeRupture } from "@/components/bande-rupture";
 import { EcranFunnel, EcranRegles, EcranSuivi, EcranTableauDeBord } from "@/components/ecran-produit";
+import { EcransOnglets } from "@/components/ecrans-onglets";
+import { MiseEnMouvement } from "@/components/mise-en-mouvement";
 import { Card, Container, Puce, Section } from "@/components/layout-primitives";
 import { References } from "@/components/references";
 import { getDictionary, isLocale } from "@/lib/i18n";
@@ -39,6 +41,12 @@ export async function generateMetadata(props: PageProps<"/[locale]">): Promise<M
  * côté, une rupture pleine largeur sur fond blanc, puis des sections de plus
  * en plus étroites à mesure que le propos devient dense.
  *
+ * LE MOUVEMENT est propre à cette page : un attribut posé sur `<html>` par
+ * le script en tête de page arme le CSS (`app/globals.css`), et
+ * `MiseEnMouvement` pose les observateurs. Sans JavaScript, l'attribut
+ * n'existe pas et la page est exactement celle d'avant : rien n'est caché
+ * en attendant un script.
+ *
  * Aucun texte n'est écrit ici : tout vient de `content/<langue>/accueil.ts`.
  */
 export default async function Accueil(props: PageProps<"/[locale]">) {
@@ -57,6 +65,25 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
     </div>
   );
 
+  /** Les trois vues du premier écran, sous leurs onglets. */
+  const vues = [
+    {
+      cle: "suivi",
+      libelle: accueil.ecrans.onglets.suivi,
+      contenu: <EcranSuivi ecran={accueil.ecrans.suivi} sansLegende />,
+    },
+    {
+      cle: "tableau-de-bord",
+      libelle: accueil.ecrans.onglets.tableauDeBord,
+      contenu: <EcranTableauDeBord ecran={accueil.ecrans.tableauDeBord} sansLegende />,
+    },
+    {
+      cle: "funnel",
+      libelle: accueil.ecrans.onglets.funnel,
+      contenu: <EcranFunnel ecran={accueil.ecrans.funnel} sansLegende />,
+    },
+  ];
+
   /** L'écran qui prouve une affirmation. Chaque preuve porte la clé du sien. */
   const ecranDe = (cle: (typeof accueil.preuves.elements)[number]["cle"]) => {
     switch (cle) {
@@ -71,13 +98,18 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
 
   return (
     <>
+      {/* Le drapeau du mouvement, posé AVANT que le corps ne soit peint :
+          c'est lui qui arme le CSS des entrées. S'il ne s'exécute pas, rien
+          n'est masqué — la page reste celle du serveur. */}
+      <script dangerouslySetInnerHTML={{ __html: 'document.documentElement.dataset.mouvement="1"' }} />
+
       {/* PREMIER ÉCRAN — le propos à gauche, l'écran du produit à droite.
           Les deux colonnes s'alignent en haut : le titre est très grand, et
           un alignement au milieu le ferait flotter au-dessus du vide. */}
       <section className="border-b border-border">
         <Container largeur="large" className="py-16 sm:py-24 lg:py-28">
           <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
-            <div className="min-w-0 lg:col-span-6">
+            <div data-entree className="min-w-0 lg:col-span-6">
               {/* Pas de `text-balance` sur un titre de quatre lignes : il égalise
                   les longueurs et produit un pavé en escalier. */}
               <h1 className="text-titre-1 text-foreground">{accueil.hero.titre}</h1>
@@ -87,8 +119,8 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
               <p className="mt-4 text-sm text-muted-foreground">{accueil.hero.note}</p>
             </div>
 
-            <div className="min-w-0 lg:col-span-6">
-              <EcranSuivi ecran={accueil.ecrans.suivi} sansLegende />
+            <div data-entree data-rang={1} className="min-w-0 lg:col-span-6">
+              <EcransOnglets vues={vues} libelleListe={accueil.ecrans.onglets.libelleListe} />
               <p className="mt-4 text-sm text-muted-foreground">{accueil.mentionEcrans}</p>
             </div>
           </div>
@@ -97,8 +129,8 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
 
       <Section intitule={accueil.probleme.intitule} titre={accueil.probleme.titre} bordered={false}>
         <ul className="grid gap-4 sm:grid-cols-3">
-          {accueil.probleme.elements.map((element) => (
-            <li key={element.titre}>
+          {accueil.probleme.elements.map((element, rang) => (
+            <li key={element.titre} data-entree data-rang={rang}>
               <Card className="h-full">
                 <h3 className="text-xl font-bold tracking-tight text-foreground">{element.titre}</h3>
                 <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
@@ -113,7 +145,10 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
         <div className="flex flex-col gap-20 lg:gap-28">
           {accueil.preuves.elements.map((preuve, index) => (
             <div key={preuve.cle} className="grid items-center gap-8 lg:grid-cols-12 lg:gap-16">
-              <div className={index % 2 === 1 ? "min-w-0 lg:order-2 lg:col-span-5" : "min-w-0 lg:col-span-5"}>
+              <div
+                data-entree
+                className={index % 2 === 1 ? "min-w-0 lg:order-2 lg:col-span-5" : "min-w-0 lg:col-span-5"}
+              >
                 <h3 className="text-balance text-titre-3 text-foreground">{preuve.titre}</h3>
                 <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">{preuve.texte}</p>
                 <ul className="mt-8 flex flex-col gap-4">
@@ -125,7 +160,13 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
                   ))}
                 </ul>
               </div>
-              <div className={index % 2 === 1 ? "min-w-0 lg:order-1 lg:col-span-7" : "min-w-0 lg:col-span-7"}>{ecranDe(preuve.cle)}</div>
+              <div
+                data-entree
+                data-rang={1}
+                className={index % 2 === 1 ? "min-w-0 lg:order-1 lg:col-span-7" : "min-w-0 lg:col-span-7"}
+              >
+                {ecranDe(preuve.cle)}
+              </div>
             </div>
           ))}
         </div>
@@ -135,8 +176,8 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
 
       <Section intitule={accueil.reste.intitule} titre={accueil.reste.titre} bordered={false}>
         <ul className="grid gap-4 sm:grid-cols-3">
-          {accueil.reste.elements.map((element) => (
-            <li key={element.titre}>
+          {accueil.reste.elements.map((element, rang) => (
+            <li key={element.titre} data-entree data-rang={rang}>
               <Card className="h-full">
                 <h3 className="text-xl font-bold tracking-tight text-foreground">{element.titre}</h3>
                 <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
@@ -148,7 +189,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
 
       <Section intitule={accueil.pourQui.intitule} titre={accueil.pourQui.titre} chapo={accueil.pourQui.chapo}>
         <ul className="grid gap-4 sm:grid-cols-3">
-          {accueil.pourQui.elements.map((element) => {
+          {accueil.pourQui.elements.map((element, rang) => {
             const corps = (
               <>
                 <h3 className="text-xl font-bold tracking-tight text-foreground">{element.titre}</h3>
@@ -157,7 +198,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
             );
             // La carte n'est cliquable que si sa page existe : le site n'a jamais de lien mort.
             return (
-              <li key={element.cle}>
+              <li key={element.cle} data-entree data-rang={rang}>
                 {ROUTES[element.cle].built ? (
                   <Link
                     href={path(locale, element.cle)}
@@ -185,8 +226,8 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
         ton="doux"
       >
         <dl className="grid gap-x-12 gap-y-10 sm:grid-cols-2">
-          {accueil.conformite.elements.map((element) => (
-            <div key={element.titre}>
+          {accueil.conformite.elements.map((element, rang) => (
+            <div key={element.titre} data-entree data-rang={rang}>
               <dt className="font-semibold text-foreground">{element.titre}</dt>
               <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{element.texte}</dd>
             </div>
@@ -196,8 +237,8 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
 
       <Section intitule={accueil.perimetre.intitule} titre={accueil.perimetre.titre} largeur="etroite">
         <ul className="flex flex-col gap-4">
-          {accueil.perimetre.elements.map((element) => (
-            <li key={element} className="flex gap-4 text-base leading-relaxed">
+          {accueil.perimetre.elements.map((element, rang) => (
+            <li key={element} data-entree data-rang={rang} className="flex gap-4 text-base leading-relaxed">
               <Puce />
               <span className="text-muted-foreground">{element}</span>
             </li>
@@ -208,7 +249,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
       <References locale={locale} />
 
       <Section>
-        <div className="rounded-xl border border-border bg-card px-6 py-16 sm:px-12">
+        <div data-entree className="rounded-xl border border-border bg-card px-6 py-16 sm:px-12">
           <div className="max-w-3xl">
             <h2 className="text-balance text-titre-2 text-foreground">{accueil.final.titre}</h2>
             <p className="mt-6 text-pretty text-chapo text-muted-foreground">{accueil.final.texte}</p>
@@ -216,6 +257,8 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
           </div>
         </div>
       </Section>
+
+      <MiseEnMouvement />
     </>
   );
 }

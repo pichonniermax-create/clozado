@@ -30,6 +30,16 @@ fichier, ni build : un déploiement de l'un ne peut pas casser l'autre.
   décorative, aucun dégradé de texte.
 - **Les formes** : un bouton est une pilule (rayon plein), une carte a
   16 px de rayon, et tout espacement est un multiple de 4 px.
+- **Le mouvement** (accueil seulement) tient en deux fichiers :
+  `app/globals.css` pour les transitions, `lib/mouvement.ts` pour les
+  observateurs. Aucune librairie d'animation. Tout est conditionné par
+  `[data-mouvement]`, posé sur `<html>` par un script synchrone en tête de
+  page : **sans JavaScript, rien n'est masqué et rien n'attend**. Chaque
+  entrée ne joue qu'une fois — la cible est retirée de l'observateur —, les
+  durées tiennent entre 150 et 250 ms, et `prefers-reduced-motion` rend tout
+  instantané, cycle des onglets compris (il ne démarre pas). Un contrôle qui
+  ne marcherait pas sans script (la liste d'onglets) n'est affiché que si le
+  script répond.
 - **Aucun texte dans le code.** Tout ce qui se lit à l'écran vit dans
   `content/<langue>/`. Le français est la langue de référence : sa forme
   est le contrat auquel toute autre langue devra se conformer.

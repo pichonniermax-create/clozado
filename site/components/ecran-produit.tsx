@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { cn } from "@/lib/cn";
 
 /**
@@ -13,6 +14,13 @@ import { cn } from "@/lib/cn";
  * `<button>` — un bouton mort dans une page est un piège au clavier. La
  * légende de chaque écran dit que c'est une reproduction, et la page dit
  * une fois que les données viennent du cabinet fictif de la démonstration.
+ *
+ * LE MOUVEMENT (accueil seulement) est porté par des ATTRIBUTS, pas par du
+ * script ici : `data-ecran` marque la zone qu'on anime à son entrée dans
+ * l'écran, `data-ligne` les lignes qui se posent en cascade, `data-compteur`
+ * les nombres qui se comptent, et `--part` la largeur que rejoint une barre.
+ * Hors de l'accueil — donc sans `[data-mouvement]` sur `<html>` — ces
+ * attributs ne font rien du tout : le CSS qui les anime ne s'applique pas.
  *
  * Aucun mot n'est écrit ici : tout vient de `content/<langue>/accueil.ts`.
  */
@@ -36,10 +44,10 @@ function Cadre({
 }) {
   return (
     <figure className={cn("flex flex-col gap-4", className)}>
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border px-4 py-4 sm:px-5">
-          <p className="text-sm font-semibold text-foreground">{nom}</p>
-          <p className="text-sm text-muted-foreground">{resume}</p>
+      <div data-ecran className="ecran-cadre">
+        <header className="ecran-entete">
+          <p className="ecran-nom">{nom}</p>
+          <p className="ecran-resume">{resume}</p>
         </header>
         {children}
       </div>
@@ -48,12 +56,44 @@ function Cadre({
   );
 }
 
+/**
+ * Un nombre qui se compte. La partie chiffrée est isolée du reste (« 4 476 »
+ * dans « 4 476 € ») : c'est elle qui monte, l'unité ne clignote pas.
+ */
+function Nombre({ valeur }: { valeur: string }) {
+  const morceaux = valeur.match(/^(\D*)([\d\s ]*\d)(.*)$/);
+  if (!morceaux) return <>{valeur}</>;
+  const [, avant, nombre, apres] = morceaux;
+  return (
+    <>
+      {avant}
+      <span data-compteur={nombre.replace(/\D/g, "")}>{nombre}</span>
+      {apres}
+    </>
+  );
+}
+
+/**
+ * Les durées en jours d'une ligne (« sans réponse depuis 24 j ») montent
+ * elles aussi. Les dates, elles, n'y touchent pas : seul un nombre SUIVI
+ * d'un « j » est un compteur.
+ */
+function avecJours(texte: string) {
+  return texte.split(/(\d+(?=\s*j\b))/g).map((morceau, rang) =>
+    rang % 2 === 1 ? (
+      <span key={rang} data-compteur={morceau}>
+        {morceau}
+      </span>
+    ) : (
+      morceau
+    )
+  );
+}
+
 /** Une pastille de comptage — un nombre, pas un badge de couleur. */
 function Compte({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums text-foreground">
-      {children}
-    </span>
+<span className="ecran-compte">{children}</span>
   );
 }
 
@@ -61,12 +101,7 @@ function Compte({ children }: { children: React.ReactNode }) {
 function FauxBouton({ children, plein = false }: { children: React.ReactNode; plein?: boolean }) {
   return (
     <span
-      className={cn(
-        "inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium",
-        plein
-          ? "bg-primary text-primary-foreground"
-          : "border border-border bg-card text-foreground"
-      )}
+      className={cn("faux-bouton", plein && "faux-bouton-plein")}
     >
       {children}
     </span>
@@ -75,10 +110,13 @@ function FauxBouton({ children, plein = false }: { children: React.ReactNode; pl
 
 function LigneEcran({ ligne }: { ligne: Ligne }) {
   return (
-    <li className="flex items-center gap-4 border-b border-border px-4 py-3 last:border-b-0 sm:px-5">
+    <li
+      data-ligne
+      className="ecran-ligne"
+    >
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-foreground">{ligne.titre}</p>
-        <p className="mt-1 truncate text-xs text-muted-foreground">{ligne.detail}</p>
+        <p className="ecran-ligne-titre">{ligne.titre}</p>
+        <p className="ecran-ligne-detail">{avecJours(ligne.detail)}</p>
       </div>
       {ligne.action && <FauxBouton>{ligne.action}</FauxBouton>}
     </li>
@@ -113,10 +151,12 @@ export function EcranSuivi({
     >
       {ecran.piles.map((pile) => (
         <section key={pile.titre} className="border-b border-border last:border-b-0">
-          <header className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-muted/60 px-4 py-3 sm:px-5">
-            <p className="text-sm font-semibold text-foreground">{pile.titre}</p>
-            <Compte>{pile.compte}</Compte>
-            <p className="w-full text-xs text-muted-foreground sm:w-auto">{pile.precision}</p>
+          <header className="ecran-pile-entete">
+            <p className="ecran-nom">{pile.titre}</p>
+            <Compte>
+              <Nombre valeur={pile.compte} />
+            </Compte>
+            <p className="ecran-mention w-full sm:w-auto">{pile.precision}</p>
           </header>
           <ul>
             {pile.lignes.map((ligne) => (
@@ -131,6 +171,7 @@ export function EcranSuivi({
 
 export function EcranTableauDeBord({
   ecran,
+  sansLegende = false,
   className,
 }: {
   ecran: {
@@ -141,22 +182,30 @@ export function EcranTableauDeBord({
     readonly listeTitre: string;
     readonly lignes: readonly Ligne[];
   };
+  sansLegende?: boolean;
   className?: string;
 }) {
   return (
-    <Cadre nom={ecran.nom} resume={ecran.resume} legende={ecran.legende} className={className}>
+    <Cadre
+      nom={ecran.nom}
+      resume={ecran.resume}
+      legende={sansLegende ? undefined : ecran.legende}
+      className={className}
+    >
       <div className="grid grid-cols-2 gap-px bg-border lg:grid-cols-4">
         {ecran.tuiles.map((tuile) => (
-          <div key={tuile.libelle} className="bg-card px-4 py-4 sm:px-5">
-            <p className="text-xs text-muted-foreground">{tuile.libelle}</p>
-            <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-foreground">{tuile.valeur}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{tuile.precision}</p>
+          <div key={tuile.libelle} className="ecran-tuile">
+            <p className="ecran-mention">{tuile.libelle}</p>
+            <p className="ecran-tuile-valeur">
+              <Nombre valeur={tuile.valeur} />
+            </p>
+            <p className="ecran-mention mt-1">{tuile.precision}</p>
           </div>
         ))}
       </div>
       <section className="border-t border-border">
-        <header className="bg-muted/60 px-4 py-3 sm:px-5">
-          <p className="text-sm font-semibold text-foreground">{ecran.listeTitre}</p>
+        <header className="ecran-pile-entete">
+          <p className="ecran-nom">{ecran.listeTitre}</p>
         </header>
         <ul>
           {ecran.lignes.map((ligne) => (
@@ -187,16 +236,22 @@ export function EcranRegles({
           geste qui envoie quelque chose. Le produit ne montre rien d'autre ici. */}
       <div className="flex flex-wrap items-center gap-4 border-b border-border bg-primary-soft px-4 py-4 sm:px-5">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground">{ecran.vague.titre}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{ecran.vague.precision}</p>
+          <p className="ecran-nom">
+            <Nombre valeur={ecran.vague.titre} />
+          </p>
+          <p className="ecran-mention mt-1">{ecran.vague.precision}</p>
         </div>
         <FauxBouton plein>{ecran.vague.action}</FauxBouton>
       </div>
       <ul>
         {ecran.lignes.map((ligne) => (
-          <li key={ligne.phrase} className="border-b border-border px-4 py-4 last:border-b-0 sm:px-5">
-            <p className="text-sm font-medium text-foreground">{ligne.phrase}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{ligne.detail}</p>
+          <li
+            key={ligne.phrase}
+            data-ligne
+            className="ecran-ligne-bloc"
+          >
+            <p className="ecran-ligne-titre">{ligne.phrase}</p>
+            <p className="ecran-mention mt-1">{ligne.detail}</p>
           </li>
         ))}
       </ul>
@@ -204,8 +259,15 @@ export function EcranRegles({
   );
 }
 
+/** « 32,1 % » → « 32.1% », la largeur que rejoint la barre. Sans taux, pas de barre. */
+function part(taux: string): string | undefined {
+  const nombre = taux.replace(",", ".").match(/[\d.]+/)?.[0];
+  return nombre ? `${nombre}%` : undefined;
+}
+
 export function EcranFunnel({
   ecran,
+  sansLegende = false,
   className,
 }: {
   ecran: {
@@ -220,43 +282,67 @@ export function EcranFunnel({
       readonly perte: string;
     }[];
   };
+  sansLegende?: boolean;
   className?: string;
 }) {
-  const entete = "px-4 py-3 text-xs font-semibold text-muted-foreground sm:px-5";
-  const cellule = "px-4 py-3 text-sm tabular-nums sm:px-5";
   return (
-    <Cadre nom={ecran.nom} resume={ecran.resume} legende={ecran.legende} className={className}>
-      {/* Un tableau, pas des barres : sur sept pas, la dernière barre ferait
-          un pixel et mentirait sur ce qu'elle montre. Les nombres, eux, sont lisibles. */}
+    <Cadre
+      nom={ecran.nom}
+      resume={ecran.resume}
+      legende={sansLegende ? undefined : ecran.legende}
+      className={className}
+    >
+      {/* Un tableau, pas un entonnoir dessiné : sur sept pas, la dernière
+          forme ferait un pixel et mentirait. La seule barre est celle du TAUX
+          DE PASSAGE, qui dit exactement ce que le nombre à côté d'elle dit. */}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[30rem] border-collapse text-left">
           <thead>
             <tr className="border-b border-border">
-              <th scope="col" className={entete}>
+              <th scope="col" className="ecran-col">
                 {ecran.colonnes.pas}
               </th>
-              <th scope="col" className={cn(entete, "text-right")}>
+              <th scope="col" className="ecran-col text-right">
                 {ecran.colonnes.nombre}
               </th>
-              <th scope="col" className={cn(entete, "text-right")}>
+              <th scope="col" className="ecran-col text-right">
                 {ecran.colonnes.taux}
               </th>
-              <th scope="col" className={cn(entete, "text-right")}>
+              <th scope="col" className="ecran-col text-right">
                 {ecran.colonnes.perte}
               </th>
             </tr>
           </thead>
           <tbody>
-            {ecran.pas.map((pas) => (
-              <tr key={pas.libelle} className="border-b border-border last:border-b-0">
-                <th scope="row" className={cn(cellule, "font-medium text-foreground")}>
-                  {pas.libelle}
-                </th>
-                <td className={cn(cellule, "text-right font-semibold text-foreground")}>{pas.nombre}</td>
-                <td className={cn(cellule, "text-right text-muted-foreground")}>{pas.taux}</td>
-                <td className={cn(cellule, "text-right text-muted-foreground")}>{pas.perte}</td>
-              </tr>
-            ))}
+            {ecran.pas.map((pas, rang) => {
+              const largeur = part(pas.taux);
+              return (
+                <tr
+                  key={pas.libelle}
+                  data-ligne
+                  className="ecran-rangee"
+                >
+                  <th scope="row" className="ecran-cellule font-medium text-foreground">
+                    {pas.libelle}
+                  </th>
+                  <td className="ecran-cellule text-right font-semibold text-foreground">
+                    <Nombre valeur={pas.nombre} />
+                  </td>
+                  <td className="ecran-cellule text-right text-muted-foreground">
+                    {pas.taux}
+                    {largeur && (
+                      <span className="piste-passage">
+                        <span
+                          className="barre-passage"
+                          style={{ "--part": largeur, "--delai": `${rang * 60}ms` } as CSSProperties}
+                        />
+                      </span>
+                    )}
+                  </td>
+                  <td className="ecran-cellule text-right text-muted-foreground">{pas.perte}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

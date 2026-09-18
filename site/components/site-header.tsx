@@ -12,6 +12,12 @@ import { Container } from "./layout-primitives";
  * (`lib/routes.ts`) : le site n'a jamais de lien mort, et ouvrir une page
  * revient à basculer un booléen — l'en-tête, le pied et le sitemap suivent.
  *
+ * Sa hauteur se resserre et son filet apparaît au-delà de 80 px de
+ * défilement — c'est du CSS, piloté par `[data-defile]` sur `<html>`. Le
+ * souligné bordeaux d'un lien pousse depuis la gauche au survol et au
+ * focus, et reste posé sur la page où l'on se trouve (`aria-current`, posé
+ * par le script de mouvement, donc sur les pages qui le chargent).
+ *
  * Le repli mobile est un `<details>` natif : il fonctionne sans
  * JavaScript, il est accessible au clavier d'origine, et il ne coûte pas
  * un octet de script. Ses liens sont des `<a>` et non des `<Link>` : une
@@ -24,8 +30,8 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   const entrees: RouteKey[] = [...navRoutes("metiers"), ...navRoutes("produit")];
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur-sm">
-      <Container className="flex h-16 items-center justify-between gap-4">
+    <header className="entete sticky top-0 z-20 border-b bg-background/90 backdrop-blur-sm">
+      <Container className="entete-rangee flex items-center justify-between gap-4">
         <BrandMark href={path(locale, "accueil")} />
 
         {entrees.length > 0 && (
@@ -35,7 +41,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                 <li key={cle}>
                   <Link
                     href={path(locale, cle)}
-                    className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    className="lien-nav inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 ease-out hover:text-foreground"
                   >
                     {common.nav[cle]}
                   </Link>
