@@ -31,9 +31,9 @@ type Route = {
 
 export const ROUTES: Record<RouteKey, Route> = {
   accueil: { segment: "", built: true, priority: 1 },
-  cgp: { segment: "cgp", built: false, navGroup: "metiers", priority: 0.9 },
-  courtiers: { segment: "courtiers", built: false, navGroup: "metiers", priority: 0.9 },
-  immobilier: { segment: "immobilier", built: false, navGroup: "metiers", priority: 0.9 },
+  cgp: { segment: "cgp", built: true, navGroup: "metiers", priority: 0.9 },
+  courtiers: { segment: "courtiers", built: true, navGroup: "metiers", priority: 0.9 },
+  immobilier: { segment: "immobilier", built: true, navGroup: "metiers", priority: 0.9 },
   tarifs: { segment: "tarifs", built: false, navGroup: "produit", priority: 0.8 },
   demo: { segment: "demo", built: false, navGroup: "produit", priority: 0.8 },
   mentionsLegales: { segment: "mentions-legales", built: false, priority: 0.2 },

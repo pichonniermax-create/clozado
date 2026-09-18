@@ -1,5 +1,8 @@
 import { accueil } from "./accueil";
+import { cgp } from "./cgp";
 import { common } from "./common";
+import { courtiers } from "./courtiers";
+import { immobilier } from "./immobilier";
 
 /**
  * Le dictionnaire français — la langue de référence. Sa FORME est le
@@ -7,4 +10,4 @@ import { common } from "./common";
  * (`Dictionary` dans lib/i18n.ts), une clé manquante sera une erreur de
  * build, pas un texte manquant à l'écran.
  */
-export const fr = { common, accueil };
+export const fr = { common, accueil, cgp, courtiers, immobilier };

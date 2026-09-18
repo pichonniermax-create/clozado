@@ -3,7 +3,7 @@ import { imagePartage, TAILLE_PARTAGE, TYPE_PARTAGE } from "@/lib/og";
 
 export const size = TAILLE_PARTAGE;
 export const contentType = TYPE_PARTAGE;
-export const alt = getDictionary(DEFAULT_LOCALE).common.meta.imagePartageAlt;
+export const alt = getDictionary(DEFAULT_LOCALE).immobilier.hero.titre;
 
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));
@@ -12,5 +12,6 @@ export function generateStaticParams() {
 export default async function Image(props: { params: Promise<{ locale: string }> }) {
   const { locale: brut } = await props.params;
   const locale = isLocale(brut) ? brut : DEFAULT_LOCALE;
-  return imagePartage({ titre: getDictionary(locale).accueil.hero.titre });
+  const contenu = getDictionary(locale).immobilier;
+  return imagePartage({ titre: contenu.hero.titre, surtitre: contenu.hero.secteur });
 }

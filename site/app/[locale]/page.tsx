@@ -3,9 +3,10 @@ import { notFound } from "next/navigation";
 import { ActionLink } from "@/components/action-link";
 import { Card, Container, Section } from "@/components/layout-primitives";
 import { References } from "@/components/references";
+import Link from "next/link";
 import { getDictionary, isLocale } from "@/lib/i18n";
 import { pageMetadata } from "@/lib/metadata";
-import { ROUTES } from "@/lib/routes";
+import { path, ROUTES } from "@/lib/routes";
 import { DEMO_URL, SITE_CONFIG } from "@/lib/site-config";
 
 export async function generateMetadata(props: PageProps<"/[locale]">): Promise<Metadata> {
@@ -91,18 +92,30 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
       {/* Pour qui */}
       <Section intitule={accueil.pourQui.intitule} titre={accueil.pourQui.titre} chapo={accueil.pourQui.chapo}>
         <ul className="grid gap-4 sm:grid-cols-3">
-          {accueil.pourQui.elements.map((element) => (
-            <li key={element.cle}>
-              <Card className="h-full">
+          {accueil.pourQui.elements.map((element) => {
+            const corps = (
+              <>
                 <h3 className="font-semibold">{element.titre}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
-                {/* La page métier n'est liée que lorsqu'elle existe : le site n'a jamais de lien mort. */}
-                {ROUTES[element.cle].built && (
-                  <p className="mt-4 text-sm font-medium text-primary-ink">{common.nav[element.cle]}</p>
+              </>
+            );
+            // La carte n'est cliquable que si sa page existe : le site n'a jamais de lien mort.
+            return (
+              <li key={element.cle}>
+                {ROUTES[element.cle].built ? (
+                  <Link
+                    href={path(locale, element.cle)}
+                    className="block h-full rounded-xl border border-border bg-card p-6 text-card-foreground transition-colors hover:border-primary-ink"
+                  >
+                    {corps}
+                    <p className="mt-4 text-sm font-medium text-primary-ink">{common.actions.enSavoirPlus}</p>
+                  </Link>
+                ) : (
+                  <Card className="h-full">{corps}</Card>
                 )}
-              </Card>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       </Section>
 

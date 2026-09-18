@@ -46,12 +46,21 @@ export function SiteHeader({ locale }: { locale: Locale }) {
         )}
 
         <div className="flex items-center gap-2">
-          {/* L'appel à l'action reste visible à TOUTES les largeurs, y
-              compris 390 px : c'est la seule raison d'être de cet en-tête.
-              Le repli de navigation, lui, n'apparaît que sous `md`. */}
-          <ActionLink href={SITE_CONFIG.bookingUrl} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
-            {common.actions.reserverUneDemo}
-          </ActionLink>
+          {/* Sous 640 px, l'appel à l'action sort de la barre : à 360 px,
+              marque + bouton + repli ne tiennent pas et le libellé passait
+              sur deux lignes (constaté à la capture). Il reste atteignable
+              en un geste — il est la dernière entrée du repli — et l'appel
+              du hero est immédiatement sous la barre.
+              Le repli responsive est porté par une ENVELOPPE, jamais par
+              une classe passée à `ActionLink` : `hidden` et `inline-flex`
+              sont deux utilitaires `display` de même spécificité, et c'est
+              l'ordre de la feuille de style qui tranche, pas celui des
+              classes. */}
+          <div className="hidden sm:flex">
+            <ActionLink href={SITE_CONFIG.bookingUrl} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
+              {common.actions.reserverUneDemo}
+            </ActionLink>
+          </div>
 
           {entrees.length > 0 && (
             <details className="group relative md:hidden">
