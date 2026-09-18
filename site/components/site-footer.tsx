@@ -30,7 +30,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
       <Container className="py-12 sm:py-16">
         <div className="flex flex-col gap-10 lg:flex-row lg:justify-between">
           <div className="max-w-sm">
-            <BrandMark href={path(locale, "accueil")} />
+            <BrandMark href={path(locale, "accueil")} prefetch={false} />
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{common.pied.presentation}</p>
           </div>
 
@@ -46,6 +46,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
                       <li key={cle}>
                         <Link
                           href={path(locale, cle)}
+                          prefetch={false}
                           className="inline-flex min-h-9 items-center text-sm text-foreground hover:text-primary-ink"
                         >
                           {common.nav[cle]}
@@ -65,6 +66,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
                       <li key={cle}>
                         <Link
                           href={path(locale, cle)}
+                          prefetch={false}
                           className="inline-flex min-h-9 items-center text-sm text-foreground hover:text-primary-ink"
                         >
                           {common.nav[cle]}

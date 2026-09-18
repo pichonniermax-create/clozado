@@ -45,3 +45,26 @@ export type ContenuMetier = {
   perimetre: { intitule: string; titre: string; elements: string[] };
   final: { titre: string; texte: string };
 };
+
+/**
+ * UNE PAGE LÉGALE — mentions légales, confidentialité. Un document, pas une
+ * page de vente : des sections, et dans chacune du texte, une liste, ou des
+ * couples terme/valeur. Le rendu est commun aux deux, pour que leur mise en
+ * page ne diverge pas.
+ *
+ * Les valeurs que seul l'éditeur connaît restent entre crochets dans les
+ * contenus : elles se voient à l'écran, et on ne peut pas publier sans les
+ * avoir vues.
+ */
+export type BlocLegal =
+  | { type: "texte"; texte: string }
+  | { type: "liste"; elements: string[] }
+  | { type: "definitions"; elements: { terme: string; valeur: string }[] };
+
+export type PageLegale = {
+  meta: { titre: string; description: string };
+  titre: string;
+  chapo: string;
+  miseAJour: string;
+  sections: { titre: string; blocs: BlocLegal[] }[];
+};

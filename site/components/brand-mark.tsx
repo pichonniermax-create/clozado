@@ -11,7 +11,7 @@ import { common } from "@/content/fr/common";
  * Le nom de la marque ne se traduit pas — il est lu directement dans les
  * contenus français, quelle que soit la langue de la page.
  */
-export function BrandMark({ href, size = "sm" }: { href?: string; size?: "sm" | "lg" }) {
+export function BrandMark({ href, size = "sm", prefetch }: { href?: string; size?: "sm" | "lg"; prefetch?: false }) {
   const content = (
     <>
       <span
@@ -27,7 +27,7 @@ export function BrandMark({ href, size = "sm" }: { href?: string; size?: "sm" | 
   );
   const classes = "flex items-center gap-2.5 text-foreground";
   return href ? (
-    <Link href={href} className={classes}>
+    <Link href={href} prefetch={prefetch} className={classes}>
       {content}
     </Link>
   ) : (

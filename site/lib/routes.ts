@@ -34,10 +34,10 @@ export const ROUTES: Record<RouteKey, Route> = {
   cgp: { segment: "cgp", built: true, navGroup: "metiers", priority: 0.9 },
   courtiers: { segment: "courtiers", built: true, navGroup: "metiers", priority: 0.9 },
   immobilier: { segment: "immobilier", built: true, navGroup: "metiers", priority: 0.9 },
-  tarifs: { segment: "tarifs", built: false, navGroup: "produit", priority: 0.8 },
-  demo: { segment: "demo", built: false, navGroup: "produit", priority: 0.8 },
-  mentionsLegales: { segment: "mentions-legales", built: false, priority: 0.2 },
-  confidentialite: { segment: "confidentialite", built: false, priority: 0.2 },
+  tarifs: { segment: "tarifs", built: true, navGroup: "produit", priority: 0.8 },
+  demo: { segment: "demo", built: true, navGroup: "produit", priority: 0.8 },
+  mentionsLegales: { segment: "mentions-legales", built: true, priority: 0.2 },
+  confidentialite: { segment: "confidentialite", built: true, priority: 0.2 },
 };
 
 export const ROUTE_KEYS = Object.keys(ROUTES) as RouteKey[];
