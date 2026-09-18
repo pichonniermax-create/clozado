@@ -35,6 +35,12 @@ d'arrivée est construite, pas avant.
 
 - Côté site : `vercel.json` → `ignoreCommand`. Un commit qui ne touche pas
   `site/` n'entraîne aucun déploiement du site.
+
+  **Piège de la première construction** : si le projet Vercel est créé alors
+  que le dernier commit ne touchait pas `site/`, la règle s'applique aussi à
+  lui — le projet existe et n'a jamais construit (`DEPLOYMENT_NOT_FOUND`).
+  Un commit touchant `site/`, ou un « Redeploy » depuis le tableau de bord,
+  le débloque. Cela n'arrive qu'une fois.
 - Côté application : à régler dans le tableau de bord Vercel du projet de
   l'app (Settings → Git → Ignored Build Step), avec la commande
   `git diff --quiet HEAD^ HEAD -- . ':(exclude)site'`.
