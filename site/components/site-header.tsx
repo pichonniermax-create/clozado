@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { getDictionary, type Locale } from "@/lib/i18n";
 import { navRoutes, path, type RouteKey } from "@/lib/routes";
-import { SITE_CONFIG } from "@/lib/site-config";
+import { LOGIN_URL, SITE_CONFIG } from "@/lib/site-config";
 import { ActionLink } from "./action-link";
 import { BrandMark } from "./brand-mark";
 import { Container } from "./layout-primitives";
@@ -52,6 +52,15 @@ export function SiteHeader({ locale }: { locale: Locale }) {
         )}
 
         <div className="flex items-center gap-2">
+          {/* La connexion est un LIEN TEXTE, jamais un second bouton plein :
+              deux boutons pleins côte à côte ne disent plus lequel compte. */}
+          <a
+            href={LOGIN_URL}
+            className="hidden min-h-11 items-center rounded-lg px-3 text-sm font-medium text-foreground transition-colors duration-200 ease-out hover:text-primary-ink sm:inline-flex"
+          >
+            {common.actions.seConnecter}
+          </a>
+
           {/* Sous 640 px, l'appel à l'action sort de la barre : à 360 px,
               marque + bouton + repli ne tiennent pas et le libellé passait
               sur deux lignes (constaté à la capture). Il reste atteignable
@@ -89,6 +98,11 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                     </li>
                   ))}
                   <li className="mt-1 border-t border-border pt-2">
+                    <a href={LOGIN_URL} className="flex min-h-11 items-center rounded-lg px-3 text-sm text-foreground hover:bg-muted">
+                      {common.actions.seConnecter}
+                    </a>
+                  </li>
+                  <li>
                     <a
                       href={SITE_CONFIG.bookingUrl}
                       target="_blank"

@@ -601,7 +601,7 @@ async function main() {
     console.log("\n--- La démo publique reste en lecture seule (sonde HTTP sur le site en ligne)");
     // Le site EN LIGNE par défaut : `.env.local` porte APP_URL=http://localhost:3000 (le serveur local), qui ne
     // prouverait rien. PROBE_URL surcharge ; un APP_URL en https est accepté (Vercel).
-    const appUrl = (process.env.PROBE_URL ?? (process.env.APP_URL?.startsWith("https://") ? process.env.APP_URL : "https://clozado.vercel.app")).replace(/\/$/, "");
+    const appUrl = (process.env.PROBE_URL ?? (process.env.APP_URL?.startsWith("https://") ? process.env.APP_URL : "https://app.clozado.fr")).replace(/\/$/, "");
     // Une sonde réseau échoue parfois d'un aléa (DNS, reprise TLS) : un second essai avant de conclure, et la cause dans le détail.
     const probe = async (input: string, init?: RequestInit): Promise<Response> => {
       try {

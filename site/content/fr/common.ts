@@ -42,6 +42,7 @@ export const common = {
     reserverUneDemo: "Réserver une démo",
     ouvrirLaDemo: "Ouvrir la démonstration",
     ouvrirLaDemoAide: "La démonstration s’ouvre dans un nouvel onglet, sur l’application",
+    seConnecter: "Se connecter",
     enSavoirPlus: "En savoir plus",
     nouvelOnglet: "(nouvel onglet)",
   },

@@ -15,20 +15,20 @@ import {
   validityLabel,
 } from "./magic-link";
 
-const LINK = "https://clozado.vercel.app/api/auth/callback/resend?callbackUrl=%2Fdashboard&token=abc123&email=max%40cabinet.fr";
+const LINK = "https://app.clozado.fr/api/auth/callback/resend?callbackUrl=%2Fdashboard&token=abc123&email=max%40cabinet.fr";
 
 describe("le lien de connexion — la page de confirmation à la place du callback", () => {
   it("relit les trois paramètres du lien d'Auth.js", () => {
-    expect(parseCallbackUrl(LINK)).toEqual({ origin: "https://clozado.vercel.app", token: "abc123", email: "max@cabinet.fr", callbackUrl: "/dashboard" });
+    expect(parseCallbackUrl(LINK)).toEqual({ origin: "https://app.clozado.fr", token: "abc123", email: "max@cabinet.fr", callbackUrl: "/dashboard" });
   });
   it("refuse tout ce qui n'est pas le callback du fournisseur", () => {
-    expect(parseCallbackUrl("https://clozado.vercel.app/login?token=x&email=y")).toBeNull();
-    expect(parseCallbackUrl("https://clozado.vercel.app/api/auth/callback/resend?email=y")).toBeNull();
+    expect(parseCallbackUrl("https://app.clozado.fr/login?token=x&email=y")).toBeNull();
+    expect(parseCallbackUrl("https://app.clozado.fr/api/auth/callback/resend?email=y")).toBeNull();
     expect(parseCallbackUrl("pas une adresse")).toBeNull();
   });
   it("l'email reçoit notre page de confirmation, et le geste explicite reconstruit le callback à l'identique", () => {
     const parts = parseCallbackUrl(LINK)!;
-    expect(confirmationUrl(parts)).toBe("https://clozado.vercel.app/login/confirmer?token=abc123&email=max%40cabinet.fr&callbackUrl=%2Fdashboard");
+    expect(confirmationUrl(parts)).toBe("https://app.clozado.fr/login/confirmer?token=abc123&email=max%40cabinet.fr&callbackUrl=%2Fdashboard");
     expect(callbackUrl(parts)).toBe(LINK);
   });
   it("le chemin de retour reste interne", () => {

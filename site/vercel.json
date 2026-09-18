@@ -47,6 +47,41 @@
       "source": "/confidentialite",
       "destination": "/fr/confidentialite",
       "statusCode": 301
+    },
+    {
+      "source": "/login",
+      "destination": "https://app.clozado.fr",
+      "statusCode": 308
+    },
+    {
+      "source": "/connexion",
+      "destination": "https://app.clozado.fr",
+      "statusCode": 308
+    },
+    {
+      "source": "/signin",
+      "destination": "https://app.clozado.fr",
+      "statusCode": 308
+    },
+    {
+      "source": "/sign-in",
+      "destination": "https://app.clozado.fr",
+      "statusCode": 308
+    },
+    {
+      "source": "/app",
+      "destination": "https://app.clozado.fr",
+      "statusCode": 308
+    },
+    {
+      "source": "/inscription",
+      "destination": "https://app.clozado.fr/inscription",
+      "statusCode": 308
+    },
+    {
+      "source": "/signup",
+      "destination": "https://app.clozado.fr/inscription",
+      "statusCode": 308
     }
   ],
   "headers": [

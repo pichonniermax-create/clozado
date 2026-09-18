@@ -4,6 +4,7 @@ import { common } from "./common";
 import { confidentialite } from "./confidentialite";
 import { courtiers } from "./courtiers";
 import { demo } from "./demo";
+import { ecrans, mentionEcrans } from "./ecrans";
 import { immobilier } from "./immobilier";
 import { mentionsLegales } from "./mentions-legales";
 import { tarifs } from "./tarifs";
@@ -14,4 +15,4 @@ import { tarifs } from "./tarifs";
  * (`Dictionary` dans lib/i18n.ts), une clé manquante sera une erreur de
  * build, pas un texte manquant à l'écran.
  */
-export const fr = { common, accueil, cgp, courtiers, immobilier, tarifs, demo, mentionsLegales, confidentialite };
+export const fr = { common, accueil, ecrans, mentionEcrans, cgp, courtiers, immobilier, tarifs, demo, mentionsLegales, confidentialite };

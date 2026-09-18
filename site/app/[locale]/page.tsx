@@ -5,7 +5,7 @@ import { ActionLink } from "@/components/action-link";
 import { BandeRupture } from "@/components/bande-rupture";
 import { EcranFunnel, EcranRegles, EcranSuivi, EcranTableauDeBord } from "@/components/ecran-produit";
 import { EcransOnglets } from "@/components/ecrans-onglets";
-import { MiseEnMouvement } from "@/components/mise-en-mouvement";
+import { Mouvement } from "@/components/mouvement";
 import { Card, Container, Puce, Section } from "@/components/layout-primitives";
 import { References } from "@/components/references";
 import { getDictionary, isLocale } from "@/lib/i18n";
@@ -52,7 +52,7 @@ export async function generateMetadata(props: PageProps<"/[locale]">): Promise<M
 export default async function Accueil(props: PageProps<"/[locale]">) {
   const { locale } = await props.params;
   if (!isLocale(locale)) notFound();
-  const { common, accueil } = getDictionary(locale);
+  const { common, accueil, ecrans, mentionEcrans } = getDictionary(locale);
 
   const appels = (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -69,18 +69,18 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
   const vues = [
     {
       cle: "suivi",
-      libelle: accueil.ecrans.onglets.suivi,
-      contenu: <EcranSuivi ecran={accueil.ecrans.suivi} sansLegende />,
+      libelle: ecrans.onglets.suivi,
+      contenu: <EcranSuivi ecran={ecrans.suivi} sansLegende />,
     },
     {
       cle: "tableau-de-bord",
-      libelle: accueil.ecrans.onglets.tableauDeBord,
-      contenu: <EcranTableauDeBord ecran={accueil.ecrans.tableauDeBord} sansLegende />,
+      libelle: ecrans.onglets.tableauDeBord,
+      contenu: <EcranTableauDeBord ecran={ecrans.tableauDeBord} sansLegende />,
     },
     {
       cle: "funnel",
-      libelle: accueil.ecrans.onglets.funnel,
-      contenu: <EcranFunnel ecran={accueil.ecrans.funnel} sansLegende />,
+      libelle: ecrans.onglets.funnel,
+      contenu: <EcranFunnel ecran={ecrans.funnel} sansLegende />,
     },
   ];
 
@@ -88,20 +88,17 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
   const ecranDe = (cle: (typeof accueil.preuves.elements)[number]["cle"]) => {
     switch (cle) {
       case "tableau-de-bord":
-        return <EcranTableauDeBord ecran={accueil.ecrans.tableauDeBord} />;
+        return <EcranTableauDeBord ecran={ecrans.tableauDeBord} />;
       case "regles":
-        return <EcranRegles ecran={accueil.ecrans.regles} />;
+        return <EcranRegles ecran={ecrans.regles} />;
       case "funnel":
-        return <EcranFunnel ecran={accueil.ecrans.funnel} />;
+        return <EcranFunnel ecran={ecrans.funnel} />;
     }
   };
 
   return (
     <>
-      {/* Le drapeau du mouvement, posé AVANT que le corps ne soit peint :
-          c'est lui qui arme le CSS des entrées. S'il ne s'exécute pas, rien
-          n'est masqué — la page reste celle du serveur. */}
-      <script dangerouslySetInnerHTML={{ __html: 'document.documentElement.dataset.mouvement="1"' }} />
+      <Mouvement />
 
       {/* PREMIER ÉCRAN — le propos à gauche, l'écran du produit à droite.
           Les deux colonnes s'alignent en haut : le titre est très grand, et
@@ -120,8 +117,8 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
             </div>
 
             <div data-entree data-rang={1} className="min-w-0 lg:col-span-6">
-              <EcransOnglets vues={vues} libelleListe={accueil.ecrans.onglets.libelleListe} />
-              <p className="mt-4 text-sm text-muted-foreground">{accueil.mentionEcrans}</p>
+              <EcransOnglets vues={vues} libelleListe={ecrans.onglets.libelleListe} />
+              <p className="mt-4 text-sm text-muted-foreground">{mentionEcrans}</p>
             </div>
           </div>
         </Container>
@@ -258,7 +255,6 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
         </div>
       </Section>
 
-      <MiseEnMouvement />
     </>
   );
 }

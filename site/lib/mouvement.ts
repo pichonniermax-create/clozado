@@ -86,6 +86,8 @@ export function animeZone(zone: HTMLElement): void {
 export function installer(): () => void {
   const racine = document.documentElement;
   const doux = reduit();
+  // Le module a répondu : le filet posé en tête de page n'a plus lieu d'agir.
+  racine.dataset.anime = "1";
 
   // --- 1. L'entrée des blocs ---
   const blocs = Array.from(document.querySelectorAll<HTMLElement>("[data-entree]"));
