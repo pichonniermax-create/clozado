@@ -21,9 +21,19 @@ export async function register(): Promise<void> {
   validateEnv();
 }
 
+/**
+ * Le chemin, SANS sa requête pour les routes qui portent un secret dans
+ * leur adresse : un rappel OAuth arrive avec `?code=…`, et Next documente
+ * `request.path` comme pouvant contenir la requête. Une seule exception non
+ * rattrapée écrirait ce code dans les journaux.
+ */
+function safePath(path: string): string {
+  return path.startsWith("/api/google/") ? path.split("?")[0] : path;
+}
+
 export const onRequestError: Instrumentation.onRequestError = async (error, request, context) => {
   log.error("request_error", {
-    path: request.path,
+    path: safePath(request.path),
     method: request.method,
     routerKind: context.routerKind,
     routePath: context.routePath,

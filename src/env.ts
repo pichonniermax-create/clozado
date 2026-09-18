@@ -46,6 +46,11 @@ export const ENV_SCHEMA = z.object({
   ANTHROPIC_API_KEY: optional,
   ANTHROPIC_MODEL: optional,
   ANTHROPIC_WATCH_MODEL: optional,
+  /** L'agenda Google du module de réservation (chantier réservation) : le client OAuth, puis le jeton obtenu par /api/google/connect. */
+  GOOGLE_CLIENT_ID: optional,
+  GOOGLE_CLIENT_SECRET: optional,
+  GOOGLE_REFRESH_TOKEN: optional,
+  GOOGLE_CALENDAR_ID: optional,
   AUTH_TRUST_HOST: optional,
   /** Base LOCALE de preuve uniquement (docs/module-demo.md §1.5) : jamais en production. */
   DATABASE_HTTP_ENDPOINT: optional,
@@ -65,6 +70,10 @@ export const OPTIONAL_VARIABLES: { name: keyof Env; disables: string }[] = [
   { name: "RESEND_MARKETING_API_KEY", disables: "l'isolation du flux marketing : les newsletters et les relances partent par le compte transactionnel, celui des liens de connexion" },
   { name: "EMAIL_MARKETING_DOMAIN", disables: "le domaine mutualisé propre au flux marketing : le repli reste EMAIL_SHARED_DOMAIN" },
   { name: "RESEND_MARKETING_WEBHOOK_SECRET", disables: "les webhooks du compte marketing (suivi des newsletters et relances quand le flux est isolé)" },
+  { name: "GOOGLE_CLIENT_ID", disables: "le raccordement à l'agenda Google : /api/google/connect refuse (503), et la page de réservation n'a aucun créneau à proposer" },
+  { name: "GOOGLE_CLIENT_SECRET", disables: "le raccordement à l'agenda Google : l'échange du code de consentement est impossible" },
+  { name: "GOOGLE_REFRESH_TOKEN", disables: "la lecture des disponibilités et la création des rendez-vous : il s'obtient une fois par /api/google/connect" },
+  { name: "GOOGLE_CALENDAR_ID", disables: "l'agenda visé par les créneaux et les rendez-vous — sans lui, aucun créneau n'est proposé" },
   { name: "CRON_SECRET", disables: "les crons (envois repris, veille) — refusés en 503" },
   { name: "ANTHROPIC_API_KEY", disables: "l'IA (composer de newsletters, veille, signature des emails reçus) — le déterministe seul" },
   { name: "ANTHROPIC_MODEL", disables: "rien : le modèle par défaut du composer sert" },

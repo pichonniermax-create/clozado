@@ -17,6 +17,10 @@ const complete = {
   ANTHROPIC_API_KEY: "sk-ant",
   ANTHROPIC_MODEL: "claude-sonnet-5",
   ANTHROPIC_WATCH_MODEL: "claude-sonnet-5",
+  GOOGLE_CLIENT_ID: "google-client",
+  GOOGLE_CLIENT_SECRET: "google-secret",
+  GOOGLE_REFRESH_TOKEN: "1//google-refresh",
+  GOOGLE_CALENDAR_ID: "agenda@group.calendar.google.com",
   AUTH_TRUST_HOST: "true",
   DATABASE_HTTP_ENDPOINT: "http://localhost:4444/sql",
 };

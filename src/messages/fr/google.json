@@ -1,0 +1,15 @@
+{
+  "a_coller_dans": "À coller dans la variable d'environnement",
+  "aucun_jeton": "Google n'a pas renvoyé de jeton de rafraîchissement. Relancez le raccordement en forçant le consentement.",
+  "avertissement_une_fois": "Cette valeur ne s'affiche qu'une fois. Si vous fermez cette page sans la copier, il faudra relancer le consentement — et révoquer l'ancienne autorisation, qui reste valide chez Google.",
+  "code_absent": "Google n'a renvoyé aucun code d'autorisation. Relancez le raccordement.",
+  "consentement_refuse": "Le consentement a été refusé côté Google. Rien n'a été enregistré.",
+  "echange_refuse": "Google a refusé l'échange du code. Relancez le raccordement ; si cela se répète, vérifiez les identifiants et l'adresse de retour enregistrée.",
+  "echec_generique": "Le raccordement n'a pas abouti. Relancez-le depuis le début.",
+  "etat_invalide": "Cette demande ne correspond à aucun consentement en cours. Relancez le raccordement depuis le début.",
+  "identifiants_absents": "Les identifiants du client Google ne sont pas configurés sur ce serveur : le raccordement ne peut pas commencer.",
+  "portees_accordees": "Autorisations accordées :",
+  "portees_incompletes": "Toutes les autorisations demandées n'ont pas été accordées. Le jeton a été révoqué : relancez le raccordement en laissant les deux cases cochées.",
+  "titre_jeton": "Agenda Google raccordé",
+  "titre_refus": "Raccordement interrompu"
+}

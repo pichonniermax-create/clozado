@@ -10,6 +10,7 @@ import email from "./en/email.json";
 import errors from "./en/errors.json";
 import figures from "./en/figures.json";
 import followup from "./en/followup.json";
+import google from "./en/google.json";
 import home from "./en/home.json";
 import inbound from "./en/inbound.json";
 import invitations from "./en/invitations.json";
@@ -52,6 +53,7 @@ const en = {
   errors,
   figures,
   followup,
+  google,
   home,
   inbound,
   invitations,

@@ -10,6 +10,7 @@ import email from "./fr/email.json";
 import errors from "./fr/errors.json";
 import figures from "./fr/figures.json";
 import followup from "./fr/followup.json";
+import google from "./fr/google.json";
 import home from "./fr/home.json";
 import inbound from "./fr/inbound.json";
 import invitations from "./fr/invitations.json";
@@ -52,6 +53,7 @@ const fr = {
   errors,
   figures,
   followup,
+  google,
   home,
   inbound,
   invitations,

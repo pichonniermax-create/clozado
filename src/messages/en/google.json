@@ -1,0 +1,15 @@
+{
+  "a_coller_dans": "Paste it into the environment variable",
+  "aucun_jeton": "Google returned no refresh token. Start the connection again, forcing consent.",
+  "avertissement_une_fois": "This value is shown only once. If you close this page without copying it, you will have to start the consent over — and revoke the previous authorisation, which stays valid at Google.",
+  "code_absent": "Google returned no authorisation code. Start the connection again.",
+  "consentement_refuse": "Consent was refused at Google. Nothing was stored.",
+  "echange_refuse": "Google refused the code exchange. Start again; if it repeats, check the credentials and the registered redirect URI.",
+  "echec_generique": "The connection did not complete. Start it again from the beginning.",
+  "etat_invalide": "This request matches no consent in progress. Start the connection again.",
+  "identifiants_absents": "The Google client credentials are not configured on this server: the connection cannot start.",
+  "portees_accordees": "Granted permissions:",
+  "portees_incompletes": "Not all requested permissions were granted. The token was revoked: start again and leave both boxes ticked.",
+  "titre_jeton": "Google Calendar connected",
+  "titre_refus": "Connection stopped"
+}

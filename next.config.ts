@@ -41,6 +41,19 @@ const nextConfig: NextConfig = {
     return [
       { source: "/:path*", headers: SECURITY_HEADERS },
       { source: "/api/partage/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
+      /**
+       * Le raccordement à l'agenda : le rappel porte un code d'autorisation dans son adresse et la page de
+       * retour porte un jeton. Aucun référent n'en sort, et la politique de sécurité y est FERMÉE — la règle
+       * la plus spécifique l'emporte sur `frame-ancestors 'none'` posé plus haut pour tout le produit (les
+       * en-têtes de la configuration gagnent contre ceux que pose la route : c'est ici qu'il faut l'écrire).
+       */
+      {
+        source: "/api/google/:path*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Content-Security-Policy", value: "default-src 'none'; style-src 'unsafe-inline'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'" },
+        ],
+      },
     ];
   },
 };
