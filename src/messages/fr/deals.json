@@ -1,4 +1,17 @@
 {
+  "banner": {
+    "affaires": "Affaires",
+    "age_moyen": "Âge moyen",
+    "deux_temps": "Nombre, montant, pondéré et âge : l’état d’aujourd’hui. Gagné et transformation : {periodPhrase}.",
+    "indicateurs": "Indicateurs du pipeline",
+    "montant_gagne": "Gagné sur la période",
+    "montant_pondere": "Montant pondéré",
+    "montant_pondere_explication": "Montant × probabilité, sur les affaires en cours : la probabilité de l’affaire, sinon celle de son étape.",
+    "montant_total": "Montant total",
+    "sans_montant": "{n, plural, one {Une affaire n’a pas de montant estimé} other {# affaires n’ont pas de montant estimé}} : elles comptent dans le nombre, pas dans les sommes.",
+    "transformation": "Transformation",
+    "transformation_explication": "Gagnées ÷ (gagnées + perdues) sur la période, à la date d’entrée dans l’étape — la même règle que l’analytique. Masqué sous 5 affaires décidées."
+  },
   "detail": {
     "affaire_perdue": "Affaire perdue{value}.",
     "affaires": "Affaires",
@@ -96,6 +109,7 @@
     "filtrer_par_etape": "Filtrer par étape",
     "financement_appartement_lyon": "Financement appartement Lyon",
     "gagnees_filtre": "Gagnée",
+    "gerer_les_pipelines": "Gérer les filières",
     "kanban": "Kanban",
     "la_liste_est_faite_pour_travailler_e6fc": "La liste est faite pour travailler : triable, filtrable, paginée. Elle se remplira avec la première affaire.",
     "le_funnel_compte_zero_affaire_ici_d44f": "Le funnel compte zéro affaire ici — ou bien un filtre natif de la liste (étape, conseiller) s’y ajoute et ne laisse rien passer.",

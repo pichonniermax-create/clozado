@@ -854,6 +854,45 @@ remonte dans le rail, nom de l'organisation compté à l'écran, plein écran
 mobile à 390 px sans débordement, zéro erreur de page) et
 `scripts/_tmp-lot4-sa.ts` pour le bandeau super admin.
 
+## 4 bis. Module affaires — le bandeau, la filière, les réglages (2026-09-18)
+
+**Le bandeau d'indicateurs**, au-dessus du kanban ET de la liste, qui suit
+les filtres actifs : nombre, montant total, montant pondéré, gagné sur la
+période, transformation, âge moyen. Il compte avec les MÊMES conditions que
+la liste (`dealsTableWhere`, extrait pour l'occasion) — deux constructions
+voisines auraient fini par diverger d'une condition.
+
+**Deux temps, dits à l'écran.** Nombre, montant, pondéré et âge sont l'état
+d'AUJOURD'HUI ; gagné et transformation se lisent SUR LA PÉRIODE. Les
+secondes suivent la règle de l'analytique : une affaire est gagnée à la date
+de sa DERNIÈRE entrée en étape gagnée, jamais reconstruite (`lastEntryCte`,
+réutilisée telle quelle) — le bandeau et l'écran des volumes ne peuvent donc
+pas annoncer deux chiffres différents. La transformation est masquée sous
+cinq affaires décidées, comme partout ailleurs.
+
+**Le pondéré** est montant × probabilité sur les affaires EN COURS, avec la
+probabilité de l'affaire quand elle en a une, celle de son étape sinon.
+**L'âge moyen** ne parle que des affaires en cours. Les affaires sans
+montant estimé sont dans le nombre, jamais dans les sommes — et l'écran le
+dit quand il y en a.
+
+**La filière est toujours visible.** Avec une seule, il n'y avait RIEN : on
+ne savait pas qu'on regardait « Crédit immobilier » plutôt que l'ensemble,
+ni que d'autres filières existaient. Son nom s'affiche, et l'admin a le
+chemin vers les réglages. Avec plusieurs, les onglets **gardent l'affichage
+courant** (vue, filtres, densité) : avant, chaque onglet repartait d'une
+adresse nue et jetait ce que la personne venait de régler.
+
+**La gestion des pipelines dans les réglages existait déjà** (créer,
+renommer, ajouter et réordonner les étapes, types d'affaire) : vérifiée,
+rien à construire — seul le chemin pour y aller manquait.
+
+**Preuve** : `scripts/_tmp-affaires-bandeau.ts`, 15 contrôles au vert —
+chaque chiffre du bandeau recalculé par requête (nombre, montant, pondéré),
+le bandeau identique sur le kanban et la liste, un filtre d'étape qui le
+change, la période qui gouverne le gagné, le sélecteur visible avec une
+seule filière, et l'affichage conservé en changeant de filière.
+
 ## 5. Points d'arrêt
 
 - Avant chaque migration (0021, 0022, 0023) : le SQL proposé, appliqué en

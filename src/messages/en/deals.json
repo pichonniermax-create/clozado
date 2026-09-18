@@ -1,4 +1,17 @@
 {
+  "banner": {
+    "affaires": "Deals",
+    "age_moyen": "Average age",
+    "deux_temps": "Count, amount, weighted and age: today’s state. Won and conversion: {periodPhrase}.",
+    "indicateurs": "Pipeline indicators",
+    "montant_gagne": "Won in the period",
+    "montant_pondere": "Weighted amount",
+    "montant_pondere_explication": "Amount × probability, on open deals: the deal’s probability, otherwise its stage’s.",
+    "montant_total": "Total amount",
+    "sans_montant": "{n, plural, one {One deal has no estimated amount} other {# deals have no estimated amount}}: they count in the number, not in the sums.",
+    "transformation": "Conversion",
+    "transformation_explication": "Won ÷ (won + lost) in the period, dated by entry into the stage — the same rule as analytics. Hidden below 5 decided deals."
+  },
   "detail": {
     "affaire_perdue": "Deal lost{value}.",
     "affaires": "Deals",
@@ -96,6 +109,7 @@
     "filtrer_par_etape": "Filter by stage",
     "financement_appartement_lyon": "Lyon apartment financing",
     "gagnees_filtre": "Won",
+    "gerer_les_pipelines": "Manage pipelines",
     "kanban": "Kanban",
     "la_liste_est_faite_pour_travailler_e6fc": "The list is made for working: sortable, filterable, paginated. It will fill up with the first deal.",
     "le_funnel_compte_zero_affaire_ici_d44f": "The funnel counts zero deals here — or a native list filter (stage, advisor) is stacked on top and lets nothing through.",

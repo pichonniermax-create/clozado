@@ -21,6 +21,8 @@ import { latestLeadBefore } from "./acquisition";
 import { getDefaultDealStatus } from "./deal-statuses";
 import type { OrgScopeUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
+import { lastEntryCte } from "@/lib/metrics/losses";
+import { MIN_OBSERVATIONS } from "@/lib/metrics/definitions";
 import { readInput } from "@/lib/validation";
 
 /** Affaires de l'organisation de l'appelant, plus récentes d'abord, avec libellé de type/statut pour l'affichage. */
@@ -446,8 +448,14 @@ export const DEAL_FILTER_TARGETS: Record<string, FilterTarget> = {
   },
 };
 
-export async function listDealsTable(user: OrgScopeUser, opts: DealsTableOptions) {
-  const page = Math.max(1, opts.page ?? 1);
+/**
+ * CE QUE LA LISTE MONTRE, en conditions — le pipeline, l'étape, le
+ * conseiller, la sélection venue du funnel, et le constructeur de filtres.
+ * Extraites (lot « affaires ») pour que le BANDEAU D'INDICATEURS compte
+ * exactement les affaires affichées : deux constructions voisines auraient
+ * fini par diverger d'une condition.
+ */
+function dealsTableWhere(user: OrgScopeUser, opts: DealsTableOptions): SQL | undefined {
   const conditions: (SQL | undefined)[] = [
     orgScope(user, deals.organizationId),
     eq(deals.pipelineId, opts.pipelineId),
@@ -461,7 +469,12 @@ export async function listDealsTable(user: OrgScopeUser, opts: DealsTableOptions
   if (opts.filters?.length) {
     conditions.push(filtersToSql(opts.filters, DEAL_FILTER_TARGETS, { timeZone: opts.timeZone ?? PRODUCT_TIMEZONE, now: new Date() }));
   }
-  const where = and(...conditions.filter((c): c is SQL => Boolean(c)));
+  return and(...conditions.filter((c): c is SQL => Boolean(c)));
+}
+
+export async function listDealsTable(user: OrgScopeUser, opts: DealsTableOptions) {
+  const page = Math.max(1, opts.page ?? 1);
+  const where = dealsTableWhere(user, opts);
 
   const dir = opts.dir === "asc" ? asc : desc;
   const orderBy = {
@@ -553,4 +566,104 @@ export async function getPipelineTotals(user: OrgScopeUser, pipelineId: string) 
     .from(deals)
     .where(and(eq(deals.pipelineId, pipelineId), scope ?? undefined))
     .groupBy(deals.statusId);
+}
+
+// ---------------------------------------------------------------------------
+// Le bandeau d'indicateurs d'un pipeline
+// ---------------------------------------------------------------------------
+
+export type DealsIndicators = {
+  /** Les affaires que la liste montre, filtres compris. */
+  n: number;
+  /** Somme des montants estimés ; les affaires sans montant sont dans le nombre, pas dans la somme. */
+  amount: number;
+  withoutAmount: number;
+  /** Affaires EN COURS (étape sans issue) : c'est sur elles que portent le pondéré et l'âge. */
+  openN: number;
+  /** Σ montant × probabilité, sur les affaires en cours — la probabilité de l'affaire, sinon celle de son étape. */
+  weighted: number;
+  /** Gagnées DANS LA PÉRIODE, à la date de leur dernière entrée en étape gagnée (la règle de l'analytique). */
+  wonN: number;
+  wonAmount: number;
+  /** Perdues dans la période, même règle. */
+  lostN: number;
+  /** Gagnées ÷ (gagnées + perdues) sur la période ; `null` sous le seuil d'observations. */
+  transformation: number | null;
+  /** Âge moyen des affaires en cours, en jours ; `null` s'il n'y en a aucune. */
+  averageAgeDays: number | null;
+};
+
+/**
+ * LE BANDEAU DU MODULE AFFAIRES — six chiffres au-dessus du kanban et de la
+ * liste, qui suivent LES FILTRES ACTIFS (mêmes conditions que la liste,
+ * `dealsTableWhere`).
+ *
+ * Deux temps, dits à l'écran : l'état d'AUJOURD'HUI (nombre, montant,
+ * pondéré, âge moyen) et ce qui s'est passé DANS LA PÉRIODE (gagné,
+ * transformation). Les secondes suivent la règle de l'analytique — une
+ * affaire est « gagnée dans la période » à la date de sa DERNIÈRE entrée en
+ * étape gagnée, jamais reconstruite : le bandeau et l'écran des volumes ne
+ * peuvent donc pas annoncer deux chiffres différents.
+ */
+export async function dealsIndicators(
+  user: OrgScopeUser,
+  opts: DealsTableOptions & { from?: Date; to?: Date }
+): Promise<DealsIndicators> {
+  const where = dealsTableWhere(user, opts);
+  const organizationId = user.organizationId;
+  const inPeriod = (column: SQL) =>
+    sql`${opts.from ? sql`${column} >= ${opts.from}` : sql`true`} AND ${opts.to ? sql`${column} < ${opts.to}` : sql`true`}`;
+  // Sans organisation (super admin en vue globale), il n'y a pas de journal d'étapes à interroger.
+  const closed = organizationId
+    ? sql`
+      WITH last_won AS (${lastEntryCte(organizationId, "won")}), last_lost AS (${lastEntryCte(organizationId, "lost")})
+      SELECT
+        count(*) FILTER (WHERE ${dealStatuses.outcome} = 'won' AND EXISTS (
+          SELECT 1 FROM last_won lw WHERE lw.deal_id = ${deals.id} AND NOT lw.reconstructed AND ${inPeriod(sql`lw.changed_at`)})) AS won_n,
+        coalesce(sum(${deals.estimatedAmount}) FILTER (WHERE ${dealStatuses.outcome} = 'won' AND EXISTS (
+          SELECT 1 FROM last_won lw WHERE lw.deal_id = ${deals.id} AND NOT lw.reconstructed AND ${inPeriod(sql`lw.changed_at`)})), 0) AS won_amount,
+        count(*) FILTER (WHERE ${dealStatuses.outcome} = 'lost' AND EXISTS (
+          SELECT 1 FROM last_lost ll WHERE ll.deal_id = ${deals.id} AND NOT ll.reconstructed AND ${inPeriod(sql`ll.changed_at`)})) AS lost_n
+      FROM ${deals}
+      JOIN ${dealStatuses} ON ${dealStatuses.id} = ${deals.statusId}
+      ${where ? sql`WHERE ${where}` : sql``}
+    `
+    : null;
+
+  const [current, closedRows] = await Promise.all([
+    db
+      .select({
+        n: sql<number>`count(*)::int`,
+        amount: sql<string>`coalesce(sum(${deals.estimatedAmount}), 0)`,
+        withoutAmount: sql<number>`count(*) FILTER (WHERE ${deals.estimatedAmount} IS NULL)::int`,
+        openN: sql<number>`count(*) FILTER (WHERE ${dealStatuses.outcome} IS NULL)::int`,
+        weighted: sql<string>`coalesce(sum(
+          ${deals.estimatedAmount} * coalesce(${deals.probability}, ${dealStatuses.probability}, 0) / 100
+        ) FILTER (WHERE ${dealStatuses.outcome} IS NULL), 0)`,
+        ageDays: sql<string | null>`avg(extract(epoch FROM (now() - ${deals.createdAt})) / 86400) FILTER (WHERE ${dealStatuses.outcome} IS NULL)`,
+      })
+      .from(deals)
+      .innerJoin(dealStatuses, eq(dealStatuses.id, deals.statusId))
+      .where(where),
+    closed ? db.execute(closed) : Promise.resolve({ rows: [] as Record<string, unknown>[] }),
+  ]);
+
+  const row = current[0];
+  const c = (closedRows.rows[0] ?? {}) as Record<string, unknown>;
+  const wonN = Number(c.won_n) || 0;
+  const lostN = Number(c.lost_n) || 0;
+  const decided = wonN + lostN;
+  return {
+    n: row?.n ?? 0,
+    amount: Number(row?.amount) || 0,
+    withoutAmount: row?.withoutAmount ?? 0,
+    openN: row?.openN ?? 0,
+    weighted: Number(row?.weighted) || 0,
+    wonN,
+    wonAmount: Number(c.won_amount) || 0,
+    lostN,
+    // Sous le seuil d'observations du produit, un pourcentage ment : on le masque et l'écran dit pourquoi.
+    transformation: decided >= MIN_OBSERVATIONS ? wonN / decided : null,
+    averageAgeDays: row?.ageDays === null || row?.ageDays === undefined ? null : Number(row.ageDays),
+  };
 }

@@ -28,6 +28,7 @@ import { defaultOwnerId } from "@/lib/default-owner";
 import { listDealTypes } from "@/db/queries/deal-types";
 import {
   DEALS_PAGE_SIZE,
+  dealsIndicators,
   listDealsBoard,
   listDealsTable,
   type DealsTableSort,
@@ -41,6 +42,7 @@ import { PREF, preferenceString } from "@/db/queries/preferences";
 import { DensityToggle } from "@/components/display/density-toggle";
 import { ViewsMenu } from "@/components/display/views-menu";
 import { withRememberedPeriod } from "@/lib/display/period";
+import { periodPhrase } from "@/lib/metrics/period-phrase";
 import { resolveDisplay } from "@/lib/display/resolve";
 import { displayScreen } from "@/lib/display/screens";
 import { DEFAULT_DENSITY, ME, resolveOwnerFilter, VIEW_PARAM } from "@/lib/display/state";
@@ -294,12 +296,21 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
         </div>
       </div>
 
-      {pipelines.length > 1 && (
-        <nav className="flex flex-wrap gap-1 border-b border-border" aria-label={tr("pipelines")}>
-          {pipelines.map((p) => (
+      {/* LE SÉLECTEUR DE FILIÈRE, toujours visible (chantier affaires) : avec une seule filière il n'y avait
+          RIEN — on ne savait pas qu'on regardait « Crédit immobilier » plutôt que l'ensemble, ni que d'autres
+          filières existaient. Une filière : son nom, et le chemin pour en créer une. Plusieurs : des onglets. */}
+      <nav className="flex flex-wrap items-center gap-1 border-b border-border" aria-label={tr("pipelines")}>
+        {pipelines.length === 1 ? (
+          <span className="-mb-px inline-flex min-h-11 items-center border-b-2 border-primary px-3 text-sm font-medium md:min-h-9">
+            {pipelines[0].label}
+          </span>
+        ) : (
+          pipelines.map((p) => (
             <Link
               key={p.id}
-              href={`/affaires?vue=${vue}&pipeline=${p.id}`}
+              // L'affichage courant SUIT le pipeline (filtres, tri, densité) : avant, chaque onglet repartait
+              // d'une adresse nue et jetait ce que la personne venait de régler.
+              href={baseQuery({ pipeline: p.id, page: undefined })}
               className={cn(
                 // 44 px au doigt, 36 px à la souris (audit UI du 2026-09-14).
                 "-mb-px inline-flex min-h-11 items-center border-b-2 px-3 text-sm transition-colors md:min-h-9",
@@ -311,9 +322,14 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
             >
               {p.label}
             </Link>
-          ))}
-        </nav>
-      )}
+          ))
+        )}
+        {user.role === "admin" && (
+          <Link href="/settings#pipelines" className="ml-auto inline-flex min-h-11 items-center px-3 text-xs text-muted-foreground transition-colors hover:text-foreground md:min-h-9">
+            {tr("gerer_les_pipelines")}
+          </Link>
+        )}
+      </nav>
 
       {types.length === 0 ? (
         // Sans type d'affaire, rien n'est créable : c'est le seul écran où
@@ -416,6 +432,21 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
           </form>
         </DetailsCard>
       )}
+
+      {/* LE BANDEAU (chantier affaires) : six chiffres au-dessus du kanban ET de la liste, qui suivent les
+          filtres actifs. Deux temps, dits à l'écran : l'état d'aujourd'hui, et ce qui s'est joué dans la période. */}
+      <DealsBanner
+        user={user}
+        pipelineId={pipeline.id}
+        statusId={params.etape || undefined}
+        ownerId={sel.parsed.filters.ownerId}
+        selection={sel.analytic ? sel.selection : undefined}
+        filters={resolveMe(conditions, user.id)}
+        timeZone={fmt.timeZone}
+        from={sel.parsed.filters.from}
+        to={sel.parsed.filters.to}
+        parsed={sel.parsed}
+      />
 
       {vue === "kanban" ? (
         <KanbanView user={user} pipelineId={pipeline.id} stages={stages} lossReasons={lossReasons} />
@@ -744,6 +775,71 @@ async function ListeView({
           )}
         </nav>
       )}
+    </section>
+  );
+}
+
+/**
+ * Le bandeau d'indicateurs. Un composant serveur à part : sa requête part
+ * en même temps que le rendu de la vue (Suspense au-dessus), et l'écran ne
+ * l'attend pas pour montrer le kanban ou la liste.
+ */
+async function DealsBanner({
+  user,
+  parsed,
+  ...opts
+}: {
+  user: Awaited<ReturnType<typeof requireUser>>;
+  parsed: ParsedDealSelection["parsed"];
+  pipelineId: string;
+  statusId?: string;
+  ownerId?: string;
+  selection?: ReturnType<typeof parseDealSelection>["selection"];
+  filters: ReturnType<typeof resolveMe>;
+  timeZone: string;
+  from?: Date;
+  to?: Date;
+}) {
+  const t = await getTranslations("deals.banner");
+  const tm = await getTranslations("metrics");
+  const fmt = await getFormats();
+  const i = await dealsIndicators(user, opts);
+  if (i.n === 0) return null;
+
+  const value = (v: string | number) => <dd className="text-lg font-semibold tracking-tight tabular-nums">{v}</dd>;
+  return (
+    <section aria-label={t("indicateurs")} className="flex flex-col gap-1.5">
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-border bg-card px-4 py-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div>
+          <dt className="text-xs text-muted-foreground">{t("affaires")}</dt>
+          {value(i.n)}
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">{t("montant_total")}</dt>
+          {value(i.amount > 0 ? (fmt.money(i.amount) ?? "—") : "—")}
+        </div>
+        <div>
+          {/* Pondéré = montant × probabilité, sur les affaires EN COURS : la probabilité de l'affaire, sinon celle de son étape. */}
+          <dt className="text-xs text-muted-foreground" title={t("montant_pondere_explication")}>{t("montant_pondere")}</dt>
+          {value(i.weighted > 0 ? (fmt.money(Math.round(i.weighted)) ?? "—") : "—")}
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">{t("montant_gagne")}</dt>
+          {value(i.wonAmount > 0 ? (fmt.money(i.wonAmount) ?? "—") : "—")}
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground" title={t("transformation_explication")}>{t("transformation")}</dt>
+          {value(i.transformation === null ? "—" : (fmt.percent(Math.round(i.transformation * 1000) / 10) ?? "—"))}
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">{t("age_moyen")}</dt>
+          {value(i.averageAgeDays === null ? "—" : fmt.days(Math.round(i.averageAgeDays)))}
+        </div>
+      </dl>
+      <p className="text-xs text-muted-foreground">
+        {t("deux_temps", { periodPhrase: periodPhrase(parsed, tm, fmt) })}
+        {i.withoutAmount > 0 && ` ${t("sans_montant", { n: i.withoutAmount })}`}
+      </p>
     </section>
   );
 }
