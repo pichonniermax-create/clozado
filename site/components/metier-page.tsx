@@ -4,6 +4,7 @@ import { Card, Container, Puce, Section } from "@/components/layout-primitives";
 import { Mouvement } from "@/components/mouvement";
 import type { ContenuMetier, Element } from "@/content/types";
 import { getDictionary, type Locale } from "@/lib/i18n";
+import { classeTitre, sansOrphelin } from "@/lib/titres";
 import { DEMO_URL, SITE_CONFIG } from "@/lib/site-config";
 
 /** Une pastille : un sujet de veille, un indicateur. Bordée, jamais colorée — ce n'est pas un état. */
@@ -28,7 +29,7 @@ function ListeNumerotee({ elements }: { elements: readonly Element[] }) {
         <li key={element.titre} data-entree data-rang={rang}>
           <Card className="h-full">
             <p className="text-sm font-semibold tabular-nums text-primary-ink">{String(rang + 1).padStart(2, "0")}</p>
-            <h3 className="mt-4 text-xl font-bold tracking-tight text-foreground">{element.titre}</h3>
+            <h3 className="mt-4 text-xl font-bold tracking-tight text-foreground">{sansOrphelin(element.titre)}</h3>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
           </Card>
         </li>
@@ -37,9 +38,13 @@ function ListeNumerotee({ elements }: { elements: readonly Element[] }) {
   );
 }
 
-/** Un intertitre de sous-partie — dans la communication, qui en compte trois. */
-function SousTitre({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-xl font-bold tracking-tight text-foreground">{children}</h3>;
+/**
+ * Un intertitre de sous-partie — dans la communication, qui en compte trois.
+ * Il reçoit son texte en enfant : c'est ici qu'on lui ôte son mot orphelin,
+ * et pas au point d'appel, pour que la règle tienne partout où il sert.
+ */
+function SousTitre({ children }: { children: string }) {
+  return <h3 className="text-xl font-bold tracking-tight text-foreground">{sansOrphelin(children)}</h3>;
 }
 
 /**
@@ -81,18 +86,18 @@ export function PageMetier({ locale, contenu }: { locale: Locale; contenu: Conte
           action à droite. Les colonnes s'alignent en haut : le titre est
           très grand, l'aligner au milieu le ferait flotter au-dessus du vide. */}
       <section className="border-b border-border">
-        <Container largeur="large" className="py-16 sm:py-24 lg:py-28">
-          <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
-            <div data-entree className="min-w-0 lg:col-span-6">
+        <Container largeur="large" className="py-12 sm:py-14 lg:py-12">
+          <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+            <div data-entree className="min-w-0 lg:col-span-7">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 {contenu.hero.secteur}
               </p>
-              <h1 className="mt-4 text-titre-1 text-foreground">{contenu.hero.titre}</h1>
-              <p className="mt-8 text-pretty text-chapo text-muted-foreground">{contenu.hero.chapo}</p>
-              <p className="mt-4 text-pretty text-chapo text-muted-foreground">{contenu.hero.precision}</p>
-              <div className="mt-10">{appels}</div>
+              <h1 className={`mt-5 text-foreground ${classeTitre(contenu.hero.titre)}`}>{sansOrphelin(contenu.hero.titre)}</h1>
+              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{contenu.hero.chapo}</p>
+              <p className="mesure mt-3 text-pretty text-chapo text-muted-foreground">{contenu.hero.precision}</p>
+              <div className="mt-8">{appels}</div>
             </div>
-            <div data-entree data-rang={1} className="min-w-0 lg:col-span-6">
+            <div data-entree data-rang={1} className="ecran-compact min-w-0 lg:col-span-5">
               <EcranSuivi ecran={ecrans.suivi} sansLegende />
               <p className="mt-4 text-sm text-muted-foreground">{mentionEcrans}</p>
             </div>
@@ -150,7 +155,7 @@ export function PageMetier({ locale, contenu }: { locale: Locale; contenu: Conte
               <dl className="mt-6 grid gap-x-12 gap-y-6 sm:grid-cols-2">
                 {contenu.communication.cibles.map((cible) => (
                   <div key={cible.titre}>
-                    <dt className="text-sm font-semibold text-foreground">{cible.titre}</dt>
+                    <dt className="text-sm font-semibold text-foreground">{sansOrphelin(cible.titre)}</dt>
                     <dd className="mt-1 text-sm leading-relaxed text-muted-foreground">{cible.texte}</dd>
                   </div>
                 ))}
@@ -194,7 +199,7 @@ export function PageMetier({ locale, contenu }: { locale: Locale; contenu: Conte
         <dl className="grid gap-x-12 gap-y-10 sm:grid-cols-2">
           {contenu.conformite.elements.map((element, rang) => (
             <div key={element.titre} data-entree data-rang={rang}>
-              <dt className="font-semibold text-foreground">{element.titre}</dt>
+              <dt className="font-semibold text-foreground">{sansOrphelin(element.titre)}</dt>
               <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{element.texte}</dd>
             </div>
           ))}
@@ -222,9 +227,9 @@ export function PageMetier({ locale, contenu }: { locale: Locale; contenu: Conte
       <Section>
         <div data-entree className="rounded-xl border border-border bg-card px-6 py-16 sm:px-12">
           <div className="max-w-3xl">
-            <h2 className="text-balance text-titre-2 text-foreground">{contenu.final.titre}</h2>
+            <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(contenu.final.titre)}</h2>
             <p className="mt-6 text-pretty text-chapo text-muted-foreground">{contenu.final.texte}</p>
-            <div className="mt-10">{appels}</div>
+            <div className="mt-8">{appels}</div>
           </div>
         </div>
       </Section>

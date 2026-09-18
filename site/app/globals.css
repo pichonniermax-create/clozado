@@ -55,10 +55,26 @@
   --radius-2xl: 16px;
 
   /* L'ÉCHELLE DE TITRES, fluide. `titre-1` n'existe qu'une fois par page. */
-  --text-titre-1: clamp(2.75rem, 1.4rem + 5.4vw, 6rem);
-  --text-titre-1--line-height: 1.02;
-  --text-titre-1--letter-spacing: -0.035em;
-  --text-titre-1--font-weight: 800;
+  /*
+   * LES TROIS PALIERS DE TITRE. La taille suit la longueur : un titre de
+   * soixante-dix caractères au maximum de l'échelle occupe six lignes et
+   * pousse tout le premier écran dehors (mesuré : 1 137 px de contenu pour
+   * 900 px de fenêtre). Le choix du palier vit dans `lib/titres.ts`.
+   */
+  --text-titre-haut: clamp(2.75rem, 1.4rem + 5.4vw, 6rem);
+  --text-titre-haut--line-height: 1.02;
+  --text-titre-haut--letter-spacing: -0.035em;
+  --text-titre-haut--font-weight: 800;
+
+  --text-titre-moyen: clamp(2.25rem, 1.15rem + 4.2vw, 4.5rem);
+  --text-titre-moyen--line-height: 1.05;
+  --text-titre-moyen--letter-spacing: -0.03em;
+  --text-titre-moyen--font-weight: 800;
+
+  --text-titre-bas: clamp(2rem, 1.25rem + 2.9vw, 3.5rem);
+  --text-titre-bas--line-height: 1.1;
+  --text-titre-bas--letter-spacing: -0.025em;
+  --text-titre-bas--font-weight: 800;
 
   --text-titre-2: clamp(2rem, 1.55rem + 1.8vw, 3.25rem);
   --text-titre-2--line-height: 1.06;
@@ -527,6 +543,51 @@
   @media (prefers-reduced-motion: reduce) {
     .deroulant {
       transition: none;
+    }
+  }
+}
+
+/*
+ * L'ÉCRAN DE PREUVE DU PREMIER PLAN, EN DENSITÉ RÉDUITE.
+ *
+ * Le premier écran doit tenir entier dans 1280 × 800, écran de preuve
+ * compris. Plutôt que de retirer des lignes — ce qui reviendrait à prouver
+ * moins —, on resserre la densité : mêmes lignes, mêmes mots, moins d'air.
+ * En dessous de `lg`, la contrainte de hauteur ne s'applique plus (la page
+ * défile de toute façon) et la densité normale revient.
+ */
+@layer components {
+  @media (min-width: 1024px) {
+    .ecran-compact .ecran-entete {
+      @apply px-4 py-3;
+    }
+    .ecran-compact .ecran-pile-entete {
+      @apply px-4 py-2;
+    }
+    .ecran-compact .ecran-ligne {
+      @apply gap-3 px-4 py-2;
+    }
+    .ecran-compact .ecran-ligne-bloc {
+      @apply px-4 py-3;
+    }
+    .ecran-compact .ecran-tuile {
+      @apply px-4 py-3;
+    }
+    .ecran-compact .ecran-tuile-valeur {
+      @apply mt-1 text-xl;
+    }
+    .ecran-compact .ecran-cellule,
+    .ecran-compact .ecran-col {
+      @apply px-4 py-2;
+    }
+    .ecran-compact .ecran-ligne-titre,
+    .ecran-compact .ecran-nom,
+    .ecran-compact .ecran-resume {
+      font-size: 0.8125rem;
+    }
+    .ecran-compact .ecran-ligne-detail,
+    .ecran-compact .ecran-mention {
+      font-size: 0.6875rem;
     }
   }
 }

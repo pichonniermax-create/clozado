@@ -6,6 +6,7 @@ import { Mouvement } from "@/components/mouvement";
 import { SectionEditoriale } from "@/components/section-editoriale";
 import { getDictionary, isLocale } from "@/lib/i18n";
 import { pageMetadata } from "@/lib/metadata";
+import { sansOrphelin } from "@/lib/titres";
 
 export async function generateMetadata(props: PageProps<"/[locale]/carrieres">): Promise<Metadata> {
   const { locale } = await props.params;
@@ -58,7 +59,7 @@ export default async function Carrieres(props: PageProps<"/[locale]/carrieres">)
             <li key={element.titre} data-entree data-rang={rang}>
               <Card className="h-full">
                 <p className="tabulaire text-sm text-muted-foreground">{String(rang + 1).padStart(2, "0")}</p>
-                <h3 className="mt-4 text-xl font-bold tracking-tight text-foreground">{element.titre}</h3>
+                <h3 className="mt-4 text-xl font-bold tracking-tight text-foreground">{sansOrphelin(element.titre)}</h3>
                 <p className="mesure mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
               </Card>
             </li>

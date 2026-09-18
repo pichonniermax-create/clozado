@@ -3,6 +3,7 @@ import { getDictionary, IS_MONOLINGUAL, LOCALES, LOCALE_LABEL, type Locale } fro
 import { groupeDuPied, path, ROUTES, type RouteKey } from "@/lib/routes";
 import { BrandMark } from "./brand-mark";
 import { Container } from "./layout-primitives";
+import { sansOrphelin } from "@/lib/titres";
 
 const GROUPES: { cle: "produit" | "societe"; routes: () => RouteKey[] }[] = [
   { cle: "produit", routes: () => groupeDuPied("produit") },
@@ -38,9 +39,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
             <nav aria-label={common.coquille.navigationDuPied} className="grid grid-cols-2 gap-8 sm:grid-cols-3">
               {groupes.map((groupe) => (
                 <div key={groupe.cle}>
-                  <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    {common.groupes[groupe.cle]}
-                  </h2>
+                  <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{sansOrphelin(common.groupes[groupe.cle])}</h2>
                   <ul className="mt-4 flex flex-col gap-1">
                     {groupe.entrees.map((cle) => (
                       <li key={cle}>
@@ -58,9 +57,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
               ))}
               {legal.length > 0 && (
                 <div>
-                  <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    {common.groupes.legal}
-                  </h2>
+                  <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{sansOrphelin(common.groupes.legal)}</h2>
                   <ul className="mt-4 flex flex-col gap-1">
                     {legal.map((cle) => (
                       <li key={cle}>

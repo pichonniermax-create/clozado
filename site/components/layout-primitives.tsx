@@ -1,4 +1,5 @@
 import { cn } from "@/lib/cn";
+import { sansOrphelin } from "@/lib/titres";
 
 /**
  * LES LARGEURS DU SITE. Elles ne sont pas décoratives : une largeur de
@@ -74,7 +75,7 @@ export function Section({
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{intitule}</p>
             )}
             {titre && (
-              <h2 className="mt-4 text-balance text-titre-2">{titre}</h2>
+              <h2 className="mt-4 text-balance text-titre-2">{sansOrphelin(titre)}</h2>
             )}
             {chapo && <p className="mt-6 max-w-2xl text-pretty text-chapo text-muted-foreground">{chapo}</p>}
           </header>

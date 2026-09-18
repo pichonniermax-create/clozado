@@ -5,6 +5,7 @@ import { Mouvement } from "@/components/mouvement";
 import { getDictionary, HTML_LANG, isLocale, LOCALES } from "@/lib/i18n";
 import { path, url } from "@/lib/routes";
 import { SITE_CONFIG } from "@/lib/site-config";
+import { sansOrphelin } from "@/lib/titres";
 
 /**
  * /fr/blog/<article> — LA PAGE D'UN ARTICLE, prête et sans article.
@@ -69,7 +70,7 @@ export default async function Article(props: PageProps<"/[locale]/blog/[slug]">)
               <Link href={path(locale, "blog")} className="label hover:text-foreground">
                 {blog.article.retour}
               </Link>
-              <h1 className="mt-6 text-titre-1 text-foreground">{article.titre}</h1>
+              <h1 className="mt-6 text-titre-1 text-foreground">{sansOrphelin(article.titre)}</h1>
               <p className="tabulaire mt-6 text-sm text-muted-foreground">
                 {article.date} · {article.minutes} {blog.article.lectureMinutes}
               </p>

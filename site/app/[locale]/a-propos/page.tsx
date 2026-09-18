@@ -8,6 +8,7 @@ import { SectionEditoriale } from "@/components/section-editoriale";
 import { getDictionary, isLocale } from "@/lib/i18n";
 import { pageMetadata } from "@/lib/metadata";
 import { DEMO_URL, SITE_CONFIG } from "@/lib/site-config";
+import { sansOrphelin } from "@/lib/titres";
 
 export async function generateMetadata(props: PageProps<"/[locale]/a-propos">): Promise<Metadata> {
   const { locale } = await props.params;
@@ -31,7 +32,7 @@ export default async function APropos(props: PageProps<"/[locale]/a-propos">) {
       {elements.map((element, rang) => (
         <li key={element.titre} data-entree data-rang={rang}>
           <Card className="h-full">
-            <h3 className="text-xl font-bold tracking-tight text-foreground">{element.titre}</h3>
+            <h3 className="text-xl font-bold tracking-tight text-foreground">{sansOrphelin(element.titre)}</h3>
             <p className="mesure mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
           </Card>
         </li>
@@ -74,7 +75,7 @@ export default async function APropos(props: PageProps<"/[locale]/a-propos">) {
         <dl className="grid gap-x-12 gap-y-10 sm:grid-cols-2">
           {aPropos.comment.elements.map((element, rang) => (
             <div key={element.titre} data-entree data-rang={rang}>
-              <dt className="text-xl font-bold tracking-tight text-foreground">{element.titre}</dt>
+              <dt className="text-xl font-bold tracking-tight text-foreground">{sansOrphelin(element.titre)}</dt>
               <dd className="mesure mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</dd>
             </div>
           ))}
@@ -88,7 +89,7 @@ export default async function APropos(props: PageProps<"/[locale]/a-propos">) {
               data-entree
               className="col-span-12 rounded-xl border border-border bg-card px-6 py-16 sm:px-12 lg:col-start-3 lg:col-span-10"
             >
-              <h2 className="text-balance text-titre-2 text-foreground">{aPropos.final.titre}</h2>
+              <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(aPropos.final.titre)}</h2>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{aPropos.final.texte}</p>
               <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
                 <ActionLink href={DEMO_URL} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>

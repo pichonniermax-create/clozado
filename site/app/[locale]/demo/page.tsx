@@ -5,6 +5,7 @@ import { Container, Section } from "@/components/layout-primitives";
 import { getDictionary, isLocale, type Locale } from "@/lib/i18n";
 import { pageMetadata } from "@/lib/metadata";
 import { DEMO_URL, SITE_CONFIG } from "@/lib/site-config";
+import { sansOrphelin } from "@/lib/titres";
 
 export async function generateMetadata(props: PageProps<"/[locale]/demo">): Promise<Metadata> {
   const { locale } = await props.params;
@@ -39,10 +40,10 @@ function Geste({
   return (
     <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-6 text-card-foreground sm:p-8">
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{surtitre}</p>
-      <h2 className="mt-3 text-balance text-2xl font-semibold tracking-tight">{titre}</h2>
+      <h2 className="mt-3 text-balance text-2xl font-semibold tracking-tight">{sansOrphelin(titre)}</h2>
       <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">{texte}</p>
 
-      <h3 className="mt-8 text-sm font-semibold">{elementsTitre}</h3>
+      <h3 className="mt-8 text-sm font-semibold">{sansOrphelin(elementsTitre)}</h3>
       <ul className="mt-3 flex flex-1 flex-col gap-3">
         {elements.map((element) => (
           <li key={element} className="flex gap-3 text-sm leading-relaxed">
@@ -76,9 +77,7 @@ export default async function Demo(props: PageProps<"/[locale]/demo">) {
     <>
       <Container className="py-16 sm:py-20">
         <div className="max-w-3xl">
-          <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl lg:leading-[1.1]">
-            {demo.hero.titre}
-          </h1>
+          <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl lg:leading-[1.1]">{sansOrphelin(demo.hero.titre)}</h1>
           <p className="mt-6 text-pretty text-lg leading-relaxed text-muted-foreground sm:text-xl">
             {demo.hero.chapo}
           </p>
@@ -123,7 +122,7 @@ export default async function Demo(props: PageProps<"/[locale]/demo">) {
 
       <Section>
         <div className="max-w-2xl">
-          <h2 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">{demo.final.titre}</h2>
+          <h2 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">{sansOrphelin(demo.final.titre)}</h2>
           <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">{demo.final.texte}</p>
         </div>
       </Section>

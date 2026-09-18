@@ -9,6 +9,7 @@ import { getDictionary, isLocale, HTML_LANG } from "@/lib/i18n";
 import { pageMetadata } from "@/lib/metadata";
 import { path, url } from "@/lib/routes";
 import { SITE_CONFIG } from "@/lib/site-config";
+import { sansOrphelin } from "@/lib/titres";
 
 export async function generateMetadata(props: PageProps<"/[locale]/blog">): Promise<Metadata> {
   const { locale } = await props.params;
@@ -58,7 +59,7 @@ export default async function Blog(props: PageProps<"/[locale]/blog">) {
       <SectionEditoriale numero="01" largeurContenu="lg:col-start-4 lg:col-span-8">
         {blog.articles.length === 0 ? (
           <div data-entree>
-            <h2 className="text-titre-2 text-foreground">{blog.vide.titre}</h2>
+            <h2 className="text-titre-2 text-foreground">{sansOrphelin(blog.vide.titre)}</h2>
             <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{blog.vide.texte}</p>
             <div className="mt-10">
               <ActionLink href={path(locale, "produit")}>{blog.vide.action}</ActionLink>
@@ -72,7 +73,7 @@ export default async function Blog(props: PageProps<"/[locale]/blog">) {
                   <p className="tabulaire text-sm text-muted-foreground">
                     {article.date} · {article.minutes} {blog.article.lectureMinutes}
                   </p>
-                  <h2 className="mt-4 text-titre-3 text-foreground group-hover:text-primary-ink">{article.titre}</h2>
+                  <h2 className="mt-4 text-titre-3 text-foreground group-hover:text-primary-ink">{sansOrphelin(article.titre)}</h2>
                   <p className="mesure mt-3 leading-relaxed text-muted-foreground">{article.resume}</p>
                   <p className="mt-4 text-sm font-medium text-primary-ink underline underline-offset-4">
                     {common.actions.enSavoirPlus}

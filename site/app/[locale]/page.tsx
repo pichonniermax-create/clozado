@@ -10,6 +10,7 @@ import { Mouvement } from "@/components/mouvement";
 import { References } from "@/components/references";
 import { SectionEditoriale } from "@/components/section-editoriale";
 import { getDictionary, isLocale } from "@/lib/i18n";
+import { classeTitre, sansOrphelin } from "@/lib/titres";
 import { pageMetadata } from "@/lib/metadata";
 import { path, ROUTES } from "@/lib/routes";
 import { DEMO_URL, SITE_CONFIG } from "@/lib/site-config";
@@ -95,20 +96,20 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
           s'arrêter sur la gouttière. C'est ce débord qui sort la page de la
           composition centrée dès la première ligne. */}
       <section className="border-b border-border">
-        <div className="editorial-conteneur py-14 sm:py-20 lg:py-24">
-          <div className="grid grid-cols-12 gap-x-6 gap-y-12">
+        <div className="editorial-conteneur py-12 sm:py-14 lg:py-12">
+          <div className="grid grid-cols-12 gap-x-6 gap-y-10">
             <div data-entree className="col-span-12 min-w-0 lg:col-span-7">
-              <h1 className="text-titre-1 text-foreground">{accueil.hero.titre}</h1>
-              <p className="mesure mt-8 text-pretty text-chapo text-muted-foreground">{accueil.hero.chapo}</p>
-              <p className="mesure mt-4 text-pretty text-chapo text-muted-foreground">{accueil.hero.precision}</p>
-              <div className="mt-10">{appels}</div>
+              <h1 className={`${classeTitre(accueil.hero.titre)} text-foreground`}>{sansOrphelin(accueil.hero.titre)}</h1>
+              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{accueil.hero.chapo}</p>
+              <p className="mesure mt-3 text-pretty text-chapo text-muted-foreground">{accueil.hero.precision}</p>
+              <div className="mt-8">{appels}</div>
               <p className="mt-4 text-sm text-muted-foreground">{accueil.hero.note}</p>
             </div>
 
             <div
               data-entree
               data-rang={1}
-              className="rompt-a-droite col-span-12 min-w-0 lg:col-start-8 lg:col-span-5"
+              className="ecran-compact rompt-a-droite col-span-12 min-w-0 lg:col-start-8 lg:col-span-5"
             >
               <EcransOnglets vues={vues} libelleListe={ecrans.onglets.libelleListe} />
               <p className="mesure mt-4 text-sm text-muted-foreground">{mentionEcrans}</p>
@@ -128,7 +129,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
             <li key={element.titre} data-entree data-rang={rang}>
               <Card className="h-full">
                 <p className="tabulaire text-sm text-muted-foreground">{String(rang + 1).padStart(2, "0")}</p>
-                <h3 className="mt-6 text-xl font-bold tracking-tight text-foreground">{element.titre}</h3>
+                <h3 className="mt-6 text-xl font-bold tracking-tight text-foreground">{sansOrphelin(element.titre)}</h3>
                 <p className="mesure mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
               </Card>
             </li>
@@ -156,7 +157,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
                     : "col-span-12 min-w-0 lg:col-span-4"
                 }
               >
-                <h3 className="text-balance text-titre-3 text-foreground">{preuve.titre}</h3>
+                <h3 className="text-balance text-titre-3 text-foreground">{sansOrphelin(preuve.titre)}</h3>
                 <p className="mesure mt-4 text-pretty leading-relaxed text-muted-foreground">{preuve.texte}</p>
                 <ul className="mt-8 flex flex-col gap-4">
                   {preuve.points.map((point) => (
@@ -195,7 +196,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
           {accueil.reste.elements.map((element, rang) => (
             <li key={element.titre} data-entree data-rang={rang}>
               <Card className="h-full">
-                <h3 className="text-xl font-bold tracking-tight text-foreground">{element.titre}</h3>
+                <h3 className="text-xl font-bold tracking-tight text-foreground">{sansOrphelin(element.titre)}</h3>
                 <p className="mesure mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
               </Card>
             </li>
@@ -215,7 +216,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
           {accueil.pourQui.elements.map((element, rang) => {
             const corps = (
               <>
-                <h3 className="text-xl font-bold tracking-tight text-foreground">{element.titre}</h3>
+                <h3 className="text-xl font-bold tracking-tight text-foreground">{sansOrphelin(element.titre)}</h3>
                 <p className="mesure mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
               </>
             );
@@ -251,7 +252,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
         <dl className="grid gap-x-12 gap-y-10 sm:grid-cols-2">
           {accueil.conformite.elements.map((element, rang) => (
             <div key={element.titre} data-entree data-rang={rang}>
-              <dt className="font-semibold text-foreground">{element.titre}</dt>
+              <dt className="font-semibold text-foreground">{sansOrphelin(element.titre)}</dt>
               <dd className="mesure mt-2 text-sm leading-relaxed text-muted-foreground">{element.texte}</dd>
             </div>
           ))}
@@ -284,9 +285,9 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
               data-entree
               className="col-span-12 rounded-xl border border-border bg-card px-6 py-16 sm:px-12 lg:col-start-3 lg:col-span-10"
             >
-              <h2 className="text-balance text-titre-2 text-foreground">{accueil.final.titre}</h2>
+              <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(accueil.final.titre)}</h2>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{accueil.final.texte}</p>
-              <div className="mt-10">{appels}</div>
+              <div className="mt-8">{appels}</div>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getDictionary, type Locale } from "@/lib/i18n";
 import { builtRoutes, path } from "@/lib/routes";
 import { Container } from "./layout-primitives";
+import { sansOrphelin } from "@/lib/titres";
 
 /**
  * LE CORPS DE LA PAGE 404 — un seul écrit, servi aussi bien par la page
@@ -20,9 +21,7 @@ export function NotFoundContent({ locale }: { locale: Locale }) {
     <Container className="flex flex-1 flex-col justify-center py-20 sm:py-28">
       <div className="max-w-xl">
         <p className="font-mono text-sm tabular-nums text-muted-foreground">{common.introuvable.code}</p>
-        <h1 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-          {common.introuvable.titre}
-        </h1>
+        <h1 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">{sansOrphelin(common.introuvable.titre)}</h1>
         <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">{common.introuvable.texte}</p>
 
         <nav aria-label={common.coquille.navigationPrincipale} className="mt-8">

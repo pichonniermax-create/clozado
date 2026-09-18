@@ -1,4 +1,5 @@
 import { Container } from "./layout-primitives";
+import { sansOrphelin } from "@/lib/titres";
 
 /**
  * LA RUPTURE DE RYTHME — pleine largeur, une seule phrase, très grande.
@@ -22,12 +23,12 @@ export function BandeRupture({
   return (
     <section className="border-y border-border bg-card py-20 sm:py-24 lg:py-32">
       <Container largeur="large">
-        <h2 data-entree className="max-w-5xl text-balance text-titre-2 text-foreground">{titre}</h2>
+        <h2 data-entree className="max-w-5xl text-balance text-titre-2 text-foreground">{sansOrphelin(titre)}</h2>
         <div aria-hidden data-entree data-rang={1} className="mt-8 h-1 w-16 rounded-full bg-primary" />
         <dl className="mt-12 grid gap-8 sm:grid-cols-3 sm:gap-12">
           {elements.map((element, rang) => (
             <div key={element.titre} data-entree data-rang={rang + 2} className="border-t border-border pt-6">
-              <dt className="font-semibold text-foreground">{element.titre}</dt>
+              <dt className="font-semibold text-foreground">{sansOrphelin(element.titre)}</dt>
               <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{element.texte}</dd>
             </div>
           ))}

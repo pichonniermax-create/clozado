@@ -11,6 +11,7 @@ import { getDictionary, isLocale } from "@/lib/i18n";
 import { pageMetadata } from "@/lib/metadata";
 import { path, sousEntrees } from "@/lib/routes";
 import { DEMO_URL, SITE_CONFIG } from "@/lib/site-config";
+import { sansOrphelin } from "@/lib/titres";
 
 export async function generateMetadata(props: PageProps<"/[locale]/produit">): Promise<Metadata> {
   const { locale } = await props.params;
@@ -94,7 +95,7 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
                   }
                 >
                   <p className="tabulaire text-sm text-muted-foreground">{String(rang + 1).padStart(2, "0")}</p>
-                  <h3 className="mt-4 text-balance text-titre-3 text-foreground">{element.titre}</h3>
+                  <h3 className="mt-4 text-balance text-titre-3 text-foreground">{sansOrphelin(element.titre)}</h3>
                   <p className="mesure mt-4 text-pretty leading-relaxed text-muted-foreground">{element.texte}</p>
                   <ul className="mt-8 flex flex-col gap-4">
                     {element.points.map((point) => (
@@ -140,7 +141,7 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
                 href={path(locale, cle)}
                 className="block h-full rounded-xl border border-border bg-card p-6 text-card-foreground transition-colors duration-200 ease-out hover:border-primary"
               >
-                <h3 className="text-xl font-bold tracking-tight text-foreground">{common.nav[cle]}</h3>
+                <h3 className="text-xl font-bold tracking-tight text-foreground">{sansOrphelin(common.nav[cle])}</h3>
                 <p className="mt-6 text-sm font-medium text-primary-ink underline underline-offset-4">
                   {common.actions.enSavoirPlus}
                 </p>
@@ -173,7 +174,7 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
               data-entree
               className="col-span-12 rounded-xl border border-border bg-card px-6 py-16 sm:px-12 lg:col-start-3 lg:col-span-10"
             >
-              <h2 className="text-balance text-titre-2 text-foreground">{produit.final.titre}</h2>
+              <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(produit.final.titre)}</h2>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{produit.final.texte}</p>
               <div className="mt-10">{appels}</div>
             </div>
