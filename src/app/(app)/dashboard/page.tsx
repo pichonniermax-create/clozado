@@ -37,7 +37,10 @@ import { createDemoAction, resetDemoAction, setDemoPublicAction } from "@/lib/de
 import { listDemoJournal } from "@/lib/demo/journal";
 import { getDemoOrganization } from "@/lib/demo/seed";
 import { getFormats } from "@/i18n/formats";
-import { DASHBOARD_PERIOD, hasAnyDeal, openDeals, parseMetricFilters, PERIOD_PRESETS } from "@/lib/metrics";
+import { hasAnyDeal, openDeals, parseMetricFilters } from "@/lib/metrics";
+import { PeriodPicker } from "@/components/display/period-picker";
+import { getPreferences } from "@/db/queries/preferences";
+import { withRememberedPeriod } from "@/lib/display/period";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
 
@@ -258,8 +261,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const showOnboarding = !onboarding.complete && cookieStore.get(ONBOARDING_COOKIE)?.value !== "masque";
   // La visite guidée tourne (cookie, ou l'URL qui vient de la lancer) : la carte des premiers pas ne la propose pas une seconde fois.
   const tourRunning = raw[TOUR_PARAM] === "1" || parseTourState(cookieStore.get(TOUR_COOKIE)?.value)?.status === "en_cours";
-  // La période des indicateurs : celle de l'URL si c'est un préréglage, sinon celle du tableau de bord (pas celle des écrans analytiques).
-  const parsed = parseMetricFilters({ periode: PERIOD_PRESETS.some((p) => p.key === raw.periode) ? raw.periode : DASHBOARD_PERIOD }, fmt.timeZone);
+  // LA période du produit (lot 1, étape 2) : celle de l'adresse, sinon celle dont la personne se souvient, sinon 90 jours.
+  // Le tableau de bord n'a plus la sienne — l'analytique et lui parlent enfin de la même fenêtre de temps.
+  const parsed = parseMetricFilters(withRememberedPeriod({ periode: raw.periode, du: raw.du, au: raw.au }, await getPreferences(user)), fmt.timeZone);
 
   const unpaidTotal = board.unpaidCommissions.reduce(
     (sum, c) => sum + (Number(c.computedAmount) || 0),
@@ -318,6 +322,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </>
         }
       />
+
+      {/* LA période, affichée en permanence (lot 1, étape 2) : la même sur le tableau de bord et sur l'analytique. */}
+      <PeriodPicker basePath="/dashboard" parsed={parsed} />
 
       {showOnboarding && <OnboardingChecklist progress={onboarding} tourRunning={tourRunning} />}
       {isFreshSpace && !showOnboarding && (

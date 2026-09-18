@@ -474,6 +474,7 @@
     "12m": "12 derniers mois",
     "30j": "30 derniers jours",
     "90j": "90 derniers jours",
+    "mois": "Ce mois-ci",
     "tout": "Depuis le début"
   },
   "reasons": {
@@ -492,9 +493,10 @@
     "tableau-de-bord": "Tableau de bord — les indicateurs du pack métier"
   },
   "periodsShort": {
+    "12m": "12 mois",
     "30j": "30 j",
     "90j": "90 j",
-    "12m": "12 mois",
+    "mois": "Ce mois",
     "tout": "Tout"
   }
 }

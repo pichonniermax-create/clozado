@@ -31,6 +31,7 @@ export function AppHeader({
   readOnly = false,
   isSuperAdmin = false,
   badges,
+  hrefs,
   user,
 }: {
   /** La marque du panneau de navigation replié — la même que la barre latérale. */
@@ -44,6 +45,8 @@ export function AppHeader({
   isSuperAdmin?: boolean;
   /** Les compteurs de la navigation — le panneau replié les affiche comme la barre latérale. */
   badges: Record<NavBadge, number>;
+  /** L'écran tel qu'on l'a laissé, par chemin (lot 1). */
+  hrefs?: Record<string, string>;
   user: { name: string | null; email: string | null; localeChoice: AppLocale | null; theme: Theme };
 }) {
   const t = useTranslations("shell.appHeader");
@@ -62,7 +65,7 @@ export function AppHeader({
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-border bg-background/95 px-3 backdrop-blur md:gap-3 md:px-6">
-      <MobileNav mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={badges} />
+      <MobileNav mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={badges} hrefs={hrefs} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">
           {organizationName ?? <span className="text-muted-foreground">{t("vue_globale")}</span>}

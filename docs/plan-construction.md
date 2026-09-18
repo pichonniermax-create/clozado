@@ -124,6 +124,70 @@ dans les requêtes existantes, jamais des identifiants de fiches figés).
 6. Non-régression de rapidité : les mesures du chantier C rejouées
    (`scripts/_tmp-p4-mesures.ts`, 10 passes) avant et après.
 
+### 1.5 Ce qui a été construit (2026-09-18)
+
+Migration **0021** appliquée en local puis en production : `user_preferences`
+(clé primaire personne × organisation × clé, valeur `jsonb`, contrainte de
+forme sur la clé) et `saved_views` (propriétaire nullable = vue fournie
+matérialisée, `shared`, `screen` borné, `definition` `jsonb`). La clé
+étrangère composite vers `users` annoncée en §1.3 n'existe pas : `users`
+n'a pas d'unicité sur (`id`, `organization_id`) — c'est déjà la convention
+de `contacts.owner_id`. L'appartenance est tenue par la requête, qui filtre
+sur l'organisation effective.
+
+- **Le registre des écrans** (`src/lib/display/screens.ts`) déclare, pour
+  chacun, la LISTE BLANCHE de ses paramètres : rien d'autre n'est jamais
+  mémorisé ni enregistré dans une vue. `erreur`, `info`, `nouveau`,
+  `tache`, `contact` en sont exclus par construction.
+- **Trois niveaux de mémoire** : l'adresse reste la vérité ; le compte
+  garde le dernier état de chaque écran (`RememberDisplay`, une action
+  serveur débouncée après la navigation, jamais pendant le rendu) ; les
+  entrées de navigation mènent à l'écran tel qu'on l'a laissé (une seule
+  lecture dans la coquille, mémoïsée par requête).
+- **Période partagée** : un seul défaut (`90j`, `DEFAULT_PERIOD`), un seul
+  composant (`PeriodPicker`) sur le tableau de bord et l'analytique,
+  `DASHBOARD_PERIOD` supprimé. Nouveau préréglage « Ce mois-ci » (mois
+  calendaire du fuseau de l'organisation). La mémoire de période n'est
+  jamais effacée par une adresse muette — seulement écrasée par un choix.
+- **Vues enregistrées** sur contacts, affaires, tâches et partenaires :
+  menu unique, créer, renommer, mettre à jour, dupliquer, supprimer,
+  partager (admin seulement), vue d'accueil par module, `?v=<id>`
+  partageable. Les cinq vues fournies vivent en CODE (aucun semis à
+  rattraper) ; une modification par l'admin crée la ligne qui les éclipse.
+  `conseiller=moi` est résolu pour qui regarde : une vue partagée dit
+  « les miens » à chacun et ne fait fuiter aucun identifiant.
+- **Filtres** : filtres rapides (moi, personnes/sociétés, sans activité,
+  actifs/inactifs), pastilles retirables, compte de résultats, tri par nom,
+  création ou activité sur les contacts.
+- **Colonnes et densité** : `ColumnChooserTable` écrit dans le compte (le
+  navigateur reste le refuge de qui n'a pas d'organisation) ; densité
+  confortable ou compacte sur les listes.
+- **Réinitialiser l'affichage** : par écran (menu « Vues ») et global (menu
+  de compte) — les vues enregistrées survivent.
+
+**Preuves** : `scripts/_tmp-lot1-preuve.ts`, 30 contrôles au vert dans
+Chromium sur la base locale (mémoire par écran, autre navigateur, période
+partagée et cloisonnée par personne, vue personnelle invisible chez Thomas
+puis visible une fois partagée, member qui ne peut ni partager ni
+supprimer, densité, colonnes en base, réinitialisation) ; huit contrôles
+d'isolation de plus dans `scripts/test-isolation.ts` ; 252 tests unitaires.
+
+**Rapidité** : premier octet médian sur douze passes, un seul serveur à la
+fois, base locale — `+8 %` au total (de `+4 %` sur le tableau de bord à
+`+17 %` sur contacts et partenaires). La cause est structurelle et connue :
+une lecture de préférences dans la coquille, une lecture de vues sur les
+listes, toutes deux CONCURRENTES du reste. Un aller-retour coûte ~100 ms
+par le proxy HTTP local contre 1 à 3 ms entre `fra1` et Neon
+`eu-central-1` : le coût attendu en production est de quelques
+millisecondes, à confirmer sur la production.
+
+**Ce qui reste du lot 1** : le constructeur de filtres GÉNÉRIQUE (opérateurs
+par type sur tous les champs du modèle, §1.4 point 4) n'est pas fait — les
+filtres livrés sont les filtres rapides nommés au brief plus ceux qui
+existaient. Les partenaires n'ont pas de période tant que leur liste ne
+porte aucun chiffre daté (lot 3). L'ordre des vues (`position`) est en base
+mais ne se règle pas encore à l'écran.
+
 Effort : L. Dépend de : rien d'autre (les préférences sont le socle des
 lots 3 et 4).
 

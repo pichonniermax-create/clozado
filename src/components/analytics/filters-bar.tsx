@@ -5,11 +5,11 @@ import {
   metricQueryString,
   ORIGIN_UNKNOWN,
   ORIGIN_UNMATCHED,
-  PERIOD_PRESETS,
   type ExportView,
   type MetricSearchParams,
   type ParsedMetricFilters,
 } from "@/lib/metrics";
+import { PeriodPicker } from "@/components/display/period-picker";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
@@ -43,30 +43,13 @@ export function AnalyticsFiltersBar({
   origins: { id: string; label: string }[];
 }) {
   const tr = useTranslations("analytics.filtersBar");
-  const tm = useTranslations("metrics");
-  const { params, period, active } = parsed;
-  const presetHref = (key: string) =>
-    `${basePath}${metricQueryString(params, { periode: key === "tout" ? undefined : key, du: undefined, au: undefined })}`;
+  const { params, active } = parsed;
 
   return (
     <section aria-label={tr("filtres")} className="flex flex-col gap-3">
-      {/* Sur mobile (audit UI du 2026-09-14) : les préréglages en contrôle segmenté pleine largeur, deux par ligne ; dès sm, une rangée. */}
+      {/* LE sélecteur de période du produit (lot 1, étape 2) — le même composant sur le tableau de bord et ici. */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="grid w-full grid-cols-2 gap-0.5 rounded-lg border border-border p-0.5 sm:flex sm:w-auto sm:flex-wrap">
-          {PERIOD_PRESETS.map((p) => (
-            <Link
-              key={p.key}
-              href={presetHref(p.key)}
-              aria-current={period === p.key ? "true" : undefined}
-              className={cn(
-                "rounded-md px-2.5 py-2 text-center text-sm transition-colors sm:py-1",
-                period === p.key ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {tm(`periods.${p.key}`)}
-            </Link>
-          ))}
-        </div>
+        <PeriodPicker basePath={basePath} parsed={parsed} showCustom={false} />
         <span className="ml-auto flex items-center gap-1">
           {active && (
             <Link href={basePath} className={buttonVariants({ variant: "ghost", size: "sm" })}>

@@ -81,6 +81,7 @@
     "choisis_une_organisation_dans_le_bandeau_d4cd": "Pick an organization in the super admin banner at the top of the screen to see its pipeline.",
     "client": "Client",
     "client_concerne": "Client name",
+    "cloture_depassee": "Expected close date passed",
     "cloture_prevue": "Expected close",
     "configure_au_moins_un_type_d_d650": "Set up at least one deal type",
     "configurer_un_pipeline": "Set up a pipeline",
@@ -101,12 +102,14 @@
     "libelle": "Title",
     "liste": "List",
     "m_et_mme_perrin": "Mr and Mrs Perrin",
+    "moi": "Me",
     "montant": "Amount",
     "montant_estime": "Estimated amount ({currency})",
     "nom_du_type": "Type name",
     "nouvelle_affaire": "New deal",
     "nouvelle_affaire_pour": "New deal for {name}",
     "page_sur_par_page": "Page {page} of {pageCount} · {dealsPageSize} per page",
+    "personne": "Nobody",
     "pipelines": "Pipelines",
     "precedentes": "← Previous",
     "prob": "Prob.",
@@ -121,9 +124,7 @@
     "toutes_les_etapes": "All stages",
     "tu_es_en_vue_globale": "You’re in global view",
     "type": "Type",
-    "un_pipeline_est_une_famille_d_ad50": "A pipeline is a family of deals with its own stages (credit, investment, transaction…). It’s created from Brand & settings.",
-    "cloture_depassee": "Expected close date passed",
-    "personne": "Nobody"
+    "un_pipeline_est_une_famille_d_ad50": "A pipeline is a family of deals with its own stages (credit, investment, transaction…). It’s created from Brand & settings."
   },
   "queries": {
     "defaultPipeline": "Deals",

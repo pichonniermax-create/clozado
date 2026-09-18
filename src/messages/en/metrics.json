@@ -474,6 +474,7 @@
     "12m": "Last 12 months",
     "30j": "Last 30 days",
     "90j": "Last 90 days",
+    "mois": "This month",
     "tout": "Since the beginning"
   },
   "reasons": {
@@ -492,9 +493,10 @@
     "tableau-de-bord": "Dashboard — the business pack’s metrics"
   },
   "periodsShort": {
+    "12m": "12 mo",
     "30j": "30 d",
     "90j": "90 d",
-    "12m": "12 mo",
+    "mois": "Month",
     "tout": "All"
   }
 }

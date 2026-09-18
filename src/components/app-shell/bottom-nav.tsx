@@ -44,12 +44,15 @@ export function BottomNav({
   readOnly = false,
   isSuperAdmin = false,
   badges,
+  hrefs,
 }: {
   mark: WorkspaceMarkProps;
   hasOrganization: boolean;
   readOnly?: boolean;
   isSuperAdmin?: boolean;
   badges: Record<NavBadge, number>;
+  /** L'écran tel qu'on l'a laissé, par chemin (lot 1). */
+  hrefs?: Record<string, string>;
 }) {
   const t = useTranslations("shell.bottomNav");
   const tn = useTranslations("nav");
@@ -68,7 +71,7 @@ export function BottomNav({
           return (
             <li key={tab.href} className="flex-1">
               <Link
-                href={tab.href}
+                href={hrefs?.[tab.href] ?? tab.href}
                 // Pas de préchargement à l'affichage (voir NavLink) : sur un téléphone, il n'y a pas de survol — le clic charge, le squelette s'affiche.
                 prefetch={false}
                 aria-current={active ? "page" : undefined}
@@ -108,7 +111,7 @@ export function BottomNav({
               <div className="px-4 py-4">
                 <WorkspaceMark {...mark} href="/dashboard" />
               </div>
-              <NavigationList hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={badges} />
+              <NavigationList hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={badges} hrefs={hrefs} />
             </SheetContent>
           </Sheet>
         </li>

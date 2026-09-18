@@ -32,16 +32,35 @@ import type { TranslatorOf } from "@/i18n/translator";
 /** Taille de page de la liste — côté serveur, jamais la table entière en mémoire. */
 export const CONTACTS_PAGE_SIZE = 50;
 
+/** Les tris proposés par la liste (lot 1) — le nom reste le tri d'usine. */
+export const CONTACT_SORTS = ["nom", "creation", "activite"] as const;
+export type ContactSort = (typeof CONTACT_SORTS)[number];
+
+/** Les fenêtres de « sans activité » proposées en filtre rapide. */
+export const CONTACT_STALE_DAYS: Record<string, number> = { "sans-30j": 30, "sans-90j": 90, "sans-180j": 180 };
+
 /**
  * Liste paginée + recherche. La recherche couvre nom, email, société et
  * téléphone (le téléphone est comparé espaces retirés des deux côtés :
  * « 06 12 » trouve « 0612… »). Les pierres tombales sont exclues de la
  * liste et de la recherche — elles restent accessibles par lien direct
- * depuis une affaire.
+ * depuis une affaire. Depuis le lot 1 : filtres rapides (conseiller,
+ * personnes/sociétés, sans activité) et tri choisis dans l'adresse.
  */
 export async function listContacts(
   user: OrgScopeUser,
-  opts: { q?: string; page?: number; ownerId?: string; tagId?: string } = {}
+  opts: {
+    q?: string;
+    page?: number;
+    ownerId?: string;
+    tagId?: string;
+    /** `person` ou `company` — le filtre rapide « personnes / sociétés ». */
+    kind?: "person" | "company";
+    /** Une clé de `CONTACT_STALE_DAYS` : aucune activité depuis ce nombre de jours. */
+    stale?: string;
+    sort?: ContactSort;
+    dir?: "asc" | "desc";
+  } = {}
 ) {
   const page = Math.max(1, opts.page ?? 1);
   const q = opts.q?.trim();
@@ -60,6 +79,15 @@ export async function listContacts(
     );
   }
   if (opts.ownerId) conditions.push(eq(contacts.ownerId, opts.ownerId));
+  if (opts.kind) conditions.push(eq(contacts.kind, opts.kind));
+  // « Sans activité » : aucune ligne de journal depuis N jours — la fiche existe, plus personne ne l'a touchée.
+  const staleDays = opts.stale ? CONTACT_STALE_DAYS[opts.stale] : undefined;
+  if (staleDays) {
+    const since = new Date(Date.now() - staleDays * 24 * 60 * 60 * 1000);
+    conditions.push(
+      sql`NOT EXISTS (SELECT 1 FROM ${activities} WHERE ${activities.contactId} = ${contacts.id} AND ${activities.occurredAt} >= ${since})`
+    );
+  }
 
   let idFilter;
   if (opts.tagId) {
@@ -77,13 +105,29 @@ export async function listContacts(
       .select()
       .from(contacts)
       .where(where)
-      .orderBy(asc(contacts.name), asc(contacts.id))
+      .orderBy(...contactOrder(opts.sort, opts.dir))
       .limit(CONTACTS_PAGE_SIZE)
       .offset((page - 1) * CONTACTS_PAGE_SIZE),
     db.select({ total: count() }).from(contacts).where(where),
   ]);
 
   return { rows, total, page, pageCount: Math.max(1, Math.ceil(total / CONTACTS_PAGE_SIZE)) };
+}
+
+/**
+ * L'ordre demandé, avec l'identifiant en dernier recours : deux fiches de
+ * même nom (ou créées la même seconde) gardent le MÊME ordre d'une page à
+ * l'autre — sans quoi la pagination en oublie et en répète.
+ */
+function contactOrder(sort: ContactSort | undefined, dir: "asc" | "desc" | undefined) {
+  const way = dir === "desc" ? desc : asc;
+  if (sort === "creation") return [way(contacts.createdAt), asc(contacts.id)];
+  if (sort === "activite") {
+    const last = sql`(SELECT max(${activities.occurredAt}) FROM ${activities} WHERE ${activities.contactId} = ${contacts.id})`;
+    // Une fiche sans aucune activité passe en dernier dans les deux sens : « jamais » n'est pas « le plus ancien ».
+    return [sql`${last} ${dir === "asc" ? sql`ASC` : sql`DESC`} NULLS LAST`, asc(contacts.id)];
+  }
+  return [way(contacts.name), asc(contacts.id)];
 }
 
 /** Une fiche par id — pierre tombale comprise (une affaire peut y mener). Lève si autre organisation. */

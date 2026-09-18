@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useSyncExternalStore, useState, useTransition, type ReactNode } from "react";
 import { Columns3 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { setColumnsAction } from "@/lib/display/actions";
 import { cn } from "@/lib/utils";
 
 /**
@@ -21,11 +22,14 @@ import { cn } from "@/lib/utils";
  * défaut les colonnes essentielles — assez peu pour tenir sans défilement
  * horizontal sur un ordinateur portable —, la première colonne toujours
  * là et collée à gauche, les autres à cocher dans un menu « Colonnes ». Le
- * choix vit dans le navigateur de la personne (`localStorage`, par
- * tableau) : une commodité d'affichage, pas une donnée — les vues
- * enregistrées du chantier C (partie 3) le porteront en base. Les cellules
- * arrivent RENDUES par l'écran serveur : ce composant ne calcule rien, il
- * montre ou cache.
+ * choix SUIT LA PERSONNE (lot 1, étape 5) : il vit dans son compte
+ * (`user_preferences`, par organisation et par tableau), plus dans le
+ * navigateur — on retrouve ses colonnes sur un autre poste. Le navigateur
+ * reste le refuge de qui n'a pas de compte utilisable ici (visiteur de la
+ * démo publique, super admin en vue globale) : `stored` absent, et le
+ * tableau retombe sur `localStorage`, comme avant. Les cellules arrivent
+ * RENDUES par l'écran serveur : ce composant ne calcule rien, il montre ou
+ * cache.
  */
 export type ChooserColumn = {
   key: string;
@@ -86,8 +90,10 @@ export function ColumnChooserTable({
   foot,
   caption,
   className,
+  stored: serverChoice,
+  density = "confortable",
 }: {
-  /** Identifie le tableau dans le navigateur (« analytique-partenaires »). */
+  /** Identifie le tableau (« analytique-partenaires ») — dans le compte, ou dans le navigateur à défaut. */
   storageKey: string;
   columns: ChooserColumn[];
   rows: ChooserRow[];
@@ -95,26 +101,49 @@ export function ColumnChooserTable({
   foot?: Record<string, ReactNode>;
   caption: string;
   className?: string;
+  /**
+   * Le choix connu du COMPTE : un tableau de clés, `null` pour « rien de
+   * choisi », `undefined` quand la personne n'a pas de compte où écrire
+   * (le navigateur prend alors le relais).
+   */
+  stored?: string[] | null;
+  /** La hauteur des lignes (lot 1, étape 5). */
+  density?: "confortable" | "compacte";
 }) {
   const t = useTranslations("ui.columnChooser");
   const first = columns[0];
   const optional = columns.slice(1);
   const defaults = optional.filter((c) => c.defaultVisible !== false).map((c) => c.key);
-  // Le choix mémorisé est un magasin externe : le rendu serveur (et l'hydratation) voit « rien de choisi », le
+  const inAccount = serverChoice !== undefined;
+  const [, startTransition] = useTransition();
+  // Ce que la personne vient de choisir, le temps que le serveur réponde : le tableau ne clignote pas.
+  const [pending, setPending] = useState<string[] | null | undefined>(undefined);
+  // Le choix du navigateur est un magasin externe : le rendu serveur (et l'hydratation) voit « rien de choisi », le
   // navigateur voit sa mémoire — sans écart d'hydratation ni état posé dans un effet.
   const raw = useSyncExternalStore(subscribe, () => readRaw(storageKey), () => null);
-  const stored = parseChoice(raw);
+  const stored = inAccount ? (pending !== undefined ? pending : serverChoice) : parseChoice(raw);
   const chosen = stored ? stored.filter((key) => optional.some((c) => c.key === key)) : defaults;
 
+  const write = (next: string[] | null) => {
+    if (!inAccount) {
+      writeChoice(storageKey, next);
+      return;
+    }
+    setPending(next);
+    startTransition(() => {
+      void setColumnsAction(storageKey, next).catch(() => undefined);
+    });
+  };
   const toggle = (key: string, checked: boolean) => {
     const next = checked ? optional.map((c) => c.key).filter((k) => k === key || chosen.includes(k)) : chosen.filter((k) => k !== key);
-    writeChoice(storageKey, next);
+    write(next);
   };
-  const reset = () => writeChoice(storageKey, null);
+  const reset = () => write(null);
 
   const visible = [first, ...optional.filter((c) => chosen.includes(c.key))];
+  const pad = density === "compacte" ? "px-2.5 py-1.5" : "px-3 py-3";
   const cellClass = (column: ChooserColumn, extra?: string) =>
-    cn("px-3 py-3 align-top", column.align === "left" ? "text-left" : "text-right whitespace-nowrap tabular-nums", extra);
+    cn(pad, "align-top", column.align === "left" ? "text-left" : "text-right whitespace-nowrap tabular-nums", extra);
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
@@ -167,7 +196,7 @@ export function ColumnChooserTable({
               <tr key={row.key}>
                 {visible.map((column, index) =>
                   index === 0 ? (
-                    <th key={column.key} scope="row" className="sticky left-0 z-10 min-w-40 bg-card px-3 py-3 text-left align-top font-medium">
+                    <th key={column.key} scope="row" className={cn("sticky left-0 z-10 min-w-40 bg-card text-left align-top font-medium", pad)}>
                       {row.cells[column.key]}
                     </th>
                   ) : (
@@ -184,7 +213,7 @@ export function ColumnChooserTable({
               <tr className="border-t border-border bg-muted/40 font-medium">
                 {visible.map((column, index) =>
                   index === 0 ? (
-                    <th key={column.key} scope="row" className="sticky left-0 z-10 bg-muted px-3 py-3 text-left align-top">
+                    <th key={column.key} scope="row" className={cn("sticky left-0 z-10 bg-muted text-left align-top", pad)}>
                       {foot[column.key]}
                     </th>
                   ) : (

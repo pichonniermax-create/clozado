@@ -27,6 +27,8 @@ import {
   type MoneyCount,
   type PartnersReport,
 } from "@/lib/metrics";
+import { getPreferences, PREF, preferenceList } from "@/db/queries/preferences";
+import { withRememberedPeriod } from "@/lib/display/period";
 import { requireUser } from "@/lib/session";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
@@ -153,7 +155,11 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
     );
   }
 
-  const parsed = parseMetricFilters(raw, fmt.timeZone);
+  // La période de l'adresse, sinon celle dont la personne se souvient (lot 1, étape 2).
+  const preferences = await getPreferences(user);
+  const parsed = parseMetricFilters(withRememberedPeriod(raw, preferences), fmt.timeZone);
+  // Les colonnes choisies vivent dans le compte (lot 1, étape 5) ; sans organisation, le navigateur reprend la main.
+  const columnChoice = (table: string) => (user.organizationId ? (preferenceList(preferences, PREF.columns(table)) ?? null) : undefined);
   const tf = await getTranslations("analytics.funnelSteps");
   const [pipelines, types, users, origins, report] = await Promise.all([
     listPipelinesWithStages(user),
@@ -198,6 +204,7 @@ export default async function PartnersAnalyticsPage({ searchParams }: { searchPa
               // dans « Colonnes ». Les cellules sont rendues ici, côté serveur — le composant ne fait que montrer ou cacher.
               <ColumnChooserTable
                 storageKey="analytique-partenaires"
+                stored={columnChoice("analytique-partenaires")}
                 caption={t("par_partenaire")}
                 columns={[
                   { key: "partenaire", label: t("partenaire"), align: "left" },

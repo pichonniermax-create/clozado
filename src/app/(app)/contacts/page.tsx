@@ -4,41 +4,83 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { ContactCreateForm } from "@/components/contacts/contact-create-form";
 import { defaultOwnerId } from "@/lib/default-owner";
 import { DetailsCard } from "@/components/ui/details-card";
+import { DensityToggle } from "@/components/display/density-toggle";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterChips, type FilterChip } from "@/components/display/filter-chips";
 import { Input } from "@/components/ui/input";
 import { ListCard, ListRowLink } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Upload } from "lucide-react";
-import { CONTACTS_PAGE_SIZE, listContacts, listOrgUsers } from "@/db/queries/contacts";
+import { CONTACT_SORTS, CONTACT_STALE_DAYS, CONTACTS_PAGE_SIZE, listContacts, listOrgUsers, type ContactSort } from "@/db/queries/contacts";
+import { PREF, preferenceString } from "@/db/queries/preferences";
 import { requireUser } from "@/lib/session";
+import { resolveDisplay } from "@/lib/display/resolve";
+import { displayScreen } from "@/lib/display/screens";
+import { DEFAULT_DENSITY, ME, queryString, resolveOwnerFilter, VIEW_PARAM, withParams } from "@/lib/display/state";
+import { ViewsMenu } from "@/components/display/views-menu";
 import { getTranslations } from "next-intl/server";
 import { NativeSelect } from "@/components/ui/native-select";
+import { cn } from "@/lib/utils";
 
+/**
+ * LA LISTE DES CONTACTS — l'écran de référence de l'affichage mémorisé
+ * (lot 1). Tout ce qui cadre la liste vit dans l'adresse (recherche,
+ * conseiller, nature, activité, tri, page, densité, vue) : un lien se
+ * copie et montre la même chose à tout le monde. Le compte de la personne
+ * en garde le dernier état — revenir par la navigation, recharger ou
+ * ouvrir depuis un autre poste retrouve l'écran — et ses vues nommées.
+ */
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string; conseiller?: string; nouveau?: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const t = await getTranslations("contacts.list");
+  const td = await getTranslations("ui.display");
   const user = await requireUser();
-  const params = await searchParams;
-  const q = params.q?.trim() || undefined;
-  const page = Number(params.page) > 0 ? Number(params.page) : 1;
-  const ownerId = params.conseiller || undefined;
+  const raw = await searchParams;
+  const screen = displayScreen("contacts")!;
+  // La résolution de l'affichage (préférences + vues) part EN MÊME TEMPS que les conseillers : elle ne dépend pas
+  // d'eux, et l'attendre seule ajoutait un aller-retour en série sur chaque ouverture de l'écran.
+  const [display, orgUsers] = await Promise.all([resolveDisplay(user, screen, raw), listOrgUsers(user)]);
+  const p = display.params;
 
-  const [{ rows, total, pageCount }, orgUsers] = await Promise.all([
-    listContacts(user, { q, page, ownerId }),
-    listOrgUsers(user),
-  ]);
+  const q = p.q?.trim() || undefined;
+  const page = Number(p.page) > 0 ? Number(p.page) : 1;
+  const ownerParam = p.conseiller;
+  const ownerId = resolveOwnerFilter(ownerParam, user.id);
+  const kind = p.type === "person" || p.type === "company" ? p.type : undefined;
+  const stale = p.activite && p.activite in CONTACT_STALE_DAYS ? p.activite : undefined;
+  const sort = (CONTACT_SORTS as readonly string[]).includes(p.tri ?? "") ? (p.tri as ContactSort) : "nom";
+  const dir = p.dir === "desc" ? "desc" : "asc";
+  const density = display.density ?? DEFAULT_DENSITY;
 
-  const pageHref = (p: number) => {
-    const sp = new URLSearchParams();
-    if (q) sp.set("q", q);
-    if (ownerId) sp.set("conseiller", ownerId);
-    if (p > 1) sp.set("page", String(p));
-    const s = sp.toString();
-    return `/contacts${s ? `?${s}` : ""}`;
+  const { rows, total, pageCount } = await listContacts(user, { q, page, ownerId, kind, stale, sort, dir });
+
+  /** Un lien vers CE MÊME écran, un paramètre changé — la page repart à 1 dès qu'un filtre bouge. */
+  const hrefWith = (changes: Record<string, string | undefined>) =>
+    `/contacts${queryString(withParams(p, { page: undefined, ...changes }))}`;
+  const nameOf = (id: string) => {
+    const found = orgUsers.find((u) => u.id === id);
+    return found ? found.name || found.email : id;
   };
+
+  // Ce qui restreint la liste, dit et retirable (lot 1, étape 4).
+  const chips: FilterChip[] = [
+    q ? { key: "q", label: td("recherche_valeur", { valeur: q }), href: hrefWith({ q: undefined }) } : null,
+    ownerParam
+      ? {
+          key: "conseiller",
+          label: ownerParam === ME ? td("conseiller_moi") : td("conseiller_valeur", { valeur: nameOf(ownerParam) }),
+          href: hrefWith({ conseiller: undefined }),
+        }
+      : null,
+    kind ? { key: "type", label: kind === "company" ? t("societes") : t("personnes"), href: hrefWith({ type: undefined }) } : null,
+    stale ? { key: "activite", label: td("sans_activite_jours", { jours: CONTACT_STALE_DAYS[stale] }), href: hrefWith({ activite: undefined }) } : null,
+  ].filter(Boolean) as FilterChip[];
+
+  const sortHref = (key: ContactSort) => hrefWith({ tri: key === "nom" ? undefined : key, dir: sort === key && dir === "asc" ? "desc" : undefined });
+  const pageHref = (n: number) => `/contacts${queryString(withParams(p, { page: n > 1 ? String(n) : undefined }))}`;
 
   return (
     <>
@@ -53,9 +95,26 @@ export default async function ContactsPage({
         }
       />
 
+      {/* Les vues enregistrées, la densité : le cadrage de la liste, au-dessus de ses filtres. */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <ViewsMenu
+          screen="contacts"
+          basePath="/contacts"
+          views={display.views.map((v) => ({ id: v.id, name: v.name, builtin: v.builtin, shared: v.shared, editable: v.editable, mine: v.mine }))}
+          currentId={display.view?.id ?? null}
+          modified={display.modified}
+          state={new URLSearchParams(Object.entries(p).filter(([k]) => k !== VIEW_PARAM)).toString()}
+          isAdmin={user.role === "admin"}
+          defaultViewId={preferenceString(display.preferences, PREF.defaultView("contacts")) ?? null}
+        />
+        <DensityToggle current={density} hrefFor={(d) => hrefWith({ densite: d === DEFAULT_DENSITY ? undefined : d })} />
+      </div>
+
       {/* Recherche côté serveur : nom, email, société, téléphone — juste sous l'en-tête (audit UI du 2026-09-14 :
           trois affordances de création la reléguaient en quatrième position). Une colonne à 390 px, une ligne dès sm. */}
       <form method="get" className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        {/* Les autres choix suivent la recherche : filtrer ne fait pas perdre sa vue ni son tri. */}
+        {Object.entries(p).map(([name, value]) => (name === "q" || name === "page" ? null : <input key={name} type="hidden" name={name} value={value} />))}
         <Input
           key={q ?? ""}
           type="search"
@@ -69,11 +128,12 @@ export default async function ContactsPage({
           {orgUsers.length > 1 && (
             <NativeSelect
               name="conseiller"
-              defaultValue={ownerId ?? ""}
+              defaultValue={ownerParam ?? ""}
               aria-label={t("conseiller")}
               className="min-w-0 flex-1 sm:w-auto sm:flex-none"
             >
               <option value="">{t("tous_les_conseillers")}</option>
+              <option value={ME}>{td("conseiller_moi")}</option>
               {orgUsers.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name || u.email}
@@ -88,8 +148,38 @@ export default async function ContactsPage({
         </div>
       </form>
 
+      {/* Les filtres rapides : un clic, pas un formulaire — « moi », la nature de la fiche, l'endormissement. */}
+      <div className="flex flex-wrap items-center gap-1.5 text-sm">
+        <QuickFilter href={hrefWith({ conseiller: ownerParam === ME ? undefined : ME })} active={ownerParam === ME}>
+          {td("conseiller_moi")}
+        </QuickFilter>
+        <QuickFilter href={hrefWith({ type: kind === "person" ? undefined : "person" })} active={kind === "person"}>
+          {t("personnes")}
+        </QuickFilter>
+        <QuickFilter href={hrefWith({ type: kind === "company" ? undefined : "company" })} active={kind === "company"}>
+          {t("societes")}
+        </QuickFilter>
+        <QuickFilter href={hrefWith({ activite: stale === "sans-90j" ? undefined : "sans-90j" })} active={stale === "sans-90j"}>
+          {td("sans_activite_jours", { jours: 90 })}
+        </QuickFilter>
+        <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+          {td("trier_par")}
+          <SortLink href={sortHref("nom")} active={sort === "nom"} dir={dir}>
+            {td("tri_nom")}
+          </SortLink>
+          <SortLink href={sortHref("creation")} active={sort === "creation"} dir={dir}>
+            {td("tri_creation")}
+          </SortLink>
+          <SortLink href={sortHref("activite")} active={sort === "activite"} dir={dir}>
+            {td("tri_activite")}
+          </SortLink>
+        </span>
+      </div>
+
+      <FilterChips chips={chips} clearHref="/contacts" clearLabel={td("retirer_ce_filtre")} />
+
       {/* Reste dans le DOM même repliée : la visite guidée l'éclaire (`contacts-nouveau`) et `?nouveau=1` l'ouvre. */}
-      <DetailsCard summary={t("nouveau_contact")} defaultOpen={params.nouveau === "1"} tour="contacts-nouveau">
+      <DetailsCard summary={t("nouveau_contact")} defaultOpen={raw.nouveau === "1"} tour="contacts-nouveau">
         {/* Le responsable proposé : la personne connectée, ou l'admin le plus ancien pour un super admin en substitution. */}
         <ContactCreateForm orgUsers={orgUsers} currentUserId={defaultOwnerId(user, orgUsers) ?? ""} />
       </DetailsCard>
@@ -101,7 +191,7 @@ export default async function ContactsPage({
         </p>
 
         {rows.length === 0 ? (
-          q || ownerId ? (
+          q || chips.length > 0 ? (
             <EmptyState
               title={t("aucun_contact_ne_correspond_a_cette_e658")}
               action={
@@ -130,6 +220,7 @@ export default async function ContactsPage({
               <ListRowLink
                 key={c.id}
                 href={`/contacts/${c.id}`}
+                dense={density === "compacte"}
                 title={c.name}
                 // Sur mobile, l'email (ou le téléphone) seul — le reste dès sm : la ville disparaissait derrière une ellipse.
                 subtitle={
@@ -184,5 +275,30 @@ export default async function ContactsPage({
         )}
       </section>
     </>
+  );
+}
+
+/** Un filtre d'un clic : actif, il se retire du même clic — jamais deux gestes pour revenir en arrière. */
+function QuickFilter({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      aria-pressed={active}
+      className={cn(
+        "rounded-full border px-2.5 py-1 text-xs transition-colors",
+        active ? "border-primary bg-primary/10 font-medium text-primary-ink" : "border-border text-muted-foreground hover:text-foreground"
+      )}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function SortLink({ href, active, dir, children }: { href: string; active: boolean; dir: "asc" | "desc"; children: React.ReactNode }) {
+  return (
+    <Link href={href} aria-current={active ? "true" : undefined} className={cn("rounded px-1.5 py-0.5", active ? "font-medium text-foreground" : "hover:text-foreground")}>
+      {children}
+      {active && <span aria-hidden>{dir === "asc" ? " ↑" : " ↓"}</span>}
+    </Link>
   );
 }

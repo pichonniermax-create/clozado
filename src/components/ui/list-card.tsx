@@ -47,18 +47,21 @@ export function ListRowLink({
   subtitle,
   trailing,
   chevron = true,
+  dense = false,
 }: {
   href: string;
   title: ReactNode;
   subtitle?: ReactNode;
   trailing?: ReactNode;
   chevron?: boolean;
+  /** Densité compacte (lot 1, étape 5) : plus de lignes à l'écran, la même information. */
+  dense?: boolean;
 }) {
   return (
     <li>
       <Link
         href={href}
-        className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-accent/40"
+        className={cn("flex items-center justify-between gap-4 px-4 transition-colors hover:bg-accent/40", dense ? "py-1.5" : "py-3")}
       >
         <div className="flex min-w-0 flex-col">
           <span className="text-sm font-medium break-words">{title}</span>

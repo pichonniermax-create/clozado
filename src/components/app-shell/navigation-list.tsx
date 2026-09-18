@@ -13,6 +13,7 @@ export function NavigationList({
   readOnly = false,
   isSuperAdmin = false,
   badges,
+  hrefs,
 }: {
   /** Faux en vue globale super admin : les écrans propres à une organisation sont masqués. */
   hasOrganization: boolean;
@@ -21,6 +22,8 @@ export function NavigationList({
   /** Le super admin RÉEL (rôle de session) : les écrans de l'espace gestionnaire lui sont montrés, en vue globale comme en substitution. */
   isSuperAdmin?: boolean;
   badges: Record<NavBadge, number>;
+  /** L'écran tel qu'on l'a laissé, par chemin (lot 1) — absent = le chemin nu. */
+  hrefs?: Record<string, string>;
 }) {
   const t = useTranslations("shell.navigationList");
   const tn = useTranslations("nav");
@@ -38,7 +41,8 @@ export function NavigationList({
               {entries.map((entry) => (
                 <NavLink
                   key={entry.href}
-                  href={entry.href}
+                  href={hrefs?.[entry.href] ?? entry.href}
+                  match={entry.href}
                   label={tn(`entries.${entry.key}`)}
                   icon={<entry.icon />}
                   badge={entry.badge ? badges[entry.badge] : undefined}

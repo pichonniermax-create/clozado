@@ -31,6 +31,8 @@ import {
   type OriginFunnelRow,
   type ParsedMetricFilters,
   type PipelineFunnel, MIN_OBSERVATIONS } from "@/lib/metrics";
+import { getPreferences, PREF, preferenceList } from "@/db/queries/preferences";
+import { withRememberedPeriod } from "@/lib/display/period";
 import { requireUser } from "@/lib/session";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
@@ -284,7 +286,7 @@ function PipelineSection({ funnel, parsed, single }: { funnel: PipelineFunnel; p
   );
 }
 
-function OriginsSection({ rows, parsed }: { rows: OriginFunnelRow[]; parsed: ParsedMetricFilters }) {
+function OriginsSection({ rows, parsed, columns }: { rows: OriginFunnelRow[]; parsed: ParsedMetricFilters; columns: string[] | null | undefined }) {
   const t = useTranslations("analytics.funnel");
   const tf = useTranslations("analytics.funnelSteps");
   const fmt = use(getFormats());
@@ -312,6 +314,7 @@ function OriginsSection({ rows, parsed }: { rows: OriginFunnelRow[]; parsed: Par
       ) : (
         <ColumnChooserTable
           storageKey="analytique-funnel-origines"
+                stored={columns}
           caption={t("par_origine_laquelle_genere_des_affaires_6ba2")}
           columns={[
             { key: "origine", label: t("origine"), align: "left" },
@@ -380,7 +383,11 @@ export default async function FunnelPage({ searchParams }: { searchParams: Promi
     );
   }
 
-  const parsed = parseMetricFilters(raw, fmt.timeZone);
+  // La période de l'adresse, sinon celle dont la personne se souvient (lot 1, étape 2).
+  const preferences = await getPreferences(user);
+  const parsed = parseMetricFilters(withRememberedPeriod(raw, preferences), fmt.timeZone);
+  // Les colonnes choisies vivent dans le compte (lot 1, étape 5) ; sans organisation, le navigateur reprend la main.
+  const columnChoice = (table: string) => (user.organizationId ? (preferenceList(preferences, PREF.columns(table)) ?? null) : undefined);
   const [pipelines, types, users, origins, report] = await Promise.all([
     listPipelinesWithStages(user),
     listDealTypes(user),
@@ -406,7 +413,7 @@ export default async function FunnelPage({ searchParams }: { searchParams: Promi
           {report.pipelines.map((p) => (
             <PipelineSection key={p.pipelineId} funnel={p} parsed={parsed} single={report.pipelines.length === 1} />
           ))}
-          <OriginsSection rows={report.origins} parsed={parsed} />
+          <OriginsSection rows={report.origins} parsed={parsed} columns={columnChoice("analytique-funnel-origines")} />
         </>
       )}
 

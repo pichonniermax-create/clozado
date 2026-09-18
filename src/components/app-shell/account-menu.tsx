@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Check, Compass, LogOut, Moon, MonitorSmartphone, Settings, Sun, UserRound } from "lucide-react";
+import { Check, Compass, LogOut, Moon, MonitorSmartphone, RotateCcw, Settings, Sun, UserRound } from "lucide-react";
+import { resetDisplayAction } from "@/lib/display/actions";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -65,6 +66,7 @@ export function AccountMenu({
   setThemeAction: (formData: FormData) => Promise<void>;
 }) {
   const t = useTranslations("shell.accountMenu");
+  const td = useTranslations("ui.display");
   const current = useLocale();
   return (
     <DropdownMenu>
@@ -107,6 +109,16 @@ export function AccountMenu({
             <Settings />
             {t("marque_reglages")}
           </DropdownMenuItem>
+        )}
+        {/* Remettre la fenêtre en ordre (lot 1) : période, filtres, colonnes, densité, vues d'accueil — les vues
+            enregistrées, elles, ne bougent pas. Le même geste existe par écran, dans son menu « Vues ». */}
+        {hasOrganization && (
+          <form action={resetDisplayAction}>
+            <DropdownMenuItem nativeButton render={<button type="submit" className="w-full" />}>
+              <RotateCcw />
+              {td("reinitialiser_l_affichage")}
+            </DropdownMenuItem>
+          </form>
         )}
         <DropdownMenuSeparator />
         <DropdownMenuGroup>

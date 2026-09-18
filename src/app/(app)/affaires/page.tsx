@@ -37,6 +37,13 @@ import { listPipelinesWithStages } from "@/db/queries/pipelines";
 import { createDealAction, createDealTypeAction } from "@/lib/deals/actions";
 import { getFormats } from "@/i18n/formats";
 import { metricQueryString, parseDealSelection, type DealSelectionParams, type ParsedDealSelection } from "@/lib/metrics";
+import { PREF, preferenceString } from "@/db/queries/preferences";
+import { DensityToggle } from "@/components/display/density-toggle";
+import { ViewsMenu } from "@/components/display/views-menu";
+import { withRememberedPeriod } from "@/lib/display/period";
+import { resolveDisplay } from "@/lib/display/resolve";
+import { displayScreen } from "@/lib/display/screens";
+import { DEFAULT_DENSITY, ME, resolveOwnerFilter, VIEW_PARAM } from "@/lib/display/state";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { getTranslations } from "next-intl/server";
@@ -49,6 +56,9 @@ import { NativeSelect } from "@/components/ui/native-select";
  * bruts à la base.
  */
 type Params = DealSelectionParams & {
+  /** `?v=<id>` : la vue enregistrée appliquée (lot 1) — à ne pas confondre avec `vue`, le kanban ou la liste. */
+  v?: string;
+  densite?: string;
   vue?: string;
   pipeline?: string;
   etape?: string;
@@ -79,10 +89,22 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
   const tr = await getTranslations("deals.list");
   const fmt = await getFormats();
   const user = await requireUser();
-  const params = await searchParams;
+  const raw = await searchParams;
+  // L'affichage effectif (lot 1) : la vue enregistrée si l'adresse en désigne une, les paramètres de l'adresse
+  // par-dessus, la période mémorisée quand l'adresse se tait, et « moi » résolu en identifiant.
+  const screen = displayScreen("affaires")!;
+  const display = await resolveDisplay(user, screen, raw as Record<string, string | undefined>);
+  const params: Params = {
+    ...(withRememberedPeriod(display.params, display.preferences) as Params),
+    conseiller: resolveOwnerFilter(display.params.conseiller, user.id),
+    // Deux paramètres qui ne décrivent pas un affichage et ne se mémorisent donc jamais : ils viennent de l'adresse.
+    nouveau: raw.nouveau,
+    contact: raw.contact,
+  };
   // Une sélection analytique n'a de sens qu'en liste : le kanban ne filtre pas.
   const sel = parseDealSelection(params, fmt.timeZone);
   const vue = params.vue === "liste" || sel.analytic ? "liste" : "kanban";
+  const density = display.density ?? DEFAULT_DENSITY;
 
   if (sel.analytic && !user.organizationId) {
     return (
@@ -139,10 +161,13 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
     const sp = new URLSearchParams();
     const merged: Record<string, string | undefined> = {
       ...selectionParams,
+      // La vue enregistrée et la densité voyagent avec le reste : trier ou paginer ne fait pas perdre son cadrage.
+      [VIEW_PARAM]: display.view?.id,
+      densite: display.params.densite,
       vue,
       pipeline: pipeline.id,
       etape: params.etape,
-      conseiller: sel.parsed.filters.ownerId,
+      conseiller: display.params.conseiller,
       tri: params.tri,
       dir: params.dir,
       ...over,
@@ -220,6 +245,21 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
           </div>
         }
       />
+
+      {/* Le cadrage de la liste : vues enregistrées, densité (lot 1). */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <ViewsMenu
+          screen="affaires"
+          basePath="/affaires"
+          views={display.views.map((v) => ({ id: v.id, name: v.name, builtin: v.builtin, shared: v.shared, editable: v.editable, mine: v.mine }))}
+          currentId={display.view?.id ?? null}
+          modified={display.modified}
+          state={new URLSearchParams(Object.entries(display.params).filter(([k]) => k !== VIEW_PARAM)).toString()}
+          isAdmin={user.role === "admin"}
+          defaultViewId={preferenceString(display.preferences, PREF.defaultView("affaires")) ?? null}
+        />
+        {vue === "liste" && <DensityToggle current={density} hrefFor={(d) => baseQuery({ densite: d === DEFAULT_DENSITY ? undefined : d })} />}
+      </div>
 
       {pipelines.length > 1 && (
         <nav className="flex flex-wrap gap-1 border-b border-border" aria-label={tr("pipelines")}>
@@ -358,6 +398,8 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
           params={params}
           sel={sel}
           baseQuery={baseQuery}
+          ownerParam={display.params.conseiller}
+          dense={density === "compacte"}
         />
       )}
     </>
@@ -429,6 +471,8 @@ async function ListeView({
   params,
   sel,
   baseQuery,
+  ownerParam,
+  dense,
 }: {
   user: Awaited<ReturnType<typeof requireUser>>;
   pipelineId: string;
@@ -440,6 +484,9 @@ async function ListeView({
   params: Params;
   sel: ParsedDealSelection;
   baseQuery: (over: Record<string, string | undefined>) => string;
+  /** Le conseiller tel qu'il est écrit dans l'adresse : `moi` reste `moi` dans le sélecteur. */
+  ownerParam?: string;
+  dense: boolean;
 }) {
   const t = await getTranslations("deals.list");
   const fmt = await getFormats();
@@ -493,6 +540,8 @@ async function ListeView({
       <form method="get" className="flex flex-wrap items-center gap-2">
         <input type="hidden" name="vue" value="liste" />
         <input type="hidden" name="pipeline" value={pipelineId} />
+        {params.v && <input type="hidden" name="v" value={params.v} />}
+        {params.densite && <input type="hidden" name="densite" value={params.densite} />}
         {Object.entries(selectionParams).map(([k, v]) => v && <input key={k} type="hidden" name={k} value={v} />)}
         <NativeSelect
           name="etape"
@@ -509,10 +558,12 @@ async function ListeView({
         {orgUsers.length > 1 && (
           <NativeSelect
             name="conseiller"
-            defaultValue={sel.parsed.filters.ownerId ?? ""} className="w-auto max-w-full"
+            defaultValue={ownerParam ?? ""} className="w-auto max-w-full"
             aria-label={t("filtrer_par_conseiller")}
           >
             <option value="">{t("tous_les_conseillers")}</option>
+            {/* « Moi » n'est pas un identifiant : il est résolu pour qui regarde — une vue partagée dit bien « les miennes » à chacun. */}
+            <option value={ME}>{t("moi")}</option>
             {orgUsers.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.name || u.email}
@@ -591,29 +642,29 @@ async function ListeView({
                 const overdue = !stageOutcome && Boolean(deal.expectedCloseDate) && deal.expectedCloseDate! < todayIso;
                 return (
                   <tr key={deal.id} className="transition-colors hover:bg-accent/40">
-                    <td className="max-w-64 px-4 py-2.5">
+                    <td className={cn("max-w-64 px-4", dense ? "py-1" : "py-2.5")}>
                       <Link href={`/affaires/${deal.id}`} className="font-medium hover:underline">
                         {deal.title}
                       </Link>
                       <span className="block text-xs text-muted-foreground break-words">{typeLabel}</span>
                     </td>
-                    <td className="px-4 py-2.5 break-words">{deal.clientName}</td>
-                    <td className="px-4 py-2.5">
+                    <td className={cn("px-4 break-words", dense ? "py-1" : "py-2.5")}>{deal.clientName}</td>
+                    <td className={cn("px-4", dense ? "py-1" : "py-2.5")}>
                       <DealStatusBadge label={stageLabel} color={stageColor} />
                       {stageOutcome === "lost" && lossReasonLabel && (
                         <span className="block pt-0.5 text-xs text-muted-foreground">{lossReasonLabel}</span>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-right font-medium tabular-nums">
+                    <td className={cn("px-4 text-right font-medium tabular-nums", dense ? "py-1" : "py-2.5")}>
                       {deal.estimatedAmount ? fmt.money(deal.estimatedAmount) : "—"}
                     </td>
-                    <td className="hidden px-4 py-2.5 text-right tabular-nums text-muted-foreground md:table-cell">
+                    <td className={cn("hidden px-4 text-right tabular-nums text-muted-foreground md:table-cell", dense ? "py-1" : "py-2.5")}>
                       {probability != null ? fmt.percent(probability) : "—"}
                     </td>
-                    <td className={cn("px-4 py-2.5 tabular-nums", overdue && "font-medium text-destructive")} title={overdue ? t("cloture_depassee") : undefined}>
+                    <td className={cn("px-4 tabular-nums", dense ? "py-1" : "py-2.5", overdue && "font-medium text-destructive")} title={overdue ? t("cloture_depassee") : undefined}>
                       {deal.expectedCloseDate ? fmt.date(deal.expectedCloseDate) : "—"}
                     </td>
-                    <td className="px-4 py-2.5 break-words">{ownerName ?? "—"}</td>
+                    <td className={cn("px-4 break-words", dense ? "py-1" : "py-2.5")}>{ownerName ?? "—"}</td>
                   </tr>
                 );
               })}

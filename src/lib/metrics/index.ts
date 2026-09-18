@@ -85,6 +85,7 @@ export { periodPhrase } from "./period-phrase";
 export { hasAnyDeal, openDeals, volumesReport, type AmountCount, type VolumesReport } from "./volumes";
 export {
   DEFAULT_PERIOD,
+  PERIOD_CHOICES,
   PERIOD_PRESETS,
   metricQueryString,
   parseDealSelection,

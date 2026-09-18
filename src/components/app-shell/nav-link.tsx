@@ -20,11 +20,15 @@ import { cn } from "@/lib/utils";
  */
 export function NavLink({
   href,
+  match,
   label,
   icon,
   badge,
 }: {
+  /** Où mène le lien — l'écran TEL QU'ON L'A LAISSÉ : il peut porter des paramètres (lot 1). */
   href: string;
+  /** Le chemin de l'écran, sans paramètre : c'est lui qui dit « je suis ici », pas les filtres. */
+  match?: string;
   label: string;
   icon: React.ReactNode;
   /** Compteur d'éléments à traiter — absent (et non « 0 ») quand il n'y a rien. */
@@ -32,9 +36,10 @@ export function NavLink({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const path = match ?? href;
   // `/affaires` doit rester actif sur `/affaires/<id>` ; on évite le
   // `startsWith` nu qui ferait matcher `/affaires-archivees`.
-  const active = pathname === href || pathname.startsWith(`${href}/`);
+  const active = pathname === path || pathname.startsWith(`${path}/`);
   const prefetch = () => router.prefetch(href);
 
   return (

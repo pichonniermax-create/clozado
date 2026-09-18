@@ -31,6 +31,11 @@ import {
   updateTaskAction,
 } from "@/lib/tasks/actions";
 import { getFormats } from "@/i18n/formats";
+import { PREF, preferenceString } from "@/db/queries/preferences";
+import { ViewsMenu } from "@/components/display/views-menu";
+import { resolveDisplay } from "@/lib/display/resolve";
+import { displayScreen } from "@/lib/display/screens";
+import { ME, resolveOwnerFilter, VIEW_PARAM } from "@/lib/display/state";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
@@ -38,6 +43,8 @@ import { getTranslations } from "next-intl/server";
 import { NativeSelect } from "@/components/ui/native-select";
 
 type Params = {
+  /** `?v=<id>` : la vue enregistrée appliquée (lot 1). */
+  v?: string;
   conseiller?: string;
   page?: string;
   erreur?: string;
@@ -51,9 +58,21 @@ type OrgUser = { id: string; name: string | null; email: string | null };
 
 export default async function TasksPage({ searchParams }: { searchParams: Promise<Params> }) {
   const t = await getTranslations("tasks.page");
+  const td = await getTranslations("ui.display");
   const fmt = await getFormats();
   const user = await requireUser();
-  const params = await searchParams;
+  const raw = await searchParams;
+  // L'affichage effectif (lot 1) : la vue enregistrée, l'adresse par-dessus, « moi » résolu en identifiant. Il part
+  // EN MÊME TEMPS que la génération des tâches automatiques et les conseillers, qui n'en dépendent pas — l'attendre
+  // seul ajouterait un aller-retour en série à chaque ouverture de l'écran.
+  const generated = user.organizationId ? generateAutoTasks(user) : null;
+  generated?.catch(() => undefined);
+  const others = user.organizationId ? Promise.all([listOrgUsers(user), /^[0-9a-f-]{36}$/i.test(raw.tache ?? "") ? getTaskRow(user, raw.tache!) : Promise.resolve(null)]) : null;
+  others?.catch(() => undefined);
+  const display = await resolveDisplay(user, displayScreen("taches")!, raw as Record<string, string | undefined>);
+  const params: Params = { ...display.params, nouveau: raw.nouveau, tache: raw.tache };
+  const ownerParam = display.params.conseiller;
+  const assigneeId = resolveOwnerFilter(ownerParam, user.id);
 
   if (!user.organizationId) {
     return (
@@ -75,17 +94,17 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   // ce qui vient d'être écrit) ; les conseillers, non — lus pendant ce
   // temps (performance, 2026-09-17).
   const page = Number(params.page) > 0 ? Number(params.page) : 1;
-  const [board, orgUsers, searched] = await Promise.all([
-    generateAutoTasks(user).then(() => listTasksBoard(user, { assigneeId: params.conseiller || undefined, page })),
-    listOrgUsers(user),
-    /^[0-9a-f-]{36}$/i.test(params.tache ?? "") ? getTaskRow(user, params.tache!) : Promise.resolve(null),
+  const [board, [orgUsers, searched]] = await Promise.all([
+    generated!.then(() => listTasksBoard(user, { assigneeId, page })),
+    others!,
   ]);
 
   // L'URL de CET écran, filtres et page compris — les actions y reviennent.
   // L'erreur éventuelle n'y est jamais reconduite : elle se montre une fois.
   const pageHref = (p: number) => {
     const sp = new URLSearchParams();
-    if (params.conseiller) sp.set("conseiller", params.conseiller);
+    if (params.v) sp.set("v", params.v);
+    if (ownerParam) sp.set("conseiller", ownerParam);
     if (searched) sp.set("tache", searched.id);
     if (p > 1) sp.set("page", String(p));
     const s = sp.toString();
@@ -130,15 +149,31 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
       />
 
 
+      {/* Le cadrage de la liste : vues enregistrées (lot 1). */}
+      <div className="flex flex-wrap items-center gap-2">
+        <ViewsMenu
+          screen="taches"
+          basePath="/taches"
+          views={display.views.map((v) => ({ id: v.id, name: v.name, builtin: v.builtin, shared: v.shared, editable: v.editable, mine: v.mine }))}
+          currentId={display.view?.id ?? null}
+          modified={display.modified}
+          state={new URLSearchParams(Object.entries(display.params).filter(([k]) => k !== VIEW_PARAM)).toString()}
+          isAdmin={user.role === "admin"}
+          defaultViewId={preferenceString(display.preferences, PREF.defaultView("taches")) ?? null}
+        />
+      </div>
+
       {orgUsers.length > 1 && (
         <div className="flex flex-wrap items-center gap-2">
-          <FilterPill href="/taches" label={t("tout_le_monde")} active={!params.conseiller} />
+          <FilterPill href="/taches" label={t("tout_le_monde")} active={!ownerParam} />
+          {/* « Moi » se lit pour la personne qui regarde : une vue partagée dit « mes tâches » à chacune. */}
+          <FilterPill href={`/taches?conseiller=${ME}`} label={td("conseiller_moi")} active={ownerParam === ME} />
           {orgUsers.map((u) => (
             <FilterPill
               key={u.id}
               href={`/taches?conseiller=${u.id}`}
               label={u.name || u.email || "—"}
-              active={params.conseiller === u.id}
+              active={ownerParam === u.id}
             />
           ))}
         </div>

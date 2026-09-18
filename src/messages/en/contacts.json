@@ -206,6 +206,7 @@
   "list": {
     "aucun_contact_ne_correspond_a_cette_e658": "No contacts match this search",
     "aucun_contact_pour_l_instant": "No contacts yet",
+    "conseiller": "Adviser",
     "contact_contacts": "{total} {total, plural, one {contact} other {contacts}}{n}",
     "contacts": "Contacts",
     "creer_une_fiche_importer_un_csv": "<link>Create a record</link><link2>Import a CSV</link2>",
@@ -213,17 +214,18 @@
     "la_recherche_porte_sur_le_nom_b32c": "Search covers name, email, company and phone — spaces and dots included.",
     "nouveau_contact": "New contact",
     "page_sur_par_page": "Page {page} of {pageCount} · {contactsPageSize} per page",
+    "personnes": "People",
     "pour": "for “{q}”",
     "precedents": "← Previous",
     "rechercher": "Search",
     "rechercher_un_nom_un_email_une_15ed": "Name, email, company, phone…",
     "societe": "Company",
+    "societes": "Companies",
     "suivants": "Next →",
     "tes_clients_et_prospects_personnes_et_1688": "Your clients and prospects — people and companies, with their deals, tasks and exchanges.",
     "tes_clients_et_prospects_personnes_et_e0e9": "Your clients and prospects, people and companies: each record links its deals, tasks and exchanges. A CSV import from your CRM is the fastest way in.",
     "tous_les_conseillers": "All advisors",
-    "tout_afficher": "Show all",
-    "conseiller": "Adviser"
+    "tout_afficher": "Show all"
   },
   "queries": {
     "affaires_en_cours": "Open deals: {join}.",

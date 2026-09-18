@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { AppHeader } from "@/components/app-shell/app-header";
 import { BottomNav } from "@/components/app-shell/bottom-nav";
 import { FlashToaster } from "@/components/app-shell/flash-toaster";
+import { RememberDisplay } from "@/components/app-shell/remember-display";
 import { Sidebar } from "@/components/app-shell/sidebar";
 import { SuperAdminBar } from "@/components/app-shell/super-admin-bar";
 import { PRODUCT_MARK, type WorkspaceMarkProps } from "@/components/app-shell/workspace-mark";
@@ -14,6 +15,7 @@ import { getFollowUpBoard } from "@/db/queries/deal-follow-up";
 import { getVisibleOrganizations } from "@/db/queries/organizations";
 import { countTasksDueNow } from "@/db/queries/tasks";
 import { getWorkspace } from "@/lib/brand/workspace";
+import { navigationHrefs } from "@/lib/display/resolve";
 import { requireSessionUser, requireUser } from "@/lib/session";
 import { getUserLocaleChoice } from "@/db/queries/users";
 import { parseTheme, THEME_COOKIE } from "@/lib/theme";
@@ -64,11 +66,13 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   // avant) ; sinon la promesse est abandonnée — le `catch` vide évite qu'un rejet jamais lu remonte au processus.
   const badges = hasOrganization ? Promise.all([getFollowUpBoard(user), countTasksDueNow(user)]) : null;
   badges?.catch(() => undefined);
-  const [workspace, allOrganizations, localeChoice, cookieStore] = await Promise.all([
+  const [workspace, allOrganizations, localeChoice, cookieStore, hrefs] = await Promise.all([
     getWorkspace(),
     isSuperAdmin ? getVisibleOrganizations(sessionUser) : Promise.resolve([]),
     getUserLocaleChoice(sessionUser.id),
     cookies(),
+    // Les liens de la navigation mènent à l'écran TEL QU'ON L'A LAISSÉ (lot 1) : une lecture, en même temps que le reste.
+    hasOrganization ? navigationHrefs(user) : Promise.resolve({}),
   ]);
   // La visite guidée (docs/module-demo.md §1.8) : son état vit dans un cookie par navigateur, lu ici pour rendre le bon pas sans clignotement.
   const tourState = parseTourState(cookieStore.get(TOUR_COOKIE)?.value);
@@ -91,7 +95,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     <>
       {workspace && <BrandStyle light={workspace.brand.light} dark={workspace.brand.dark} />}
       <div className="flex min-h-screen">
-        <Sidebar mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={{ followUp, tasksDue }} />
+        <Sidebar mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={{ followUp, tasksDue }} hrefs={hrefs} />
         <div className="flex min-w-0 flex-1 flex-col">
           <AppHeader
             mark={mark}
@@ -100,6 +104,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             readOnly={readOnly}
             isSuperAdmin={isSuperAdmin}
             badges={{ followUp, tasksDue }}
+            hrefs={hrefs}
             user={{ name: sessionUser.name ?? null, email: sessionUser.email ?? null, localeChoice, theme }}
           />
           {readOnly && <DemoBanner personaName={sessionUser.name} />}
@@ -116,11 +121,17 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         </div>
       </div>
       {/* Les petits écrans : la barre d'onglets en bas (chantier UI/UX) ; `pb-24` sur le contenu lui laisse la place. */}
-      <BottomNav mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={{ followUp, tasksDue }} />
+      <BottomNav mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={{ followUp, tasksDue }} hrefs={hrefs} />
       {/* Les retours d'action (`?erreur=`, `?info=`) en notification, l'adresse nettoyée — lit les paramètres d'URL, d'où Suspense. */}
       <Suspense fallback={null}>
         <FlashToaster />
       </Suspense>
+      {/* L'état d'affichage de l'écran, mémorisé après la navigation (lot 1) — lit l'adresse, d'où Suspense. */}
+      {hasOrganization && !readOnly && (
+        <Suspense fallback={null}>
+          <RememberDisplay />
+        </Suspense>
+      )}
       {hasOrganization && (
         <Suspense fallback={null}>
           <TourCard initialState={tourState} />

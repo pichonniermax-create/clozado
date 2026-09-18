@@ -26,6 +26,7 @@
     "retour_aux_partenaires": "Back to partners"
   },
   "list": {
+    "actifs": "Active",
     "ajouter_le_partenaire": "Add the partner",
     "ajouter_un_partenaire": "Add a partner",
     "aucun_partenaire_pour_l_instant": "No partners yet",
@@ -34,6 +35,7 @@
     "email": "Email",
     "inactif": "Inactive",
     "inactif_inactifs": "{count} {count, plural, one {inactive} other {inactive}}",
+    "inactifs": "Inactive",
     "les_confreres_vers_qui_tu_partages_12b6": "The fellow professionals you share deals with: they receive a link in your name and answer in one click, with no account to create on their side.",
     "les_confreres_vers_qui_tu_partages_8084": "The fellow professionals you share deals with — they aren’t product accounts, they have nothing to install.",
     "metier": "Profession",
@@ -41,8 +43,11 @@
     "notes": "Notes",
     "partenaire_partenaires_actif_actifs": "{count} active {count, plural, one {partner} other {partners}}",
     "partenaires": "Partners",
+    "rechercher": "Search",
+    "rechercher_un_partenaire": "Search a name, a company, a profession",
     "rousseau_patrimoine": "Rousseau Patrimoine",
     "societe": "Company",
-    "telephone": "Phone"
+    "telephone": "Phone",
+    "tous_les_metiers": "All professions"
   }
 }

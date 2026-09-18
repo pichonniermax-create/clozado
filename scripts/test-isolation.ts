@@ -507,6 +507,31 @@ async function main() {
     expect("B ne voit aucun refus de A", byReasonB.length === 0, JSON.stringify(byReasonB));
     if (rejected) await db.delete(schema.inboundEmails).where(eq(schema.inboundEmails.id, rejected.id));
 
+    console.log("\n--- Lot 1 : l'état d'affichage et les vues enregistrées ne franchissent pas la frontière");
+    const prefs = await import("../src/db/queries/preferences");
+    const viewsQ = await import("../src/db/queries/saved-views");
+    const asSession = (f: Fixture) => ({ id: f.userId, email: null, name: null, role: "admin" as const, organizationId: f.orgId, readOnly: false });
+    const [sessionA, sessionB] = [asSession(a), asSession(b)];
+    await prefs.rememberPreference(sessionA, prefs.PREF.screen("contacts"), { q: "secret de A" });
+    const prefsOfB = await prefs.getPreferences(sessionB);
+    expect("les préférences d'affichage de A n'apparaissent pas chez B", prefsOfB.size === 0, JSON.stringify([...prefsOfB.entries()]));
+    const viewOfA = await viewsQ.createView(sessionA, "contacts", "Vue de A", { params: { q: "secret de A" } });
+    const viewsOfB = await viewsQ.listViews(sessionB, "contacts");
+    expect("une vue de A n'est pas listée chez B", !viewsOfB.some((v) => v.id === viewOfA));
+    expect("B voit quand même les vues FOURNIES de son organisation", viewsOfB.length > 0 && viewsOfB.every((v) => v.builtin));
+    await expectThrow("B ne peut pas renommer la vue de A", () => viewsQ.renameView(sessionB, viewOfA, "Volée", "Volée"));
+    await expectThrow("B ne peut pas supprimer la vue de A", () => viewsQ.deleteView(sessionB, viewOfA));
+    await expectThrow("un member ne partage pas une vue à l'équipe", () =>
+      viewsQ.setViewShared({ ...sessionA, role: "member" as const }, viewOfA, true)
+    );
+    // Partagée par l'admin de A, elle reste invisible chez B : le partage porte sur une équipe, pas sur le produit.
+    await viewsQ.setViewShared(sessionA, viewOfA, true);
+    const sharedSeenByB = await viewsQ.listViews(sessionB, "contacts");
+    expect("une vue partagée de A reste invisible chez B", !sharedSeenByB.some((v) => v.id === viewOfA));
+    // La définition n'accepte que la liste blanche de l'écran : un paramètre inventé ne s'écrit pas.
+    const sanitized = viewsQ.sanitizeDefinition("contacts", { params: { q: "ok", inconnu: "x", erreur: "y" }, builtin: "n-importe-quoi" });
+    expect("une définition de vue est bornée à la liste blanche de l'écran", JSON.stringify(sanitized) === JSON.stringify({ params: { q: "ok" } }), JSON.stringify(sanitized));
+
     console.log("\n--- La garde de connexion de la démo : qui reçoit un lien de connexion, qui n'en reçoit pas");
     const guard = await import("../src/lib/auth/magic-link-guard");
     const { DEMO_ORGANIZATION_ID, isReservedExampleAddress } = await import("../src/lib/demo/constants");

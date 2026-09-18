@@ -29,6 +29,8 @@ import {
   type MetricSearchParams,
   type ParsedMetricFilters,
 } from "@/lib/metrics";
+import { getPreferences } from "@/db/queries/preferences";
+import { withRememberedPeriod } from "@/lib/display/period";
 import { requireUser } from "@/lib/session";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
@@ -152,7 +154,8 @@ export default async function LossesPage({ searchParams }: { searchParams: Promi
     );
   }
 
-  const parsed = parseMetricFilters(raw, fmt.timeZone);
+  // La période de l'adresse, sinon celle dont la personne se souvient (lot 1, étape 2).
+  const parsed = parseMetricFilters(withRememberedPeriod(raw, await getPreferences(user)), fmt.timeZone);
   const [pipelines, types, users, origins, report] = await Promise.all([
     listPipelinesWithStages(user),
     listDealTypes(user),

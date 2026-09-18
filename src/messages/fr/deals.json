@@ -81,6 +81,7 @@
     "choisis_une_organisation_dans_le_bandeau_d4cd": "Choisis une organisation dans le bandeau super admin en haut de l’écran pour voir son pipeline.",
     "client": "Client",
     "client_concerne": "Client concerné",
+    "cloture_depassee": "Clôture prévue dépassée",
     "cloture_prevue": "Clôture prévue",
     "configure_au_moins_un_type_d_d650": "Configure au moins un type d’affaire",
     "configurer_un_pipeline": "Configurer un pipeline",
@@ -101,12 +102,14 @@
     "libelle": "Libellé",
     "liste": "Liste",
     "m_et_mme_perrin": "M. et Mme Perrin",
+    "moi": "Moi",
     "montant": "Montant",
     "montant_estime": "Montant estimé ({currency})",
     "nom_du_type": "Nom du type",
     "nouvelle_affaire": "Nouvelle affaire",
     "nouvelle_affaire_pour": "Nouvelle affaire pour {name}",
     "page_sur_par_page": "Page {page} sur {pageCount} · {dealsPageSize} par page",
+    "personne": "Personne",
     "pipelines": "Pipelines",
     "precedentes": "← Précédentes",
     "prob": "Prob.",
@@ -121,9 +124,7 @@
     "toutes_les_etapes": "Toutes les étapes",
     "tu_es_en_vue_globale": "Tu es en vue globale",
     "type": "Type",
-    "un_pipeline_est_une_famille_d_ad50": "Un pipeline est une famille d’affaires avec ses propres étapes (crédit, placement, transaction…). Il se crée depuis Marque & réglages.",
-    "cloture_depassee": "Clôture prévue dépassée",
-    "personne": "Personne"
+    "un_pipeline_est_une_famille_d_ad50": "Un pipeline est une famille d’affaires avec ses propres étapes (crédit, placement, transaction…). Il se crée depuis Marque & réglages."
   },
   "queries": {
     "defaultPipeline": "Affaires",

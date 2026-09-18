@@ -206,6 +206,7 @@
   "list": {
     "aucun_contact_ne_correspond_a_cette_e658": "Aucun contact ne correspond à cette recherche",
     "aucun_contact_pour_l_instant": "Aucun contact pour l’instant",
+    "conseiller": "Conseiller",
     "contact_contacts": "{total} {total, plural, one {contact} other {contacts}}{n}",
     "contacts": "Contacts",
     "creer_une_fiche_importer_un_csv": "<link>Créer une fiche</link><link2>Importer un CSV</link2>",
@@ -213,17 +214,18 @@
     "la_recherche_porte_sur_le_nom_b32c": "La recherche porte sur le nom, l’email, la société et le téléphone — espaces et points compris.",
     "nouveau_contact": "Nouveau contact",
     "page_sur_par_page": "Page {page} sur {pageCount} · {contactsPageSize} par page",
+    "personnes": "Personnes",
     "pour": "pour « {q} »",
     "precedents": "← Précédents",
     "rechercher": "Rechercher",
     "rechercher_un_nom_un_email_une_15ed": "Nom, email, société, téléphone…",
     "societe": "Société",
+    "societes": "Sociétés",
     "suivants": "Suivants →",
     "tes_clients_et_prospects_personnes_et_1688": "Tes clients et prospects — personnes et sociétés, avec leurs affaires, tâches et échanges.",
     "tes_clients_et_prospects_personnes_et_e0e9": "Tes clients et prospects, personnes et sociétés : chaque fiche relie ses affaires, ses tâches et ses échanges. Un import CSV depuis ton CRM est le plus rapide.",
     "tous_les_conseillers": "Tous les conseillers",
-    "tout_afficher": "Tout afficher",
-    "conseiller": "Conseiller"
+    "tout_afficher": "Tout afficher"
   },
   "queries": {
     "affaires_en_cours": "Affaires en cours : {join}.",

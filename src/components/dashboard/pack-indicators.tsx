@@ -8,14 +8,12 @@ import { getFormats } from "@/i18n/formats";
 import {
   dashboardIndicators,
   metricQueryString,
-  PERIOD_PRESETS,
   periodPhrase,
   resolveBusinessPack,
   type DashboardIndicator,
   type ParsedMetricFilters,
 } from "@/lib/metrics";
 import type { OrgScopeUser } from "@/lib/session";
-import { cn } from "@/lib/utils";
 import { getTranslations } from "next-intl/server";
 import type { TranslatorOf } from "@/i18n/translator";
 import type { Formats } from "@/lib/format";
@@ -85,23 +83,6 @@ export async function PackIndicators({ user, businessPack, parsed }: { user: Org
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">{t("indicateurs", { label: tm(`packs.${pack.key}.label`) })}</h2>
         <div className="flex flex-wrap items-center gap-2">
-          {/* Un contrôle segmenté ne se replie pas (« Depuis le début » orphelin sur une 2e ligne) : libellés courts sous sm. */}
-          <div className="flex flex-nowrap rounded-lg border border-border p-0.5" aria-label={t("periode_des_indicateurs")}>
-            {PERIOD_PRESETS.map((p) => (
-              <Link
-                key={p.key}
-                href={`/dashboard?periode=${p.key}`}
-                aria-current={parsed.period === p.key ? "true" : undefined}
-                className={cn(
-                  "rounded-md px-2 py-0.5 text-xs whitespace-nowrap transition-colors",
-                  parsed.period === p.key ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <span className="sm:hidden">{tm(`periodsShort.${p.key}`)}</span>
-                <span className="hidden sm:inline">{tm(`periods.${p.key}`)}</span>
-              </Link>
-            ))}
-          </div>
           <a
             href={`/api/analytique/export${metricQueryString<Record<string, string | undefined>>(parsed.params, { vue: "tableau-de-bord" })}`}
             className={buttonVariants({ variant: "ghost", size: "sm" })}

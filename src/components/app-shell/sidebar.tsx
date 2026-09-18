@@ -20,6 +20,7 @@ export function Sidebar({
   readOnly = false,
   isSuperAdmin = false,
   badges,
+  hrefs,
 }: {
   mark: WorkspaceMarkProps;
   /** Faux en vue globale super admin : les écrans propres à une organisation sont masqués. */
@@ -29,6 +30,8 @@ export function Sidebar({
   /** Le super admin réel : les écrans de l'espace gestionnaire. */
   isSuperAdmin?: boolean;
   badges: Record<NavBadge, number>;
+  /** L'écran tel qu'on l'a laissé, par chemin (lot 1). */
+  hrefs?: Record<string, string>;
 }) {
   return (
     // Collante et à la hauteur de l'écran (audit UI du 2026-09-14) : sur une page longue (réglages), la navigation
@@ -37,7 +40,7 @@ export function Sidebar({
       <div className="px-4 py-4">
         <WorkspaceMark {...mark} href="/dashboard" />
       </div>
-      <NavigationList hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={badges} />
+      <NavigationList hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={badges} hrefs={hrefs} />
     </aside>
   );
 }

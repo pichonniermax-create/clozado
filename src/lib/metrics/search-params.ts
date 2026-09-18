@@ -1,4 +1,6 @@
-import { parseLocalDateTime } from "@/db/queries/activities";
+// Le fuseau vient de `@/lib/timezone`, pas du module de requêtes qui le réexporte : la lecture des filtres
+// d'une adresse ne doit dépendre d'aucune base — c'est ce qui la rend contrôlable hors ligne.
+import { parseLocalDateTime, todayInTimeZone } from "@/lib/timezone";
 import { ORIGIN_UNKNOWN, ORIGIN_UNMATCHED, type MetricFilters } from "./filters";
 import type { DealOutcomeFilter, DealSelection } from "./funnel";
 import { LOSS_NO_REASON, LOST_FROM_CREATION } from "./losses";
@@ -21,18 +23,35 @@ export type MetricSearchParams = {
   origine?: string;
 };
 
-/** Les périodes proposées ; leurs libellés sont `metrics.periods.<key>` dans les messages. */
+/**
+ * Les périodes proposées ; leurs libellés sont `metrics.periods.<key>` dans
+ * les messages. « mois » est le mois CALENDAIRE en cours dans le fuseau de
+ * l'organisation, pas trente jours glissants : c'est ce que veut dire
+ * « signées ce mois » — et la seule période dont la borne ne se calcule pas
+ * en jours.
+ */
 export const PERIOD_PRESETS = [
   { key: "30j", days: 30 },
   { key: "90j", days: 90 },
   { key: "12m", days: 365 },
+  { key: "mois", days: null },
   { key: "tout", days: null },
 ] as const;
 
 export type PeriodPresetKey = (typeof PERIOD_PRESETS)[number]["key"];
 
-/** Sans période dans l'URL : tout l'historique — le plus d'observations possible avant de restreindre. */
-export const DEFAULT_PERIOD: PeriodPresetKey = "tout";
+/**
+ * LA période par défaut du produit (lot 1, étape 2) — une seule, partagée
+ * par le tableau de bord, l'analytique et les partenaires. Elle valait
+ * `90j` sur le tableau de bord et `tout` en analytique : deux écrans
+ * côte à côte ne parlaient pas du même temps. 90 jours : assez large pour
+ * que les délais passent le seuil de fiabilité, assez court pour que les
+ * volumes parlent de maintenant.
+ */
+export const DEFAULT_PERIOD: PeriodPresetKey = "90j";
+
+/** Les préréglages proposés au choix, dans l'ordre d'affichage (le mois en cours après les fenêtres glissantes). */
+export const PERIOD_CHOICES: readonly PeriodPresetKey[] = ["30j", "90j", "12m", "mois", "tout"];
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -81,6 +100,8 @@ export function parseMetricFilters(raw: MetricSearchParams, timeZone: string, no
     const preset = PERIOD_PRESETS.find((p) => p.key === raw.periode) ?? PERIOD_PRESETS.find((p) => p.key === DEFAULT_PERIOD)!;
     period = preset.key;
     if (preset.days) filters.from = new Date(now.getTime() - preset.days * DAY_MS);
+    // Le mois en cours : son premier jour lu dans le fuseau de l'organisation, comme les bornes personnalisées.
+    else if (preset.key === "mois") filters.from = parseLocalDateTime(`${todayInTimeZone(timeZone, now).slice(0, 8)}01T00:00`, timeZone) ?? undefined;
   }
   const params: MetricSearchParams = {
     periode: period !== "perso" && period !== DEFAULT_PERIOD ? period : undefined,
