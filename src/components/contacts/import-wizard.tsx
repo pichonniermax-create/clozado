@@ -27,7 +27,25 @@ import { NativeSelect } from "@/components/ui/native-select";
  */
 
 /** Les champs cibles d'une colonne, dans l'ordre du sélecteur ; leurs libellés sont `contacts.importWizard.fields.<champ>` (« ignore » pour la colonne ignorée). */
-const TARGETS: (ImportField | "")[] = ["", "name", "firstName", "lastName", "email", "phone", "companyName", "jobTitle", "city", "postalCode", "country", "notes"];
+const TARGETS: (ImportField | "")[] = [
+  "",
+  "name",
+  "firstName",
+  "lastName",
+  "email",
+  "phone",
+  "companyName",
+  "jobTitle",
+  "city",
+  "postalCode",
+  "country",
+  "notes",
+  // Lot 2 : trois colonnes qui DÉSIGNENT une ligne existante (un compte, un confrère, un libellé d'origine).
+  // Elles ne créent rien : une valeur inconnue rejette la ligne, avec son motif, dans le rapport.
+  "owner",
+  "partner",
+  "origin",
+];
 
 /** Détection du séparateur sur la première ligne : ; , ou tabulation. */
 function detectSeparator(firstLine: string): string {
@@ -99,6 +117,11 @@ function guessTarget(header: string, allHeaders: string[]): ImportField | "" {
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
   const hasPrenom = allHeaders.some((h) => /pr[ée]nom|first/i.test(h));
+  // Les trois colonnes du lot 2 D'ABORD : « Conseiller (email) » contient « email » et tombait sinon dans la
+  // colonne Email, où elle écrasait la vraie adresse du contact — vu au navigateur, pas à la relecture.
+  if (/conseiller|responsable|owner|assign/.test(n)) return "owner";
+  if (/apporteur|apporte ?par|prescripteur|partenaire|referrer|referred/.test(n)) return "partner";
+  if (/origine|provenance|origin/.test(n)) return "origin";
   if (/^(nom complet|name|full ?name)$/.test(n)) return "name";
   if (/^(nom|last ?name)$/.test(n)) return hasPrenom ? "lastName" : "name";
   if (/prenom|first ?name/.test(n)) return "firstName";

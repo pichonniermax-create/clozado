@@ -7,6 +7,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { PartnerPicker, type PickablePartner } from "@/components/contacts/partner-picker";
 import { createContactAction, type CreateContactState } from "@/lib/contacts/actions";
 import { useTranslations } from "next-intl";
 
@@ -20,7 +21,19 @@ type OrgUser = { id: string; name: string | null; email: string };
  * qui venait d'être saisi doit rester à l'écran (React 19 vide un
  * formulaire non contrôlé après l'action).
  */
-export function ContactCreateForm({ orgUsers, currentUserId }: { orgUsers: OrgUser[]; currentUserId: string }) {
+export function ContactCreateForm({
+  orgUsers,
+  currentUserId,
+  partners,
+  origins,
+}: {
+  orgUsers: OrgUser[];
+  currentUserId: string;
+  /** Les confrères ACTIFS, pour « Apporté par » (lot 2) — le répertoire tient en mémoire. */
+  partners: PickablePartner[];
+  /** Les origines de l'organisation, la même liste que pilote l'analytique (lot 2). */
+  origins: { id: string; label: string }[];
+}) {
   const t = useTranslations("contacts.contactCreateForm");
   const [state, action, pending] = useActionState(createContactAction, initialState);
   const [kind, setKind] = useState<"person" | "company">("person");
@@ -115,8 +128,30 @@ export function ContactCreateForm({ orgUsers, currentUserId }: { orgUsers: OrgUs
             </NativeSelect>
           </Field>
         ) : (
-          <input type="hidden" name="ownerId" value={currentUserId} />
+          // Seul dans l'espace : rien à choisir, mais le conseiller attribué est DIT dès la création (lot 2) —
+          // avant, un champ caché laissait croire que la fiche n'appartenait à personne.
+          <Field label={t("conseiller_attribue")} htmlFor="ownerId-lecture">
+            <p id="ownerId-lecture" className="text-sm text-muted-foreground">
+              {orgUsers.find((u) => u.id === currentUserId)?.name || orgUsers[0]?.email || t("personne")}
+            </p>
+            <input type="hidden" name="ownerId" value={currentUserId} />
+          </Field>
         )}
+        {/* L'apport ENTRANT : le confrère qui a amené cette personne. Facultatif, et créable d'ici (lot 2). */}
+        <Field label={t("apporte_par")} htmlFor="partnerId-recherche" hint={t("facultatif_le_confrere_qui_a_amene")}>
+          <PartnerPicker inputId="partnerId-recherche" partners={partners} />
+        </Field>
+        {/* L'origine métier — la MÊME liste que pilote l'analytique, jamais un second vocabulaire. */}
+        <Field label={t("origine")} htmlFor="originId">
+          <NativeSelect id="originId" name="originId" defaultValue="">
+            <option value="">{t("non_precisee")}</option>
+            {origins.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
       </div>
       <Field label={t("notes")} htmlFor="notes">
         <Textarea id="notes" name="notes" className="min-h-16" value={val("notes")} onChange={set("notes")} />

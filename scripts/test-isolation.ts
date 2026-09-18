@@ -532,6 +532,38 @@ async function main() {
     const sanitized = viewsQ.sanitizeDefinition("contacts", { params: { q: "ok", inconnu: "x", erreur: "y" }, builtin: "n-importe-quoi" });
     expect("une définition de vue est bornée à la liste blanche de l'écran", JSON.stringify(sanitized) === JSON.stringify({ params: { q: "ok" } }), JSON.stringify(sanitized));
 
+    console.log("\n--- Lot 2 : l'origine et l'apporteur d'un contact restent dans leur organisation");
+    const originsQ = await import("../src/db/queries/acquisition");
+    const partnersQ2 = await import("../src/db/queries/partners");
+    const originA = await originsQ.createOrigin(a!.admin, "Salon de A (lot 2)");
+    const confrereB = await partnersQ2.createPartner(b.admin, { name: "Confrère de B (lot 2)" });
+    // Par les fonctions des écrans : B ne peut pas désigner l'origine de A, ni A le confrère de B.
+    await expectThrow("créer chez B avec l'origine de A refuse", () =>
+      contactsQ.createContact(b!.admin, b!.userId, { kind: "person", name: "Vol d'origine", originId: originA.id })
+    );
+    await expectThrow("créer chez A avec le confrère de B refuse", () =>
+      contactsQ.createContact(a!.admin, a!.userId, { kind: "person", name: "Vol d'apporteur", partnerId: confrereB.id })
+    );
+    await expectThrow("modifier une fiche de B avec l'origine de A refuse", () =>
+      contactsQ.updateContact(b!.admin, b!.contactId, { name: "Client B", originId: originA.id })
+    );
+    // Et la BASE elle-même refuse, clé composite à l'appui, si jamais une requête oubliait la vérification.
+    await expectThrow("contacts(org B, origine de A) rejeté par la base", async () => {
+      await db.insert(schema.contacts).values({ organizationId: b!.orgId, kind: "person", name: "Forcé", originId: originA.id });
+    });
+    await expectThrow("contacts(org A, partenaire de B) rejeté par la base", async () => {
+      await db.insert(schema.contacts).values({ organizationId: a!.orgId, kind: "person", name: "Forcé", partnerId: confrereB.id });
+    });
+    // Le chemin nominal, lui, passe — et date l'attribution.
+    const apporte = await contactsQ.createContact(a!.admin, a!.userId, {
+      kind: "person",
+      name: "Apportée chez A",
+      originId: originA.id,
+      partnerId: a!.partnerId,
+      ownerId: a!.userId,
+    });
+    expect("une fiche de A accepte l'origine et le confrère de A, datés", Boolean(apporte.originId && apporte.partnerId && apporte.partnerAttributedAt && apporte.ownerAssignedAt));
+
     console.log("\n--- La garde de connexion de la démo : qui reçoit un lien de connexion, qui n'en reçoit pas");
     const guard = await import("../src/lib/auth/magic-link-guard");
     const { DEMO_ORGANIZATION_ID, isReservedExampleAddress } = await import("../src/lib/demo/constants");

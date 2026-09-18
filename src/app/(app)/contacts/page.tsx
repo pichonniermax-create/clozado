@@ -12,6 +12,8 @@ import { ListCard, ListRowLink } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Upload } from "lucide-react";
 import { CONTACT_SORTS, CONTACT_STALE_DAYS, CONTACTS_PAGE_SIZE, listContacts, listOrgUsers, type ContactSort } from "@/db/queries/contacts";
+import { listPartners } from "@/db/queries/partners";
+import { listOrigins } from "@/db/queries/acquisition";
 import { PREF, preferenceString } from "@/db/queries/preferences";
 import { requireUser } from "@/lib/session";
 import { resolveDisplay } from "@/lib/display/resolve";
@@ -42,7 +44,14 @@ export default async function ContactsPage({
   const screen = displayScreen("contacts")!;
   // La résolution de l'affichage (préférences + vues) part EN MÊME TEMPS que les conseillers : elle ne dépend pas
   // d'eux, et l'attendre seule ajoutait un aller-retour en série sur chaque ouverture de l'écran.
-  const [display, orgUsers] = await Promise.all([resolveDisplay(user, screen, raw), listOrgUsers(user)]);
+  // Tout ce qui ne dépend pas des paramètres part ensemble : l'affichage, les conseillers, et de quoi
+  // renseigner l'apport et l'origine à la création (lot 2).
+  const [display, orgUsers, partners, origins] = await Promise.all([
+    resolveDisplay(user, screen, raw),
+    listOrgUsers(user),
+    listPartners(user),
+    listOrigins(user),
+  ]);
   const p = display.params;
 
   const q = p.q?.trim() || undefined;
@@ -181,7 +190,13 @@ export default async function ContactsPage({
       {/* Reste dans le DOM même repliée : la visite guidée l'éclaire (`contacts-nouveau`) et `?nouveau=1` l'ouvre. */}
       <DetailsCard summary={t("nouveau_contact")} defaultOpen={raw.nouveau === "1"} tour="contacts-nouveau">
         {/* Le responsable proposé : la personne connectée, ou l'admin le plus ancien pour un super admin en substitution. */}
-        <ContactCreateForm orgUsers={orgUsers} currentUserId={defaultOwnerId(user, orgUsers) ?? ""} />
+        <ContactCreateForm
+          orgUsers={orgUsers}
+          currentUserId={defaultOwnerId(user, orgUsers) ?? ""}
+          // Seuls les confrères ACTIFS sont proposés : on n'apporte pas une fiche par quelqu'un qu'on a rangé.
+          partners={partners.filter((p) => p.active).map((p) => ({ id: p.id, name: p.name, company: p.company, profession: p.profession }))}
+          origins={origins.map((o) => ({ id: o.id, label: o.label }))}
+        />
       </DetailsCard>
 
       <section className="flex flex-col gap-3">

@@ -155,6 +155,13 @@
       "when": 1789681078861,
       "tag": "0021_etat_affichage_et_vues",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1789739485819,
+      "tag": "0022_origine_et_apporteur_du_contact",
+      "breakpoints": true
     }
   ]
 }

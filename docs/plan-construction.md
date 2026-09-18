@@ -286,6 +286,54 @@ Migration 0022 : `contacts.origin_id`, `contacts.partner_id`,
    trois lignes avec les trois colonnes ; l'analytique des origines
    inchangée sur la démo (mêmes chiffres avant/après, requêtes rejouées).
 
+### 2.4 Ce qui a été construit (2026-09-18)
+
+Migration **0022** appliquée en local puis en production après validation
+explicite : `contacts.origin_id`, `contacts.partner_id`,
+`contacts.partner_attributed_at`, `contacts.owner_assigned_at`, deux clés
+composites qui portent l'organisation, deux index pour les chiffres du
+lot 3, et le rattrapage des dates d'attribution à la création de la fiche
+(45 fiches en production).
+
+- **Une seule notion d'origine.** `contacts.origin_id` pointe la table
+  `origins`, celle que pilote déjà l'analytique. `contacts.source` reste le
+  protocole technique et n'est jamais montré ; `appointments.source`
+  (`calendly`/`manual`) est du même genre et ne s'y mêle pas.
+- **L'apport entrant** (`contacts.partner_id`) est distinct du partage
+  sortant (`deal_shares.partner_id`) : les deux sens coexistent sur le
+  même confrère.
+- **À la création** : « Apporté par » avec recherche dans les confrères
+  ACTIFS et création rapide sans quitter le formulaire, « Origine » en
+  liste, et le conseiller attribué DIT même quand on est seul dans
+  l'espace (un champ caché laissait croire que la fiche n'appartenait à
+  personne).
+- **Sur la fiche** : les trois champs modifiables, les dates d'attribution
+  affichées. Une date ne bouge que quand l'attribution change —
+  réenregistrer une fiche telle quelle ne rajeunit pas un apport, sinon
+  les chiffres du confrère (lot 3) se déplaceraient tout seuls.
+- **Import CSV** : trois colonnes de plus, reconnues seules par
+  l'assistant. Elles DÉSIGNENT des lignes existantes (un compte par son
+  adresse, un confrère par son nom, une origine par son libellé) et n'en
+  créent aucune : une valeur inconnue rejette la ligne, avec son motif.
+  Elles complètent aussi une fiche reconnue, et seulement si elle n'a rien.
+- **Leads** : une fiche née d'un lead porte désormais l'origine du lead ;
+  une fiche existante qui n'en avait pas la reçoit ; une seconde arrivée
+  n'écrase jamais la première. Le PRM ne touche à rien : l'apport reste un
+  lien explicite.
+
+**Preuves** : `scripts/_tmp-lot2-preuve.ts` (15 contrôles au vert dans
+Chromium sur la base locale, de la création à l'import en passant par les
+leads), six contrôles d'isolation de plus dans `scripts/test-isolation.ts`
+(la base elle-même refuse une fiche qui désignerait l'origine ou le
+confrère d'une autre organisation), 252 tests unitaires, eslint propre,
+build vert.
+
+**Deux défauts trouvés au navigateur, invisibles à la relecture** : le
+schéma strict de l'import refusait les trois nouvelles colonnes (l'import
+échouait en bloc, « en route ») ; et le devineur d'en-têtes classait
+« Conseiller (email) » dans la colonne Email, où elle écrasait l'adresse
+du contact — les règles du lot 2 passent donc AVANT les règles génériques.
+
 Effort : M. Dépend de : rien ; le lot 3 en dépend.
 
 ---

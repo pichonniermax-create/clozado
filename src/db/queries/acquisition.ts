@@ -402,9 +402,14 @@ export async function receiveLead(organizationId: string, apiKeyId: string, inpu
     contact = candidates[0];
   }
 
+  // L'origine est résolue AVANT la fiche (lot 2) : c'est elle qui la porte désormais, pas seulement l'arrivée.
+  // Une fiche née d'un lead naît donc avec son origine, et une fiche existante qui n'en avait pas la reçoit.
+  const originText = input.origin?.trim() || input.simulator?.trim() || input.utmSource?.trim() || null;
+  const origin = await matchOrigin(organizationId, originText);
+
   if (contact) {
     matched = true;
-    const updates: Partial<Record<string, string>> = {};
+    const updates: Record<string, string> = {};
     // Les champs complétés sont stockés par CLÉ (« firstName ») : le journal les nomme dans la langue de la personne qui lit.
     for (const { field } of LEAD_COMPLETABLE) {
       const incoming = (input[field] as string | null)?.trim();
@@ -413,8 +418,14 @@ export async function receiveLead(organizationId: string, apiKeyId: string, inpu
         enriched.push(field);
       }
     }
+    // L'origine ne s'écrase jamais : la première arrivée fait foi, comme pour les champs d'identité.
+    const takesOrigin = Boolean(origin.originId) && !contact.originId;
+    if (takesOrigin) enriched.push("originId");
     if (enriched.length > 0) {
-      await db.update(contacts).set({ ...updates, updatedAt: new Date() }).where(eq(contacts.id, contact.id));
+      await db
+        .update(contacts)
+        .set({ ...updates, ...(takesOrigin ? { originId: origin.originId } : {}), updatedAt: new Date() })
+        .where(eq(contacts.id, contact.id));
     }
   } else {
     [contact] = await db
@@ -432,13 +443,12 @@ export async function receiveLead(organizationId: string, apiKeyId: string, inpu
         city: input.city?.trim() || null,
         postalCode: input.postalCode?.trim() || null,
         country: input.country?.trim() || null,
+        originId: origin.originId,
         source: "lead",
       })
       .returning();
   }
 
-  const originText = input.origin?.trim() || input.simulator?.trim() || input.utmSource?.trim() || null;
-  const origin = await matchOrigin(organizationId, originText);
   const [lead] = await db
     .insert(leads)
     .values({

@@ -18,7 +18,8 @@ import {
   type ImportReport,
   type ImportRowInput,
 } from "@/db/queries/contacts";
-import { errorMessage, withError } from "@/lib/form-actions";
+import { createPartner } from "@/db/queries/partners";
+import { actionResult, errorMessage, withError, type ActionResult } from "@/lib/form-actions";
 import { validateContactInput } from "@/lib/contacts/input";
 import { saveNewsletter } from "@/lib/newsletter/actions";
 import { log } from "@/lib/log";
@@ -63,7 +64,25 @@ function readContactForm(formData: FormData): CreateContactInput {
     birthDate: String(formData.get("birthDate") ?? "").trim() || null,
     notes: String(formData.get("notes") ?? "").trim() || null,
     ownerId: String(formData.get("ownerId") ?? "").trim() || null,
+    // Lot 2 : l'origine métier de la fiche, et le confrère qui l'a apportée.
+    originId: String(formData.get("originId") ?? "").trim() || null,
+    partnerId: String(formData.get("partnerId") ?? "").trim() || null,
   };
+}
+
+/**
+ * CRÉER UN CONFRÈRE SANS QUITTER LE FORMULAIRE (lot 2) — le cas courant :
+ * on saisit une fiche apportée par quelqu'un qui n'est pas encore au
+ * répertoire. Le nom seul suffit ; le reste se complète depuis sa fiche.
+ * Rend son échec au lieu de le lever : l'appel vient d'un composant
+ * client, une `AppError` levée arriverait avec sa CLÉ pour message.
+ */
+export async function quickCreatePartnerAction(name: string): Promise<ActionResult<{ id: string; name: string }>> {
+  return actionResult(async () => {
+    const user = await requireUser();
+    const partner = await createPartner(user, { name: String(name ?? "").trim() });
+    return { id: partner.id, name: partner.name };
+  });
 }
 
 export async function createContactAction(
@@ -204,6 +223,11 @@ const IMPORT_VALUES_SCHEMA = z
     postalCode: z.string().max(20),
     country: z.string().max(80),
     notes: z.string().max(2000),
+    // Lot 2 : trois colonnes qui DÉSIGNENT une ligne existante (adresse d'un compte, nom d'un confrère,
+    // libellé d'une origine). Bornées comme le reste — le rapprochement, lui, se fait côté base.
+    owner: z.string().max(254),
+    partner: z.string().max(200),
+    origin: z.string().max(200),
   })
   .partial()
   .strict();

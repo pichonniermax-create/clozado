@@ -15,6 +15,8 @@ import {
   leads,
   mailTargetMembers,
   newsletterRecipients,
+  origins,
+  partners,
   ruleActions,
   tasks,
   users,
@@ -211,6 +213,10 @@ export type CreateContactInput = {
   notes?: string | null;
   ownerId?: string | null;
   source?: "manual" | "import";
+  /** L'origine métier de la fiche — une ligne d'`origins` (lot 2). */
+  originId?: string | null;
+  /** Le confrère qui a apporté ce contact (lot 2) — l'apport ENTRANT, pas un partage PRM. */
+  partnerId?: string | null;
 };
 
 /**
@@ -248,7 +254,12 @@ export async function createContact(user: OrgScopeUser, createdBy: string, input
     throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_f1fd");
   }
   if (input.ownerId) await assertUserInOrg(input.ownerId, user.organizationId);
+  // L'origine et l'apporteur appartiennent à l'organisation : la clé composite le garantit déjà en base,
+  // vérifié ici pour que l'écran reçoive une phrase plutôt qu'une erreur de contrainte.
+  await assertOriginInOrg(input.originId, user.organizationId);
+  await assertPartnerInOrg(input.partnerId, user.organizationId);
 
+  const now = new Date();
   const isCompany = input.kind === "company";
   const [contact] = await db
     .insert(contacts)
@@ -270,11 +281,30 @@ export async function createContact(user: OrgScopeUser, createdBy: string, input
       birthDate: isCompany ? null : input.birthDate || null,
       notes: input.notes?.trim() || null,
       ownerId: input.ownerId || null,
+      // Les dates d'attribution naissent avec la fiche : « depuis quand » commence maintenant.
+      ownerAssignedAt: input.ownerId ? now : null,
+      originId: input.originId || null,
+      partnerId: input.partnerId || null,
+      partnerAttributedAt: input.partnerId ? now : null,
       source: input.source ?? "manual",
       createdBy,
     })
     .returning();
   return contact;
+}
+
+/** Une origine désignée doit être celle de l'organisation — sinon on nommerait le libellé d'un autre espace. */
+async function assertOriginInOrg(originId: string | null | undefined, organizationId: string): Promise<void> {
+  if (!originId) return;
+  const row = await db.query.origins.findFirst({ where: eq(origins.id, originId), columns: { organizationId: true } });
+  if (!row || row.organizationId !== organizationId) throw new AppError("origine_introuvable");
+}
+
+/** Un apporteur désigné doit être un confrère de l'organisation, et encore actif à l'attribution. */
+async function assertPartnerInOrg(partnerId: string | null | undefined, organizationId: string): Promise<void> {
+  if (!partnerId) return;
+  const row = await db.query.partners.findFirst({ where: eq(partners.id, partnerId), columns: { organizationId: true } });
+  if (!row || row.organizationId !== organizationId) throw new AppError("partenaire_introuvable");
 }
 
 export async function updateContact(
@@ -285,6 +315,16 @@ export async function updateContact(
   const contact = await getContact(user, id);
   if (contact.deletedAt) throw new AppError("ce_contact_a_ete_supprime");
   if (input.ownerId) await assertUserInOrg(input.ownerId, contact.organizationId);
+  await assertOriginInOrg(input.originId, contact.organizationId);
+  await assertPartnerInOrg(input.partnerId, contact.organizationId);
+
+  const now = new Date();
+  const nextOwnerId = input.ownerId || null;
+  const nextPartnerId = input.partnerId || null;
+  // La date d'attribution ne bouge QUE quand l'attribution change : rouvrir la fiche et l'enregistrer telle
+  // quelle ne doit pas rajeunir un apport — les chiffres du confrère comptent à cette date (lot 3).
+  const ownerAssignedAt = nextOwnerId === contact.ownerId ? contact.ownerAssignedAt : nextOwnerId ? now : null;
+  const partnerAttributedAt = nextPartnerId === contact.partnerId ? contact.partnerAttributedAt : nextPartnerId ? now : null;
 
   const isCompany = contact.kind === "company";
   const [updated] = await db
@@ -304,8 +344,12 @@ export async function updateContact(
       country: input.country?.trim() || null,
       birthDate: isCompany ? null : input.birthDate || null,
       notes: input.notes?.trim() || null,
-      ownerId: input.ownerId || null,
-      updatedAt: new Date(),
+      ownerId: nextOwnerId,
+      ownerAssignedAt,
+      originId: input.originId || null,
+      partnerId: nextPartnerId,
+      partnerAttributedAt,
+      updatedAt: now,
     })
     .where(eq(contacts.id, id))
     .returning();
@@ -662,7 +706,16 @@ export type ImportField =
   | "city"
   | "postalCode"
   | "country"
-  | "notes";
+  | "notes"
+  /** Le conseiller, par son ADRESSE : c'est la seule identité stable d'un compte dans un fichier (lot 2). */
+  | "owner"
+  /** Le confrère apporteur, par son NOM exact tel qu'il est au répertoire (lot 2). */
+  | "partner"
+  /** L'origine métier, par son LIBELLÉ exact — la même liste que pilote l'analytique (lot 2). */
+  | "origin";
+
+/** Les trois colonnes du lot 2 : elles désignent une ligne existante, elles n'en créent aucune. */
+export const IMPORT_REFERENCE_FIELDS = ["owner", "partner", "origin"] as const;
 
 export type ImportRowInput = {
   /** Numéro de ligne DANS LE FICHIER (en-tête = 1), pour un rapport lisible. */
@@ -697,7 +750,7 @@ const MAX_IMPORT_ROWS = 5000;
  * Champs qu'une ligne d'import peut remplir sur une fiche existante — jamais le nom ; l'email seulement quand la fiche
  * a été reconnue autrement (par téléphone, par nom et ville) et n'en a pas encore : l'identité qui a servi à apparier ne se réécrit pas.
  */
-const COMPLETABLE: { field: Exclude<ImportField, "name"> }[] = [
+const COMPLETABLE: { field: Exclude<ImportField, "name" | (typeof IMPORT_REFERENCE_FIELDS)[number]> }[] = [
   { field: "email" },
   { field: "firstName" },
   { field: "lastName" },
@@ -757,9 +810,26 @@ export async function importContacts(
     index("name_city", nameCityKey(c.name, c.city), c);
   }
 
+  // Les trois colonnes du lot 2 DÉSIGNENT des lignes existantes : un conseiller par son adresse, un confrère
+  // par son nom, une origine par son libellé. Rien n'est créé au passage — un import qui invente des comptes,
+  // des partenaires et des libellés produit un répertoire que personne n'a voulu. Une valeur inconnue rejette
+  // la ligne avec son motif, et le fichier se corrige.
+  const [importUsers, importPartners, importOrigins] = await Promise.all([
+    db.select({ id: users.id, email: users.email }).from(users).where(eq(users.organizationId, user.organizationId)),
+    db.select({ id: partners.id, name: partners.name, active: partners.active }).from(partners).where(eq(partners.organizationId, user.organizationId)),
+    db.select({ id: origins.id, label: origins.label }).from(origins).where(eq(origins.organizationId, user.organizationId)),
+  ]);
+  const key = (value: string) => value.trim().toLowerCase();
+  const usersByEmail = new Map(importUsers.map((u) => [key(u.email), u.id]));
+  const partnersByName = new Map(importPartners.filter((p) => p.active).map((p) => [key(p.name), p.id]));
+  const originsByLabel = new Map(importOrigins.map((o) => [key(o.label), o.id]));
+  const importedAt = new Date();
+
   const report: ImportReport = { inserted: 0, completed: [], skipped: [], error: null };
   const toInsert: (typeof contacts.$inferInsert)[] = [];
-  const toComplete: { line: number; contact: Contact; updates: Partial<Record<string, string>>; fields: string[]; matchedBy: ImportMatchedBy }[] = [];
+  // Les valeurs à poser : du texte pour les champs de la fiche, un identifiant et une date pour les
+  // références du lot 2 (conseiller, apporteur, origine).
+  const toComplete: { line: number; contact: Contact; updates: Record<string, string | Date>; fields: string[]; matchedBy: ImportMatchedBy }[] = [];
   const seenInFile = new Set<string>();
 
   for (const row of rows) {
@@ -784,6 +854,24 @@ export async function importContacts(
     const nameCity = nameCityKey(name, v.city);
     if (nameCity) identities.push({ by: "name_city", key: nameCity, label: t("identite_nom_ville", { name, city: v.city?.trim() ?? "" }) });
 
+    // Les trois références, résolues avant tout le reste : une ligne qui en porte une inconnue ne s'écrit pas
+    // à moitié.
+    const resolve = (raw: string | undefined, table: Map<string, string>, reason: (value: string) => string) => {
+      const value = raw?.trim();
+      if (!value) return { id: null as string | null, error: null as string | null };
+      const id = table.get(key(value));
+      return id ? { id, error: null } : { id: null, error: reason(value) };
+    };
+    const owner = resolve(v.owner, usersByEmail, (value) => t("conseiller_inconnu", { value }));
+    const partner = resolve(v.partner, partnersByName, (value) => t("partenaire_inconnu", { value }));
+    const origin = resolve(v.origin, originsByLabel, (value) => t("origine_inconnue", { value }));
+    const referenceError = owner.error ?? partner.error ?? origin.error;
+    if (referenceError) {
+      report.skipped.push({ line: row.line, reason: referenceError });
+      continue;
+    }
+    const references = { ownerId: owner.id, partnerId: partner.id, originId: origin.id };
+
     const seen = identities.find((identity) => seenInFile.has(`${identity.by}:${identity.key}`));
     if (seen) {
       report.skipped.push({ line: row.line, reason: t("ignoree_apparait_plus_haut_reconnue_par", { identity: seen.label }) });
@@ -803,7 +891,7 @@ export async function importContacts(
         continue;
       }
       const target = matches[0];
-      const updates: Partial<Record<string, string>> = {};
+      const updates: Record<string, string | Date> = {};
       const fields: string[] = [];
       for (const { field } of COMPLETABLE) {
         // L'email ne se pose que sur une fiche reconnue autrement : une ligne reconnue par son email n'a rien à lui apprendre.
@@ -813,6 +901,22 @@ export async function importContacts(
           updates[field] = incoming;
           fields.push(t(`fields.${field}`));
         }
+      }
+      // Les références du lot 2 complètent aussi, et seulement quand la fiche n'a rien : un import ne
+      // réattribue pas une fiche déjà suivie par quelqu'un.
+      if (references.ownerId && !target.ownerId) {
+        updates.ownerId = references.ownerId;
+        updates.ownerAssignedAt = importedAt;
+        fields.push(t("fields.owner"));
+      }
+      if (references.partnerId && !target.partnerId) {
+        updates.partnerId = references.partnerId;
+        updates.partnerAttributedAt = importedAt;
+        fields.push(t("fields.partner"));
+      }
+      if (references.originId && !target.originId) {
+        updates.originId = references.originId;
+        fields.push(t("fields.origin"));
       }
       if (fields.length === 0) {
         report.skipped.push({ line: row.line, reason: t("deja_a_jour_reconnue_par", { identity: label }) });
@@ -836,6 +940,13 @@ export async function importContacts(
       postalCode: v.postalCode?.trim() || null,
       country: v.country?.trim() || null,
       notes: v.notes?.trim() || null,
+      ownerId: references.ownerId,
+      ownerAssignedAt: references.ownerId ? importedAt : null,
+      partnerId: references.partnerId,
+      // La date de l'apport est celle de l'IMPORT : le fichier ne la porte pas, et inventer une date
+      // antérieure fausserait les chiffres du confrère (lot 3).
+      partnerAttributedAt: references.partnerId ? importedAt : null,
+      originId: references.originId,
       source: "import",
       createdBy: actorId,
     });

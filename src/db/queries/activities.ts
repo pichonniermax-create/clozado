@@ -126,7 +126,7 @@ type ActorRow = {
  * action humaine), pour ne pas faire passer un geste humain pour un automate.
  */
 /** Un champ complété par un lead, stocké par clé — ou, pour les lignes d'avant le chantier i18n, déjà en mots : affiché tel quel. */
-const FIELD_KEYS = ["firstName", "lastName", "phone", "companyName", "jobTitle", "city", "postalCode", "country", "notes"] as const;
+const FIELD_KEYS = ["firstName", "lastName", "phone", "companyName", "jobTitle", "city", "postalCode", "country", "notes", "originId"] as const;
 function fieldLabel(field: string, t: TranslatorOf<"activities.queries">): string {
   return (FIELD_KEYS as readonly string[]).includes(field) ? t(`fields.${field as (typeof FIELD_KEYS)[number]}`) : field;
 }

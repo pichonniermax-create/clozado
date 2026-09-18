@@ -13,6 +13,8 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
+import { origins } from "./origins";
+import { partners } from "./partners";
 import { users } from "./users";
 
 /**
@@ -74,6 +76,41 @@ export const contacts = pgTable(
     notes: text("notes"),
     /** Conseiller de l'organisation à qui la fiche est attribuée. */
     ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    /**
+     * Depuis quand la fiche est attribuée à ce conseiller (lot 2). Posée à
+     * la création et à chaque changement de conseiller. Volontairement SANS
+     * contrainte de paire avec `owner_id` : la clé étrangère de `owner_id`
+     * est `ON DELETE SET NULL`, une contrainte « les deux ou aucun » ferait
+     * échouer la suppression d'un compte. Une date orpheline ne compte
+     * jamais : les chiffres filtrent sur l'identifiant, pas sur la date.
+     */
+    ownerAssignedAt: timestamp("owner_assigned_at", { withTimezone: true }),
+    /**
+     * L'ORIGINE MÉTIER de la fiche (lot 2) — une ligne d'`origins`, la
+     * MÊME notion que celle que pilote l'analytique. Jusqu'ici l'origine
+     * ne vivait que sur l'arrivée (`leads.origin_id`) et se figeait sur
+     * l'affaire (`deals.lead_id`) : une fiche créée à la main, importée ou
+     * apportée par un confrère n'en avait aucune. Un lead qui crée ou
+     * complète une fiche y recopie la sienne ; les formulaires publics
+     * (chantier G) et la page de rendez-vous alimenteront ce même champ.
+     * `source` reste le protocole technique et n'est jamais montré.
+     */
+    originId: uuid("origin_id"),
+    /**
+     * L'APPORTEUR (lot 2) — « apporté par » ce confrère. C'est l'apport
+     * ENTRANT, à ne pas confondre avec `deal_shares.partner_id`, qui est le
+     * partage SORTANT (on confie une affaire à un partenaire). Les deux
+     * sens coexistent sur le même partenaire, et c'est voulu.
+     */
+    partnerId: uuid("partner_id"),
+    /**
+     * La date à laquelle l'apport a été attribué — la création, ou la
+     * correction faite après coup. Les chiffres du partenaire comptent à
+     * CETTE date : corriger le passé ne réécrit pas les périodes déjà
+     * publiées (même règle que les leads). Sans contrainte de paire, pour
+     * la même raison que `owner_assigned_at`.
+     */
+    partnerAttributedAt: timestamp("partner_attributed_at", { withTimezone: true }),
     source: contactSourceEnum("source").notNull().default("manual"),
     /** Nom du système d'origine (« hubspot », « pipedrive »…) — texte libre, on ne connaît pas la liste du marché. */
     externalSystem: text("external_system"),
@@ -149,6 +186,22 @@ export const contacts = pgTable(
     index("contacts_org_owner_idx").on(table.organizationId, table.ownerId),
     // Analytique : arrivées de contacts dans le temps.
     index("contacts_org_created_idx").on(table.organizationId, table.createdAt),
+    // L'origine et l'apporteur portent l'organisation dans leur clé : une fiche ne peut pas
+    // désigner l'origine ni le confrère d'un autre espace. `set null` parce qu'un libellé
+    // d'origine reste supprimable — la fiche perd son étiquette, elle ne disparaît pas.
+    foreignKey({
+      name: "contacts_origin_org_fk",
+      columns: [table.originId, table.organizationId],
+      foreignColumns: [origins.id, origins.organizationId],
+    }).onDelete("set null"),
+    foreignKey({
+      name: "contacts_partner_org_fk",
+      columns: [table.partnerId, table.organizationId],
+      foreignColumns: [partners.id, partners.organizationId],
+    }).onDelete("set null"),
+    // Lot 3 : « les contacts apportés par ce confrère », et l'analytique des origines par fiche.
+    index("contacts_org_partner_idx").on(table.organizationId, table.partnerId, table.partnerAttributedAt),
+    index("contacts_org_origin_idx").on(table.organizationId, table.originId),
   ]
 );
 

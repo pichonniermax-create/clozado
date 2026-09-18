@@ -4,6 +4,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, Download, Mail, MailOpen, MessageSquare, MousePointerClick, Plus } from "lucide-react";
 import { StatTile } from "@/components/stat-tile";
+import { PartnerPicker } from "@/components/contacts/partner-picker";
+import { listPartners } from "@/db/queries/partners";
+import { listOrigins } from "@/db/queries/acquisition";
 import { suppressionOfContact } from "@/db/queries/email-events";
 import { getContactIndicators, listSentNewslettersOfContact } from "@/db/queries/engagement";
 import { Badge } from "@/components/ui/badge";
@@ -100,7 +103,7 @@ export default async function ContactPage({
   const logged = user.readOnly ? Promise.resolve() : logContactAccess(contact, user.id, "view");
   const ta = await getTranslations("activities.queries");
 
-  const [accessLog, accessTotal, orgUsers, duplicates, journal, mailTargets, contactTargets, received, indicators, suppression, sentMessages, contactAppointments, ruleDrafts] = await Promise.all([
+  const [accessLog, accessTotal, orgUsers, duplicates, journal, mailTargets, contactTargets, received, indicators, suppression, sentMessages, contactAppointments, ruleDrafts, partners, origins] = await Promise.all([
     logged.then(() => listContactAccessLog(user, id)),
     logged.then(() => countContactAccessLog(user, id)),
     listOrgUsers(user),
@@ -121,7 +124,14 @@ export default async function ContactPage({
     contact.deletedAt ? Promise.resolve([]) : listContactAppointments(user, id),
     // Les brouillons posés par les règles (Envoyer · Modifier · Ignorer).
     contact.deletedAt ? Promise.resolve([]) : listRuleDraftsOfContact(user, id),
+    // De quoi changer l'apport et l'origine après coup (lot 2) — une tombale ne se modifie plus.
+    contact.deletedAt ? Promise.resolve([]) : listPartners(user),
+    contact.deletedAt ? Promise.resolve([]) : listOrigins(user),
   ]);
+  // Le confrère déjà attribué reste proposable même devenu inactif : sinon, enregistrer la fiche l'effacerait.
+  const pickablePartners = partners
+    .filter((p) => p.active || p.id === contact.partnerId)
+    .map((p) => ({ id: p.id, name: p.name, company: p.company, profession: p.profession }));
   const messageByNewsletter = new Map(sentMessages.map((m) => [m.id, m]));
 
   // -------------------------------------------------------------------
@@ -455,7 +465,12 @@ export default async function ContactPage({
                 <Input id="country" name="country" defaultValue={contact.country ?? ""} />
               </Field>
               {orgUsers.length > 0 && (
-                <Field label={tr("conseiller_attribue")} htmlFor="ownerId">
+                <Field
+                  label={tr("conseiller_attribue")}
+                  htmlFor="ownerId"
+                  // La date d'attribution est DITE (lot 2) : « depuis quand » est une question de suivi, pas un détail.
+                  hint={contact.ownerAssignedAt ? tr("attribue_le", { date: fmt.date(contact.ownerAssignedAt) }) : undefined}
+                >
                   <NativeSelect
                     id="ownerId"
                     name="ownerId"
@@ -470,6 +485,28 @@ export default async function ContactPage({
                   </NativeSelect>
                 </Field>
               )}
+              {/* L'apport ENTRANT et l'origine métier (lot 2), modifiables après coup — la date d'attribution suit. */}
+              <Field
+                label={tr("apporte_par")}
+                htmlFor="partnerId-recherche"
+                hint={contact.partnerAttributedAt ? tr("attribue_le", { date: fmt.date(contact.partnerAttributedAt) }) : undefined}
+              >
+                <PartnerPicker
+                  inputId="partnerId-recherche"
+                  partners={pickablePartners}
+                  initialId={contact.partnerId}
+                />
+              </Field>
+              <Field label={tr("origine")} htmlFor="originId">
+                <NativeSelect id="originId" name="originId" defaultValue={contact.originId ?? ""} className="w-full">
+                  <option value="">{tr("non_precisee")}</option>
+                  {origins.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </Field>
             </div>
             <Field label={tr("notes")} htmlFor="notes">
               <Textarea id="notes" name="notes" defaultValue={contact.notes ?? ""} className="min-h-16" />

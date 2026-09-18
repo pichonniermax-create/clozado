@@ -68,15 +68,16 @@
     "fiche_existante_completee": "Fiche existante complétée : {join}.",
     "fiche_existante_deja_a_jour_rien_e67c": "Fiche existante, déjà à jour : rien à compléter.",
     "fields": {
-      "firstName": "prénom",
-      "lastName": "nom",
-      "phone": "téléphone",
-      "companyName": "société",
-      "jobTitle": "fonction",
       "city": "ville",
-      "postalCode": "code postal",
+      "companyName": "société",
       "country": "pays",
-      "notes": "notes"
+      "firstName": "prénom",
+      "jobTitle": "fonction",
+      "lastName": "nom",
+      "notes": "notes",
+      "originId": "origine",
+      "phone": "téléphone",
+      "postalCode": "code postal"
     },
     "nouvelle_fiche_creee": "Nouvelle fiche créée.",
     "origine_non_renseignee": "origine non renseignée",

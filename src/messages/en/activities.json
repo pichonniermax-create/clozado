@@ -68,15 +68,16 @@
     "fiche_existante_completee": "Existing record completed: {join}.",
     "fiche_existante_deja_a_jour_rien_e67c": "Existing record, already up to date: nothing to complete.",
     "fields": {
-      "firstName": "first name",
-      "lastName": "last name",
-      "phone": "phone",
-      "companyName": "company",
-      "jobTitle": "job title",
       "city": "city",
-      "postalCode": "postal code",
+      "companyName": "company",
       "country": "country",
-      "notes": "notes"
+      "firstName": "first name",
+      "jobTitle": "job title",
+      "lastName": "last name",
+      "notes": "notes",
+      "originId": "origin",
+      "phone": "phone",
+      "postalCode": "postal code"
     },
     "nouvelle_fiche_creee": "New record created.",
     "origine_non_renseignee": "origin not provided",
