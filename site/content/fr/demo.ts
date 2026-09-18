@@ -13,13 +13,13 @@ export const demo = {
   meta: {
     titre: "Voir Clozado",
     description:
-      "La démonstration publique s’ouvre en lecture seule, sans inscription : un cabinet fictif et sept mois d’historique. Ou réservez trente minutes pour en parler.",
+      "La démonstration publique s’ouvre en lecture seule, sans inscription : un cabinet fictif et sept mois d’historique. Ou réservez un créneau pour en parler avec nous.",
   },
 
   hero: {
     titre: "Deux façons de voir le produit",
     chapo:
-      "La première ne demande rien et prend une minute. La seconde prend trente minutes et se fait avec nous. Elles sont indépendantes : commencez par celle que vous voulez.",
+      "La première ne demande rien et s’ouvre tout de suite. La seconde se fait avec nous, en visioconférence. Elles sont indépendantes : commencez par celle que vous voulez.",
   },
 
   ouvrir: {
@@ -40,7 +40,7 @@ export const demo = {
   },
 
   reserver: {
-    surtitre: "Trente minutes, en visioconférence",
+    surtitre: "En visioconférence, avec nous",
     titre: "Réserver un créneau",
     texte:
       "Nous regardons votre situation plutôt que nos écrans : ce qui vous échappe aujourd’hui dans les relances, ce que vos apporteurs vous doivent, et ce que vous écrivez à vos clients.",
@@ -69,6 +69,6 @@ export const demo = {
 
   final: {
     titre: "Une question avant d’ouvrir la démonstration ?",
-    texte: "Réservez plutôt un créneau : trente minutes suffisent à savoir si le produit vous concerne.",
+    texte: "Réservez plutôt un créneau : un échange suffit à savoir si le produit vous concerne.",
   },
 } as const;

@@ -31,7 +31,7 @@ export const cgp = {
 
   coince: {
     intitule: "Ce qui coince",
-    titre: "Dans un cabinet de cinq à cinquante personnes",
+    titre: "Du conseiller seul au cabinet de plusieurs conseillers",
     elements: [
       {
         titre: "La connaissance client est répartie",
@@ -205,6 +205,6 @@ export const cgp = {
   final: {
     titre: "Regarder le produit sur un cabinet fictif",
     texte:
-      "La démonstration est ouverte en lecture seule, sans inscription : un cabinet et sept mois d’historique — dossiers, partages, commissions, relances et indicateurs. Pour en parler, réservez un créneau de trente minutes.",
+      "La démonstration est ouverte en lecture seule, sans inscription : un cabinet et sept mois d’historique — dossiers, partages, commissions, relances et indicateurs. Pour en parler, réservez un créneau.",
   },
 } as const satisfies ContenuMetier;

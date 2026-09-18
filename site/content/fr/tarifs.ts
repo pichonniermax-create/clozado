@@ -81,6 +81,6 @@ export const tarifs = {
   final: {
     titre: "Parler de votre situation",
     texte:
-      "Trente minutes pour regarder vos relances, vos apporteurs et ce que vous écrivez à vos clients. La démonstration, elle, s’ouvre sans rendez-vous.",
+      "Un échange pour regarder vos relances, vos apporteurs et ce que vous écrivez à vos clients. La démonstration, elle, s’ouvre sans rendez-vous.",
   },
 } as const;

@@ -29,7 +29,7 @@ export const courtiers = {
 
   coince: {
     intitule: "Ce qui coince",
-    titre: "Chez un courtier de cinq à cinquante personnes",
+    titre: "Du courtier seul au cabinet de plusieurs conseillers",
     elements: [
       {
         titre: "Les affaires non abouties ne sont pas relancées",
@@ -207,6 +207,6 @@ export const courtiers = {
   final: {
     titre: "Regarder le produit sur un cabinet fictif",
     texte:
-      "La démonstration est ouverte en lecture seule, sans inscription : un cabinet de courtage et sept mois d’historique — dossiers, partages, commissions, relances et indicateurs. Pour en parler, réservez un créneau de trente minutes.",
+      "La démonstration est ouverte en lecture seule, sans inscription : un cabinet de courtage et sept mois d’historique — dossiers, partages, commissions, relances et indicateurs. Pour en parler, réservez un créneau.",
   },
 } as const satisfies ContenuMetier;
