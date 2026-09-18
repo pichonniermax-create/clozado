@@ -1,5 +1,6 @@
-import { boolean, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
+import { users } from "./users";
 
 /**
  * Un partenaire est une FICHE, jamais un utilisateur : pas de compte, pas
@@ -22,6 +23,13 @@ export const partners = pgTable(
     email: text("email"),
     phone: text("phone"),
     notes: text("notes"),
+    /**
+     * Le conseiller qui tient la RELATION avec ce confrère (lot 3) — pas le
+     * propriétaire d'une fiche : la personne à qui l'on demande « où en
+     * es-tu avec lui ». Sans contrainte de paire avec une date : la clé est
+     * en `set null`, et un compte supprimé ne doit pas bloquer.
+     */
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
     active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -32,6 +40,8 @@ export const partners = pgTable(
     // base qu'un partenaire référencé appartient bien à l'organisation
     // portée par la ligne qui le référence.
     unique("partners_id_org_unique").on(table.id, table.organizationId),
+    // « Les confrères dont je tiens la relation » : le filtre et la vue par conseiller du lot 3.
+    index("partners_org_owner_idx").on(table.organizationId, table.ownerId),
   ]
 );
 

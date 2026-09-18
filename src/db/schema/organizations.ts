@@ -61,6 +61,13 @@ export const organizations = pgTable("organizations", {
    * que la pile « commissions à encaisser » de l'écran de suivi.
    */
   commissionUnpaidDays: integer("commission_unpaid_days").notNull().default(14),
+  /**
+   * « Sans apport depuis N jours » (lot 3) : au-delà, un confrère ACTIF
+   * qui n'a rien apporté remonte dans « Aujourd'hui » comme les autres
+   * tâches automatiques. Soixante jours par défaut — deux mois de silence
+   * d'un partenaire actif méritent un appel, pas une semaine.
+   */
+  partnerStaleDays: integer("partner_stale_days").notNull().default(60),
   // --- Acquisition (module analytique) — les clés de site vivent dans `site_keys` ---
   /**
    * Les domaines depuis lesquels `POST /api/events` est accepté pour cette
@@ -149,6 +156,8 @@ export const organizations = pgTable("organizations", {
   // Un jeton d'ingestion ne désigne qu'une organisation.
   uniqueIndex("organizations_ingest_token_unique").on(table.ingestToken).where(sql`${table.ingestToken} IS NOT NULL`),
   check("organizations_auto_send_period_check", sql`${table.autoSendPeriodDays} >= 1 AND ${table.autoSendPeriodDays} <= 365`),
+  // Le seuil est borné comme les autres : un jour n'a pas de sens, deux ans non plus.
+  check("organizations_partner_stale_days_check", sql`${table.partnerStaleDays} >= 7 AND ${table.partnerStaleDays} <= 730`),
   check(
     "organizations_office_hours_check",
     sql`${table.officeHoursStart} >= 0 AND ${table.officeHoursEnd} <= 24 AND ${table.officeHoursStart} < ${table.officeHoursEnd}`

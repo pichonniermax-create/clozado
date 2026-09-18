@@ -15,6 +15,7 @@ import { commissions } from "./commissions";
 import { contacts } from "./contacts";
 import { dealShares } from "./deal-shares";
 import { deals } from "./deals";
+import { partners } from "./partners";
 import { organizations } from "./organizations";
 import { rules } from "./rules";
 import { users } from "./users";
@@ -34,6 +35,8 @@ export const taskAutoRuleEnum = pgEnum("task_auto_rule", [
   "share_pending",
   "deal_accepted_stale",
   "commission_unpaid",
+  /** Lot 3 : un confrère actif qui n'a rien apporté depuis `organizations.partner_stale_days`. */
+  "partner_stale",
 ]);
 
 /** Unité de récurrence. L'app matérialise l'occurrence SUIVANTE à l'achèvement — pas de tâche de fond. */
@@ -62,6 +65,8 @@ export const tasks = pgTable(
     autoRule: taskAutoRuleEnum("auto_rule"),
     sourceShareId: uuid("source_share_id"),
     sourceCommissionId: uuid("source_commission_id"),
+    /** La troisième source d'une tâche automatique (lot 3) : un confrère endormi. */
+    sourcePartnerId: uuid("source_partner_id"),
     /** La règle du moteur (chantier engagement) qui a créé la tâche ; NULL sinon. Une règle ne se supprime jamais. */
     ruleId: uuid("rule_id"),
     // --- Récurrence ---
@@ -78,13 +83,16 @@ export const tasks = pgTable(
       sql`(${table.status} = 'done') = (${table.completedAt} IS NOT NULL)`
     ),
     // Générée ⇔ reliée à sa source PRM (partage ou commission, jamais les deux).
+    // Une tâche générée a UNE source, jamais deux (trois sources depuis le lot 3).
     check(
       "tasks_auto_single_source",
-      sql`NOT (${table.sourceShareId} IS NOT NULL AND ${table.sourceCommissionId} IS NOT NULL)`
+      sql`(CASE WHEN ${table.sourceShareId} IS NOT NULL THEN 1 ELSE 0 END
+         + CASE WHEN ${table.sourceCommissionId} IS NOT NULL THEN 1 ELSE 0 END
+         + CASE WHEN ${table.sourcePartnerId} IS NOT NULL THEN 1 ELSE 0 END) <= 1`
     ),
     check(
       "tasks_auto_source_consistency",
-      sql`(${table.autoRule} IS NULL) = (${table.sourceShareId} IS NULL AND ${table.sourceCommissionId} IS NULL)`
+      sql`(${table.autoRule} IS NULL) = (${table.sourceShareId} IS NULL AND ${table.sourceCommissionId} IS NULL AND ${table.sourcePartnerId} IS NULL)`
     ),
     // Récurrence : unité et pas vont ensemble, et exigent une échéance
     // (sans échéance, « toutes les 2 semaines » ne veut rien dire).
@@ -110,10 +118,21 @@ export const tasks = pgTable(
     uniqueIndex("tasks_auto_commission_unique")
       .on(table.autoRule, table.sourceCommissionId)
       .where(sql`${table.sourceCommissionId} IS NOT NULL`),
+    // Un confrère endormi ne produit qu'UNE tâche OUVERTE à la fois : l'achever dit « je l'ai rappelé »,
+    // et la règle peut reparler plus tard s'il se rendort — à la différence des deux autres sources, qui
+    // désignent un événement unique et ne renaissent jamais.
+    uniqueIndex("tasks_auto_partner_open_unique")
+      .on(table.autoRule, table.sourcePartnerId)
+      .where(sql`${table.sourcePartnerId} IS NOT NULL AND ${table.status} = 'open'`),
     // Une seule tâche OUVERTE par (règle, contact) : une règle qui matche tous les jours ne crée pas une tâche par jour.
     uniqueIndex("tasks_rule_contact_open_unique")
       .on(table.ruleId, table.contactId)
       .where(sql`${table.ruleId} IS NOT NULL AND ${table.status} = 'open'`),
+    foreignKey({
+      name: "tasks_partner_org_fk",
+      columns: [table.sourcePartnerId, table.organizationId],
+      foreignColumns: [partners.id, partners.organizationId],
+    }).onDelete("cascade"),
     foreignKey({
       name: "tasks_rule_org_fk",
       columns: [table.ruleId, table.organizationId],

@@ -12,6 +12,7 @@ import {
 import { contacts } from "./contacts";
 import { deals } from "./deals";
 import { organizations } from "./organizations";
+import { partners } from "./partners";
 import { users } from "./users";
 
 /**
@@ -39,16 +40,23 @@ export const activities = pgTable(
     direction: text("direction"),
     contactId: uuid("contact_id"),
     dealId: uuid("deal_id"),
+    /**
+     * L'échange avec un CONFRÈRE (lot 3) — un appel, un déjeuner, une note
+     * sur la relation. Jusqu'ici une interaction parlait forcément d'un
+     * contact ou d'une affaire ; la fiche partenaire n'avait donc aucun
+     * journal, et « dernier échange » ne pouvait compter que les partages.
+     */
+    partnerId: uuid("partner_id"),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     check("activities_direction_check", sql`${table.direction} IS NULL OR ${table.direction} IN ('inbound', 'outbound')`),
-    // Une interaction sans contact NI affaire n'existe pas.
+    // Une interaction sans sujet n'existe pas : un contact, une affaire, ou un confrère (lot 3).
     check(
       "activities_has_subject",
-      sql`${table.contactId} IS NOT NULL OR ${table.dealId} IS NOT NULL`
+      sql`${table.contactId} IS NOT NULL OR ${table.dealId} IS NOT NULL OR ${table.partnerId} IS NOT NULL`
     ),
     foreignKey({
       name: "activities_contact_org_fk",
@@ -60,6 +68,12 @@ export const activities = pgTable(
       columns: [table.dealId, table.organizationId],
       foreignColumns: [deals.id, deals.organizationId],
     }).onDelete("cascade"),
+    foreignKey({
+      name: "activities_partner_org_fk",
+      columns: [table.partnerId, table.organizationId],
+      foreignColumns: [partners.id, partners.organizationId],
+    }).onDelete("cascade"),
+    index("activities_org_partner_idx").on(table.organizationId, table.partnerId, table.occurredAt),
     index("activities_org_contact_idx").on(table.organizationId, table.contactId, table.occurredAt),
     index("activities_org_deal_idx").on(table.organizationId, table.dealId, table.occurredAt),
   ]
