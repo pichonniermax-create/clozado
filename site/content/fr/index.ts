@@ -9,6 +9,7 @@ import { confidentialite } from "./confidentialite";
 import { courtiers } from "./courtiers";
 import { demo } from "./demo";
 import { ecrans, mentionEcrans } from "./ecrans";
+import { ecransMetiers } from "./ecrans-metiers";
 import { immobilier } from "./immobilier";
 import { mentionsLegales } from "./mentions-legales";
 import { produit } from "./produit";
@@ -23,6 +24,7 @@ export const fr = {
   common,
   accueil,
   ecrans,
+  ecransMetiers,
   mentionEcrans,
   produit,
   cgp,

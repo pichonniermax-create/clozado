@@ -28,7 +28,7 @@ import { cn } from "@/lib/cn";
 type Ligne = { readonly titre: string; readonly detail: string; readonly action?: string };
 
 /** Le cadre commun : un bloc blanc, un filet, 16 px de rayon, aucune ombre. */
-function Cadre({
+export function Cadre({
   nom,
   resume,
   legende,
@@ -91,14 +91,14 @@ function avecJours(texte: string) {
 }
 
 /** Une pastille de comptage — un nombre, pas un badge de couleur. */
-function Compte({ children }: { children: React.ReactNode }) {
+export function Compte({ children }: { children: React.ReactNode }) {
   return (
 <span className="ecran-compte">{children}</span>
   );
 }
 
 /** Le faux bouton d'une ligne : un contour, jamais l'accent — l'accent est au vrai appel à l'action. */
-function FauxBouton({ children, plein = false }: { children: React.ReactNode; plein?: boolean }) {
+export function FauxBouton({ children, plein = false }: { children: React.ReactNode; plein?: boolean }) {
   return (
     <span
       className={cn("faux-bouton", plein && "faux-bouton-plein")}

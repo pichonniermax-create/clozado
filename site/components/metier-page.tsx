@@ -1,5 +1,6 @@
 import { ActionLink } from "@/components/action-link";
-import { EcranRegles, EcranSuivi, EcranTableauDeBord } from "@/components/ecran-produit";
+import { EcranRegles, EcranTableauDeBord } from "@/components/ecran-produit";
+import { EcranChronologie, EcranPilesImmobilier, EcranTableauCourtage } from "@/components/ecrans-metiers";
 import { Card, Container, Puce, Section } from "@/components/layout-primitives";
 import { Mouvement } from "@/components/mouvement";
 import type { ContenuMetier, Element } from "@/content/types";
@@ -57,15 +58,43 @@ function SousTitre({ children }: { children: string }) {
  * à côté d'un écran du produit REDESSINÉ en HTML — aucune image ici non
  * plus —, des titres lourds et fluides, des largeurs qui se resserrent à
  * mesure que le propos se densifie, et le même mouvement (entrées uniques,
- * compteurs, survols). Les écrans montrés sont ceux que la section prouve :
- * le Suivi en tête, le tableau de bord en face des indicateurs, les règles
- * de relance en face de ce qu'on écrit.
+ * compteurs, survols).
+ *
+ * L'ÉCRAN DU PREMIER PLAN EST PROPRE AU MÉTIER (2026-09-18) : chronologie
+ * d'un dossier pour la gestion de patrimoine, tableau chiffré pour le
+ * courtage, liste à piles pour la transaction immobilière — trois formes,
+ * trois jeux de données, aucun libellé commun. Les deux écrans suivants
+ * restent ceux que la section prouve : le tableau de bord en face des
+ * indicateurs, les règles de relance en face de ce qu'on écrit.
  *
  * Aucun texte ici : tout vient de `content/<langue>/<métier>.ts`, dont la
  * forme est vérifiée à la compilation (`ContenuMetier`).
  */
-export function PageMetier({ locale, contenu }: { locale: Locale; contenu: ContenuMetier }) {
-  const { common, ecrans, mentionEcrans } = getDictionary(locale);
+export function PageMetier({
+  locale,
+  contenu,
+  cle,
+}: {
+  locale: Locale;
+  contenu: ContenuMetier;
+  /** Le métier de la page : c'est lui qui décide de l'écran de preuve. */
+  cle: "cgp" | "courtiers" | "immobilier";
+}) {
+  const { common, ecrans, ecransMetiers, mentionEcrans } = getDictionary(locale);
+
+  /**
+   * L'ÉCRAN DE PREUVE DU PREMIER PLAN — un par métier, jamais le même.
+   * Les trois pages montraient auparavant le même tableau Suivi, avec les
+   * mêmes noms et les mêmes montants.
+   */
+  const ecranDuMetier =
+    cle === "cgp" ? (
+      <EcranChronologie ecran={ecransMetiers.cgp} />
+    ) : cle === "courtiers" ? (
+      <EcranTableauCourtage ecran={ecransMetiers.courtiers} />
+    ) : (
+      <EcranPilesImmobilier ecran={ecransMetiers.immobilier} />
+    );
 
   const appels = (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -98,8 +127,8 @@ export function PageMetier({ locale, contenu }: { locale: Locale; contenu: Conte
               <div className="mt-8">{appels}</div>
             </div>
             <div data-entree data-rang={1} className="ecran-compact min-w-0 lg:col-span-5">
-              <EcranSuivi ecran={ecrans.suivi} sansLegende />
-              <p className="mt-4 text-sm text-muted-foreground">{mentionEcrans}</p>
+              {ecranDuMetier}
+              <p className="mesure mt-4 text-sm text-muted-foreground">{mentionEcrans}</p>
             </div>
           </div>
         </Container>

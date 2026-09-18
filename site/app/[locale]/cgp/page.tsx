@@ -14,5 +14,5 @@ export async function generateMetadata(props: PageProps<"/[locale]/cgp">): Promi
 export default async function Page(props: PageProps<"/[locale]/cgp">) {
   const { locale } = await props.params;
   if (!isLocale(locale)) notFound();
-  return <PageMetier locale={locale} contenu={getDictionary(locale).cgp} />;
+  return <PageMetier cle="cgp" locale={locale} contenu={getDictionary(locale).cgp} />;
 }

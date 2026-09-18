@@ -14,5 +14,5 @@ export async function generateMetadata(props: PageProps<"/[locale]/courtiers">):
 export default async function Page(props: PageProps<"/[locale]/courtiers">) {
   const { locale } = await props.params;
   if (!isLocale(locale)) notFound();
-  return <PageMetier locale={locale} contenu={getDictionary(locale).courtiers} />;
+  return <PageMetier cle="courtiers" locale={locale} contenu={getDictionary(locale).courtiers} />;
 }

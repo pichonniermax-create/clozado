@@ -14,5 +14,5 @@ export async function generateMetadata(props: PageProps<"/[locale]/immobilier">)
 export default async function Page(props: PageProps<"/[locale]/immobilier">) {
   const { locale } = await props.params;
   if (!isLocale(locale)) notFound();
-  return <PageMetier locale={locale} contenu={getDictionary(locale).immobilier} />;
+  return <PageMetier cle="immobilier" locale={locale} contenu={getDictionary(locale).immobilier} />;
 }

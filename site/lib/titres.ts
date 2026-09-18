@@ -2,33 +2,35 @@
  * LES TITRES — leur taille est une FONCTION DE LEUR LONGUEUR, pas une
  * constante.
  *
- * Un titre court supporte le maximum de l'échelle ; un titre de soixante-dix
+ * Un titre court supporte une grande taille ; un titre de soixante-dix
  * caractères réglé à la même taille occupe six lignes, pousse le propos et
  * les boutons hors de l'écran, et se lit moins bien qu'un titre plus petit.
- * Trois paliers, décidés au nombre de caractères :
  *
- *   moins de 30   → le maximum de l'échelle (jusqu'à 96 px)
- *   de 30 à 55    → le palier intermédiaire (jusqu'à 64 px)
- *   plus de 55    → le palier bas           (jusqu'à 48 px)
+ * DEUX PALIERS, décidés au nombre de caractères :
+ *
+ *   jusqu'à 55 caractères → le palier haut (jusqu'à 72 px)
+ *   au-delà               → le palier bas  (jusqu'à 56 px)
+ *
+ * Il y en avait trois : un troisième palier à 96 px, réservé aux titres de
+ * moins de trente caractères, que PLUS AUCUN titre du site n'atteignait. Un
+ * palier mort est une complexité pour rien ; le rapport d'échelle de la page
+ * se joue désormais sur les chiffres des écrans de preuve, pas sur les
+ * titres.
  *
  * ET AUCUN MOT ORPHELIN : l'espace entre les deux derniers mots devient
  * insécable, de sorte qu'un titre ne finisse jamais par un mot seul sur sa
  * dernière ligne.
  */
 
-export type PalierTitre = "haut" | "moyen" | "bas";
+export type PalierTitre = "haut" | "bas";
 
 export function palierTitre(titre: string): PalierTitre {
-  const longueur = titre.trim().length;
-  if (longueur < 30) return "haut";
-  if (longueur <= 55) return "moyen";
-  return "bas";
+  return titre.trim().length <= 55 ? "haut" : "bas";
 }
 
 /** La classe d'échelle d'un titre de premier niveau. */
 export const CLASSE_TITRE: Record<PalierTitre, string> = {
   haut: "text-titre-haut",
-  moyen: "text-titre-moyen",
   bas: "text-titre-bas",
 };
 
