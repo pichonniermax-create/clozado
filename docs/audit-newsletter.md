@@ -141,6 +141,46 @@ réglages sont réservés à l'admin), une base légale (§C).
 
 ---
 
+## A bis. Les garde-fous d'envoi — CONSTRUITS (2026-09-18)
+
+La première partie du chantier « envoi et prospection ». Migration 0024
+appliquée (local et production) : `consent_events`, `consent_texts`,
+`platform_suppressions`, plus les colonnes de quota et d'autorisation.
+
+- **L'autorisation d'écrire, contact par contact.** La sélection des
+  destinataires n'accepte plus que `granted`, `client` et `professional` ;
+  « non établie » et « opposé » sont exclus, et les fiches d'avant naissent
+  « non établie » — on ne s'invente pas un consentement. Le journal
+  (`consent_events`) est la vérité, la colonne sur la fiche un cache.
+- **La liste repoussoir de la PLATEFORME.** Un rebond dur ou une plainte
+  ferme l'adresse pour tout le service, pas seulement pour le cabinet
+  concerné : la réputation est commune. Stockée en empreintes sha256 —
+  vérifié : aucune adresse en clair, la casse et les espaces sont ignorés,
+  une plainte prend le dessus sur un rebond, et un second événement compte
+  sans créer de doublon.
+- **Le quota du jour et la montée progressive.** Palier par jour
+  d'échauffement (50, 100, 250, 500, 1 000, 2 000, 4 000), plafonné par le
+  quota de l'organisation. Relu AVANT CHAQUE LOT, pas une fois au départ :
+  la vague s'arrête d'elle-même et reprend le lendemain par le cron.
+- **La pause automatique sur seuils.** Au-dessus de 0,3 % de plaintes (le
+  seuil que Google et Yahoo exigent publiquement) ou 5 % de rebonds sur sept
+  jours, à partir de cinquante messages, l'envoi MARKETING s'arrête et le
+  dit. Il ne repart jamais seul : une pause veut dire qu'il y a une liste à
+  nettoyer. Les emails relationnels ne sont jamais suspendus.
+- **L'écran « Santé d'envoi »** (`/sante-envoi`, super admin réel
+  seulement) : volume, remis, rebonds, plaintes et taux par organisation sur
+  la fenêtre, les deux seuils affichés, le quota du jour et l'échauffement,
+  la liste repoussoir en nombres, et deux gestes — suspendre, reprendre.
+
+**Preuve** : `scripts/_tmp-sante-envoi.ts`, 20 contrôles au vert (paliers
+d'échauffement, quota du jour, empreintes, pause automatique muette sous le
+volume significatif, écran refusé à un admin d'organisation, aucune adresse
+à l'écran).
+
+**Où c'est parti** : le code est dans le commit `b173931` — il a été
+emporté par le commit de la barre latérale (un `git add src` trop large),
+ce qui est dit ici pour que l'historique reste lisible.
+
 ## B. Délivrabilité et réputation
 
 ### B.1 L'architecture d'aujourd'hui, et ce qu'elle mutualise

@@ -97,13 +97,21 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     ? board.pendingAlerts.length + board.acceptedStale.length + board.unpaidCommissions.length
     : 0;
 
+  /**
+   * La valeur de DÉPART du décalage du haut, pour que le premier rendu soit déjà juste : l'en-tête, plus le
+   * bandeau du super admin s'il est là. `ShellOffset` prend ensuite le relais avec la hauteur mesurée. Posée
+   * dans une feuille de style et non en ligne : un style en ligne gagnerait contre la mesure.
+   */
+  // eslint-disable-next-line local/no-visible-text -- une déclaration CSS, pas du texte lu par quelqu'un
+  const shellTopCss = `:root{--shell-top:${isSuperAdmin ? "5.75rem" : "3.5rem"}}`;
+
   return (
     <>
       {workspace && <BrandStyle light={workspace.brand.light} dark={workspace.brand.dark} />}
       {/* La barre latérale commence SOUS le bloc collant du haut (en-tête + bandeaux) : une seule variable,
           mesurée sur la vraie hauteur. La valeur posée ici en ligne est celle du rendu serveur — 3,5 rem
           d'en-tête, plus le bandeau du super admin s'il est là : aucun saut avant que la mesure prenne le relais. */}
-      <style>{`:root{--shell-top:${isSuperAdmin ? "5.75rem" : "3.5rem"}}`}</style>
+      <style>{shellTopCss}</style>
       <div className="flex min-h-screen">
         <Sidebar mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={{ followUp, tasksDue }} hrefs={hrefs} pinned={navPinned} favorites={navFavorites} />
         <div className="flex min-w-0 flex-1 flex-col">

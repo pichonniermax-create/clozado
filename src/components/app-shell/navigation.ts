@@ -1,5 +1,6 @@
 import type { Messages } from "@/i18n/messages";
 import {
+  Activity,
   BookUser,
   CalendarCheck,
   ChartLine,
@@ -106,7 +107,10 @@ export const NAVIGATION: NavSection[] = [
   {
     key: "gestion",
     icon: ShieldCheck,
-    entries: [{ href: "/invitations", key: "invitations", icon: MailPlus, superAdminOnly: true }],
+    entries: [
+      { href: "/invitations", key: "invitations", icon: MailPlus, superAdminOnly: true },
+      { href: "/sante-envoi", key: "sante_envoi", icon: Activity, superAdminOnly: true },
+    ],
   },
 ];
 
