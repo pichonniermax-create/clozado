@@ -44,6 +44,10 @@ import { withRememberedPeriod } from "@/lib/display/period";
 import { resolveDisplay } from "@/lib/display/resolve";
 import { displayScreen } from "@/lib/display/screens";
 import { DEFAULT_DENSITY, ME, resolveOwnerFilter, VIEW_PARAM } from "@/lib/display/state";
+import { FilterBuilder } from "@/components/display/filter-builder";
+import { FilterChips, type FilterChip } from "@/components/display/filter-chips";
+import { describeCondition } from "@/lib/display/filter-labels";
+import { FILTER_PARAM, filterFields, parseFilters, resolveMe, serializeFilters, withoutCondition } from "@/lib/display/filters";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { getTranslations } from "next-intl/server";
@@ -103,7 +107,9 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
   };
   // Une sélection analytique n'a de sens qu'en liste : le kanban ne filtre pas.
   const sel = parseDealSelection(params, fmt.timeZone);
-  const vue = params.vue === "liste" || sel.analytic ? "liste" : "kanban";
+  // Le constructeur de filtres (lot 3) : lu dans l'adresse, « moi » résolu juste avant la base.
+  const conditions = parseFilters("affaires", display.params[FILTER_PARAM]);
+  const vue = params.vue === "liste" || sel.analytic || conditions.length > 0 ? "liste" : "kanban";
   const density = display.density ?? DEFAULT_DENSITY;
 
   if (sel.analytic && !user.organizationId) {
@@ -153,6 +159,19 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
 
   const pipeline = pipelines.find((p) => p.id === params.pipeline) ?? pipelines[0];
   const stages = pipeline.stages;
+  const tf = await getTranslations("ui.filters");
+  const filterOptions: Record<string, { value: string; label: string }[]> = {
+    conseiller: orgUsers.map((u) => ({ value: u.id, label: u.name || u.email })),
+    etape: pipelines.flatMap((pl) => pl.stages.map((st) => ({ value: st.id, label: st.label }))),
+    type: types.map((ty) => ({ value: ty.id, label: ty.label })),
+    pipeline: pipelines.map((pl) => ({ value: pl.id, label: pl.label })),
+    issue: [
+      { value: "gagnee", label: tr("gagnees_filtre") },
+      { value: "perdue", label: tr("perdues_filtre") },
+      { value: "en-cours", label: tr("en_cours_filtre") },
+    ],
+  };
+  const labelOfFilter = (field: string, value: string) => filterOptions[field]?.find((o) => o.value === value)?.label ?? null;
   // Les paramètres de la sélection analytique voyagent avec le tri, la
   // pagination et les filtres natifs — et disparaissent en repassant au kanban.
   const selectionParams = sel.analytic ? selectionQuery(sel) : {};
@@ -163,6 +182,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
       ...selectionParams,
       // La vue enregistrée et la densité voyagent avec le reste : trier ou paginer ne fait pas perdre son cadrage.
       [VIEW_PARAM]: display.view?.id,
+      [FILTER_PARAM]: display.params[FILTER_PARAM],
       densite: display.params.densite,
       vue,
       pipeline: pipeline.id,
@@ -258,7 +278,20 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
           isAdmin={user.role === "admin"}
           defaultViewId={preferenceString(display.preferences, PREF.defaultView("affaires")) ?? null}
         />
-        {vue === "liste" && <DensityToggle current={density} hrefFor={(d) => baseQuery({ densite: d === DEFAULT_DENSITY ? undefined : d })} />}
+        <div className="flex items-center gap-2">
+          {/* Le constructeur : « montant supérieur à 200 000 et étape égale à Négociation et conseiller égal à moi ». */}
+          <FilterBuilder
+            fields={filterFields("affaires").map((f) => ({ key: f.key, type: f.type, me: f.me, options: filterOptions[f.key] }))}
+            conditions={conditions}
+            basePath="/affaires"
+            keep={Object.fromEntries(
+              Object.entries({ ...display.params, vue: "liste", pipeline: pipeline.id }).filter(
+                ([k, v]) => k !== FILTER_PARAM && k !== "page" && typeof v === "string" && v
+              ) as [string, string][]
+            )}
+          />
+          {vue === "liste" && <DensityToggle current={density} hrefFor={(d) => baseQuery({ densite: d === DEFAULT_DENSITY ? undefined : d })} />}
+        </div>
       </div>
 
       {pipelines.length > 1 && (
@@ -400,6 +433,12 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
           baseQuery={baseQuery}
           ownerParam={display.params.conseiller}
           dense={density === "compacte"}
+          filters={resolveMe(conditions, user.id)}
+          conditionChips={conditions.map((condition, index) => ({
+            key: `f-${index}`,
+            label: describeCondition(condition, (k, vals) => tf(k as never, vals as never), labelOfFilter),
+            href: baseQuery({ [FILTER_PARAM]: serializeFilters(withoutCondition(conditions, index)) || undefined, page: undefined }),
+          }))}
         />
       )}
     </>
@@ -473,6 +512,8 @@ async function ListeView({
   baseQuery,
   ownerParam,
   dense,
+  filters,
+  conditionChips,
 }: {
   user: Awaited<ReturnType<typeof requireUser>>;
   pipelineId: string;
@@ -487,6 +528,10 @@ async function ListeView({
   /** Le conseiller tel qu'il est écrit dans l'adresse : `moi` reste `moi` dans le sélecteur. */
   ownerParam?: string;
   dense: boolean;
+  /** Le jeu du constructeur, « moi » déjà résolu (lot 3). */
+  filters: ReturnType<typeof parseFilters>;
+  /** Les pastilles des conditions, rendues par l'écran parent (mêmes libellés partout). */
+  conditionChips: FilterChip[];
 }) {
   const t = await getTranslations("deals.list");
   const fmt = await getFormats();
@@ -501,6 +546,8 @@ async function ListeView({
   const { rows, total, pageCount } = await listDealsTable(user, {
     pipelineId,
     statusId: params.etape || undefined,
+    filters,
+    timeZone: fmt.timeZone,
     // Le conseiller passe par la même validation que les paramètres analytiques (UUID ou rien).
     ownerId: sel.parsed.filters.ownerId,
     selection: sel.analytic ? sel.selection : undefined,
@@ -578,6 +625,9 @@ async function ListeView({
           {t("affaire_affaires", { total })}
         </span>
       </form>
+
+      {/* Les conditions du constructeur, dites et retirables une à une (lot 3). */}
+      <FilterChips chips={conditionChips} clearHref={baseQuery({ [FILTER_PARAM]: undefined, page: undefined })} clearLabel={t("retirer_les_filtres")} />
 
       {rows.length === 0 ? (
         sel.analytic ? (

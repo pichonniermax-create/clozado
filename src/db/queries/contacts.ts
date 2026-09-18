@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gt, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, ilike, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import {
   activities,
@@ -23,6 +23,9 @@ import {
   type Contact,
 } from "@/db/schema";
 import { assertOrgAccess, assertUserInOrg, orgScope } from "@/db/scope";
+import { dateBounds, filtersToSql, listOverSet, type FilterTarget } from "./filter-sql";
+import type { FilterCondition } from "@/lib/display/filters";
+import { PRODUCT_TIMEZONE } from "@/lib/timezone";
 import type { OrgScopeUser } from "@/lib/session";
 import { nameCityKey, phoneKey } from "@/lib/contacts/match-keys";
 import { displayNameAfterUpdate } from "@/lib/contacts/display-name";
@@ -33,6 +36,52 @@ import type { TranslatorOf } from "@/i18n/translator";
 
 /** Taille de page de la liste — côté serveur, jamais la table entière en mémoire. */
 export const CONTACTS_PAGE_SIZE = 50;
+
+/**
+ * LES CHAMPS FILTRABLES DES CONTACTS, traduits en SQL (lot 3). Chaque
+ * cible ne parle que de la table `contacts` — le compte de la liste se
+ * fait par une requête sans jointure, une condition qui parlerait
+ * d'ailleurs ferait diverger le compte et la page.
+ */
+export const CONTACT_FILTER_TARGETS: Record<string, FilterTarget> = {
+  nom: { kind: "column", type: "texte", column: contacts.name },
+  email: { kind: "column", type: "texte", column: contacts.email },
+  telephone: { kind: "column", type: "texte", column: contacts.phone },
+  societe: { kind: "column", type: "texte", column: contacts.companyName },
+  ville: { kind: "column", type: "texte", column: contacts.city },
+  codepostal: { kind: "column", type: "texte", column: contacts.postalCode },
+  nature: { kind: "column", type: "liste", column: contacts.kind },
+  conseiller: { kind: "column", type: "liste", column: contacts.ownerId },
+  apporteur: { kind: "column", type: "liste", column: contacts.partnerId },
+  origine: { kind: "column", type: "liste", column: contacts.originId },
+  creation: { kind: "column", type: "date", column: contacts.createdAt },
+  // L'étiquette vit dans une table de liaison : une sous-requête, jamais une jointure.
+  etiquette: {
+    kind: "custom",
+    type: "liste",
+    build: (condition) =>
+      listOverSet(
+        contacts.id,
+        condition,
+        (values) =>
+          sql`(select ${contactTagAssignments.contactId} from ${contactTagAssignments} where ${contactTagAssignments.tagId} in ${values})`
+      ),
+  },
+  // « Dernière activité » n'est pas une colonne : c'est le maximum du journal de la fiche.
+  activite: {
+    kind: "custom",
+    type: "date",
+    build: (condition, ctx) => {
+      const bounds = dateBounds(condition, ctx);
+      if (!bounds) return undefined;
+      const last = sql`(select max(${activities.occurredAt}) from ${activities} where ${activities.contactId} = ${contacts.id})`;
+      const parts = [bounds.from ? sql`${last} >= ${bounds.from}` : undefined, bounds.to ? sql`${last} < ${bounds.to}` : undefined].filter(
+        (p): p is SQL => Boolean(p)
+      );
+      return parts.length === 0 ? undefined : and(...parts);
+    },
+  },
+};
 
 /** Les tris proposés par la liste (lot 1) — le nom reste le tri d'usine. */
 export const CONTACT_SORTS = ["nom", "creation", "activite"] as const;
@@ -62,6 +111,10 @@ export async function listContacts(
     stale?: string;
     sort?: ContactSort;
     dir?: "asc" | "desc";
+    /** Le jeu du constructeur de filtres (lot 3), déjà lu et « moi » résolu. */
+    filters?: FilterCondition[];
+    /** Le fuseau de l'organisation : les dates d'un filtre se lisent dedans. */
+    timeZone?: string;
   } = {}
 ) {
   const page = Math.max(1, opts.page ?? 1);
@@ -89,6 +142,11 @@ export async function listContacts(
     conditions.push(
       sql`NOT EXISTS (SELECT 1 FROM ${activities} WHERE ${activities.contactId} = ${contacts.id} AND ${activities.occurredAt} >= ${since})`
     );
+  }
+
+  // Le constructeur de filtres (lot 3) : combiné en ET avec tout le reste.
+  if (opts.filters?.length) {
+    conditions.push(filtersToSql(opts.filters, CONTACT_FILTER_TARGETS, { timeZone: opts.timeZone ?? PRODUCT_TIMEZONE, now: new Date() }));
   }
 
   let idFilter;
@@ -359,6 +417,16 @@ export async function updateContact(
 // ---------------------------------------------------------------------------
 // Étiquettes
 // ---------------------------------------------------------------------------
+
+/** Les étiquettes de l'organisation, pour les proposer en filtre (lot 3) — ordre d'affichage du réglage. */
+export async function listContactTags(user: OrgScopeUser) {
+  if (!user.organizationId) return [];
+  return db
+    .select({ id: contactTags.id, label: contactTags.label })
+    .from(contactTags)
+    .where(eq(contactTags.organizationId, user.organizationId))
+    .orderBy(asc(contactTags.position), asc(contactTags.label));
+}
 
 export async function setContactTags(user: OrgScopeUser, contactId: string, tagIds: string[]) {
   const contact = await getContact(user, contactId);

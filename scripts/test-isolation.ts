@@ -564,6 +564,22 @@ async function main() {
     });
     expect("une fiche de A accepte l'origine et le confrère de A, datés", Boolean(apporte.originId && apporte.partnerId && apporte.partnerAttributedAt && apporte.ownerAssignedAt));
 
+    console.log("\n--- Lot 3 : un filtre ne traverse pas la frontière, et ne rapproche rien hors de son espace");
+    const filtersLib = await import("../src/lib/display/filters");
+    // B filtre sur l'étiquette, l'origine et le conseiller de A : la requête reste bornée à B, zéro résultat.
+    const crossing = filtersLib.parseFilters("contacts", `conseiller:eq:${a!.userId},origine:eq:${originA.id}`);
+    expect("le filtre est bien lu (deux conditions)", crossing.length === 2, JSON.stringify(crossing));
+    const leaked = await contactsQ.listContacts(b!.admin, { filters: crossing });
+    expect("B ne voit RIEN en filtrant sur les éléments de A", leaked.total === 0, String(leaked.total));
+    // Et le même filtre chez A rapproche bien la fiche apportée.
+    const found = await contactsQ.listContacts(a!.admin, { filters: filtersLib.parseFilters("contacts", `origine:eq:${originA.id}`) });
+    expect("chez A, le même filtre rapproche sa fiche", found.total === 1, String(found.total));
+    // Un identifiant qui n'existe nulle part : la condition est gardée et ne rapproche rien (jamais élargir).
+    const ghost = await contactsQ.listContacts(a!.admin, {
+      filters: filtersLib.parseFilters("contacts", "origine:eq:00000000-0000-0000-0000-000000000000"),
+    });
+    expect("un identifiant inexistant ne rapproche rien, et n'élargit pas", ghost.total === 0, String(ghost.total));
+
     console.log("\n--- La garde de connexion de la démo : qui reçoit un lien de connexion, qui n'en reçoit pas");
     const guard = await import("../src/lib/auth/magic-link-guard");
     const { DEMO_ORGANIZATION_ID, isReservedExampleAddress } = await import("../src/lib/demo/constants");

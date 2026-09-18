@@ -455,6 +455,50 @@ filtrée ne voit rien de plus que son rôle.
 Effort : M. Dépend de : lot 1 (vues, pastilles, liste blanche) et lot 2
 (pour filtrer sur l'apporteur).
 
+### 3.0.1 bis Ce qui a été construit (2026-09-18)
+
+**Une correction à la syntaxe annoncée.** Le plan disait que les
+séparateurs écrits DANS une valeur seraient « pourcent-encodés »
+(`%2C`, `%3A`, `%7C`). Impossible : le cadre décode l'adresse AVANT que le
+produit la lise, donc un `%2C` redevient une virgule et coupe la condition
+en deux. L'échappement se fait avec un TILDE, caractère non réservé
+(RFC 3986) que l'encodage d'URL laisse intact : `~~` pour `~`, `~v` pour
+la virgule, `~d` pour le deux-points, `~b` pour la barre. Personne ne
+l'écrit à la main — le constructeur le pose, la lecture le retire. Tout
+le reste de la syntaxe est inchangé.
+
+**Ce qui est livré** : le module pur (`src/lib/display/filters.ts`, la
+syntaxe et sa liste blanche), la traduction en SQL
+(`src/db/queries/filter-sql.ts`), les libellés français partagés par le
+serveur et le navigateur (`src/lib/display/filter-labels.ts`), le
+constructeur à l'écran (`src/components/display/filter-builder.tsx`), et
+le branchement sur **Contacts** et **Affaires**.
+
+Deux règles tenues dans le SQL : une condition ne référence QUE la table
+de base (le compte d'une liste se fait par une requête sans jointure — une
+condition qui parlerait d'une jointure ferait diverger le compte et la
+page), et une condition qu'on ne sait pas traduire n'est pas appliquée
+mais reste AFFICHÉE.
+
+**Ce qui reste** : les partenaires ne sont pas branchés (leur liste filtre
+en mémoire, pas en SQL) ; les tâches non plus (aucun champ déclaré).
+
+**Preuve** : `scripts/_tmp-lot3-filtres.ts`, 16 contrôles au vert —
+l'exemple du brief composé à la souris, son adresse
+`f=montant:gt:200000,etape:eq:<id>,conseiller:eq:moi`, le nombre de
+résultats recalculé par requête, les pastilles retirables une à une, une
+vue qui porte le filtre, une condition dont l'élément a été supprimé qui
+reste affichée et ne rapproche rien, « contient », « est vide », « entre »
+et « dans les N derniers jours ». Plus 13 tests unitaires sur la syntaxe
+et 4 contrôles d'isolation.
+
+**Deux défauts trouvés au navigateur** : la pastille de
+`conseiller:eq:moi` disait « élément supprimé », parce que `moi` n'est
+dans aucune liste d'options — il est maintenant résolu dans le helper
+partagé, où personne ne peut l'oublier ; et la liste des affaires avait
+DEUX boutons « Filtrer », celui du formulaire et celui du constructeur —
+le second dit « Ajouter un filtre ».
+
 ### 3.0.2 La période sur les partenaires — FAIT (2026-09-18)
 
 Le second manque du lot 1, livré avant le constructeur de filtres parce

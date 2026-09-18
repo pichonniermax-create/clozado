@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { and, asc, count, desc, eq, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import {
@@ -13,6 +13,9 @@ import {
   users,
 } from "@/db/schema";
 import { assertOrgAccess, assertUserInOrg, orgScope } from "@/db/scope";
+import { filtersToSql, type FilterTarget } from "./filter-sql";
+import type { FilterCondition } from "@/lib/display/filters";
+import { PRODUCT_TIMEZONE } from "@/lib/timezone";
 import { dealSelectionCondition, type DealSelection } from "@/lib/metrics/funnel";
 import { latestLeadBefore } from "./acquisition";
 import { getDefaultDealStatus } from "./deal-statuses";
@@ -377,10 +380,72 @@ export type DealsTableOptions = {
   selection?: DealSelection;
   sort?: DealsTableSort;
   dir?: "asc" | "desc";
+  /** Le jeu du constructeur de filtres (lot 3), déjà lu et « moi » résolu. */
+  filters?: FilterCondition[];
+  /** Le fuseau de l'organisation : les dates d'un filtre se lisent dedans. */
+  timeZone?: string;
   page?: number;
 };
 
 /** La liste dense : triable, filtrable, paginée côté serveur. */
+/**
+ * LES CHAMPS FILTRABLES DES AFFAIRES (lot 3) — même règle que pour les
+ * contacts : chaque cible ne parle que de la table `deals`, parce que le
+ * compte de la liste se fait sans jointure.
+ */
+export const DEAL_FILTER_TARGETS: Record<string, FilterTarget> = {
+  titre: { kind: "column", type: "texte", column: deals.title },
+  client: { kind: "column", type: "texte", column: deals.clientName },
+  montant: { kind: "column", type: "nombre", column: deals.estimatedAmount },
+  etape: { kind: "column", type: "liste", column: deals.statusId },
+  type: { kind: "column", type: "liste", column: deals.typeId },
+  pipeline: { kind: "column", type: "liste", column: deals.pipelineId },
+  conseiller: { kind: "column", type: "liste", column: deals.ownerId },
+  creation: { kind: "column", type: "date", column: deals.createdAt },
+  // L'ISSUE est celle de l'ÉTAPE COURANTE : une sous-requête sur les étapes, jamais une jointure.
+  issue: {
+    kind: "custom",
+    type: "liste",
+    build: (condition) => {
+      const outcomes = condition.values.map((v) => (v === "gagnee" ? "won" : v === "perdue" ? "lost" : "en-cours"));
+      const wanted = outcomes.filter((o) => o === "won" || o === "lost");
+      const open = outcomes.includes("en-cours");
+      const set = (o: string[]) =>
+        sql`(select ${dealStatuses.id} from ${dealStatuses} where ${dealStatuses.outcome} in ${o})`;
+      const openSet = sql`(select ${dealStatuses.id} from ${dealStatuses} where ${dealStatuses.outcome} is null)`;
+      const parts = [wanted.length > 0 ? sql`${deals.statusId} in ${set(wanted)}` : undefined, open ? sql`${deals.statusId} in ${openSet}` : undefined].filter(
+        (p): p is SQL => Boolean(p)
+      );
+      if (parts.length === 0) return undefined;
+      const matches = parts.length === 1 ? parts[0] : or(...parts)!;
+      // « n'est pas » : tout ce qui n'entre pas dans l'ensemble désigné.
+      return condition.operator === "ne" ? sql`not (${matches})` : matches;
+    },
+  },
+  // `expected_close_date` est une DATE, pas un instant : on la compare en jours, sans fuseau.
+  cloture: {
+    kind: "custom",
+    type: "date",
+    build: (condition, ctx) => {
+      const [a, b] = condition.values;
+      switch (condition.operator) {
+        case "before":
+          return sql`${deals.expectedCloseDate} < ${a}`;
+        case "after":
+          return sql`${deals.expectedCloseDate} > ${a}`;
+        case "bt":
+          return sql`${deals.expectedCloseDate} >= ${a} and ${deals.expectedCloseDate} <= ${b}`;
+        case "last": {
+          const from = new Date(ctx.now.getTime() - Number(a) * 86_400_000).toISOString().slice(0, 10);
+          return sql`${deals.expectedCloseDate} >= ${from}`;
+        }
+        default:
+          return undefined;
+      }
+    },
+  },
+};
+
 export async function listDealsTable(user: OrgScopeUser, opts: DealsTableOptions) {
   const page = Math.max(1, opts.page ?? 1);
   const conditions: (SQL | undefined)[] = [
@@ -391,6 +456,10 @@ export async function listDealsTable(user: OrgScopeUser, opts: DealsTableOptions
   if (opts.ownerId) conditions.push(eq(deals.ownerId, opts.ownerId));
   if (opts.selection && user.organizationId) {
     conditions.push(dealSelectionCondition(user.organizationId, opts.selection, sql`${deals}`));
+  }
+  // Le constructeur de filtres (lot 3), combiné en ET avec le reste.
+  if (opts.filters?.length) {
+    conditions.push(filtersToSql(opts.filters, DEAL_FILTER_TARGETS, { timeZone: opts.timeZone ?? PRODUCT_TIMEZONE, now: new Date() }));
   }
   const where = and(...conditions.filter((c): c is SQL => Boolean(c)));
 

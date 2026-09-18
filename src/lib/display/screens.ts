@@ -41,13 +41,13 @@ export const DISPLAY_SCREENS: readonly DisplayScreen[] = [
   {
     key: "contacts",
     href: "/contacts",
-    params: ["v", "q", "conseiller", "type", "activite", "tri", "dir", "page", "densite"],
+    params: ["v", "f", "q", "conseiller", "type", "activite", "tri", "dir", "page", "densite"],
     view: "contacts",
   },
   {
     key: "affaires",
     href: "/affaires",
-    params: ["v", ...METRIC_PARAMS, "vue", "etape", "tri", "dir", "page", "densite", "cohorte", "atteint", "jusqua", "issue", "motif", "depuis"],
+    params: ["v", "f", ...METRIC_PARAMS, "vue", "etape", "tri", "dir", "page", "densite", "cohorte", "atteint", "jusqua", "issue", "motif", "depuis"],
     period: true,
     view: "affaires",
   },
