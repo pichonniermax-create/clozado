@@ -16,7 +16,7 @@ export function BrandMark({ href, size = "sm", prefetch }: { href?: string; size
     <>
       <span
         aria-hidden
-        className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground"
+        className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground"
       >
         {common.marque.charAt(0)}
       </span>
@@ -25,7 +25,7 @@ export function BrandMark({ href, size = "sm", prefetch }: { href?: string; size
       </span>
     </>
   );
-  const classes = "flex items-center gap-2.5 text-foreground";
+  const classes = "flex items-center gap-3 text-foreground";
   return href ? (
     <Link href={href} prefetch={prefetch} className={classes}>
       {content}

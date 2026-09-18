@@ -7,7 +7,10 @@ import { cn } from "@/lib/cn";
  * il porte alors `rel="noopener"` et la mention « nouvel onglet » pour les
  * lecteurs d'écran, jamais une icône seule.
  *
- * Hauteur minimale de 44 px : la cible tactile recommandée.
+ * Hauteur minimale de 48 px : au-dessus de la cible tactile recommandée
+ * (44 px). La forme est une PILULE — rayon plein, jamais un rectangle
+ * arrondi : c'est la seule forme ronde du site, et elle ne sert qu'à
+ * l'action.
  *
  * PIÈGE : ne jamais passer un utilitaire `display` par `className`
  * (« hidden sm:inline-flex ») — il entre en conflit avec le `inline-flex`
@@ -37,7 +40,7 @@ export function ActionLink({
   className?: string;
 }) {
   const classes = cn(
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-medium transition-colors",
+    "inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-sm font-medium transition-colors",
     STYLES[variante],
     className
   );

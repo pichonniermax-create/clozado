@@ -1,14 +1,16 @@
 import { Container } from "./layout-primitives";
 
 /**
- * LA BANDE DE RUPTURE — pleine largeur, fond encre, une seule phrase.
+ * LA RUPTURE DE RYTHME — pleine largeur, une seule phrase, très grande.
  *
- * Elle existe pour le RYTHME autant que pour le fond : après trois sections
- * claires alternant texte et capture, l'œil a besoin d'un palier. Elle
- * porte donc ce qui se dit en une phrase et qu'aucune capture ne remplace.
+ * Elle existe pour le RYTHME autant que pour le fond : après une longue
+ * section teintée, l'œil a besoin d'un palier. Elle porte donc ce qui se
+ * dit en une phrase et qu'aucun écran ne remplace.
  *
- * Le fond est l'encre du texte, et le texte le fond : le contraste est
- * celui du corps de page, simplement inversé — donc déjà vérifié.
+ * Elle était une bande SOMBRE. Le site ne l'est plus : la rupture se fait
+ * maintenant par le blanc pur, l'échelle du texte et un souligné bordeaux —
+ * le seul endroit de la page où l'accent n'est ni un bouton ni un lien,
+ * parce qu'un souligné en est un usage prévu.
  */
 export function BandeRupture({
   titre,
@@ -18,17 +20,15 @@ export function BandeRupture({
   elements: readonly { titre: string; texte: string }[];
 }) {
   return (
-    <section className="bg-foreground py-16 text-background sm:py-20 lg:py-24">
+    <section className="border-y border-border bg-card py-20 sm:py-24 lg:py-32">
       <Container largeur="large">
-        <h2 className="max-w-4xl text-balance text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl lg:leading-[1.15]">
-          {titre}
-        </h2>
-        <dl className="mt-12 grid gap-8 sm:grid-cols-3 sm:gap-10">
+        <h2 className="max-w-5xl text-balance text-titre-2 text-foreground">{titre}</h2>
+        <div aria-hidden className="mt-8 h-1 w-16 rounded-full bg-primary" />
+        <dl className="mt-12 grid gap-8 sm:grid-cols-3 sm:gap-12">
           {elements.map((element) => (
-            <div key={element.titre} className="border-t border-background/25 pt-5">
-              <dt className="font-semibold">{element.titre}</dt>
-              {/* 80 % d'opacité sur un fond encre : le texte secondaire reste très au-dessus du seuil AA. */}
-              <dd className="mt-2 text-sm leading-relaxed text-background/80">{element.texte}</dd>
+            <div key={element.titre} className="border-t border-border pt-6">
+              <dt className="font-semibold text-foreground">{element.titre}</dt>
+              <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{element.texte}</dd>
             </div>
           ))}
         </dl>

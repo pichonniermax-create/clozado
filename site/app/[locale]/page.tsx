@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActionLink } from "@/components/action-link";
 import { BandeRupture } from "@/components/bande-rupture";
-import { CaptureProduit } from "@/components/capture-produit";
+import { EcranFunnel, EcranRegles, EcranSuivi, EcranTableauDeBord } from "@/components/ecran-produit";
 import { Card, Container, Puce, Section } from "@/components/layout-primitives";
 import { References } from "@/components/references";
 import { getDictionary, isLocale } from "@/lib/i18n";
@@ -26,15 +26,18 @@ export async function generateMetadata(props: PageProps<"/[locale]">): Promise<M
 /**
  * LA PAGE D'ACCUEIL.
  *
- * Son rythme est délibéré : un premier écran qui porte le produit en image,
- * un constat en trois temps sur fond teinté, trois preuves où le texte et
- * l'écran alternent de côté, une bande sombre pleine largeur qui casse la
- * cadence, puis des sections de plus en plus étroites à mesure que le
- * propos devient dense. Les largeurs changent d'une section à l'autre —
- * c'est ce qui empêche la page de s'aplatir en une colonne unique.
+ * AUCUNE IMAGE N'EST AFFICHÉE ICI, ni sur aucune page du site : pas de
+ * photo, pas d'illustration, pas de capture, pas de pictogramme décoratif.
+ * Quand une section doit montrer le produit, elle en REDESSINE l'écran en
+ * HTML (`components/ecran-produit.tsx`) — c'est du texte, donc c'est net à
+ * toutes les densités, sélectionnable, lu par une synthèse vocale, indexé,
+ * et cela ne coûte aucun octet de téléchargement. Les images de partage
+ * (OpenGraph) restent : elles ne s'affichent jamais dans la page.
  *
- * Aucune image n'est décorative : chacune est posée contre l'affirmation
- * qu'elle prouve, et son texte alternatif décrit ce qu'on y lit.
+ * Son rythme : un premier écran qui pose le propos à côté du produit, un
+ * constat en trois temps, trois preuves où le texte et l'écran alternent de
+ * côté, une rupture pleine largeur sur fond blanc, puis des sections de plus
+ * en plus étroites à mesure que le propos devient dense.
  *
  * Aucun texte n'est écrit ici : tout vient de `content/<langue>/accueil.ts`.
  */
@@ -44,7 +47,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
   const { common, accueil } = getDictionary(locale);
 
   const appels = (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
       <ActionLink href={SITE_CONFIG.bookingUrl} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
         {common.actions.reserverUneDemo}
       </ActionLink>
@@ -54,73 +57,75 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
     </div>
   );
 
+  /** L'écran qui prouve une affirmation. Chaque preuve porte la clé du sien. */
+  const ecranDe = (cle: (typeof accueil.preuves.elements)[number]["cle"]) => {
+    switch (cle) {
+      case "tableau-de-bord":
+        return <EcranTableauDeBord ecran={accueil.ecrans.tableauDeBord} />;
+      case "regles":
+        return <EcranRegles ecran={accueil.ecrans.regles} />;
+      case "funnel":
+        return <EcranFunnel ecran={accueil.ecrans.funnel} />;
+    }
+  };
+
   return (
     <>
-      {/* PREMIER ÉCRAN — deux colonnes, alignées en leur milieu : le propos à
-          gauche, le produit à droite jusqu'au bord. C'est ce qui remplit la
-          largeur ; une colonne unique laissait les deux tiers droits vides. */}
-      <section className="overflow-hidden border-b border-border bg-muted/50">
-        <Container largeur="large" className="py-14 sm:py-20 lg:py-24">
-          <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-12">
-            <div className="lg:col-span-5">
-              {/* Pas de `text-balance` ici : sur un titre de quatre lignes il
-                  égalise les longueurs et produit un pavé en escalier. */}
-              <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl lg:leading-[1.08]">
-                {accueil.hero.titre}
-              </h1>
-              <p className="mt-6 text-pretty text-lg leading-relaxed text-muted-foreground">{accueil.hero.chapo}</p>
-              <p className="mt-3 text-pretty text-lg leading-relaxed text-muted-foreground">
-                {accueil.hero.precision}
-              </p>
-              <div className="mt-8">{appels}</div>
+      {/* PREMIER ÉCRAN — le propos à gauche, l'écran du produit à droite.
+          Les deux colonnes s'alignent en haut : le titre est très grand, et
+          un alignement au milieu le ferait flotter au-dessus du vide. */}
+      <section className="border-b border-border">
+        <Container largeur="large" className="py-16 sm:py-24 lg:py-28">
+          <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+            <div className="min-w-0 lg:col-span-6">
+              {/* Pas de `text-balance` sur un titre de quatre lignes : il égalise
+                  les longueurs et produit un pavé en escalier. */}
+              <h1 className="text-titre-1 text-foreground">{accueil.hero.titre}</h1>
+              <p className="mt-8 text-pretty text-chapo text-muted-foreground">{accueil.hero.chapo}</p>
+              <p className="mt-4 text-pretty text-chapo text-muted-foreground">{accueil.hero.precision}</p>
+              <div className="mt-10">{appels}</div>
               <p className="mt-4 text-sm text-muted-foreground">{accueil.hero.note}</p>
             </div>
 
-            {/* La capture déborde vers la droite : elle touche le bord de l'écran
-                au lieu de s'arrêter sur la gouttière, ce qui donne sa profondeur
-                au premier écran. */}
-            <div className="lg:col-span-7 lg:-mr-10 xl:-mr-24">
-              <CaptureProduit cle="suivi" alt={accueil.hero.visuelAlt} priorite />
-              <p className="mt-4 text-sm text-muted-foreground lg:pr-10 xl:pr-24">{accueil.mentionCaptures}</p>
+            <div className="min-w-0 lg:col-span-6">
+              <EcranSuivi ecran={accueil.ecrans.suivi} sansLegende />
+              <p className="mt-4 text-sm text-muted-foreground">{accueil.mentionEcrans}</p>
             </div>
           </div>
         </Container>
       </section>
 
       <Section intitule={accueil.probleme.intitule} titre={accueil.probleme.titre} bordered={false}>
-        <ol className="grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3">
-          {accueil.probleme.elements.map((element, index) => (
-            <li key={element.titre} className="bg-card p-6">
-              <p className="font-mono text-sm tabular-nums text-muted-foreground">
-                {String(index + 1).padStart(2, "0")}
-              </p>
-              <h3 className="mt-4 font-semibold">{element.titre}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
+        <ul className="grid gap-4 sm:grid-cols-3">
+          {accueil.probleme.elements.map((element) => (
+            <li key={element.titre}>
+              <Card className="h-full">
+                <h3 className="text-xl font-bold tracking-tight text-foreground">{element.titre}</h3>
+                <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
+              </Card>
             </li>
           ))}
-        </ol>
+        </ul>
       </Section>
 
       {/* Les trois preuves : le texte et l'écran changent de côté à chaque fois. */}
       <Section intitule={accueil.preuves.intitule} titre={accueil.preuves.titre} largeur="large" ton="doux">
-        <div className="flex flex-col gap-16 lg:gap-24">
+        <div className="flex flex-col gap-20 lg:gap-28">
           {accueil.preuves.elements.map((preuve, index) => (
-            <div key={preuve.cle} className="grid items-center gap-8 lg:grid-cols-12 lg:gap-14">
-              <div className={index % 2 === 1 ? "lg:order-2 lg:col-span-5" : "lg:col-span-5"}>
-                <h3 className="text-balance text-xl font-semibold tracking-tight sm:text-2xl">{preuve.titre}</h3>
+            <div key={preuve.cle} className="grid items-center gap-8 lg:grid-cols-12 lg:gap-16">
+              <div className={index % 2 === 1 ? "min-w-0 lg:order-2 lg:col-span-5" : "min-w-0 lg:col-span-5"}>
+                <h3 className="text-balance text-titre-3 text-foreground">{preuve.titre}</h3>
                 <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">{preuve.texte}</p>
-                <ul className="mt-6 flex flex-col gap-3">
+                <ul className="mt-8 flex flex-col gap-4">
                   {preuve.points.map((point) => (
-                    <li key={point} className="flex gap-3 text-sm leading-relaxed">
+                    <li key={point} className="flex gap-4 text-sm leading-relaxed">
                       <Puce />
                       <span className="text-muted-foreground">{point}</span>
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className={index % 2 === 1 ? "lg:order-1 lg:col-span-7" : "lg:col-span-7"}>
-                <CaptureProduit cle={preuve.cle} alt={preuve.alt} />
-              </div>
+              <div className={index % 2 === 1 ? "min-w-0 lg:order-1 lg:col-span-7" : "min-w-0 lg:col-span-7"}>{ecranDe(preuve.cle)}</div>
             </div>
           ))}
         </div>
@@ -133,8 +138,8 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
           {accueil.reste.elements.map((element) => (
             <li key={element.titre}>
               <Card className="h-full">
-                <h3 className="font-semibold">{element.titre}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
+                <h3 className="text-xl font-bold tracking-tight text-foreground">{element.titre}</h3>
+                <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
               </Card>
             </li>
           ))}
@@ -146,8 +151,8 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
           {accueil.pourQui.elements.map((element) => {
             const corps = (
               <>
-                <h3 className="font-semibold">{element.titre}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
+                <h3 className="text-xl font-bold tracking-tight text-foreground">{element.titre}</h3>
+                <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
               </>
             );
             // La carte n'est cliquable que si sa page existe : le site n'a jamais de lien mort.
@@ -156,10 +161,12 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
                 {ROUTES[element.cle].built ? (
                   <Link
                     href={path(locale, element.cle)}
-                    className="block h-full rounded-xl border border-border bg-card p-6 text-card-foreground transition-colors hover:border-primary-ink"
+                    className="block h-full rounded-xl border border-border bg-card p-6 text-card-foreground transition-colors hover:border-primary"
                   >
                     {corps}
-                    <p className="mt-4 text-sm font-medium text-primary-ink">{common.actions.enSavoirPlus}</p>
+                    <p className="mt-6 text-sm font-medium text-primary-ink underline underline-offset-4">
+                      {common.actions.enSavoirPlus}
+                    </p>
                   </Link>
                 ) : (
                   <Card className="h-full">{corps}</Card>
@@ -177,10 +184,10 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
         largeur="lisible"
         ton="doux"
       >
-        <dl className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
+        <dl className="grid gap-x-12 gap-y-10 sm:grid-cols-2">
           {accueil.conformite.elements.map((element) => (
             <div key={element.titre}>
-              <dt className="font-semibold">{element.titre}</dt>
+              <dt className="font-semibold text-foreground">{element.titre}</dt>
               <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{element.texte}</dd>
             </div>
           ))}
@@ -188,9 +195,9 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
       </Section>
 
       <Section intitule={accueil.perimetre.intitule} titre={accueil.perimetre.titre} largeur="etroite">
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-4">
           {accueil.perimetre.elements.map((element) => (
-            <li key={element} className="flex gap-3 text-base leading-relaxed">
+            <li key={element} className="flex gap-4 text-base leading-relaxed">
               <Puce />
               <span className="text-muted-foreground">{element}</span>
             </li>
@@ -201,11 +208,11 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
       <References locale={locale} />
 
       <Section>
-        <div className="rounded-2xl border border-border bg-card px-6 py-12 sm:px-12">
-          <div className="max-w-2xl">
-            <h2 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">{accueil.final.titre}</h2>
-            <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">{accueil.final.texte}</p>
-            <div className="mt-8">{appels}</div>
+        <div className="rounded-xl border border-border bg-card px-6 py-16 sm:px-12">
+          <div className="max-w-3xl">
+            <h2 className="text-balance text-titre-2 text-foreground">{accueil.final.titre}</h2>
+            <p className="mt-6 text-pretty text-chapo text-muted-foreground">{accueil.final.texte}</p>
+            <div className="mt-10">{appels}</div>
           </div>
         </div>
       </Section>

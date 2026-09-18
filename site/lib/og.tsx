@@ -17,6 +17,12 @@ import { SITE_CONFIG } from "./site-config";
  *
  * Elle ne porte aucun chiffre : rien qu'une page ne dise pas elle-même.
  *
+ * ELLE EST CLAIRE ET BORDEAUX depuis le 2026-09-18, comme le site : fond
+ * blanc cassé, titre quasi noir, et l'accent réduit au carré de la marque
+ * et au souligné du titre. C'est la SEULE image du site — et elle ne
+ * s'affiche jamais dans une page : elle ne vit que dans la vignette d'un
+ * partage.
+ *
  * LA POLICE EST GEIST, comme le site. Le générateur d'images ne sait pas
  * lire un `.woff2` : ce sont les `.ttf` de `app/fonts/` qu'il lit, au
  * build uniquement — ils ne sont jamais servis à un navigateur et ne
@@ -46,8 +52,8 @@ export function imagePartage({ titre, surtitre }: { titre: string; surtitre?: st
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          background: "#0d1117",
-          color: "#f0f2f4",
+          background: "#fafaf8",
+          color: "#141310",
           padding: 80,
           fontFamily: "Geist",
         }}
@@ -58,8 +64,8 @@ export function imagePartage({ titre, surtitre }: { titre: string; surtitre?: st
               width: 64,
               height: 64,
               borderRadius: 16,
-              background: "#3262c8",
-              color: "#fbfcfd",
+              background: "#89202b",
+              color: "#ffffff",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -74,16 +80,17 @@ export function imagePartage({ titre, surtitre }: { titre: string; surtitre?: st
 
         <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 960 }}>
           {surtitre && (
-            <div style={{ display: "flex", fontSize: 24, fontWeight: 600, letterSpacing: 3, color: "#9fa5b0" }}>
+            <div style={{ display: "flex", fontSize: 24, fontWeight: 600, letterSpacing: 3, color: "#5c5a52" }}>
               {surtitre.toUpperCase()}
             </div>
           )}
           <div style={{ display: "flex", fontSize: 58, fontWeight: 600, lineHeight: 1.15, letterSpacing: -1.5 }}>
             {titre}
           </div>
+          <div style={{ display: "flex", width: 96, height: 6, borderRadius: 3, background: "#89202b" }} />
         </div>
 
-        <div style={{ display: "flex", fontSize: 28, color: "#9fa5b0" }}>
+        <div style={{ display: "flex", fontSize: 28, color: "#5c5a52" }}>
           {SITE_CONFIG.origin.replace("https://", "")}
         </div>
       </div>

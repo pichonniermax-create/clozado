@@ -12,6 +12,24 @@ fichier, ni build : un déploiement de l'un ne peut pas casser l'autre.
 - **Aucun tiers, aucun cookie.** Aucun script externe, aucune mesure
   d'audience, aucun stockage navigateur — donc aucun bandeau de
   consentement à afficher.
+- **Aucune image affichée.** Ni photo, ni illustration, ni capture, ni
+  emoji, ni pictogramme décoratif. Quand une section doit montrer le
+  produit, elle en REDESSINE l'écran en HTML
+  (`components/ecran-produit.tsx`) : c'est du texte, donc net à toutes les
+  densités, sélectionnable, lu par une synthèse vocale, indexable, et
+  gratuit à télécharger. Seules les images de PARTAGE (OpenGraph) sont
+  générées — elles ne s'affichent jamais dans une page.
+- **Une seule apparence, claire.** Le site ne suit plus le thème du
+  système : pas de mode sombre, donc aucune règle `prefers-color-scheme`.
+- **Le bordeaux ne sert qu'à ce qui est actionnable** : bouton plein, lien,
+  souligné, état actif. Jamais un fond de section, jamais un aplat
+  décoratif. Le reste est neutre — page blanc cassé (`#fafaf8`), surfaces
+  blanches, filet de 1 px, aucune ombre portée.
+- **Une seule famille**, Geist, auto-hébergée. Les titres sont lourds,
+  très grands et fluides (`clamp`), sans point de rupture. Aucune police
+  décorative, aucun dégradé de texte.
+- **Les formes** : un bouton est une pilule (rayon plein), une carte a
+  16 px de rayon, et tout espacement est un multiple de 4 px.
 - **Aucun texte dans le code.** Tout ce qui se lit à l'écran vit dans
   `content/<langue>/`. Le français est la langue de référence : sa forme
   est le contrat auquel toute autre langue devra se conformer.

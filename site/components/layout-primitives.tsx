@@ -33,7 +33,8 @@ export function Container({
 
 const TONS = {
   normal: "",
-  doux: "bg-muted/50",
+  /* Un aplat neutre à peine plus soutenu que la page — jamais l'accent. */
+  doux: "bg-muted",
 } as const;
 
 /**
@@ -64,21 +65,21 @@ export function Section({
   return (
     <section
       id={id}
-      className={cn("py-16 sm:py-20 lg:py-24", bordered && "border-t border-border", TONS[ton])}
+      className={cn("py-20 sm:py-24 lg:py-32", bordered && "border-t border-border", TONS[ton])}
     >
       <Container largeur={largeur}>
         {aEnTete && (
           <header className="max-w-2xl">
             {intitule && (
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{intitule}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{intitule}</p>
             )}
             {titre && (
-              <h2 className="mt-3 text-balance text-2xl font-semibold tracking-tight sm:text-3xl">{titre}</h2>
+              <h2 className="mt-4 text-balance text-titre-2">{titre}</h2>
             )}
-            {chapo && <p className="mt-4 text-pretty text-base leading-relaxed text-muted-foreground">{chapo}</p>}
+            {chapo && <p className="mt-6 max-w-2xl text-pretty text-chapo text-muted-foreground">{chapo}</p>}
           </header>
         )}
-        <div className={cn(aEnTete && "mt-10 sm:mt-12")}>{children}</div>
+        <div className={cn(aEnTete && "mt-12 sm:mt-16")}>{children}</div>
       </Container>
     </section>
   );
@@ -93,5 +94,5 @@ export function Card({ children, className }: { children: React.ReactNode; class
 
 /** La puce des listes en prose — un point, pas un caractère typographique qu'une synthèse vocale lirait. */
 export function Puce() {
-  return <span aria-hidden className="mt-2.5 size-1.5 shrink-0 rounded-full bg-muted-foreground" />;
+  return <span aria-hidden className="mt-2 size-2 shrink-0 rounded-full bg-muted-foreground" />;
 }

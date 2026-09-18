@@ -18,18 +18,18 @@ export const accueil = {
       "Clozado suit ce qui attend une relance, les affaires que vous confiez à un confrère et les commissions qui vous restent dues, et la communication que vous adressez à vos clients.",
     precision: "Il s’installe à côté de votre CRM : vous gardez le vôtre.",
     note: "Démonstration en lecture seule, sans inscription.",
-    visuelAlt:
-      "L’écran Suivi de Clozado : la pile « Partages sans réponse » liste huit affaires confiées à un confrère, chacune avec le nom du partenaire, le nombre de jours écoulés sans réponse et un bouton « Renvoyer le lien » ; la pile « Acceptées sans suite » commence dessous.",
   },
 
   /**
-   * LES CAPTURES VIENNENT DE LA DÉMONSTRATION PUBLIQUE, donc d'un cabinet
-   * fictif. Les nombres qu'on y lit sont inventés par construction : il faut
-   * le dire à l'écran, sinon la page présente des chiffres non sourcés —
-   * exactement ce qu'elle s'interdit partout ailleurs.
+   * LES ÉCRANS DE CETTE PAGE SONT REDESSINÉS EN HTML, pas photographiés :
+   * aucune image n'est servie. Ils montrent ce que montre le produit, avec
+   * les données du cabinet fictif de la démonstration. Ces nombres sont
+   * inventés par construction : il faut le dire à l'écran, sinon la page
+   * présente des chiffres non sourcés — exactement ce qu'elle s'interdit
+   * partout ailleurs.
    */
-  mentionCaptures:
-    "Les captures de cette page viennent de la démonstration publique : un cabinet fictif, des données inventées.",
+  mentionEcrans:
+    "Les écrans de cette page sont ceux du produit, redessinés ici avec les données de la démonstration : un cabinet fictif, des chiffres inventés.",
 
   probleme: {
     intitule: "Le constat",
@@ -67,7 +67,6 @@ export const accueil = {
           "Une tâche se referme d’un clic, depuis n’importe quel écran.",
           "Les indicateurs mis en avant sont ceux de votre métier.",
         ],
-        alt: "Le tableau de bord de Clozado : quatre tuiles — trente et une tâches à faire dont trente et une en retard, huit partages sans réponse, quatre dossiers acceptés sans suite, 4 476 € de commissions à encaisser — puis la liste des tâches du jour, chacune avec son échéance, sa priorité et le contact concerné.",
       },
       {
         cle: "regles" as const,
@@ -79,7 +78,6 @@ export const accueil = {
           "La vague annonce exactement combien d’emails un clic enverra.",
           "Aucun envoi automatique ne part sans ce clic.",
         ],
-        alt: "L’écran Règles de relance de Clozado : une vague de deux emails en attente, avec le bouton « Envoyer les 2 emails », et deux règles écrites chacune en une phrase avec leur déclencheur et leur action.",
       },
       {
         cle: "funnel" as const,
@@ -91,9 +89,122 @@ export const accueil = {
           "Un taux calculé sur trop peu d’observations n’est pas affiché.",
           "La période se choisit une fois et vaut pour tout le produit.",
         ],
-        alt: "L’écran Funnel de conversion de Clozado : la chaîne visiteurs, simulations démarrées, simulations terminées, leads reçus, contacts établis, affaires issues de ces leads et affaires gagnées, avec le nombre, le taux de passage et la déperdition à chaque pas.",
       },
     ],
+  },
+
+  /**
+   * LES QUATRE ÉCRANS, EN DONNÉES.
+   *
+   * Ils sont rendus en HTML par `components/ecran-produit.tsx` — jamais en
+   * image. Chaque ligne est celle qu'on lit dans la démonstration publique :
+   * mêmes libellés, mêmes nombres, même ordre. Les taux du funnel sont
+   * recalculés depuis les nombres affichés, pas arrondis à la main.
+   *
+   * Règle tenue : ce qui se lit à l'écran vit ici, jamais dans un composant.
+   */
+  ecrans: {
+    suivi: {
+      nom: "Suivi",
+      resume: "14 éléments attendent une action : relances, dossiers sans suite, commissions dues.",
+      legende: "L’écran Suivi, redessiné.",
+      piles: [
+        {
+          titre: "Partages sans réponse",
+          compte: "8",
+          precision: "Le confrère n’a pas répondu, ou le lien va expirer.",
+          lignes: [
+            {
+              titre: "Maison familiale — Saint-Herblain",
+              detail: "Sophie Guérin · sans réponse depuis 24 j · lien expiré",
+              action: "Renvoyer le lien",
+            },
+            {
+              titre: "Regroupement de crédits",
+              detail: "Julien Marchal · sans réponse depuis 20 j · expire dans 9 j",
+              action: "Renvoyer le lien",
+            },
+            {
+              titre: "Achat résidence principale — Orvault",
+              detail: "Mehdi Bouaziz · sans réponse depuis 14 j · lien expiré",
+              action: "Renvoyer le lien",
+            },
+          ],
+        },
+        {
+          titre: "Acceptées sans suite",
+          compte: "4",
+          precision: "Acceptées, puis plus rien depuis cinq jours ou plus.",
+          lignes: [
+            {
+              titre: "Maison de ville — Rezé",
+              detail: "Sophie Guérin · acceptée le 2 mai 2026 · rien depuis 90 j",
+              action: "Ouvrir",
+            },
+            {
+              titre: "Deuxième investissement — SCI Les Tilleuls",
+              detail: "Julien Marchal · acceptée le 10 août 2026 · rien depuis 33 j",
+              action: "Ouvrir",
+            },
+          ],
+        },
+      ],
+    },
+
+    tableauDeBord: {
+      nom: "Tableau de bord",
+      resume: "Ce qui attend une action, dès l’ouverture.",
+      legende: "Le tableau de bord, redessiné.",
+      tuiles: [
+        { libelle: "Tâches à faire", valeur: "31", precision: "dont 31 en retard" },
+        { libelle: "Partages sans réponse", valeur: "8", precision: "à relancer" },
+        { libelle: "Acceptés sans suite", valeur: "4", precision: "depuis 5 jours ou plus" },
+        { libelle: "Commissions à encaisser", valeur: "4 476 €", precision: "confirmées, non réglées" },
+      ],
+      listeTitre: "Les tâches du jour",
+      lignes: [
+        { titre: "Rappeler Sophie Guérin", detail: "En retard d’un jour · haute · Maison familiale — Saint-Herblain" },
+        { titre: "Relancer le notaire", detail: "Aujourd’hui · normale · Achat résidence principale — Orvault" },
+        { titre: "Envoyer le bilan trimestriel", detail: "Demain · normale · SCI Les Tilleuls" },
+      ],
+    },
+
+    regles: {
+      nom: "Règles de relance",
+      resume: "Une vague de brouillons, et les règles qui les ont écrits.",
+      legende: "L’écran Règles de relance, redessiné.",
+      vague: {
+        titre: "2 brouillons prêts à relire",
+        precision: "Écrits ce matin à 7 h 00. Rien ne part tant que personne n’a cliqué.",
+        action: "Envoyer les 2 emails",
+      },
+      lignes: [
+        {
+          phrase: "Sans rendez-vous après 7 jours → tâche",
+          detail: "Hier à 7 h 00 : 14 contacts examinés, 2 tâches créées, 12 écartés — déjà relancés.",
+        },
+        {
+          phrase: "Simulation terminée sans appel sous 48 h → email",
+          detail: "Hier à 7 h 00 : 9 contacts examinés, 2 brouillons écrits, 7 écartés — hors heures de bureau, plafond par contact atteint.",
+        },
+      ],
+    },
+
+    funnel: {
+      nom: "Funnel de conversion",
+      resume: "De la visite à la signature, une seule chaîne.",
+      legende: "L’écran Funnel de conversion, redessiné.",
+      colonnes: { pas: "Pas", nombre: "Nombre", taux: "Passage", perte: "Déperdition" },
+      pas: [
+        { libelle: "Visiteurs", nombre: "1 284", taux: "—", perte: "—" },
+        { libelle: "Simulations démarrées", nombre: "412", taux: "32,1 %", perte: "872" },
+        { libelle: "Simulations terminées", nombre: "233", taux: "56,6 %", perte: "179" },
+        { libelle: "Leads reçus", nombre: "148", taux: "63,5 %", perte: "85" },
+        { libelle: "Contacts établis", nombre: "96", taux: "64,9 %", perte: "52" },
+        { libelle: "Affaires issues de ces leads", nombre: "41", taux: "42,7 %", perte: "55" },
+        { libelle: "Affaires gagnées", nombre: "12", taux: "29,3 %", perte: "29" },
+      ],
+    },
   },
 
   /** La rupture de rythme : une bande sombre, une seule phrase, trois appuis. C'est le point qui nous distingue. */

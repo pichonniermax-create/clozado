@@ -1,24 +1,30 @@
 @import "tailwindcss";
 
 /*
- * LA DIRECTION DE COULEUR DU SITE — une seule ligne à changer, celle qui suit.
+ * LA PALETTE DU SITE — bordeaux profond, en clair seul (2026-09-18).
  *
- * Deux directions sont écrites, chacune avec son mode sombre et ses
- * contrastes vérifiés par calcul : `directions/verte.css` (vert forêt) et
- * `directions/bordeaux.css` (bordeaux profond). Elles remplacent le bleu de
- * l'application — le bleu du produit reste au produit.
- *
- * Le thème clair/sombre suit le système : aucun sélecteur, donc aucun
- * JavaScript, donc aucun clignotement au chargement.
+ * Le site ne suit plus le thème du système : il a une seule apparence, et
+ * `directions/bordeaux.css` la porte en entier. Le bleu de l'application
+ * reste au produit.
  */
-@import "./directions/verte.css";
+@import "./directions/bordeaux.css";
 
 /*
- * LE DESIGN SYSTEM DU SITE — la grammaire reste celle de l'application
- * (src/app/globals.css) : neutres à chroma minuscule sur la teinte de
- * l'accent, accent réservé à ce qui est actionnable, rouge/ambre/vert
- * jamais décoratifs. Seule la palette diffère, et elle vit dans
- * `directions/`.
+ * LE DESIGN SYSTEM DU SITE.
+ *
+ * L'ACCENT ne sert qu'à ce qui est actionnable — bouton plein, lien,
+ * souligné, état actif. Jamais un fond de section, jamais un aplat
+ * décoratif.
+ *
+ * LES FORMES : un bouton est une pilule (rayon plein), une carte a 16 px de
+ * rayon, un filet fait 1 px et remplace l'ombre. L'espacement est un
+ * multiple de 4 px — c'est l'échelle native de Tailwind, on n'en sort pas.
+ *
+ * LA TYPOGRAPHIE : une seule famille grotesque (Geist, auto-hébergée).
+ * Les titres sont lourds, très grands, et FLUIDES : leur taille est un
+ * `clamp` qui suit la fenêtre, sans point de rupture. Aucune police
+ * décorative, aucun dégradé de texte — la hiérarchie se fait à la graisse
+ * et à la taille, pas à l'effet.
  */
 @theme inline {
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system,
@@ -38,10 +44,32 @@
   --color-primary-soft: var(--primary-soft);
   --color-ring: var(--ring);
 
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
+  /* Les rayons sont écrits en pixels, pas dérivés d'une base : une carte
+     fait 16 px, un champ ou une tuile 12, une pastille 8. */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 16px;
+
+  /* L'ÉCHELLE DE TITRES, fluide. `titre-1` n'existe qu'une fois par page. */
+  --text-titre-1: clamp(2.75rem, 1.95rem + 3.2vw, 4rem);
+  --text-titre-1--line-height: 1.02;
+  --text-titre-1--letter-spacing: -0.035em;
+  --text-titre-1--font-weight: 800;
+
+  --text-titre-2: clamp(2rem, 1.55rem + 1.8vw, 3.25rem);
+  --text-titre-2--line-height: 1.06;
+  --text-titre-2--letter-spacing: -0.03em;
+  --text-titre-2--font-weight: 700;
+
+  --text-titre-3: clamp(1.25rem, 1.12rem + 0.55vw, 1.625rem);
+  --text-titre-3--line-height: 1.18;
+  --text-titre-3--letter-spacing: -0.02em;
+  --text-titre-3--font-weight: 700;
+
+  --text-chapo: clamp(1.0625rem, 1rem + 0.45vw, 1.375rem);
+  --text-chapo--line-height: 1.55;
 }
 
 @layer base {
@@ -51,6 +79,9 @@
 
   html {
     font-family: var(--font-sans);
+    /* Une seule apparence : le navigateur ne propose pas de variante sombre
+       aux contrôles natifs (champs, barres de défilement). */
+    color-scheme: light;
     /* Une ancre interne ne colle plus le titre sous l'en-tête. */
     scroll-padding-top: 5rem;
     -webkit-text-size-adjust: 100%;

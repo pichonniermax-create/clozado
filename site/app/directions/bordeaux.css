@@ -1,46 +1,43 @@
 /*
- * DIRECTION DE COULEUR « Bordeaux profond » — sobriété notariale, une couleur qui n'appartient à aucun logiciel
+ * LA PALETTE DU SITE — « bordeaux profond », en CLAIR SEUL.
  *
- * Les jetons du SITE, distincts de ceux de l'application : le bleu du
- * produit reste au produit. La grammaire, elle, ne change pas — neutres à
- * chroma minuscule sur la teinte de l'accent, accent réservé à ce qui est
- * actionnable, aucune couleur décorative.
+ * Décidée le 2026-09-18, avec l'abandon du mode sombre : le site ne suit
+ * plus le thème du système, il a une seule apparence. Il n'y a donc plus ni
+ * bloc `prefers-color-scheme`, ni seconde direction de couleur — le vert
+ * forêt reste dans l'historique (commit a15b0e7) si la question revient.
  *
- * Contrastes vérifiés par calcul (oklch → sRGB), clair et sombre :
- *   texte 18,25:1 · secondaire 5,86:1 sur le fond et 6,05:1 sur carte
- *   lien 8,82:1 · bouton 8,84:1 — sombre : 16,83 / 7,48 / 8,57 / 6,37
+ * LA RÈGLE DE L'ACCENT : le bordeaux n'est JAMAIS un décor. Il ne sert que
+ * pour les boutons pleins, les liens, les soulignés et les états actifs.
+ * Aucun fond de section pleine page ne le porte. Tout le reste est neutre :
+ * un blanc cassé très légèrement chaud pour la page, du blanc pur pour les
+ * surfaces, un filet gris très clair, un quasi-noir pour les titres et un
+ * gris moyen pour le corps.
+ *
+ * Contrastes vérifiés par calcul (luminance relative sRGB, WCAG 2.1) :
+ *   titre  17,78:1 sur la page · 18,58:1 sur une carte
+ *   corps   6,61:1 sur la page ·  6,91:1 sur une carte
+ *   lien    8,72:1 sur la page ·  9,11:1 sur une carte
+ *   bouton  9,11:1 (blanc sur bordeaux) · 11,61:1 au survol
+ * Le seuil AA du texte courant est 4,5:1 ; le plus faible ici le dépasse de
+ * moitié.
  */
 :root {
-  --background: oklch(0.989 0.003 40);
-  --foreground: oklch(0.18 0.014 30);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.014 30);
-  --muted: oklch(0.964 0.006 40);
-  --muted-foreground: oklch(0.5 0.018 30);
-  --border: oklch(0.91 0.008 40);
-  --primary: oklch(0.42 0.14 20);
-  --primary-foreground: oklch(0.99 0.004 40);
-  --primary-hover: oklch(0.36 0.13 20);
-  --primary-ink: oklch(0.42 0.14 20);
-  --primary-soft: oklch(0.955 0.025 25);
-  --ring: oklch(0.42 0.14 20);
-  --radius: 0.625rem;
-}
+  /* Les neutres. Le fond de page est chaud, les surfaces sont blanches :
+     c'est ce très léger écart qui détache une carte sans lui poser d'ombre. */
+  --background: #fafaf8;
+  --foreground: #141310;
+  --card: #ffffff;
+  --card-foreground: #141310;
+  --muted: #f2f1ec;
+  --muted-foreground: #5c5a52;
+  --border: #e6e4de;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(0.168 0.01 30);
-    --foreground: oklch(0.955 0.005 40);
-    --card: oklch(0.208 0.012 30);
-    --card-foreground: oklch(0.955 0.005 40);
-    --muted: oklch(0.264 0.014 30);
-    --muted-foreground: oklch(0.712 0.012 30);
-    --border: oklch(1 0 0 / 11%);
-    --primary: oklch(0.68 0.13 22);
-    --primary-foreground: oklch(0.16 0.018 25);
-    --primary-hover: oklch(0.76 0.115 22);
-    --primary-ink: oklch(0.76 0.105 25);
-    --primary-soft: oklch(0.272 0.04 25);
-    --ring: oklch(0.68 0.13 22);
-  }
+  /* L'accent, et lui seul. `primary-ink` est la couleur d'un lien dans du
+     texte ; `primary-soft` le fond d'un état actif, jamais d'une section. */
+  --primary: #89202b;
+  --primary-foreground: #ffffff;
+  --primary-hover: #72101f;
+  --primary-ink: #89202b;
+  --primary-soft: #f7edec;
+  --ring: #89202b;
 }
