@@ -1,6 +1,6 @@
 import { ActionLink } from "@/components/action-link";
 import { EcranRegles, EcranTableauDeBord } from "@/components/ecran-produit";
-import { EcranChronologie, EcranPilesImmobilier, EcranTableauCourtage } from "@/components/ecrans-metiers";
+import { EcranChronologie, EcranJaugeParcours, EcranTableauCourtage } from "@/components/ecrans-metiers";
 import { Card, Container, Puce, Section } from "@/components/layout-primitives";
 import { Mouvement } from "@/components/mouvement";
 import type { ContenuMetier, Element } from "@/content/types";
@@ -62,7 +62,7 @@ function SousTitre({ children }: { children: string }) {
  *
  * L'ÉCRAN DU PREMIER PLAN EST PROPRE AU MÉTIER (2026-09-18) : chronologie
  * d'un dossier pour la gestion de patrimoine, tableau chiffré pour le
- * courtage, liste à piles pour la transaction immobilière — trois formes,
+ * courtage, jauge de parcours pour la transaction immobilière — trois formes,
  * trois jeux de données, aucun libellé commun. Les deux écrans suivants
  * restent ceux que la section prouve : le tableau de bord en face des
  * indicateurs, les règles de relance en face de ce qu'on écrit.
@@ -93,7 +93,7 @@ export function PageMetier({
     ) : cle === "courtiers" ? (
       <EcranTableauCourtage ecran={ecransMetiers.courtiers} />
     ) : (
-      <EcranPilesImmobilier ecran={ecransMetiers.immobilier} />
+      <EcranJaugeParcours ecran={ecransMetiers.immobilier} />
     );
 
   const appels = (

@@ -586,3 +586,125 @@
     }
   }
 }
+
+/*
+ * LA JAUGE DE PARCOURS — quatre positions sur une ligne.
+ *
+ * Au-dessus de 640 px, la ligne est HORIZONTALE : quatre colonnes, les
+ * points au-dessus du rail, le libellé et le compte en dessous. Le rail est
+ * fait des bords des quatre cellules, qui se rejoignent — pas d'élément
+ * absolu à recaler.
+ *
+ * En dessous, la ligne bascule à la VERTICALE : chaque position devient une
+ * rangée, le rail passe à gauche. Mêmes points, mêmes comptes ; c'est une
+ * rotation, pas une réduction.
+ */
+@layer components {
+  .jauge {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .jauge-poste {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0 0.75rem;
+    border-left: 1px solid var(--border);
+    padding: 0.5rem 0 0.5rem 1rem;
+    position: relative;
+  }
+  .jauge-poste::before {
+    content: "";
+    position: absolute;
+    left: -3px;
+    top: 50%;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--border);
+    transform: translateY(-50%);
+  }
+  .jauge-rail {
+    display: none;
+  }
+  .jauge-points {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    order: 2;
+    grid-column: 2;
+  }
+  .jauge-point {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .jauge-libelle {
+    order: 1;
+    grid-column: 1;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+  .jauge-compte {
+    order: 3;
+    grid-column: 3;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+  }
+
+  @media (min-width: 640px) {
+    .jauge {
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .jauge-poste {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0;
+      border-left: 0;
+      padding: 0;
+    }
+    .jauge-poste::before {
+      display: none;
+    }
+    /* Les points d'abord, puis le rail, puis le libellé et le compte. */
+    .jauge-points {
+      order: 0;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.375rem;
+      min-height: 4.25rem;
+      justify-content: flex-end;
+      padding-bottom: 0.5rem;
+    }
+    .jauge-rail {
+      display: block;
+      order: 1;
+      width: 100%;
+      border-top: 1px solid var(--border);
+      position: relative;
+      height: 0.75rem;
+    }
+    .jauge-rail::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: -3px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .jauge-libelle {
+      order: 2;
+    }
+    .jauge-compte {
+      order: 3;
+      font-size: 1.125rem;
+      color: var(--foreground);
+    }
+  }
+}

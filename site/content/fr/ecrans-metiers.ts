@@ -13,8 +13,9 @@
  *     patrimoine se juge à son cycle de vie et à ses points d'arrêt ;
  *   — courtage : un TABLEAU CHIFFRÉ, parce qu'un courtier compare des
  *     délais et des montants par banque et par partenaire ;
- *   — transaction immobilière : une LISTE À PILES, parce qu'un agent suit
- *     des personnes qui avancent, ou pas, dans un parcours.
+ *   — transaction immobilière : une JAUGE DE PARCOURS, parce qu'un agent
+ *     regarde d'abord OÙ en est chaque dossier sur la ligne, et lesquels
+ *     n'ont pas bougé.
  *
  * AUCUN LIBELLÉ N'EST PARTAGÉ entre les trois, ni avec l'accueil : ni nom de
  * personne, ni bien, ni banque, ni montant, ni date. C'est vérifié par un
@@ -85,72 +86,95 @@ export const ecransMetiers = {
     },
   },
 
-  /** Transaction immobilière — le parcours de la visite à l'acte. */
+  /**
+   * Transaction immobilière — la JAUGE DE PARCOURS.
+   *
+   * C'était une liste à piles, c'est-à-dire la même forme que le Suivi de
+   * l'accueil : un visiteur qui passait de l'un à l'autre voyait deux fois
+   * le même écran. La jauge dit la même chose autrement — où en est chaque
+   * dossier sur la ligne visite → offre → compromis → acte, et lesquels
+   * n'ont pas bougé.
+   *
+   * Les données n'ont pas changé : mêmes acquéreurs, mêmes biens, mêmes
+   * dates. L'ancienneté de chacun est le nombre de jours depuis son dernier
+   * mouvement, comptés au 21 mai ; un dossier est MARQUÉ au-delà de quinze
+   * jours, et le seuil est écrit à l'écran plutôt que deviné.
+   */
   immobilier: {
     nom: "De la visite à l’acte",
     resume: "Huit acquéreurs en cours de parcours",
     legende: "Le parcours des acquéreurs, redessiné.",
-    piles: [
+    seuilLibelle: "Sans mouvement depuis plus de 15 jours",
+    positions: [
+      { cle: "visite" as const, libelle: "Visite", compte: "3" },
+      { cle: "offre" as const, libelle: "Offre", compte: "2" },
+      { cle: "compromis" as const, libelle: "Compromis", compte: "3" },
+      { cle: "acte" as const, libelle: "Acte", compte: "0" },
+    ],
+    dossiers: [
       {
-        titre: "Visites sans retour",
-        compte: "3",
-        precision: "Visité, puis plus de nouvelles.",
-        lignes: [
-          {
-            titre: "T3 — rue des Tanneurs",
-            detail: "Nadia Belhadj · visité le 2 mai · sans nouvelles depuis 19 j",
-            action: "Rappeler",
-          },
-          {
-            titre: "Maison de bourg — Sucé-sur-Erdre",
-            detail: "Yann Coatmeur · visité le 28 avril · sans nouvelles depuis 23 j",
-            action: "Rappeler",
-          },
-          {
-            titre: "Terrain viabilisé — Le Cellier",
-            detail: "Famille Ferreira · visité le 11 mai · sans nouvelles depuis 10 j",
-            action: "Rappeler",
-          },
-        ],
+        position: "visite" as const,
+        personne: "Nadia Belhadj",
+        bien: "T3 — rue des Tanneurs",
+        depuisLe: "2 mai",
+        anciennete: "19 j",
+        marque: true,
       },
       {
-        titre: "Offres remises, sans réponse",
-        compte: "2",
-        precision: "Le vendeur n’a pas encore tranché.",
-        lignes: [
-          {
-            titre: "Duplex — quai Malakoff",
-            detail: "Sabine Ortega · offre remise le 14 mai · réponse attendue sous 5 j",
-            action: "Relancer",
-          },
-          {
-            titre: "Longère — Vallet",
-            detail: "Bruno Tanguy · offre remise le 9 mai · réponse attendue sous 2 j",
-            action: "Relancer",
-          },
-        ],
+        position: "visite" as const,
+        personne: "Yann Coatmeur",
+        bien: "Maison de bourg — Sucé-sur-Erdre",
+        depuisLe: "28 avril",
+        anciennete: "23 j",
+        marque: true,
       },
       {
-        titre: "Compromis signés, acte à venir",
-        compte: "3",
-        precision: "Le délai court ; rien à faire, sauf si une date glisse.",
-        lignes: [
-          {
-            titre: "Appartement — boulevard des Poilus",
-            detail: "Inès Rahmouni · compromis le 6 mai · acte prévu le 24 juin",
-            action: "Suivre",
-          },
-          {
-            titre: "Maison — Saint-Fiacre",
-            detail: "Loïc Pennanec’h · compromis le 29 avril · acte prévu le 17 juin",
-            action: "Suivre",
-          },
-          {
-            titre: "Studio — rue Fouré",
-            detail: "Camille Desprès · compromis le 18 mai · acte prévu le 6 juillet",
-            action: "Suivre",
-          },
-        ],
+        position: "visite" as const,
+        personne: "Famille Ferreira",
+        bien: "Terrain viabilisé — Le Cellier",
+        depuisLe: "11 mai",
+        anciennete: "10 j",
+        marque: false,
+      },
+      {
+        position: "offre" as const,
+        personne: "Sabine Ortega",
+        bien: "Duplex — quai Malakoff",
+        depuisLe: "14 mai",
+        anciennete: "7 j",
+        marque: false,
+      },
+      {
+        position: "offre" as const,
+        personne: "Bruno Tanguy",
+        bien: "Longère — Vallet",
+        depuisLe: "9 mai",
+        anciennete: "12 j",
+        marque: false,
+      },
+      {
+        position: "compromis" as const,
+        personne: "Inès Rahmouni",
+        bien: "Appartement — boulevard des Poilus",
+        depuisLe: "6 mai",
+        anciennete: "15 j",
+        marque: false,
+      },
+      {
+        position: "compromis" as const,
+        personne: "Loïc Pennanec’h",
+        bien: "Maison — Saint-Fiacre",
+        depuisLe: "29 avril",
+        anciennete: "22 j",
+        marque: true,
+      },
+      {
+        position: "compromis" as const,
+        personne: "Camille Desprès",
+        bien: "Studio — rue Fouré",
+        depuisLe: "18 mai",
+        anciennete: "3 j",
+        marque: false,
       },
     ],
   },

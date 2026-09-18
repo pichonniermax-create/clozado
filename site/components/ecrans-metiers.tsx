@@ -183,14 +183,21 @@ export function EcranTableauCourtage({
 }
 
 /**
- * LA LISTE À PILES — transaction immobilière.
+ * LA JAUGE DE PARCOURS — transaction immobilière.
  *
- * Trois piles dans l'ordre du parcours : visité, offre remise, compromis
- * signé. Ce qui se lit en premier n'est pas le bien, c'est l'ANCIENNETÉ —
- * depuis combien de temps cette personne n'a pas donné signe de vie, ou dans
- * combien de temps l'acte tombe.
+ * Quatre positions sur une ligne, un point par dossier posé à sa position
+ * réelle, et sous la ligne le compte de chaque position. Ce qui doit sauter
+ * aux yeux en trois secondes, ce sont les points PLEINS : les dossiers qui
+ * n'ont pas bougé au-delà du seuil, avec leur ancienneté en chasse fixe.
+ *
+ * C'était une liste à piles — la même forme que le Suivi de l'accueil. Un
+ * visiteur qui passait de l'une à l'autre voyait deux fois le même écran.
+ *
+ * EN DESSOUS DE 640 px, la jauge bascule : la ligne devient verticale et
+ * chaque position devient une rangée. Ce n'est pas une réduction, c'est une
+ * rotation — les mêmes points, les mêmes comptes, lisibles au doigt.
  */
-export function EcranPilesImmobilier({
+export function EcranJaugeParcours({
   ecran,
   className,
 }: {
@@ -198,37 +205,59 @@ export function EcranPilesImmobilier({
     readonly nom: string;
     readonly resume: string;
     readonly legende: string;
-    readonly piles: readonly {
-      readonly titre: string;
-      readonly compte: string;
-      readonly precision: string;
-      readonly lignes: readonly { readonly titre: string; readonly detail: string; readonly action: string }[];
+    readonly seuilLibelle: string;
+    readonly positions: readonly { readonly cle: string; readonly libelle: string; readonly compte: string }[];
+    readonly dossiers: readonly {
+      readonly position: string;
+      readonly personne: string;
+      readonly bien: string;
+      readonly depuisLe: string;
+      readonly anciennete: string;
+      readonly marque: boolean;
     }[];
   };
   className?: string;
 }) {
+  const marques = ecran.dossiers.filter((dossier) => dossier.marque);
   return (
     <Cadre nom={ecran.nom} resume={ecran.resume} legende={ecran.legende} className={className}>
-      {ecran.piles.map((pile) => (
-        <section key={pile.titre} className="border-b border-border last:border-b-0">
-          <header className="ecran-pile-entete">
-            <p className="ecran-nom">{pile.titre}</p>
-            <Compte>{pile.compte}</Compte>
-            <p className="ecran-mention w-full sm:w-auto">{pile.precision}</p>
-          </header>
-          <ul>
-            {pile.lignes.map((ligne) => (
-              <li key={ligne.titre} data-ligne className="ecran-ligne">
-                <div className="min-w-0 flex-1">
-                  <p className="ecran-ligne-titre">{ligne.titre}</p>
-                  <p className="ecran-ligne-detail">{ligne.detail}</p>
-                </div>
-                <FauxBouton>{ligne.action}</FauxBouton>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      <div className="jauge px-4 py-5 sm:px-5">
+        {ecran.positions.map((position) => {
+          const dossiers = ecran.dossiers.filter((dossier) => dossier.position === position.cle);
+          return (
+            <div key={position.cle} data-ligne className="jauge-poste">
+              <ul className="jauge-points">
+                {dossiers.map((dossier) => (
+                  <li key={dossier.personne} className="jauge-point" title={`${dossier.personne} — ${dossier.bien}`}>
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "size-[9px] shrink-0 rounded-full border",
+                        dossier.marque ? "border-transparent bg-primary" : "border-muted-foreground/60 bg-card"
+                      )}
+                    />
+                    {dossier.marque && <span className="tabulaire text-[11px] text-primary-ink">{dossier.anciennete}</span>}
+                  </li>
+                ))}
+              </ul>
+              <div className="jauge-rail" aria-hidden />
+              <p className="jauge-libelle">{position.libelle}</p>
+              <p className="jauge-compte tabulaire">{position.compte}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="border-t border-border px-4 py-3 sm:px-5">
+        <p className="ecran-mention">{ecran.seuilLibelle}</p>
+        <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+          {marques.map((dossier) => (
+            <li key={dossier.personne} className="text-xs text-foreground">
+              {dossier.personne} <span className="tabulaire text-primary-ink">{dossier.anciennete}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </Cadre>
   );
 }
