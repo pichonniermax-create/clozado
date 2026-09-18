@@ -3,7 +3,7 @@ import type { TranslatorOf } from "@/i18n/translator";
 /** Vocabulaire du module tâches — les libellés vivent dans les messages (`tasks.priorities`, `tasks.autoRules`, `tasks.recurrence`), partagés par l'écran des tâches et les fiches. */
 
 export const TASK_PRIORITIES = ["low", "normal", "high"] as const;
-export const TASK_AUTO_RULES = ["share_pending", "deal_accepted_stale", "commission_unpaid"] as const;
+export const TASK_AUTO_RULES = ["share_pending", "deal_accepted_stale", "commission_unpaid", "partner_stale"] as const;
 const RECUR_UNITS = ["day", "week", "month", "year"] as const;
 
 export type TasksTranslator = TranslatorOf<"tasks">;

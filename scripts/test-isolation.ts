@@ -685,12 +685,27 @@ async function main() {
       "contacts(org B, société de A) → 23503",
       db.insert(contacts).values({ organizationId: b.orgId, kind: "person", name: "x", companyId: a.contactId })
     );
+    // --- Le lot 3 (migration 0023) : un confrère d'un autre espace ne peut être ni le sujet d'un échange,
+    //     ni celui d'une tâche. Les deux clés sont COMPOSITES (id, organisation) : c'est la base qui refuse.
+    await fkViolation(
+      "activities(org B, confrère de A) → 23503",
+      db.insert(activities).values({ organizationId: b.orgId, type: "note", content: "x", partnerId: a.partnerId })
+    );
+    await fkViolation(
+      "tasks(org B, confrère de A) → 23503",
+      db.insert(tasks).values({ organizationId: b.orgId, title: "x", autoRule: "partner_stale", sourcePartnerId: a.partnerId })
+    );
     // Sanité : les lignes légitimes passent (sinon les refus ci-dessus ne prouveraient rien).
     const [sane] = await db
       .insert(activities)
       .values({ organizationId: b.orgId, type: "note", content: "légitime", contactId: b.contactId })
       .returning({ id: activities.id });
     expect("activities(org B, contact de B) acceptée", Boolean(sane?.id));
+    const [sanePartner] = await db
+      .insert(activities)
+      .values({ organizationId: b.orgId, type: "call", content: "légitime", partnerId: b.partnerId })
+      .returning({ id: activities.id });
+    expect("activities(org B, confrère de B) acceptée", Boolean(sanePartner?.id));
   } finally {
     console.log("\n--- Nettoyage : suppression des deux organisations, cascades vérifiées");
     const orgIds = [a?.orgId, b?.orgId].filter((x): x is string => Boolean(x));

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { Banknote, Trophy, UserPlus, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -12,7 +13,10 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { StatTile } from "@/components/stat-tile";
 import { Textarea } from "@/components/ui/textarea";
-import { listPartnerFigures, listPartners, PARTNER_RATE_MIN } from "@/db/queries/partners";
+import { listDormantPartners, listPartnerFigures, listPartners, PARTNER_RATE_MIN } from "@/db/queries/partners";
+import { getOwnOrganization } from "@/db/queries/organizations";
+import { listOrgUsers } from "@/db/queries/contacts";
+import { defaultOwnerId } from "@/lib/default-owner";
 import { PREF, preferenceList, preferenceString } from "@/db/queries/preferences";
 import { ColumnChooserTable } from "@/components/ui/column-chooser-table";
 import { PeriodPicker } from "@/components/display/period-picker";
@@ -25,7 +29,7 @@ import { FilterChips, type FilterChip } from "@/components/display/filter-chips"
 import { ViewsMenu } from "@/components/display/views-menu";
 import { resolveDisplay } from "@/lib/display/resolve";
 import { displayScreen } from "@/lib/display/screens";
-import { DEFAULT_DENSITY, queryString, VIEW_PARAM, withParams } from "@/lib/display/state";
+import { DEFAULT_DENSITY, ME, queryString, resolveOwnerFilter, VIEW_PARAM, withParams } from "@/lib/display/state";
 import { NativeSelect } from "@/components/ui/native-select";
 import { cn } from "@/lib/utils";
 import { createPartnerAction } from "@/lib/deals/actions";
@@ -48,6 +52,7 @@ async function addPartner(formData: FormData) {
       email: String(formData.get("email") ?? "").trim() || null,
       phone: String(formData.get("phone") ?? "").trim() || null,
       notes: String(formData.get("notes") ?? "").trim() || null,
+      ownerId: String(formData.get("ownerId") ?? "").trim() || null,
     });
   } catch (error) {
     destination = withError("/partenaires?nouveau=1", await errorMessage(error));
@@ -66,7 +71,7 @@ export default async function PartnersPage({
   const params = await searchParams;
   const screen = displayScreen("partenaires")!;
   // Même chose qu'ailleurs : l'affichage et le répertoire partent ensemble (le second ne dépend d'aucun paramètre).
-  const [display, all, fmt] = await Promise.all([resolveDisplay(user, screen, params), listPartners(user), getFormats()]);
+  const [display, all, fmt, orgUsers] = await Promise.all([resolveDisplay(user, screen, params), listPartners(user), getFormats(), listOrgUsers(user)]);
   const p = display.params;
   const density = display.density ?? DEFAULT_DENSITY;
   // LA période du produit (lot 1), désormais sur cet écran aussi : les chiffres d'apport sont datés (lot 3).
@@ -75,12 +80,21 @@ export default async function PartnersPage({
   // Le répertoire tient en mémoire (quelques dizaines de lignes) : filtrer et trier ici évite une requête par geste.
   const q = p.q?.trim().toLowerCase() || undefined;
   const metier = p.metier?.trim().toLowerCase() || undefined;
-  const statut = p.statut === "actifs" || p.statut === "inactifs" ? p.statut : undefined;
+  const statut = p.statut === "actifs" || p.statut === "inactifs" || p.statut === "endormis" ? p.statut : undefined;
+  // « Endormis » : la MÊME définition que la veille qui crée les tâches (`listDormantPartners`) — jamais une
+  // seconde règle qui finirait par ne plus dire la même chose. Le seuil est celui de l'organisation.
+  const org = user.organizationId ? await getOwnOrganization(user) : null;
+  const dormant = org ? await listDormantPartners(org.id, org.partnerStaleDays, new Date()) : [];
+  const dormantIds = new Set(dormant.map((d) => d.id));
+  // « Les miens » (lot 3) : `moi` est résolu pour QUI REGARDE, jamais figé — une vue partagée dit « les tiens » à chacun.
+  const ownerParam = p.conseiller;
+  const ownerId = resolveOwnerFilter(ownerParam, user.id);
   const dir = p.dir === "desc" ? -1 : 1;
   const zero = { broughtInPeriod: 0, dealsOpen: 0, dealsWon: 0, wonAmount: 0, transformationRate: null, missingForRate: PARTNER_RATE_MIN, lastBroughtAt: null, lastExchangeAt: null };
   const figuresOf = (id: string) => figures.get(id) ?? { partnerId: id, ...zero };
   const filtered = all
-    .filter((row) => (statut === "actifs" ? row.active : statut === "inactifs" ? !row.active : true))
+    .filter((row) => (statut === "actifs" ? row.active : statut === "inactifs" ? !row.active : statut === "endormis" ? dormantIds.has(row.id) : true))
+    .filter((row) => (ownerId ? row.ownerId === ownerId : true))
     .filter((row) => (metier ? (row.profession ?? "").toLowerCase() === metier : true))
     .filter((row) =>
       q ? [row.name, row.company, row.profession, row.email, row.phone].some((field) => (field ?? "").toLowerCase().includes(q)) : true
@@ -121,11 +135,22 @@ export default async function PartnersPage({
   );
   const professions = [...new Set(all.map((row) => row.profession?.trim()).filter((v): v is string => Boolean(v)))].sort((a, b) => a.localeCompare(b));
 
+  const nameOf = (userId: string) => {
+    const found = orgUsers.find((u) => u.id === userId);
+    return found ? found.name || found.email : userId;
+  };
   const hrefWith = (changes: Record<string, string | undefined>) => `/partenaires${queryString(withParams(p, changes))}`;
   const chips: FilterChip[] = [
     q ? { key: "q", label: td("recherche_valeur", { valeur: p.q! }), href: hrefWith({ q: undefined }) } : null,
-    statut ? { key: "statut", label: statut === "actifs" ? t("actifs") : t("inactifs"), href: hrefWith({ statut: undefined }) } : null,
+    statut ? { key: "statut", label: statut === "actifs" ? t("actifs") : statut === "inactifs" ? t("inactifs") : t("endormis"), href: hrefWith({ statut: undefined }) } : null,
     metier ? { key: "metier", label: p.metier!, href: hrefWith({ metier: undefined }) } : null,
+    ownerParam
+      ? {
+          key: "conseiller",
+          label: ownerParam === ME ? td("conseiller_moi") : td("conseiller_valeur", { valeur: nameOf(ownerParam) }),
+          href: hrefWith({ conseiller: undefined }),
+        }
+      : null,
   ].filter(Boolean) as FilterChip[];
 
   return (
@@ -196,6 +221,17 @@ export default async function PartnersPage({
         <QuickFilter href={hrefWith({ statut: statut === "inactifs" ? undefined : "inactifs" })} active={statut === "inactifs"}>
           {t("inactifs")}
         </QuickFilter>
+        {/* « Endormis » : ceux que la veille ira chercher — le compte est dans le libellé, pas dans une tuile
+            de plus (quatre chiffres en tête suffisent, et celui-ci est une PILE à traiter, pas une mesure). */}
+        {dormantIds.size > 0 && (
+          <QuickFilter href={hrefWith({ statut: statut === "endormis" ? undefined : "endormis" })} active={statut === "endormis"}>
+            {t("endormis_n", { n: dormantIds.size })}
+          </QuickFilter>
+        )}
+        {/* « Les miens » : les confrères dont JE tiens la relation (lot 3). */}
+        <QuickFilter href={hrefWith({ conseiller: ownerParam === ME ? undefined : ME })} active={ownerParam === ME}>
+          {t("les_miens")}
+        </QuickFilter>
         <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
           {td("trier_par")}
           <SortLink href={hrefWith({ tri: undefined, dir: !p.tri && dir === 1 ? "desc" : undefined })} active={!p.tri} descending={dir === -1}>
@@ -232,6 +268,17 @@ export default async function PartnersPage({
             </Field>
             <Field label={t("telephone")} htmlFor="phone">
               <Input id="phone" name="phone" type="tel" />
+            </Field>
+            {/* Qui tient la relation — proposé à celui qui crée la fiche, c'est presque toujours lui. */}
+            <Field label={t("responsable")} htmlFor="ownerId">
+              <NativeSelect id="ownerId" name="ownerId" defaultValue={defaultOwnerId(user, orgUsers) ?? ""}>
+                <option value="">{t("personne")}</option>
+                {orgUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name || u.email}
+                  </option>
+                ))}
+              </NativeSelect>
             </Field>
             {/* Le même ordre que la fiche : l'email sur toute la ligne, les notes en dessous — aucune cellule vide. */}
             <Field label={t("email")} htmlFor="email" className="sm:col-span-2">
@@ -276,6 +323,7 @@ export default async function PartnersPage({
             { key: "dernier_apport", label: t("dernier_apport") },
             { key: "dernier_echange", label: t("dernier_echange"), defaultVisible: false },
             { key: "metier", label: t("metier"), align: "left", defaultVisible: false },
+            { key: "responsable", label: t("responsable"), align: "left" },
             { key: "statut", label: t("statut"), align: "left" },
           ]}
           rows={filtered.map((row) => {
@@ -302,7 +350,14 @@ export default async function PartnersPage({
                 dernier_apport: f.lastBroughtAt ? fmt.date(f.lastBroughtAt) : "—",
                 dernier_echange: f.lastExchangeAt ? fmt.date(f.lastExchangeAt) : "—",
                 metier: [row.profession, row.company].filter(Boolean).join(" · ") || "—",
-                statut: row.active ? <Badge variant="secondary">{t("actif")}</Badge> : <Badge variant="outline">{t("inactif")}</Badge>,
+                responsable: row.ownerId ? nameOf(row.ownerId) : <span className="text-muted-foreground">{t("personne")}</span>,
+                statut: !row.active ? (
+                  <Badge variant="outline">{t("inactif")}</Badge>
+                ) : dormantIds.has(row.id) ? (
+                  <StatusBadge tone="warning" title={t("plus_rien_depuis_jours", { n: org?.partnerStaleDays ?? 0 })}>{t("endormi")}</StatusBadge>
+                ) : (
+                  <Badge variant="secondary">{t("actif")}</Badge>
+                ),
               },
             };
           })}
@@ -316,6 +371,7 @@ export default async function PartnersPage({
             dernier_apport: "",
             dernier_echange: "",
             metier: "",
+            responsable: "",
             statut: t("actif_actifs", { count: totals.active }),
           }}
         />

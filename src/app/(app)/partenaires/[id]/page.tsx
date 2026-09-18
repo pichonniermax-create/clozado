@@ -19,6 +19,14 @@ import { ShareStatusBadge } from "@/components/deal-shares/share-status-badge";
 import { StatTile } from "@/components/stat-tile";
 import { Textarea } from "@/components/ui/textarea";
 import { getPartner, listPartnerBrought, listPartnerFigures, PARTNER_RATE_MIN } from "@/db/queries/partners";
+import { listPartnerJournal } from "@/db/queries/activities";
+import { listOpenTasksForPartner } from "@/db/queries/tasks";
+import { listOrgUsers } from "@/db/queries/contacts";
+import { Journal } from "@/components/activities/journal";
+import { JOURNAL_ERROR_PARAM } from "@/components/activities/labels";
+import { TaskSection } from "@/components/tasks/task-section";
+import { NativeSelect } from "@/components/ui/native-select";
+import { readFlash } from "@/lib/flash";
 import { getPreferences } from "@/db/queries/preferences";
 import { listDealSharesForPartner } from "@/db/queries/deal-shares";
 import { updatePartnerAction } from "@/lib/deals/actions";
@@ -69,11 +77,17 @@ export default async function PartnerPage({
   // choisit PAS ici — une fiche n'est pas un écran de liste, son adresse ne se mémorise pas (screens.ts) ; la
   // page dit donc sur quelle fenêtre elle compte, et renvoie à la liste pour en changer.
   const parsed = parseMetricFilters(withRememberedPeriod({ periode: raw.periode, du: raw.du, au: raw.au }, await getPreferences(user)), fmt.timeZone);
-  const [figures, brought, history] = await Promise.all([
+  const ta = await getTranslations("activities.queries");
+  const [figures, brought, history, journal, partnerTasks, orgUsers] = await Promise.all([
     listPartnerFigures(user, { from: parsed.filters.from, to: parsed.filters.to }),
     listPartnerBrought(user, id),
     listDealSharesForPartner(user, id),
+    // Le journal du confrère et ce qu'on doit faire de lui (lot 3, migration 0023).
+    listPartnerJournal(user, id, ta),
+    listOpenTasksForPartner(user, id),
+    listOrgUsers(user),
   ]);
+  const owner = orgUsers.find((u) => u.id === partner.ownerId) ?? null;
   const f = figures.get(id) ?? {
     partnerId: id,
     broughtInPeriod: 0,
@@ -106,6 +120,8 @@ export default async function PartnerPage({
       email: String(formData.get("email") ?? "").trim() || null,
       phone: String(formData.get("phone") ?? "").trim() || null,
       notes: String(formData.get("notes") ?? "").trim() || null,
+      // « Personne » est une valeur : le champ vide efface le responsable, il ne le laisse pas en place.
+      ownerId: String(formData.get("ownerId") ?? "").trim() || null,
       active: formData.get("active") === "on",
     });
     redirect(`/partenaires/${id}`);
@@ -197,6 +213,7 @@ export default async function PartnerPage({
                 ) : null
               }
             />
+            <Fact label={t("responsable")} value={owner ? (owner.name || owner.email) : <span className="text-muted-foreground">{t("personne")}</span>} />
             <Fact label={t("statut")} value={partner.active ? <Badge variant="secondary">{t("actif")}</Badge> : <Badge variant="outline">{t("inactif")}</Badge>} />
             <Fact label={t("notes")} value={partner.notes ? <span className="whitespace-pre-wrap">{partner.notes}</span> : null} className="sm:col-span-2" />
           </dl>
@@ -220,6 +237,18 @@ export default async function PartnerPage({
                 </Field>
                 <Field label={t("email")} htmlFor="email" className="sm:col-span-2">
                   <Input id="email" name="email" type="email" defaultValue={partner.email ?? ""} />
+                </Field>
+                {/* Le conseiller qui tient la RELATION — pas le propriétaire d'une fiche : la personne à qui
+                    l'on demande « où en es-tu avec lui », et qui hérite de la tâche quand il s'endort. */}
+                <Field label={t("responsable")} htmlFor="ownerId" hint={t("le_conseiller_qui_tient_la_relation")}>
+                  <NativeSelect id="ownerId" name="ownerId" defaultValue={partner.ownerId ?? ""}>
+                    <option value="">{t("personne")}</option>
+                    {orgUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name || u.email}
+                      </option>
+                    ))}
+                  </NativeSelect>
                 </Field>
                 <Field label={t("notes")} htmlFor="notes" className="sm:col-span-2">
                   <Textarea id="notes" name="notes" defaultValue={partner.notes ?? ""} className="min-h-16" />
@@ -338,6 +367,27 @@ export default async function PartnerPage({
           </ListCard>
         )}
       </section>
+
+      {/* Ce qu'il y a à faire avec lui. Toutes générées : la base n'accepte un confrère comme sujet de tâche
+          que pour une règle (ici « sans apport depuis N jours »). */}
+      <TaskSection
+        tasks={partnerTasks}
+        backTo={`/partenaires/${id}`}
+        partnerId={id}
+        showAdd={false}
+        emptyText={t("aucune_tache_pour_ce_confrere")}
+      />
+
+      {/* Le journal du confrère (lot 3) : les échanges saisis à la main, et ce qu'il a fait des affaires
+          partagées — la même chronologie que sur une fiche contact. C'est lui qui date « dernier échange ». */}
+      <Journal
+        journal={journal}
+        backTo={`/partenaires/${id}`}
+        partnerId={id}
+        context="partner"
+        erreur={readFlash(raw[JOURNAL_ERROR_PARAM])}
+        description={t("appels_dejeuners_notes_et_ce_qu_il_a_fait_des_partages")}
+      />
 
       {/* Une seule définition par indicateur, celle qui gouverne le calcul — jamais une paraphrase. */}
       <MetricDefinitions metrics={metricsOfFamily("referrals")} />

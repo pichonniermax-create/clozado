@@ -1,6 +1,7 @@
 import { and, asc, count, desc, eq, gte, inArray, isNotNull, isNull, lt, type SQL } from "drizzle-orm";
 import { db } from "@/db";
-import { contacts, deals, tasks, users, type NewTask, type Task } from "@/db/schema";
+import { contacts, deals, partners, tasks, users, type NewTask, type Task } from "@/db/schema";
+import { listDormantPartners } from "./partners";
 import { assertOrgAccess, assertUserInOrg, orgScope } from "@/db/scope";
 import { createFormats } from "@/lib/format";
 import { settingsOfOrganization, timeZoneOfOrganization } from "@/i18n/locale-lookup";
@@ -116,6 +117,8 @@ export type TaskRow = {
   contactName: string | null;
   dealId: string | null;
   dealTitle: string | null;
+  partnerId: string | null;
+  partnerName: string | null;
 };
 
 export type TasksBoard = {
@@ -162,6 +165,10 @@ function taskSelection() {
     contactName: contacts.name,
     dealId: tasks.dealId,
     dealTitle: deals.title,
+    // La troisième source d'une tâche générée (lot 3) : le confrère endormi. Une tâche manuelle n'en a jamais
+    // (la base l'interdit : une source exige une règle), donc la colonne ne parle que des tâches automatiques.
+    partnerId: tasks.sourcePartnerId,
+    partnerName: partners.name,
   };
 }
 
@@ -192,7 +199,8 @@ export async function listTasksBoard(
       .from(tasks)
       .leftJoin(users, eq(tasks.assigneeId, users.id))
       .leftJoin(contacts, eq(tasks.contactId, contacts.id))
-      .leftJoin(deals, eq(tasks.dealId, deals.id));
+      .leftJoin(deals, eq(tasks.dealId, deals.id))
+      .leftJoin(partners, eq(tasks.sourcePartnerId, partners.id));
   const countOpen = (extra: SQL) =>
     db
       .select({ n: count() })
@@ -289,6 +297,7 @@ export async function getTasksDueSummary(user: OrgScopeUser, limit: number): Pro
       .leftJoin(users, eq(tasks.assigneeId, users.id))
       .leftJoin(contacts, eq(tasks.contactId, contacts.id))
       .leftJoin(deals, eq(tasks.dealId, deals.id))
+      .leftJoin(partners, eq(tasks.sourcePartnerId, partners.id))
       .where(and(openDated, lt(tasks.dueAt, tomorrow)))
       .orderBy(asc(tasks.dueAt), desc(tasks.priority), asc(tasks.createdAt))
       .limit(limit),
@@ -305,6 +314,7 @@ export async function getTaskRow(user: OrgScopeUser, taskId: string): Promise<Ta
     .leftJoin(users, eq(tasks.assigneeId, users.id))
     .leftJoin(contacts, eq(tasks.contactId, contacts.id))
     .leftJoin(deals, eq(tasks.dealId, deals.id))
+    .leftJoin(partners, eq(tasks.sourcePartnerId, partners.id))
     .where(and(orgScope(user, tasks.organizationId), eq(tasks.id, taskId)))
     .limit(1);
   return rows[0] ? toTaskRow(rows[0]) : null;
@@ -318,6 +328,7 @@ async function listOpenTasksFor(user: OrgScopeUser, subject: SQL) {
     .leftJoin(users, eq(tasks.assigneeId, users.id))
     .leftJoin(contacts, eq(tasks.contactId, contacts.id))
     .leftJoin(deals, eq(tasks.dealId, deals.id))
+    .leftJoin(partners, eq(tasks.sourcePartnerId, partners.id))
     .where(and(orgScope(user, tasks.organizationId), subject, eq(tasks.status, "open")))
     .orderBy(asc(tasks.dueAt), desc(tasks.priority));
   return rows.map(toTaskRow);
@@ -329,6 +340,18 @@ export async function listOpenTasksForDeal(user: OrgScopeUser, dealId: string) {
 
 export async function listOpenTasksForContact(user: OrgScopeUser, contactId: string) {
   return listOpenTasksFor(user, eq(tasks.contactId, contactId));
+}
+
+/**
+ * Les tâches ouvertes qui parlent d'un CONFRÈRE (lot 3). Elles sont toutes
+ * automatiques : la base interdit une source sans règle, donc une tâche
+ * manuelle ne peut pas désigner un confrère. C'est assumé — ce qu'on se
+ * promet de faire avec un confrère se consigne dans son journal, et la
+ * seule tâche qui le vise vraiment est celle que la veille « sans apport
+ * depuis N jours » crée.
+ */
+export async function listOpenTasksForPartner(user: OrgScopeUser, partnerId: string) {
+  return listOpenTasksFor(user, eq(tasks.sourcePartnerId, partnerId));
 }
 
 // ---------------------------------------------------------------------------
@@ -545,14 +568,15 @@ export async function generateAutoTasks(user: OrgScopeUser, knownBoard?: FollowU
       [...board.pendingAlerts, ...board.acceptedStale, ...unpaidOverdue].map((x) => x.dealId)
     ),
   ];
-  if (dealIds.length === 0) return;
 
   // Le responsable de l'affaire hérite de la tâche ; sans responsable, la
   // tâche reste non attribuée (visible de toute l'organisation).
-  const dealRows = await db
-    .select({ id: deals.id, ownerId: deals.ownerId, contactId: deals.contactId })
-    .from(deals)
-    .where(inArray(deals.id, dealIds));
+  const dealRows = dealIds.length === 0
+    ? []
+    : await db
+        .select({ id: deals.id, ownerId: deals.ownerId, contactId: deals.contactId })
+        .from(deals)
+        .where(inArray(deals.id, dealIds));
   const dealById = new Map(dealRows.map((d) => [d.id, d]));
 
   const values: NewTask[] = [];
@@ -597,6 +621,21 @@ export async function generateAutoTasks(user: OrgScopeUser, knownBoard?: FollowU
     });
   }
 
+  // La quatrième règle (lot 3) : un CONFRÈRE ACTIF dont on n'a plus rien vu.
+  for (const partner of await listDormantPartners(org.id, org.partnerStaleDays, now)) {
+    values.push({
+      organizationId: org.id,
+      dueAt: today,
+      // Le conseiller qui tient la relation hérite de la tâche — c'est à cela que sert `partners.owner_id`.
+      assigneeId: partner.ownerId,
+      title: t("reprendre_contact_avec", { partnerName: partner.name }),
+      notes: t("generee_automatiquement_aucun_apport_ni_echange_depuis", { formatDays: fmt.days(partner.days), formatDays2: fmt.days(org.partnerStaleDays) }),
+      autoRule: "partner_stale",
+      sourcePartnerId: partner.id,
+    });
+  }
+
+  if (values.length === 0) return;
   // Une seule insertion, en ignorant les conflits ligne à ligne : les
   // situations déjà matérialisées (index uniques partiels) passent leur tour.
   await db.insert(tasks).values(values).onConflictDoNothing();

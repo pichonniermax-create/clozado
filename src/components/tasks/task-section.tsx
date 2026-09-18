@@ -26,6 +26,8 @@ export function TaskSection({
   backTo,
   contactId,
   dealId,
+  partnerId,
+  showAdd = true,
   emptyText,
 }: {
   tasks: TaskRow[];
@@ -33,6 +35,16 @@ export function TaskSection({
   backTo: string;
   contactId?: string;
   dealId?: string;
+  /** Fiche d'un confrère (lot 3) : le lien vers lui est masqué, se lier soi-même n'apprend rien. */
+  partnerId?: string;
+  /**
+   * L'ajout rapide. Absent sur la fiche d'un confrère : la base n'accepte un
+   * confrère comme sujet de tâche QUE pour une tâche générée (une source
+   * exige une règle) — offrir un champ qui ne pourrait rien rattacher
+   * mentirait. Ce qu'on se promet avec un confrère se consigne dans son
+   * journal ; la tâche qui le vise vraiment est celle de la veille.
+   */
+  showAdd?: boolean;
   emptyText: string;
 }) {
   const t = useTranslations("tasks.taskSection");
@@ -59,7 +71,7 @@ export function TaskSection({
               <CompleteTaskButton taskId={task.id} backTo={backTo} title={task.title} />
               <div className="flex min-w-0 flex-1 flex-col">
                 <span className="text-sm font-medium break-words">{task.title}</span>
-                <TaskMetaLine task={task} hideContactId={contactId} hideDealId={dealId} />
+                <TaskMetaLine task={task} hideContactId={contactId} hideDealId={dealId} hidePartnerId={partnerId} />
               </div>
               {task.autoRule && (
                 <Badge variant="secondary" className="shrink-0">
@@ -72,6 +84,7 @@ export function TaskSection({
       )}
 
       {/* Une colonne sous sm (les trois contrôles se repliaient en escalier à 390 px), une ligne dès sm. */}
+      {showAdd && (
       <form
         action={createTaskFromFicheAction.bind(null, { backTo, contactId, dealId })}
         className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center"
@@ -88,6 +101,7 @@ export function TaskSection({
           {t("ajouter")}
         </Button>
       </form>
+      )}
     </section>
   );
 }
@@ -102,10 +116,12 @@ export function TaskMetaLine({
   task,
   hideContactId,
   hideDealId,
+  hidePartnerId,
 }: {
   task: TaskRow;
   hideContactId?: string;
   hideDealId?: string;
+  hidePartnerId?: string;
 }) {
   const t = useTranslations("tasks.taskSection");
   const tt = useTranslations("tasks");
@@ -113,6 +129,8 @@ export function TaskMetaLine({
   const overdue = task.status === "open" && task.dueAt !== null && task.dueAt < todayAsStoredDate(fmt.timeZone);
   const showDeal = task.dealId && task.dealTitle && task.dealId !== hideDealId;
   const showContact = task.contactId && task.contactName && task.contactId !== hideContactId;
+  // Le confrère d'une tâche générée (lot 3) : dit et cliquable, comme le contact et l'affaire.
+  const showPartner = task.partnerId && task.partnerName && task.partnerId !== hidePartnerId;
 
   // Les séparateurs « · » sont posés en CSS APRÈS chaque segment sauf le dernier (audit UI du 2026-09-14) : portés par le
   // segment suivant, ils ouvraient chaque retour à la ligne par un point médian orphelin sur mobile.
@@ -142,6 +160,12 @@ export function TaskMetaLine({
       {showContact && (
         <span>
           {t.rich("contact", { contactName: (task.contactName) ?? "", link: (chunks) => <Link href={`/contacts/${task.contactId}`}
+            className="font-medium text-foreground underline underline-offset-2">{chunks}</Link> })}
+        </span>
+      )}
+      {showPartner && (
+        <span>
+          {t.rich("confrere", { partnerName: (task.partnerName) ?? "", link: (chunks) => <Link href={`/partenaires/${task.partnerId}`}
             className="font-medium text-foreground underline underline-offset-2">{chunks}</Link> })}
         </span>
       )}

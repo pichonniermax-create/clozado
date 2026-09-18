@@ -55,6 +55,7 @@ export function Journal({
   backTo,
   contactId,
   dealId,
+  partnerId,
   context,
   erreur,
   title,
@@ -66,8 +67,10 @@ export function Journal({
   backTo: string;
   contactId?: string;
   dealId?: string;
+  /** La fiche d'un confrère (lot 3) : ce qui se consigne ici parle de LUI. */
+  partnerId?: string;
   /** Où l'on est : les liens vers la fiche affichée sont masqués ; `org` = tableau de bord, tout est lié, rien ne se saisit. */
-  context: "contact" | "deal" | "org";
+  context: "contact" | "deal" | "org" | "partner";
   /** Message d'erreur remonté par une action du journal (paramètre d'URL dédié). */
   erreur?: string;
   title?: string;
@@ -100,7 +103,7 @@ export function Journal({
 
       {quickEntry && (
         <form
-          action={logActivityAction.bind(null, { backTo, contactId, dealId })}
+          action={logActivityAction.bind(null, { backTo, contactId, dealId, partnerId })}
           className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3"
         >
           <div className="flex flex-wrap items-center gap-2">
@@ -108,7 +111,12 @@ export function Journal({
               types={ACTIVITY_TYPES.map((value) => ({ value, label: ta(`types.${value}`) }))}
               defaultType="call"
               typeLabel={t("type_d_interaction")}
-              direction={{ legend: t("sens_de_l_email"), inbound: t("recu_du_contact"), outbound: t("envoye_au_contact") }}
+              // Sur la fiche d'un confrère, un email vient de LUI ou part vers LUI : le mot « contact » n'y a pas cours.
+              direction={
+                context === "partner"
+                  ? { legend: t("sens_de_l_email"), inbound: t("recu_du_confrere"), outbound: t("envoye_au_confrere") }
+                  : { legend: t("sens_de_l_email"), inbound: t("recu_du_contact"), outbound: t("envoye_au_contact") }
+              }
             />
             <Input
               name="content"
@@ -182,7 +190,7 @@ function JournalRow({
 }: {
   entry: JournalEntry;
   last: boolean;
-  context: "contact" | "deal" | "org";
+  context: "contact" | "deal" | "org" | "partner";
   backTo: string;
 }) {
   const t = useTranslations("activities.journal");

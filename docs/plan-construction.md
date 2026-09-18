@@ -618,6 +618,70 @@ démo affichait « 0 % » et « — » : vrai, mais ne montrant rien.
 L'écriture n'a touché que l'organisation marquée `is_demo`, sur ses seules
 fiches, et seulement celles sans apporteur.
 
+### 3.0.5 Le conseiller, le journal, les tâches, la veille — FAIT (2026-09-18)
+
+Le reste du lot 3, celui qui attendait la 0023. Quatre choses, et une
+décision explicite pour chacune.
+
+**Le conseiller qui tient la relation** (`partners.owner_id`). Pas le
+propriétaire d'une fiche : la personne à qui l'on demande « où en es-tu avec
+lui ». Il se lit sur la fiche, se change dans son formulaire, devient une
+colonne du tableau et un filtre « Les miens » (`conseiller=moi`, résolu pour
+qui regarde — une vue partagée dit « les tiens » à chacun). Il est proposé à
+qui crée un confrère, et c'est lui qui hérite de la tâche quand le confrère
+s'endort. Un responsable d'un AUTRE espace est refusé (`assertUserInOrg`).
+
+**Le journal d'un confrère** (`activities.partner_id`). Sa fiche n'avait
+aucune histoire : on partageait avec lui, on ne savait pas quand on lui avait
+parlé. La même file que sur une fiche contact, avec sa saisie rapide (appel,
+email, rendez-vous, note) ; le journal fusionne les échanges saisis et ce
+qu'il a fait des affaires partagées (envoyé, vu, accepté, refusé). Sur sa
+fiche, un email consigné dit « reçu DU CONFRÈRE » ou « envoyé AU CONFRÈRE » —
+le mot « contact » n'y a pas cours. Et « dernier échange », qui ne comptait
+que les partages, compte désormais les trois sources.
+
+**Ses tâches** (`tasks.source_partner_id`). Sa fiche les montre, **sans
+champ d'ajout** : la base n'accepte un confrère comme sujet de tâche QUE pour
+une tâche générée (une source exige une règle). Offrir un champ qui ne
+rattacherait rien aurait menti. Ce qu'on se promet avec un confrère se
+consigne dans son journal ; la tâche qui le vise vraiment est celle de la
+veille. Sur l'écran des tâches, une telle tâche porte le nom du confrère,
+cliquable, comme elle porte déjà son contact et son affaire.
+
+**La veille « sans apport depuis N jours »** (`partner_stale`,
+`organizations.partner_stale_days`, 60 par défaut). La quatrième règle de
+`generateAutoTasks`, matérialisée à la lecture comme les trois autres. Deux
+points tranchés :
+
+- **Ce que « rien » veut dire.** Le dernier apport, le dernier partage
+  envoyé, le dernier échange consigné, la dernière tâche « reprendre
+  contact » ACHEVÉE, et à défaut la date de la fiche. Les deux dernières
+  comptent pour que la règle ne harcèle pas : achever la tâche ou consigner
+  un appel repousse l'horizon de N jours, au lieu de faire renaître la même
+  tâche à la page suivante. Un confrère créé hier n'est pas endormi.
+- **Une seule définition, deux lectures.** `listDormantPartners` vit dans le
+  module partenaires : la veille en fait des tâches, la liste en fait un
+  filtre « Endormis (n) » et un badge dans la colonne Statut. Si les deux
+  l'avaient recopiée, elles auraient fini par ne plus dire la même chose.
+
+**Le seuil n'est pas exposé dans les réglages**, et c'est cohérent : aucun
+des seuils du produit ne l'est (relance de partage, affaire sans suite,
+commission non réglée). Les rendre tous réglables est un chantier à part.
+
+**Preuve** : `scripts/_tmp-lot3-relation.ts`, **30 contrôles au vert** au
+navigateur sur la base locale — du changement de responsable jusqu'à la
+tâche qui ne renaît pas après avoir été achevée, en passant par le filtre
+« Endormis », l'échange consigné qui date « dernier échange », et trois
+refus d'isolation (la base refuse un échange ou une tâche visant le confrère
+d'un autre espace ; le produit refuse un responsable d'un autre espace).
+Quatre contrôles de plus dans `scripts/test-isolation.ts`, qui restent.
+
+**Le défaut trouvé au navigateur, invisible autrement** : l'écran des tâches
+ne s'affichait plus du tout (« Les tâches n'ont pas pu être chargées »). La
+jointure vers `partners` avait été posée TROIS fois dans la même requête —
+« Alias "partners" is already used in this query ». Ni le typage, ni le
+lint, ni les 265 tests ne pouvaient le voir : il fallait ouvrir l'écran.
+
 ### 3.1 Faits
 
 - `partners` : nom, société, métier (texte libre), email, téléphone,
@@ -677,6 +741,11 @@ rétroactivement : les chiffres d'une période ne changent pas quand on
 corrige le passé (même règle que les leads).
 
 ### 3.4 Étapes et preuves
+
+> **État au 2026-09-18** : les quatre étapes sont FAITES — la liste (§3.0.2),
+> la fiche en lecture (§3.0.3), les définitions (§3.0.3) et, avec la 0023,
+> le conseiller, le journal, les tâches et la veille (§3.0.5). Reste hors
+> périmètre, faute de colonne : une tâche MANUELLE rattachée à un confrère.
 
 1. Liste : le tableau partagé (lot 1) avec ces colonnes, tri, filtres,
    vues, choix de colonnes ; vue par métier et par conseiller ; totaux en

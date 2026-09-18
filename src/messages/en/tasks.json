@@ -2,6 +2,7 @@
   "autoRules": {
     "commission_unpaid": "Unsettled commission",
     "deal_accepted_stale": "Stalled deal",
+    "partner_stale": "Dormant peer",
     "share_pending": "Unanswered share"
   },
   "page": {
@@ -63,10 +64,12 @@
   },
   "queries": {
     "faire_le_point_avec_sans_nouvelle": "Check in with {partnerName} — no news on “{dealTitle}”",
+    "generee_automatiquement_aucun_apport_ni_echange_depuis": "Generated automatically: no referral, no share and no logged exchange for {formatDays} (threshold: {formatDays2}). Completing it means “I called them”: the rule goes quiet for at least {formatDays2}, and comes back if they go dormant again.",
     "generee_automatiquement_commission_confirmee_le_non_2d64": "Generated automatically: commission of {formatCommission} confirmed on {formatDate}, still unsettled after {formatDays}. Settlement is recorded on the deal record; completing this task counts as “handled”.",
     "generee_automatiquement_partage_accepte_sans_activite_3240": "Generated automatically: share accepted, no activity for {formatDays} (threshold: {formatDays2}). Completing it counts as “handled”: it won’t come back for this share.",
     "generee_automatiquement_partage_envoye_le_sans_172c": "Generated automatically: share sent on {formatDate}, no reply for {formatDays} (threshold: {formatDays2}). Completing it counts as “handled”: it won’t come back for this share.",
     "relancer_partage_sans_reponse_sur": "Follow up with {partnerName} — unanswered share on “{dealTitle}”",
+    "reprendre_contact_avec": "Get back in touch with {partnerName} — nothing for a while",
     "solder_la_commission_de": "Settle {partnerName}’s commission — “{dealTitle}”"
   },
   "recurrence": {
@@ -79,6 +82,7 @@
   "taskSection": {
     "affaire": "deal <link>{dealTitle}</link>",
     "ajouter": "Add",
+    "confrere": "Peer: <link>{partnerName}</link>",
     "contact": "contact <link>{contactName}</link>",
     "echeance": "Due date",
     "echeance_le": "Due on",

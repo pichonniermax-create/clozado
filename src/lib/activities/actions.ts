@@ -25,6 +25,8 @@ type FicheContext = {
   backTo: string;
   contactId?: string;
   dealId?: string;
+  /** La fiche d'un confrère (lot 3) : l'échange se rattache à lui, sans contact ni affaire. */
+  partnerId?: string;
 };
 
 export async function logActivityAction(context: FicheContext, formData: FormData) {
@@ -44,6 +46,7 @@ export async function logActivityAction(context: FicheContext, formData: FormDat
       occurredAt: parseLocalDateTime(String(formData.get("occurredAt") ?? ""), (await resolveRequestSettings()).timeZone),
       contactId: context.contactId ?? null,
       dealId: context.dealId ?? null,
+      partnerId: context.partnerId ?? null,
       direction: direction === "inbound" || direction === "outbound" ? direction : null,
     });
   } catch (error) {

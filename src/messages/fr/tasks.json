@@ -2,6 +2,7 @@
   "autoRules": {
     "commission_unpaid": "Commission non réglée",
     "deal_accepted_stale": "Affaire sans suite",
+    "partner_stale": "Confrère endormi",
     "share_pending": "Partage sans réponse"
   },
   "page": {
@@ -63,10 +64,12 @@
   },
   "queries": {
     "faire_le_point_avec_sans_nouvelle": "Faire le point avec {partnerName} — « {dealTitle} » sans nouvelle",
+    "generee_automatiquement_aucun_apport_ni_echange_depuis": "Générée automatiquement : ni apport, ni partage, ni échange consigné depuis {formatDays} (seuil : {formatDays2}). L’achever vaut « je l’ai rappelé » : la règle se taira au moins {formatDays2}, et reviendra s’il se rendort.",
     "generee_automatiquement_commission_confirmee_le_non_2d64": "Générée automatiquement : commission {formatCommission} confirmée le {formatDate}, non réglée après {formatDays}. Le règlement se déclare sur la fiche de l’affaire ; achever cette tâche vaut « traité ».",
     "generee_automatiquement_partage_accepte_sans_activite_3240": "Générée automatiquement : partage accepté, sans activité depuis {formatDays} (seuil : {formatDays2}). L’achever vaut « traité » : elle ne reviendra pas pour ce partage.",
     "generee_automatiquement_partage_envoye_le_sans_172c": "Générée automatiquement : partage envoyé le {formatDate}, sans réponse depuis {formatDays} (seuil : {formatDays2}). L’achever vaut « traité » : elle ne reviendra pas pour ce partage.",
     "relancer_partage_sans_reponse_sur": "Relancer {partnerName} — partage sans réponse sur « {dealTitle} »",
+    "reprendre_contact_avec": "Reprendre contact avec {partnerName} — plus rien depuis un moment",
     "solder_la_commission_de": "Solder la commission de {partnerName} — « {dealTitle} »"
   },
   "recurrence": {
@@ -79,6 +82,7 @@
   "taskSection": {
     "affaire": "affaire <link>{dealTitle}</link>",
     "ajouter": "Ajouter",
+    "confrere": "Confrère : <link>{partnerName}</link>",
     "contact": "contact <link>{contactName}</link>",
     "echeance": "Échéance",
     "echeance_le": "Échéance le",

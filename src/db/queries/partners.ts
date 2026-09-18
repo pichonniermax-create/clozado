@@ -1,11 +1,12 @@
 import { and, asc, desc, eq, gte, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { contacts, dealEvents, deals, dealShares, dealStatuses, partners } from "@/db/schema";
-import { assertOrgAccess, orgScope } from "@/db/scope";
+import { activities, contacts, dealEvents, deals, dealShares, dealStatuses, partners } from "@/db/schema";
+import { assertOrgAccess, assertUserInOrg, orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
 import { MIN_OBSERVATIONS } from "@/lib/metrics/definitions";
+import { daysBetween } from "./deal-follow-up";
 import { readInput } from "@/lib/validation";
 
 /** Partenaires de l'organisation de l'appelant. */
@@ -29,6 +30,8 @@ export type CreatePartnerInput = {
   email?: string | null;
   phone?: string | null;
   notes?: string | null;
+  /** Le conseiller qui tient la RELATION (lot 3) — celui à qui l'on demande « où en es-tu avec lui ». */
+  ownerId?: string | null;
 };
 
 export type UpdatePartnerInput = Partial<CreatePartnerInput> & { active?: boolean };
@@ -52,6 +55,9 @@ const PARTNER_FIELDS = {
   email: optionalText(254),
   phone: optionalText(40),
   notes: optionalText(5000),
+  // Un identifiant, et de l'organisation : `assertUserInOrg` le vérifie avant l'écriture — sans quoi le nom
+  // et l'adresse d'une personne d'un autre espace s'afficheraient ici.
+  ownerId: z.string().uuid().nullable().optional(),
 };
 
 export const CREATE_PARTNER_SCHEMA = z.strictObject(PARTNER_FIELDS);
@@ -62,6 +68,7 @@ export async function createPartner(user: OrgScopeUser, input: CreatePartnerInpu
     throw new AppError("aucune_organisation_selectionnee_choisis_une_organisation_dans_ed3b");
   }
   const data = readInput(CREATE_PARTNER_SCHEMA, input);
+  if (data.ownerId) await assertUserInOrg(data.ownerId, user.organizationId);
   const [partner] = await db
     .insert(partners)
     .values({
@@ -72,6 +79,7 @@ export async function createPartner(user: OrgScopeUser, input: CreatePartnerInpu
       email: data.email ?? null,
       phone: data.phone ?? null,
       notes: data.notes ?? null,
+      ownerId: data.ownerId ?? null,
     })
     .returning();
   return partner;
@@ -82,12 +90,14 @@ export async function updatePartner(user: OrgScopeUser, id: string, input: Updat
   const existing = await db.query.partners.findFirst({ where: eq(partners.id, id) });
   if (!existing) throw new AppError("partenaire_introuvable", undefined, 404);
   assertOrgAccess(user, existing.organizationId);
+  if (data.ownerId) await assertUserInOrg(data.ownerId, existing.organizationId);
 
   // Seuls les champs PRÉSENTS changent : `undefined` = « ne touche pas », null = « efface ».
   const [updated] = await db
     .update(partners)
     .set({
       ...(data.name !== undefined ? { name: data.name } : {}),
+      ...(data.ownerId !== undefined ? { ownerId: data.ownerId } : {}),
       ...(data.company !== undefined ? { company: data.company } : {}),
       ...(data.profession !== undefined ? { profession: data.profession } : {}),
       ...(data.email !== undefined ? { email: data.email } : {}),
@@ -190,7 +200,8 @@ export async function listPartnerFigures(
       .from(contacts)
       .where(and(eq(contacts.organizationId, organizationId), isNull(contacts.deletedAt), isNotNull(contacts.partnerId)))
       .groupBy(contacts.partnerId),
-    // Le dernier échange : un partage envoyé, ou un geste du confrère sur un partage.
+    // Le dernier échange : un partage envoyé, un geste du confrère sur un partage, ou — depuis la 0023 — un
+    // échange SAISI À LA MAIN sur sa fiche (appel, déjeuner, note). Les trois sources, une seule date.
     db
       .select({
         partnerId: sql<string>`p`,
@@ -203,6 +214,9 @@ export async function listPartnerFigures(
           union all
           select ${dealEvents.actorPartnerId} as p, ${dealEvents.createdAt} as at
           from ${dealEvents} where ${dealEvents.organizationId} = ${organizationId} and ${dealEvents.actorPartnerId} is not null
+          union all
+          select ${activities.partnerId} as p, ${activities.occurredAt} as at
+          from ${activities} where ${activities.organizationId} = ${organizationId} and ${activities.partnerId} is not null
         ) as echanges`
       )
       .groupBy(sql`p`),
@@ -343,4 +357,35 @@ export async function listPartnerBrought(user: OrgScopeUser, partnerId: string, 
     ),
     dealsTotal: dealCount[0]?.n ?? 0,
   };
+}
+
+/**
+ * LES CONFRÈRES ENDORMIS — actifs, mais dont rien n'a bougé depuis N jours.
+ *
+ * UNE seule définition, deux lectures : la veille en fait des tâches
+ * (`generateAutoTasks`), la liste des partenaires en fait un filtre. Si les
+ * deux la recopiaient, elles finiraient par ne plus dire la même chose.
+ * « Rien » se lit large, et c'est voulu : le dernier apport, le dernier
+ * partage envoyé, le dernier échange saisi sur sa fiche, la dernière tâche
+ * « reprendre contact » ACHEVÉE, et à défaut la date de sa fiche. Les deux
+ * dernières comptent pour que la règle ne harcèle pas : achever la tâche ou
+ * consigner un appel repousse l'horizon de N jours, au lieu de faire
+ * renaître la même tâche à la page suivante. Un confrère créé hier n'est
+ * pas endormi — il n'a simplement pas encore eu le temps.
+ */
+export async function listDormantPartners(organizationId: string, thresholdDays: number, now: Date) {
+  const rows = await db.execute(sql`
+    SELECT p.id, p.name, p.owner_id, GREATEST(
+      p.created_at,
+      COALESCE((SELECT max(c.partner_attributed_at) FROM contacts c WHERE c.partner_id = p.id AND c.deleted_at IS NULL), to_timestamp(0)),
+      COALESCE((SELECT max(s.sent_at) FROM deal_shares s WHERE s.partner_id = p.id), to_timestamp(0)),
+      COALESCE((SELECT max(a.occurred_at) FROM activities a WHERE a.partner_id = p.id), to_timestamp(0)),
+      COALESCE((SELECT max(t.completed_at) FROM tasks t WHERE t.source_partner_id = p.id AND t.status = 'done'), to_timestamp(0))
+    ) AS derniere_trace
+    FROM partners p
+    WHERE p.organization_id = ${organizationId} AND p.active = true
+  `);
+  return (rows.rows as { id: string; name: string; owner_id: string | null; derniere_trace: string | Date }[])
+    .map((r) => ({ id: r.id, name: r.name, ownerId: r.owner_id, days: daysBetween(new Date(r.derniere_trace), now) }))
+    .filter((r) => r.days >= thresholdDays);
 }

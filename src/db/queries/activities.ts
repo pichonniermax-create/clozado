@@ -143,6 +143,13 @@ type JournalScope = {
   contactId?: string;
   /** Les affaires dont les événements entrent dans le journal. `undefined` = toute l'organisation. */
   dealIds?: string[];
+  /**
+   * Fiche CONFRÈRE (lot 3) : ses échanges saisis à la main, ce qu'il a fait
+   * sur les partages reçus, et les tâches achevées qui le concernaient. Un
+   * confrère n'a ni affaire ni lead à lui : les sources qui parlent d'une
+   * affaire ne sont pas interrogées pour lui, sauf par le partage.
+   */
+  partnerId?: string;
 };
 
 /** Rapporte une condition « sujet » ; `null` = la source n'a rien à donner (aucune affaire), on ne l'interroge pas. */
@@ -162,19 +169,24 @@ async function collectJournal(scope: JournalScope, limit: number, t: TranslatorO
   const actorPartner = alias(partners, "actor_partner");
   const sharePartner = alias(partners, "share_partner");
 
-  const activitySubject = subjectOf(scope, activities.contactId, activities.dealId);
-  const taskSubject = subjectOf(scope, tasks.contactId, tasks.dealId);
+  const partnerId = scope.partnerId;
+  const activitySubject = partnerId ? eq(activities.partnerId, partnerId) : subjectOf(scope, activities.contactId, activities.dealId);
+  const taskSubject = partnerId ? eq(tasks.sourcePartnerId, partnerId) : subjectOf(scope, tasks.contactId, tasks.dealId);
   // Les leads parlent d'une personne : sur une fiche contact et sur le fil de
   // l'organisation, jamais sur une affaire (elle montre son champ Origine).
-  const leadSubject: SQL | undefined | null =
-    scope.dealIds === undefined && !scope.contactId
+  const leadSubject: SQL | undefined | null = partnerId
+    ? null
+    : scope.dealIds === undefined && !scope.contactId
       ? undefined
       : scope.contactId
         ? eq(leads.contactId, scope.contactId)
         : null;
-  const stageSubject = subjectOf(scope, null, dealStageChanges.dealId);
-  const eventSubject = subjectOf(scope, null, dealEvents.dealId);
-  const dealSubject = subjectOf(scope, null, deals.id);
+  const stageSubject = partnerId ? null : subjectOf(scope, null, dealStageChanges.dealId);
+  // Ce qu'un confrère a fait (vu, accepté, refusé, commenté) et ce qu'on lui a envoyé : les deux bouts du partage.
+  const eventSubject = partnerId
+    ? or(eq(dealEvents.actorPartnerId, partnerId), eq(dealShares.partnerId, partnerId))!
+    : subjectOf(scope, null, dealEvents.dealId);
+  const dealSubject = partnerId ? null : subjectOf(scope, null, deals.id);
 
   const [activityRows, stageRows, eventRows, taskRows, dealRows, leadRows] = await Promise.all([
     activitySubject === null
@@ -497,6 +509,19 @@ export async function listContactJournal(user: OrgScopeUser, contactId: string, 
   );
 }
 
+/**
+ * Le journal d'un CONFRÈRE (lot 3) : les échanges saisis à la main sur sa
+ * fiche, ce qu'il a fait des affaires qu'on lui a partagées, et les tâches
+ * achevées qui le concernaient. C'est ce journal qui donne, désormais, le
+ * « dernier échange » de ses chiffres.
+ */
+export async function listPartnerJournal(user: OrgScopeUser, partnerId: string, t: TranslatorOf<"activities.queries">, limit = JOURNAL_LIMIT): Promise<Journal> {
+  const partner = await db.query.partners.findFirst({ where: eq(partners.id, partnerId), columns: { organizationId: true } });
+  if (!partner) throw new AppError("partenaire_introuvable", undefined, 404);
+  assertOrgAccess(user, partner.organizationId);
+  return collectJournal({ organizationId: partner.organizationId, partnerId }, limit, t);
+}
+
 /** Le journal d'une affaire : ses interactions, ses passages d'étape, son histoire PRM, ses tâches faites. */
 export async function listDealJournal(user: OrgScopeUser, dealId: string, t: TranslatorOf<"activities.queries">, limit = JOURNAL_LIMIT): Promise<Journal> {
   const deal = await db.query.deals.findFirst({ where: eq(deals.id, dealId) });
@@ -527,6 +552,8 @@ export type ActivityInput = {
   occurredAt?: Date | null;
   contactId?: string | null;
   dealId?: string | null;
+  /** Le CONFRÈRE avec qui l'échange a eu lieu (lot 3) — sa fiche n'avait aucun journal jusque-là. */
+  partnerId?: string | null;
   /**
    * Le SENS d'un email consigné (chantier engagement, §4.3) : `inbound`
    * quand il vient du contact (un email de lui, transféré), `outbound`
@@ -543,12 +570,21 @@ export type ActivityInput = {
  * pierre tombale — elle parle de lui.
  */
 export async function createActivity(user: OrgScopeUser, createdBy: string, input: ActivityInput) {
-  if (!input.contactId && !input.dealId) {
+  if (!input.contactId && !input.dealId && !input.partnerId) {
     throw new AppError("une_interaction_se_rattache_a_un_contact_b8a7");
   }
 
   let organizationId: string | null = null;
   let contactId = input.contactId ?? null;
+
+  // Un échange avec un confrère (lot 3) : la fiche donne l'organisation, et la clé composite en base
+  // interdira de toute façon d'attacher l'échange au confrère d'un autre espace.
+  if (input.partnerId) {
+    const partner = await db.query.partners.findFirst({ where: eq(partners.id, input.partnerId), columns: { organizationId: true } });
+    if (!partner) throw new AppError("partenaire_introuvable", undefined, 404);
+    assertOrgAccess(user, partner.organizationId);
+    organizationId = partner.organizationId;
+  }
 
   if (input.dealId) {
     const deal = await db.query.deals.findFirst({ where: eq(deals.id, input.dealId) });
@@ -591,6 +627,7 @@ export async function createActivity(user: OrgScopeUser, createdBy: string, inpu
       occurredAt,
       contactId,
       dealId: input.dealId ?? null,
+      partnerId: input.partnerId ?? null,
       direction: input.type === "email" ? (input.direction ?? null) : null,
       createdBy,
     })

@@ -55,7 +55,7 @@ export const DISPLAY_SCREENS: readonly DisplayScreen[] = [
     key: "partenaires",
     href: "/partenaires",
     // Depuis le lot 3, la liste porte des chiffres datés (apports, affaires, montants) : elle a donc la période.
-    params: ["v", "q", "metier", "statut", "tri", "dir", "densite", "periode", "du", "au"],
+    params: ["v", "q", "metier", "statut", "conseiller", "tri", "dir", "densite", "periode", "du", "au"],
     period: true,
     view: "partenaires",
   },
