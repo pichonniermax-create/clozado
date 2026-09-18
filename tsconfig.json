@@ -30,5 +30,8 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  // « site » est une AUTRE application Next, avec son propre tsconfig et son propre alias « @/ » (qui pointe
+  // sa racine, pas `src`). Sans cette exclusion, le typecheck du produit lit ses fichiers avec le mauvais alias
+  // et échoue sur des modules introuvables — et `next build` du produit échoue avec lui.
+  "exclude": ["node_modules", "site"]
 }
