@@ -24,6 +24,7 @@ export function NavLink({
   label,
   icon,
   badge,
+  size = "md",
 }: {
   /** Où mène le lien — l'écran TEL QU'ON L'A LAISSÉ : il peut porter des paramètres (lot 1). */
   href: string;
@@ -33,6 +34,8 @@ export function NavLink({
   icon: React.ReactNode;
   /** Compteur d'éléments à traiter — absent (et non « 0 ») quand il n'y a rien. */
   badge?: number;
+  /** `lg` dans le panneau plein écran des petits écrans (lot 4) : une cible de doigt, pas de souris. */
+  size?: "md" | "lg";
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -50,7 +53,8 @@ export function NavLink({
       onFocus={prefetch}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+        "group flex items-center gap-2.5 rounded-lg px-3 font-medium transition-colors",
+        size === "lg" ? "min-h-12 py-3 text-base" : "py-2 text-sm",
         active
           ? "bg-sidebar-accent text-sidebar-accent-foreground"
           : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"

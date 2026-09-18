@@ -18,11 +18,14 @@ export function BrandMark({
   size = "sm",
   href,
   className,
+  iconOnly = false,
 }: {
   /** `lg` sur les écrans publics (accueil, connexion), `sm` dans la coquille. */
   size?: "sm" | "lg";
   href?: string;
   className?: string;
+  /** Le carré seul, sans le mot — le rail de 56 px (lot 4) n'a pas la place d'écrire « Clozado ». */
+  iconOnly?: boolean;
 }) {
   const content = (
     <>
@@ -32,7 +35,7 @@ export function BrandMark({
       >
         {PRODUCT_NAME.charAt(0)}
       </span>
-      <span className={cn("font-semibold tracking-tight", size === "lg" ? "text-lg" : "text-sm")}>
+      <span className={cn("font-semibold tracking-tight", size === "lg" ? "text-lg" : "text-sm", iconOnly && "sr-only")}>
         {PRODUCT_NAME}
       </span>
     </>

@@ -18,6 +18,7 @@ import { SAVED_VIEW_SCREENS, type SavedViewScreen } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { errorMessage, withError } from "@/lib/form-actions";
 import { requireUser } from "@/lib/session";
+import { NAVIGATION } from "@/components/app-shell/navigation";
 import { displayScreen, screenForView } from "./screens";
 import { parseDensity, sanitizeScreenState, VIEW_PARAM, type ScreenState } from "./state";
 
@@ -202,4 +203,36 @@ export async function viewCommandAction(formData: FormData): Promise<void> {
   }
   revalidatePath("/", "layout");
   redirect(destination);
+}
+
+// ---------------------------------------------------------------------------
+// La barre de navigation (lot 4)
+// ---------------------------------------------------------------------------
+
+/**
+ * L'ÉPINGLE de la barre : dépliée en permanence, ou fine avec son panneau
+ * au survol. Mémorisée par personne et par organisation, comme le reste de
+ * l'affichage — un choix de confort, jamais une donnée métier.
+ */
+export async function setNavPinnedAction(pinned: boolean): Promise<void> {
+  const user = await requireUser();
+  await rememberPreference(user, PREF.navPinned, pinned === true);
+}
+
+/**
+ * Un écran ÉPINGLÉ en haut de la barre. La liste n'accepte que des chemins
+ * de la navigation (jamais une adresse inventée), et s'arrête à cinq : au
+ * delà, ce ne sont plus des favoris, c'est une seconde navigation.
+ *
+ * (Le plafond est une constante locale : un fichier « use server » n'exporte
+ * que des fonctions asynchrones — le reste casse la compilation.)
+ */
+export async function toggleNavFavoriteAction(href: string): Promise<void> {
+  const MAX_NAV_FAVORITES = 5;
+  const user = await requireUser();
+  const known = new Set(NAVIGATION.flatMap((section) => section.entries.map((entry) => entry.href)));
+  if (!known.has(href)) throw new AppError("ecran_inconnu");
+  const current = (preferenceList(await getPreferences(user), PREF.navFavorites) ?? []).filter((h) => known.has(h));
+  const next = current.includes(href) ? current.filter((h) => h !== href) : [...current, href].slice(-MAX_NAV_FAVORITES);
+  await rememberPreference(user, PREF.navFavorites, next);
 }

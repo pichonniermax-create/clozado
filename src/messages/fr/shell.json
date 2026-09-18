@@ -77,6 +77,14 @@
   "quickCreateMenu": {
     "nouveau": "Nouveau"
   },
+  "rail": {
+    "epingler_en_haut": "Épingler en haut de la barre",
+    "garder_la_barre_depliee": "Garder la barre dépliée",
+    "navigation_principale": "Navigation principale",
+    "reglages": "Réglages",
+    "replier_la_barre": "Replier la barre",
+    "retirer_des_favoris": "Retirer des épinglés"
+  },
   "root": {
     "description": "Suite d’outils d’assistance marketing multi-clients."
   },

@@ -26,15 +26,18 @@ export function WorkspaceMark({
   href,
   size = "sm",
   className,
+  compact = false,
 }: WorkspaceMarkProps & {
   href?: string;
   size?: "sm" | "lg";
   className?: string;
+  /** Le rail de 56 px (lot 4) : le carré ou le logo dans un carré de 32 px, jamais un mot qui déborde. */
+  compact?: boolean;
 }) {
-  if (!logo) return <BrandMark size={size} href={href} className={className} />;
+  if (!logo) return <BrandMark size={size} href={href} className={className} iconOnly={compact} />;
   const image = (
     // eslint-disable-next-line @next/next/no-img-element -- servie par notre route, déjà redimensionnée
-    <img src={logo} alt={name} className={cn("w-auto max-w-full object-contain", size === "lg" ? "h-10" : "h-8")} />
+    <img src={logo} alt={name} className={cn("object-contain", compact ? "size-8" : cn("w-auto max-w-full", size === "lg" ? "h-10" : "h-8"))} />
   );
   const classes = cn("flex items-center", className);
   return href ? (

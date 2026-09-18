@@ -1,6 +1,9 @@
 import type { Messages } from "@/i18n/messages";
 import {
   BookUser,
+  CalendarCheck,
+  ChartLine,
+  FolderOpen,
   Briefcase,
   Funnel,
   Handshake,
@@ -12,6 +15,7 @@ import {
   Newspaper,
   Radar,
   Route,
+  ShieldCheck,
   Sigma,
   Target,
   Timer,
@@ -19,6 +23,7 @@ import {
   Users,
   UsersRound,
   Workflow,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 
@@ -48,11 +53,17 @@ export type NavEntry = {
   superAdminOnly?: boolean;
 };
 
-export type NavSection = { key: keyof Messages["nav"]["sections"]; entries: NavEntry[] };
+/**
+ * Un GROUPE porte sa propre icône (lot 4) : c'est elle que montre le rail
+ * quand son panneau est fermé. Reprendre celle de son premier écran
+ * ferait deux fois la même dans la barre dès que cet écran est épinglé.
+ */
+export type NavSection = { key: keyof Messages["nav"]["sections"]; icon: LucideIcon; entries: NavEntry[] };
 
 export const NAVIGATION: NavSection[] = [
   {
     key: "aujourd_hui",
+    icon: CalendarCheck,
     entries: [
       { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
       { href: "/taches", key: "taches", icon: ListTodo, badge: "tasksDue", requiresOrganization: true },
@@ -61,6 +72,7 @@ export const NAVIGATION: NavSection[] = [
   },
   {
     key: "dossiers",
+    icon: FolderOpen,
     entries: [
       { href: "/contacts", key: "contacts", icon: BookUser, requiresOrganization: true },
       { href: "/affaires", key: "affaires", icon: Briefcase, requiresOrganization: true },
@@ -69,6 +81,7 @@ export const NAVIGATION: NavSection[] = [
   },
   {
     key: "analytique",
+    icon: ChartLine,
     entries: [
       { href: "/analytique/funnel", key: "analytique_funnel", icon: Funnel, requiresOrganization: true },
       { href: "/analytique/delais", key: "analytique_delais", icon: Timer, requiresOrganization: true },
@@ -79,6 +92,7 @@ export const NAVIGATION: NavSection[] = [
   },
   {
     key: "outils",
+    icon: Wrench,
     entries: [
       { href: "/emails-recus", key: "emails_recus", icon: Inbox, requiresOrganization: true },
       { href: "/cibles", key: "cibles", icon: UsersRound, requiresOrganization: true },
@@ -91,6 +105,7 @@ export const NAVIGATION: NavSection[] = [
   },
   {
     key: "gestion",
+    icon: ShieldCheck,
     entries: [{ href: "/invitations", key: "invitations", icon: MailPlus, superAdminOnly: true }],
   },
 ];

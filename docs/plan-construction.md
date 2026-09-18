@@ -793,6 +793,52 @@ Effort : M. Dépend de : lot 1 (préférences) ; jetons de H souhaitables.
 
 ---
 
+### 4.1 Ce qui a été construit (lot 4, 2026-09-18)
+
+**Le rail.** 56 px au lieu de 256 : une icône par GROUPE (le groupe a
+désormais son icône à lui — reprendre celle de son premier écran en aurait
+mis deux identiques dès qu'on l'épingle), les écrans épinglés au-dessus, les
+réglages et l'épingle en bas. Le détail d'un groupe s'ouvre dans un panneau
+de 208 px : au survol après 140 ms, au clic, ou au clavier. Mesuré à
+1366 px : le contenu passe de ~1046 à ~1254 px utiles.
+
+**Trois règles tenues.** Le survol n'est jamais le seul chemin (clic et
+clavier font tout) ; le panneau est un dépliement, pas une fenêtre modale
+(il ne piège pas le focus et se ferme dès qu'on navigue) ; l'état actif
+reste dérivé de l'URL, panneau fermé compris.
+
+**Le clavier.** Un seul arrêt de tabulation pour le rail (motif « barre
+d'outils »), flèches haut/bas entre les groupes, Entrée ou Espace pour
+déplier, flèche droite pour entrer dans le panneau, Échap pour fermer et
+revenir au groupe. Le focus n'ouvre PAS le panneau : sinon Entrée refermait
+ce que le focus venait d'ouvrir, et Échap le rouvrait en rendant le focus
+(défaut trouvé au navigateur, corrigé).
+
+**L'épingle et les favoris** vivent dans `user_preferences` (`nav:epingle`,
+`nav:favoris`, cinq au plus), par personne ET par organisation. L'état est
+LOCAL au composant, pas optimiste : la coquille n'est pas re-rendue après
+l'écriture (revalider toute la mise en page pour une épingle coûterait bien
+plus cher que le geste), donc un `useOptimistic` se serait rétracté sous la
+souris — défaut vu au navigateur, lui aussi.
+
+**Le nom de l'organisation, une fois.** L'en-tête le porte ; le tableau de
+bord ne le reprend plus comme titre (il s'appelle « Tableau de bord », comme
+tous les autres écrans s'appellent par leur nom) ; pour un super admin, le
+bandeau le porte dans son sélecteur et l'en-tête ne le répète pas. Le
+bandeau tient sur une ligne (≤ 44 px), et sa phrase d'explication ne
+s'affiche qu'en vue globale, là où elle dit quoi faire.
+
+**Le téléphone.** La barre du bas est gardée (le pouce y va), et « Menu »
+ouvre désormais le panneau PLEIN ÉCRAN, rangé par groupes, en cibles d'au
+moins 48 px — 19 entrées dans 288 px se lisaient en colonne étroite avec la
+moitié de l'écran en voile inutile.
+
+**Preuve** : `scripts/_tmp-lot4-nav.ts`, 30 contrôles au vert (rail à 56 px,
+survol, clic, clavier complet, épingle mémorisée en base, favori qui
+remonte dans le rail, nom de l'organisation compté à l'écran, plein écran
+mobile à 390 px sans débordement, zéro erreur de page) et
+`scripts/_tmp-lot4-sa.ts` pour le bandeau super admin.
+
 ## 5. Points d'arrêt
 
 - Avant chaque migration (0021, 0022, 0023) : le SQL proposé, appliqué en

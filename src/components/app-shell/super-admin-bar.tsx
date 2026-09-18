@@ -39,20 +39,25 @@ export function SuperAdminBar({
   return (
     // Collant dès md seulement (audit UI du 2026-09-14) : sur un téléphone, en-tête + bandeau + barre d'onglets figeaient ~210 px.
     <div className="border-b border-warning/50 bg-warning/15 backdrop-blur md:sticky md:top-14 md:z-30">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-sm md:px-8">
-        <span className="flex items-center gap-1.5 font-semibold">
+      {/* COMPACT (lot 4) : une ligne, pas deux. Le sélecteur porte déjà le nom de l'organisation — c'est LE seul
+          endroit où il s'écrit pour un super admin, l'en-tête ne le répète plus. La phrase d'explication ne
+          s'affiche qu'en vue globale, là où elle dit quoi faire ; en substitution, elle redisait le sélecteur. */}
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1 text-sm md:px-8">
+        <span className="flex items-center gap-1.5 font-semibold" title={t("super_admin")}>
           <ShieldAlert className="size-4" />
-          {t("super_admin")}
+          <span className="sr-only sm:not-sr-only">{t("super_admin")}</span>
         </span>
-        <span className="hidden text-foreground/80 sm:inline">
-          {known ? t("tu_travailles_dans") : t("vue_globale_choisis_une_organisation_pour_d974")}
-        </span>
+        {!known && (
+          <span className="hidden text-foreground/80 sm:inline">
+            {t("vue_globale_choisis_une_organisation_pour_d974")}
+          </span>
+        )}
         <NativeSelect
           value={known ? activeOrgId! : ""}
           onChange={(e) => choose(e.target.value)}
           disabled={pending}
           aria-label={t("organisation_active")}
-          className="min-w-0 flex-1 sm:w-auto sm:flex-none"
+          className="min-w-0 flex-1 sm:w-auto sm:flex-none sm:max-w-64"
         >
           <option value="">{t("vue_globale_aucune_organisation")}</option>
           {organizations.map((o) => (

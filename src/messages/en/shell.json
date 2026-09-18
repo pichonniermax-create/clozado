@@ -77,6 +77,14 @@
   "quickCreateMenu": {
     "nouveau": "New"
   },
+  "rail": {
+    "epingler_en_haut": "Pin to the top of the bar",
+    "garder_la_barre_depliee": "Keep the bar expanded",
+    "navigation_principale": "Main navigation",
+    "reglages": "Settings",
+    "replier_la_barre": "Collapse the bar",
+    "retirer_des_favoris": "Unpin"
+  },
   "root": {
     "description": "A multi-client suite of marketing assistance tools."
   },

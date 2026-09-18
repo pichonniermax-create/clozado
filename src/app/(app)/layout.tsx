@@ -16,6 +16,7 @@ import { getVisibleOrganizations } from "@/db/queries/organizations";
 import { countTasksDueNow } from "@/db/queries/tasks";
 import { getWorkspace } from "@/lib/brand/workspace";
 import { navigationHrefs } from "@/lib/display/resolve";
+import { getPreferences, PREF, preferenceList } from "@/db/queries/preferences";
 import { requireSessionUser, requireUser } from "@/lib/session";
 import { getUserLocaleChoice } from "@/db/queries/users";
 import { parseTheme, THEME_COOKIE } from "@/lib/theme";
@@ -66,14 +67,18 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   // avant) ; sinon la promesse est abandonnée — le `catch` vide évite qu'un rejet jamais lu remonte au processus.
   const badges = hasOrganization ? Promise.all([getFollowUpBoard(user), countTasksDueNow(user)]) : null;
   badges?.catch(() => undefined);
-  const [workspace, allOrganizations, localeChoice, cookieStore, hrefs] = await Promise.all([
+  const [workspace, allOrganizations, localeChoice, cookieStore, hrefs, preferences] = await Promise.all([
     getWorkspace(),
     isSuperAdmin ? getVisibleOrganizations(sessionUser) : Promise.resolve([]),
     getUserLocaleChoice(sessionUser.id),
     cookies(),
     // Les liens de la navigation mènent à l'écran TEL QU'ON L'A LAISSÉ (lot 1) : une lecture, en même temps que le reste.
     hasOrganization ? navigationHrefs(user) : Promise.resolve({}),
+    // L'épingle et les favoris de la barre (lot 4) — la même lecture que le reste de l'affichage, mémoïsée par requête.
+    getPreferences(user),
   ]);
+  const navPinned = preferences.get(PREF.navPinned) === true;
+  const navFavorites = preferenceList(preferences, PREF.navFavorites) ?? [];
   // La visite guidée (docs/module-demo.md §1.8) : son état vit dans un cookie par navigateur, lu ici pour rendre le bon pas sans clignotement.
   const tourState = parseTourState(cookieStore.get(TOUR_COOKIE)?.value);
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
@@ -95,11 +100,13 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     <>
       {workspace && <BrandStyle light={workspace.brand.light} dark={workspace.brand.dark} />}
       <div className="flex min-h-screen">
-        <Sidebar mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={{ followUp, tasksDue }} hrefs={hrefs} />
+        <Sidebar mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={{ followUp, tasksDue }} hrefs={hrefs} pinned={navPinned} favorites={navFavorites} />
         <div className="flex min-w-0 flex-1 flex-col">
           <AppHeader
             mark={mark}
-            organizationName={org?.name ?? null}
+            // Le nom de l'organisation, UNE fois (lot 4) : ici pour tout le monde — sauf pour un super admin,
+            // dont le bandeau porte déjà le nom dans son sélecteur.
+            organizationName={isSuperAdmin ? null : (org?.name ?? null)}
             hasOrganization={hasOrganization}
             readOnly={readOnly}
             isSuperAdmin={isSuperAdmin}

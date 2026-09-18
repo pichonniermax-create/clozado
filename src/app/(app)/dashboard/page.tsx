@@ -306,7 +306,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   return (
     <>
       <PageHeader
-        title={org?.name ?? t("tableau_de_bord")}
+        // Le nom de l'ÉCRAN, comme partout ailleurs : celui de l'organisation est dans l'en-tête, une seule
+        // fois (lot 4) — ici, il était écrit deux fois sur la même page.
+        title={t("tableau_de_bord")}
         description={`${t("contact_contacts", { n: contactsCount })} · ${t("affaire_en_cours_affaires_en_cours", { n: open.n })} · ${t("partenaire_actif_partenaires_actifs", { n: activePartners })}`}
         actions={
           <>

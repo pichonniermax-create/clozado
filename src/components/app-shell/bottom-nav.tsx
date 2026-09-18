@@ -106,12 +106,14 @@ export function BottomNav({
               <Menu className="size-5" aria-hidden />
               <span>{t("menu")}</span>
             </SheetTrigger>
-            <SheetContent className="flex w-72 max-w-[85vw] flex-col bg-sidebar p-0">
+            {/* PLEIN ÉCRAN sur un téléphone (lot 4) : 19 entrées dans 288 px se lisaient en colonne étroite, et la
+                  moitié de l'écran restait un voile inutile. Ici, la liste entière, par groupes, en cibles de doigt. */}
+            <SheetContent className="flex w-full max-w-none flex-col bg-sidebar p-0">
               <SheetTitle className="sr-only">{t("navigation_principale")}</SheetTitle>
               <div className="px-4 py-4">
                 <WorkspaceMark {...mark} href="/dashboard" />
               </div>
-              <NavigationList hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={badges} hrefs={hrefs} />
+              <NavigationList hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={badges} hrefs={hrefs} size="lg" />
             </SheetContent>
           </Sheet>
         </li>

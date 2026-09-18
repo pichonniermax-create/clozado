@@ -14,6 +14,7 @@ export function NavigationList({
   isSuperAdmin = false,
   badges,
   hrefs,
+  size = "md",
 }: {
   /** Faux en vue globale super admin : les écrans propres à une organisation sont masqués. */
   hasOrganization: boolean;
@@ -24,6 +25,8 @@ export function NavigationList({
   badges: Record<NavBadge, number>;
   /** L'écran tel qu'on l'a laissé, par chemin (lot 1) — absent = le chemin nu. */
   hrefs?: Record<string, string>;
+  /** `lg` dans le panneau plein écran des petits écrans (lot 4). */
+  size?: "md" | "lg";
 }) {
   const t = useTranslations("shell.navigationList");
   const tn = useTranslations("nav");
@@ -46,6 +49,7 @@ export function NavigationList({
                   label={tn(`entries.${entry.key}`)}
                   icon={<entry.icon />}
                   badge={entry.badge ? badges[entry.badge] : undefined}
+                  size={size}
                 />
               ))}
             </div>
@@ -55,7 +59,7 @@ export function NavigationList({
 
       {hasOrganization && !readOnly && (
         <div className="border-t border-sidebar-border px-3 py-3">
-          <NavLink href="/settings" label={t("marque_reglages")} icon={<Settings />} />
+          <NavLink href="/settings" label={t("marque_reglages")} icon={<Settings />} size={size} />
         </div>
       )}
     </>

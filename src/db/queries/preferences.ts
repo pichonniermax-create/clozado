@@ -36,6 +36,10 @@ export const PREF = {
   columns: (table: string) => `colonnes:${table}`,
   /** La vue ouverte par défaut sur un écran. */
   defaultView: (screen: string) => `vue-par-defaut:${screen}`,
+  /** La barre de navigation reste dépliée (lot 4) : vrai ou faux. */
+  navPinned: "nav:epingle",
+  /** Les écrans épinglés en haut de la barre (lot 4) : des chemins, dans l'ordre choisi. */
+  navFavorites: "nav:favoris",
 } as const;
 
 /** Les préfixes qu'une réinitialisation d'affichage efface (les vues enregistrées, elles, survivent). */
