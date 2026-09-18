@@ -50,7 +50,7 @@
     },
     {
       "source": "/login",
-      "destination": "https://app.clozado.fr",
+      "destination": "https://app.clozado.fr/login",
       "statusCode": 308
     },
     {
@@ -75,12 +75,12 @@
     },
     {
       "source": "/inscription",
-      "destination": "https://app.clozado.fr/inscription",
+      "destination": "https://app.clozado.fr",
       "statusCode": 308
     },
     {
       "source": "/signup",
-      "destination": "https://app.clozado.fr/inscription",
+      "destination": "https://app.clozado.fr",
       "statusCode": 308
     }
   ],

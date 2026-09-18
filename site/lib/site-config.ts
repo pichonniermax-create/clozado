@@ -33,5 +33,10 @@ export const DEMO_URL = `${SITE_CONFIG.appOrigin}/demo`;
 /** L'écran de connexion de l'application. */
 export const LOGIN_URL = `${SITE_CONFIG.appOrigin}/login`;
 
-/** L'écran d'entrée : créer un espace. C'est là qu'arrivent /inscription et /signup. */
-export const INSCRIPTION_URL = `${SITE_CONFIG.appOrigin}/inscription`;
+/*
+ * L'ÉCRAN DE BIENVENUE, c'est la RACINE de l'application : une adresse
+ * e-mail puis « Continuer », qui oriente ensuite vers la connexion ou la
+ * création d'espace. C'est donc là qu'arrivent `/inscription` et `/signup`
+ * (redirections de `vercel.json`) — aucune constante ici, puisqu'aucun lien
+ * du site n'y mène directement.
+ */
