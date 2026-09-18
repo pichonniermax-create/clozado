@@ -12,6 +12,7 @@ import { ecrans, mentionEcrans } from "./ecrans";
 import { ecransMetiers } from "./ecrans-metiers";
 import { immobilier } from "./immobilier";
 import { mentionsLegales } from "./mentions-legales";
+import { parcoursProduit } from "./parcours-produit";
 import { produit } from "./produit";
 
 /**
@@ -27,6 +28,7 @@ export const fr = {
   ecransMetiers,
   mentionEcrans,
   produit,
+  parcoursProduit,
   cgp,
   courtiers,
   immobilier,

@@ -68,7 +68,7 @@ export const ecrans = {
     legende: "Le tableau de bord, redessiné.",
     tuiles: [
       { libelle: "Tâches à faire", valeur: "31", precision: "dont 31 en retard" },
-      { libelle: "Partages sans réponse", valeur: "8", precision: "à relancer" },
+      { libelle: "Partages sans retour", valeur: "8", precision: "à relancer" },
       { libelle: "Acceptés sans suite", valeur: "4", precision: "depuis 5 jours ou plus" },
       { libelle: "Commissions à encaisser", valeur: "4 476 €", precision: "confirmées, non réglées" },
     ],
