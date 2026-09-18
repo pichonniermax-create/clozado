@@ -90,6 +90,40 @@ export async function getDemoOrganization() {
  * Crée l'organisation de démonstration. Refuse si une démo existe déjà ou si
  * le slug est pris : la création ne remplace jamais rien.
  */
+/**
+ * L'APPORT (lot 3) : QUI a amené QUI, dans la démo. Un courtier en crédit
+ * vit d'agents immobiliers et de notaires — la démo le montre plutôt que de
+ * le dire. Les quotas sont choisis pour que les trois cas du produit soient
+ * visibles : un confrère AU-DESSUS du seuil de cinq apports (son taux de
+ * transformation s'affiche), quelques-uns en dessous (le taux est masqué, et
+ * l'écran dit pourquoi), et un dernier qui n'apporte RIEN — c'est lui que la
+ * veille « sans apport depuis N jours » ira chercher.
+ *
+ * Une fiche venue d'un LEAD n'est jamais attribuée à un confrère : elle vient
+ * du site, et l'histoire du funnel ne doit pas se contredire. L'ordre des
+ * candidates suit leur POIDS (`rank`) : une fiche dont l'affaire est gagnée
+ * d'abord, une fiche qui porte une affaire ensuite, un nom seul en dernier —
+ * sans quoi le premier confrère de la démo affiche « 0 % » et « — », ce qui
+ * est vrai mais ne montre rien.
+ *
+ * Fonction PURE et déterministe : le semis l'utilise pour créer les fiches,
+ * une reprise l'utilise pour rattacher celles qui existent déjà — une seule
+ * règle, jamais deux qui divergeraient.
+ */
+export const DEMO_REFERRAL_QUOTAS = [8, 5, 3, 2, 1, 0] as const;
+
+export function demoReferrals(persons: number, isLead: (i: number) => boolean, rank: (i: number) => number): Map<number, number> {
+  const candidates = Array.from({ length: persons }, (_, i) => i)
+    .filter((i) => !isLead(i))
+    .sort((a, b) => rank(b) - rank(a) || a - b);
+  const referredBy = new Map<number, number>();
+  let k = 0;
+  DEMO_REFERRAL_QUOTAS.forEach((quota, partner) => {
+    for (let n = 0; n < quota && k < candidates.length; n += 1, k += 1) referredBy.set(candidates[k], partner);
+  });
+  return referredBy;
+}
+
 export async function createDemoOrganization(options: { now?: Date; demoPublicEnabled?: boolean } = {}): Promise<{ organizationId: string; counts: DemoCounts }> {
   const now = options.now ?? new Date();
   const existing = await db
@@ -242,6 +276,11 @@ export async function createDemoOrganization(options: { now?: Date; demoPublicEn
     if (deal) return at(deal.ageDays + 2 + Math.floor(random() * 5), 9);
     return at(15 + ((i * 11) % 170), 9);
   };
+  const referredBy = demoReferrals(PERSONS, (i) => leadContacts.has(i), (i) => {
+    const deal = dealByContact.get(i);
+    return deal ? (deal.stage === "acceptee" ? 2 : 1) : 0;
+  });
+
   const contactRows: (typeof s.contacts.$inferInsert)[] = [];
   const stoppedReasons = new Map<number, "appointment" | "replied">();
   D.APPOINTMENTS.filter((a) => !a.canceled && a.inDays > 0).forEach((a) => stoppedReasons.set(a.contact, "appointment"));
@@ -249,6 +288,10 @@ export async function createDemoOrganization(options: { now?: Date; demoPublicEn
   for (let i = 0; i < PERSONS; i++) {
     const p = person(i);
     const stopped = stoppedReasons.get(i);
+    // UNE seule fois : `contactCreatedAt` tire du générateur pseudo-aléatoire, l'appeler deux fois décalerait
+    // toute la suite du semis (et daterait l'apport d'un autre jour que la fiche).
+    const createdAt = contactCreatedAt(i);
+    const referrer = referredBy.get(i);
     contactRows.push({
       id: contactIds[i],
       organizationId: orgId,
@@ -268,8 +311,11 @@ export async function createDemoOrganization(options: { now?: Date; demoPublicEn
       source: leadContacts.has(i) ? "lead" : i % 5 === 4 ? "import" : "manual",
       autoSendStoppedAt: stopped ? at(1, 12) : null,
       autoSendStopReason: stopped ?? null,
+      // L'apport est daté du jour où le lien a été posé — ici, la création de la fiche (lot 3).
+      partnerId: referrer === undefined ? null : partnerIds[referrer],
+      partnerAttributedAt: referrer === undefined ? null : createdAt,
       createdBy: claire,
-      createdAt: contactCreatedAt(i),
+      createdAt,
     });
   }
   D.COMPANIES.forEach((c, j) => {

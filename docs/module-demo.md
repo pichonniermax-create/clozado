@@ -548,7 +548,13 @@ Ce que le visiteur voit, écran par écran :
   sans réponse depuis neuf jours et un qui expire demain → le suivi
   s'allume), acceptés, refusés, un réémis. Commissions prévues, confirmées,
   réglées, une confirmée et non réglée depuis trois semaines (la pile
-  « à encaisser »).
+  « à encaisser »). Depuis le lot 3, ils APPORTENT aussi : dix-neuf fiches
+  sur quarante leur sont rattachées (8 / 5 / 3 / 2 / 1 / 0), de sorte que la
+  démonstration montre les trois cas — un confrère au-dessus du seuil de cinq
+  apports (taux de transformation affiché), des confrères en dessous (taux
+  masqué, et l'écran dit pourquoi), et un confrère qui n'apporte rien. La
+  règle est `demoReferrals` (`src/lib/demo/seed.ts`) : une fiche venue d'un
+  lead n'est jamais attribuée à un confrère.
 - **Affaires et pipeline** : vingt-six affaires (crédit immobilier, rachat
   de crédit, assurance emprunteur, prêt professionnel) de 120 000 à
   520 000 €, réparties sur les cinq étapes, avec sept mois d'historique de

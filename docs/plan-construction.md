@@ -594,6 +594,30 @@ Reste de l'étape 2, en attente de la migration 0023 : le conseiller
 responsable de la relation, le journal des échanges saisis à la main, les
 tâches rattachées au confrère.
 
+### 3.0.4 La démo raconte l'apport (2026-09-18)
+
+Les chiffres d'apport ne montraient rien dans la démonstration publique :
+**aucune fiche n'y portait d'apporteur**. La règle vit désormais dans le
+semis (`demoReferrals`, `src/lib/demo/seed.ts`), fonction pure partagée par
+le semis et par la reprise des fiches déjà en base — jamais deux règles qui
+divergeraient. Dix-neuf fiches sur quarante sont rattachées, **8 / 5 / 3 / 2
+/ 1 / 0** sur les six confrères :
+
+- le premier passe le seuil de cinq apports : son taux de transformation
+  s'affiche (25 %, 2 affaires gagnées, 283 000 €) ;
+- trois sont sous le seuil : le taux est masqué, et l'écran dit pourquoi ;
+- le dernier n'apporte RIEN : c'est lui que la veille « sans apport depuis
+  N jours » ira chercher quand elle existera.
+
+Deux règles tenues : une fiche venue d'un LEAD n'est jamais attribuée à un
+confrère (elle vient du site, l'histoire du funnel ne doit pas se
+contredire), et les fiches sont servies par POIDS — affaire gagnée d'abord,
+affaire ensuite, nom seul en dernier. Sans ce tri, le premier confrère de la
+démo affichait « 0 % » et « — » : vrai, mais ne montrant rien.
+
+L'écriture n'a touché que l'organisation marquée `is_demo`, sur ses seules
+fiches, et seulement celles sans apporteur.
+
 ### 3.1 Faits
 
 - `partners` : nom, société, métier (texte libre), email, téléphone,
@@ -615,12 +639,15 @@ tâches rattachées au confrère.
 
 ### 3.2 Modèle (migration 0023)
 
-> **État au 2026-09-18** : la migration est ÉCRITE et le schéma Drizzle
-> l'accompagne, mais elle n'est appliquée NULLE PART — ni en local, ni en
-> production — et ces fichiers ne sont pas committés : un schéma qui
-> déclare des colonnes absentes de la base casserait les écrans qui lisent
-> `partners`, `activities` et `tasks`. Le SQL attend une validation
-> explicite.
+> **État au 2026-09-18** : **APPLIQUÉE en local et en production**, dans
+> l'ordre exigé par l'utilisateur : point de restauration Neon (branche
+> `avant-0023-2026-09-18`, créée par lui) ; quatre comptes de violation à
+> zéro sur la prod (les contraintes réécrites ne pouvaient rejeter aucune
+> ligne existante) ; `ALTER TYPE` envoyé SEUL, avant le reste ; local, puis
+> les neuf écrans qui lisent ces tables ; puis la prod ; puis seulement le
+> commit (`f16d596`), le build Vercel et les mêmes écrans rouverts en
+> production. Jamais dans l'autre sens : un schéma Drizzle qui déclare des
+> colonnes absentes de la base casse tous les écrans qui lisent ces tables.
 
 - `partners.owner_id` (conseiller responsable de la relation, FK
   composite), `partners.profession` reste libre mais suggéré parmi les
