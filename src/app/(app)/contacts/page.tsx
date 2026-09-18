@@ -187,7 +187,8 @@ export default async function ContactsPage({
       <section className="flex flex-col gap-3">
         {/* Un compte, pas un titre de section : il ne pèse plus autant que les noms de la liste. */}
         <p aria-live="polite" className="text-xs text-muted-foreground tabular-nums">
-          {t("contact_contacts", { total, n: (q && t("pour", { q })) ?? "" })}
+          {/* L'espace est posé ICI, pas dans la traduction : « 44 contactspour « a » » se lisait à l'écran. */}
+          {t("contact_contacts", { total, n: q ? ` ${t("pour", { q })}` : "" })}
         </p>
 
         {rows.length === 0 ? (
