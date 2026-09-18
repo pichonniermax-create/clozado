@@ -347,60 +347,145 @@ l'écrire : « montant supérieur à 200 000 ET étape égale à Négociation ET
 conseiller égal à moi ». Aujourd'hui, seuls les filtres rapides nommés au
 brief existent ; tout le reste demande une URL forgée à la main.
 
-**Ce qui est demandé**
+**Périmètre arrêté le 2026-09-18** : les champs du MODÈLE et les
+étiquettes de contact. Les champs personnalisés sont HORS PÉRIMÈTRE — ils
+n'existent pas dans le produit (aucune table) et feront un chantier à
+part, avec leur propre migration.
 
-- Filtres combinables sur les champs du modèle **et sur les champs
-  personnalisés**.
-- Opérateurs selon le TYPE du champ :
+### 3.0.1 La syntaxe, en entier
 
-  | Type | Opérateurs |
-  |---|---|
-  | Texte | contient, commence par, est, est vide |
-  | Nombre et montant | supérieur, inférieur, entre |
-  | Date | avant, après, entre, dans les N derniers jours |
-  | Liste | est, n'est pas, fait partie de |
-  | Booléen | vrai, faux |
+Un seul paramètre d'adresse, `f`, qui porte toutes les conditions. Un
+paramètre par filtre ne tiendrait pas (dix filtres, dix noms à inventer),
+un JSON encodé ne se lit ni ne se corrige à la main.
 
-- Combinaison **ET par défaut** ; le **OU** si on sait le rendre lisible —
-  sinon on s'en passe et on le dit.
-- Filtres actifs affichés et retirables un à un (les pastilles du lot 1,
-  étendues), nombre de résultats visible.
-- Une vue enregistrée porte ces filtres comme elle porte le reste : ils
-  entrent dans `saved_views.definition`, sous la même liste blanche.
+```
+f=champ:operateur:valeur,champ:operateur:valeur
+```
 
-**Ce qu'il faut regarder avant de coder**
+- Les conditions se séparent par une **virgule**, les trois parties d'une
+  condition par un **deux-points**, les valeurs multiples d'une même
+  condition par une **barre verticale**.
+- Ces trois caractères restent LITTÉRAUX dans l'adresse (RFC 3986 les
+  autorise dans une requête) : l'adresse se lit et se corrige à la main.
+  À l'intérieur d'une valeur, ils sont pourcent-encodés (`%2C`, `%3A`,
+  `%7C`), comme tout caractère qui l'exige.
+- L'exemple du brief s'écrit :
+  `f=montant:gt:200000,etape:eq:<id-negociation>,conseiller:eq:moi`
 
-- **Les champs personnalisés n'existent pas** dans le produit : aucune
-  table, aucune colonne (vérifié le 2026-09-18 sur `src/db/schema`). Ce
-  qui s'en approche : les étiquettes de contact (`contact_tags`,
-  `contact_tag_assignments`) et les « chiffres vérifiés »
-  (`verified_figures`). Deux routes possibles, à trancher avec
-  l'utilisateur : (a) le constructeur ne couvre d'abord que les champs du
-  modèle et les étiquettes, les champs personnalisés arrivant avec leur
-  propre construction ; (b) on construit les champs personnalisés dans le
-  même lot, ce qui l'allonge nettement (définition par organisation,
-  valeurs par fiche, saisie, import, migration dédiée).
-- L'adresse reste la vérité (lot 1) : un jeu de filtres doit s'écrire dans
-  l'URL sans devenir illisible, et rester dans la liste blanche de
-  l'écran. C'est le point de conception principal — un paramètre par
-  filtre ne tient pas, un JSON encodé dans l'URL se partage mal. Proposer
-  la forme avant de coder.
-- Réutiliser ce qui existe plutôt que d'inventer : `parseMetricFilters`,
-  `parseDealSelection`, et surtout le **moteur de critères des cibles**
-  (`src/lib/targets`), qui sait déjà composer des conditions typées.
-- La sécurité ne bouge pas : les filtres sont rejoués côté serveur dans
-  les requêtes existantes, sous `orgScope`, jamais des identifiants de
-  fiches figés.
+**Les opérateurs, par type de champ**
 
-**Preuves attendues** : l'exemple de l'utilisateur construit à l'écran et
-rendant le bon nombre de lignes, recalculé par requête à la main ; chaque
-type d'opérateur exercé une fois ; un jeu de filtres enregistré en vue,
-rouvert dans une fenêtre neuve, identique ; un member qui ouvre une vue
+| Type | Opérateur | Code | Valeur |
+|---|---|---|---|
+| Texte | contient | `ct` | une chaîne |
+| | commence par | `sw` | une chaîne |
+| | est | `eq` | une chaîne (comparaison exacte, casse ignorée) |
+| | est vide | `empty` | aucune |
+| Nombre, montant | supérieur à | `gt` | un nombre |
+| | inférieur à | `lt` | un nombre |
+| | entre | `bt` | `min\|max`, bornes INCLUSES |
+| Date | avant | `before` | `AAAA-MM-JJ` |
+| | après | `after` | `AAAA-MM-JJ` |
+| | entre | `bt` | `AAAA-MM-JJ\|AAAA-MM-JJ`, bornes INCLUSES |
+| | dans les N derniers jours | `last` | un entier de 1 à 3650 |
+| Liste | est | `eq` | un identifiant |
+| | n'est pas | `ne` | un identifiant |
+| | fait partie de | `in` | `id1\|id2\|id3` |
+| Booléen | est | `is` | `vrai` ou `faux` |
+
+**Les dates.** Une date absolue s'écrit `AAAA-MM-JJ` et se lit dans le
+FUSEAU DE L'ORGANISATION, comme les bornes de la période partagée (lot 1) :
+`creation:before:2026-09-01` exclut le 1er septembre, `creation:bt:2026-09-01|2026-09-30`
+inclut les deux jours. Une date RELATIVE s'écrit `last:<N>` et signifie
+« dans les N derniers jours », glissants, à partir de maintenant :
+`activite:last:30`. Seuls les jours : ni semaines ni mois, pour qu'il
+n'y ait qu'une seule façon d'écrire la même chose.
+
+**Le jeton `moi`.** Sur un champ de type liste qui désigne une personne
+(`conseiller`), `moi` est résolu pour qui REGARDE, jamais figé (règle du
+lot 1) : `conseiller:eq:moi` dit « les miens » à chacun, et une vue
+partagée qui le porte ne fait fuiter aucun identifiant.
+
+**Un identifiant référencé qui n'existe plus.** La condition est
+**CONSERVÉE et ne rapproche rien** — elle n'est jamais silencieusement
+retirée. Retirer une condition élargirait la liste : la personne verrait
+PLUS que ce qu'elle a demandé, sans rien pour le lui dire. La pastille
+affiche alors « Étape : élément supprimé » et se retire d'un clic, comme
+les autres. Distinction à tenir :
+
+| Cas | Ce qui se passe |
+|---|---|
+| Champ inconnu de l'écran, opérateur impossible pour le type, valeur mal formée | la condition est ÉCARTÉE (l'adresse est malformée, pas la donnée) |
+| Identifiant bien formé mais disparu de la base | la condition est GARDÉE et ne rapproche rien, et le dit |
+
+**ET, OU.** Les conditions se combinent en **ET**. Le **OU** existe
+À L'INTÉRIEUR d'un champ, par « fait partie de » (`etape:in:a|b` se lit
+« l'étape est a ou b ») : c'est lisible, cela couvre le besoin courant, et
+cela s'écrit sans parenthèses. Un OU ENTRE CHAMPS n'est pas proposé — il
+demanderait des groupes et des parenthèses dans l'adresse comme à l'écran,
+pour un besoin que rien n'a encore montré. À rouvrir si un pilote le
+demande.
+
+**Cohabitation avec l'existant.** Les paramètres nommés d'aujourd'hui
+(`q`, `conseiller`, `etape`, `issue`, la sélection venue du funnel)
+RESTENT : ce sont les raccourcis qu'utilisent les vues fournies et les
+liens de l'analytique. `f` s'ajoute, et tout se combine en ET. Les
+pastilles du lot 1 affichent les deux d'un seul tenant. Fondre les
+raccourcis dans `f` n'est PAS au programme : cela casserait des liens
+existants sans rien apporter.
+
+**Les champs filtrables, par écran** (la liste blanche, comme au lot 1) :
+
+| Écran | Champs |
+|---|---|
+| Contacts | nom, email, téléphone, société, ville, code postal (texte) ; nature, conseiller, apporteur, origine, étiquette (liste) ; création, dernière activité (date) |
+| Affaires | titre, client (texte) ; montant (montant) ; étape, type, pipeline, conseiller, origine, issue (liste) ; création, clôture prévue (date) |
+| Partenaires | nom, société, métier (texte) ; statut (liste) ; dernier apport (date) |
+
+**Où la vue le range.** `f` entre dans la liste blanche de chaque écran :
+une vue enregistrée le porte comme elle porte le reste, la mémoire
+d'affichage le retient, et l'adresse reste la vérité.
+
+**Preuves attendues** : l'exemple du brief construit à l'écran et rendant
+le bon nombre de lignes, recalculé par requête à la main ; chaque
+opérateur exercé une fois ; un jeu de filtres enregistré en vue, rouvert
+dans une fenêtre neuve, identique ; une condition dont l'identifiant a été
+supprimé qui ne rapproche rien et le dit ; un member qui ouvre une vue
 filtrée ne voit rien de plus que son rôle.
 
-Effort : M à L selon la route retenue pour les champs personnalisés.
-Dépend de : lot 1 (vues, pastilles, liste blanche) et lot 2 (pour filtrer
-sur l'apporteur).
+Effort : M. Dépend de : lot 1 (vues, pastilles, liste blanche) et lot 2
+(pour filtrer sur l'apporteur).
+
+### 3.0.2 La période sur les partenaires — FAIT (2026-09-18)
+
+Le second manque du lot 1, livré avant le constructeur de filtres parce
+qu'il n'en dépend pas. **Aucune migration** : tout se calcule depuis les
+colonnes du lot 2.
+
+- La liste devient UN tableau : le statut est une colonne, plus une
+  section à part. Colonnes choisies et mémorisées, densité, vues, tri
+  (nom, métier, apports, montant, dernier apport), recherche, filtres
+  rapides et pastilles — le socle du lot 1, sans rien de neuf.
+- Les chiffres, sur la période partagée : contacts apportés, affaires en
+  cours et gagnées, montant gagné, taux de transformation. Plus, hors
+  période parce que ce sont des faits et non des mesures : dernier apport,
+  dernier échange.
+- Quatre totaux en tête, sur CE QUI EST AFFICHÉ : filtrer change les
+  totaux, et c'est voulu.
+- Le taux de transformation est **masqué sous cinq apports** : un
+  pourcentage sur quatre observations ment. L'écran le dit plutôt que de
+  l'inventer.
+- « Dernier échange » se limite pour l'instant aux partages PRM (envoi, ou
+  geste du confrère). Les échanges saisis à la main viendront quand
+  `activities` portera un partenaire — migration 0023, pas encore faite.
+
+Restent au lot 3, et demandent la migration 0023 : `partners.owner_id`,
+« sans apport depuis N jours » dans « Aujourd'hui », le journal de
+partenaire, et la fiche en lecture avec son bouton « Modifier ».
+
+**Preuve** : `scripts/_tmp-lot3-preuve.ts`, 13 contrôles au vert, chaque
+chiffre recalculé par requête — six apports semés dont quatre dans les
+trente jours, deux affaires gagnées à 120 000 : la période fait bien
+passer le compte de 4 à 6 et le taux de masqué à 33,3 %.
 
 ### 3.1 Faits
 

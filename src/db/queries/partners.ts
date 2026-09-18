@@ -1,7 +1,7 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, gte, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { partners } from "@/db/schema";
+import { contacts, dealEvents, deals, dealShares, dealStatuses, partners } from "@/db/schema";
 import { assertOrgAccess, orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
@@ -98,4 +98,141 @@ export async function updatePartner(user: OrgScopeUser, id: string, input: Updat
     .where(eq(partners.id, id))
     .returning();
   return updated;
+}
+
+// ---------------------------------------------------------------------------
+// Les chiffres d'un partenaire (lot 3) — l'APPORT, pas le partage
+// ---------------------------------------------------------------------------
+
+/**
+ * CE QUE CHAQUE CONFRÈRE A APPORTÉ, sur une période (lot 3). Les
+ * définitions sont celles du plan, et il n'y en a qu'une par indicateur :
+ *
+ * - **Contacts apportés** : les fiches vivantes dont `partner_id` est ce
+ *   confrère, comptées à la date de l'ATTRIBUTION (`partner_attributed_at`),
+ *   jamais à la création de la fiche. Corriger le passé ne réécrit donc pas
+ *   une période déjà publiée — même règle que les leads.
+ * - **Affaires en cours / gagnées** : les affaires de ces contacts-là, par
+ *   l'issue de leur étape COURANTE (sans issue = en cours).
+ * - **Montant gagné** : la somme des montants estimés des affaires gagnées
+ *   de ces contacts.
+ * - **Taux de transformation** : affaires gagnées ÷ contacts apportés sur
+ *   la période, masqué sous cinq contacts (le même seuil que partout
+ *   ailleurs : en dessous, un pourcentage ment).
+ * - **Dernier apport** et **dernier échange** ne sont PAS bornés par la
+ *   période : ce sont des faits sur le confrère, pas des mesures. Le
+ *   dernier échange est, pour l'instant, le plus récent d'un partage envoyé
+ *   ou d'un événement de partage où il a agi — les échanges saisis à la
+ *   main viendront quand `activities` portera un partenaire (migration
+ *   0023, pas encore faite).
+ */
+export type PartnerFigures = {
+  partnerId: string;
+  /** Contacts apportés DANS la période. */
+  broughtInPeriod: number;
+  dealsOpen: number;
+  dealsWon: number;
+  /** Somme des montants estimés des affaires gagnées, en unités de la devise. */
+  wonAmount: number;
+  /** Gagnées ÷ apportés sur la période ; `null` sous le seuil (le dire, plutôt qu'un chiffre faux). */
+  transformationRate: number | null;
+  /** Le nombre qui manque pour atteindre le seuil, quand le taux est masqué. */
+  missingForRate: number;
+  /** Toute période confondue. */
+  lastBroughtAt: Date | null;
+  lastExchangeAt: Date | null;
+};
+
+/** Sous ce nombre d'apports, un taux de transformation ne veut rien dire : il est masqué. */
+export const PARTNER_RATE_MIN = 5;
+
+export async function listPartnerFigures(
+  user: OrgScopeUser,
+  range: { from?: Date; to?: Date } = {}
+): Promise<Map<string, PartnerFigures>> {
+  const organizationId = user.organizationId;
+  if (!organizationId) return new Map();
+  const inPeriod = and(
+    range.from ? gte(contacts.partnerAttributedAt, range.from) : undefined,
+    range.to ? lt(contacts.partnerAttributedAt, range.to) : undefined
+  );
+
+  const [brought, last, exchanges] = await Promise.all([
+    // Une affaire n'a qu'un contact : compter les affaires distinctes et sommer leurs montants
+    // dans la même requête ne double personne.
+    db
+      .select({
+        partnerId: contacts.partnerId,
+        brought: sql<number>`count(distinct ${contacts.id})::int`,
+        open: sql<number>`count(distinct ${deals.id}) filter (where ${dealStatuses.outcome} is null)::int`,
+        won: sql<number>`count(distinct ${deals.id}) filter (where ${dealStatuses.outcome} = 'won')::int`,
+        wonAmount: sql<string>`coalesce(sum(${deals.estimatedAmount}) filter (where ${dealStatuses.outcome} = 'won'), 0)`,
+      })
+      .from(contacts)
+      .leftJoin(deals, and(eq(deals.contactId, contacts.id), eq(deals.organizationId, contacts.organizationId)))
+      .leftJoin(dealStatuses, eq(dealStatuses.id, deals.statusId))
+      .where(
+        and(
+          eq(contacts.organizationId, organizationId),
+          isNull(contacts.deletedAt),
+          isNotNull(contacts.partnerId),
+          inPeriod
+        )
+      )
+      .groupBy(contacts.partnerId),
+    db
+      .select({ partnerId: contacts.partnerId, at: sql<Date | null>`max(${contacts.partnerAttributedAt})` })
+      .from(contacts)
+      .where(and(eq(contacts.organizationId, organizationId), isNull(contacts.deletedAt), isNotNull(contacts.partnerId)))
+      .groupBy(contacts.partnerId),
+    // Le dernier échange : un partage envoyé, ou un geste du confrère sur un partage.
+    db
+      .select({
+        partnerId: sql<string>`p`,
+        at: sql<Date | null>`max(at)`,
+      })
+      .from(
+        sql`(
+          select ${dealShares.partnerId} as p, ${dealShares.sentAt} as at
+          from ${dealShares} where ${dealShares.organizationId} = ${organizationId}
+          union all
+          select ${dealEvents.actorPartnerId} as p, ${dealEvents.createdAt} as at
+          from ${dealEvents} where ${dealEvents.organizationId} = ${organizationId} and ${dealEvents.actorPartnerId} is not null
+        ) as echanges`
+      )
+      .groupBy(sql`p`),
+  ]);
+
+  const figures = new Map<string, PartnerFigures>();
+  const ensure = (id: string): PartnerFigures => {
+    const existing = figures.get(id);
+    if (existing) return existing;
+    const fresh: PartnerFigures = {
+      partnerId: id,
+      broughtInPeriod: 0,
+      dealsOpen: 0,
+      dealsWon: 0,
+      wonAmount: 0,
+      transformationRate: null,
+      missingForRate: PARTNER_RATE_MIN,
+      lastBroughtAt: null,
+      lastExchangeAt: null,
+    };
+    figures.set(id, fresh);
+    return fresh;
+  };
+
+  for (const row of brought) {
+    if (!row.partnerId) continue;
+    const f = ensure(row.partnerId);
+    f.broughtInPeriod = row.brought;
+    f.dealsOpen = row.open;
+    f.dealsWon = row.won;
+    f.wonAmount = Number(row.wonAmount) || 0;
+    f.transformationRate = row.brought >= PARTNER_RATE_MIN ? row.won / row.brought : null;
+    f.missingForRate = Math.max(0, PARTNER_RATE_MIN - row.brought);
+  }
+  for (const row of last) if (row.partnerId) ensure(row.partnerId).lastBroughtAt = row.at ? new Date(row.at) : null;
+  for (const row of exchanges) if (row.partnerId) ensure(row.partnerId).lastExchangeAt = row.at ? new Date(row.at) : null;
+  return figures;
 }

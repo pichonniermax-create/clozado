@@ -2,17 +2,23 @@ import Link from "next/link";
 import { errorMessage, withError } from "@/lib/form-actions";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { Banknote, Trophy, UserPlus, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { ListCard, ListRowLink } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
+import { StatTile } from "@/components/stat-tile";
 import { Textarea } from "@/components/ui/textarea";
-import { listPartners } from "@/db/queries/partners";
-import { PREF, preferenceString } from "@/db/queries/preferences";
+import { listPartnerFigures, listPartners, PARTNER_RATE_MIN } from "@/db/queries/partners";
+import { PREF, preferenceList, preferenceString } from "@/db/queries/preferences";
+import { ColumnChooserTable } from "@/components/ui/column-chooser-table";
+import { PeriodPicker } from "@/components/display/period-picker";
+import { getFormats } from "@/i18n/formats";
+import { parseMetricFilters } from "@/lib/metrics";
+import { withRememberedPeriod } from "@/lib/display/period";
 import { DensityToggle } from "@/components/display/density-toggle";
 import { FilterChips, type FilterChip } from "@/components/display/filter-chips";
 import { ViewsMenu } from "@/components/display/views-menu";
@@ -23,7 +29,6 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { cn } from "@/lib/utils";
 import { createPartnerAction } from "@/lib/deals/actions";
 import { requireUser } from "@/lib/session";
-import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 
 async function addPartner(formData: FormData) {
@@ -60,25 +65,59 @@ export default async function PartnersPage({
   const params = await searchParams;
   const screen = displayScreen("partenaires")!;
   // Même chose qu'ailleurs : l'affichage et le répertoire partent ensemble (le second ne dépend d'aucun paramètre).
-  const [display, all] = await Promise.all([resolveDisplay(user, screen, params), listPartners(user)]);
+  const [display, all, fmt] = await Promise.all([resolveDisplay(user, screen, params), listPartners(user), getFormats()]);
   const p = display.params;
   const density = display.density ?? DEFAULT_DENSITY;
+  // LA période du produit (lot 1), désormais sur cet écran aussi : les chiffres d'apport sont datés (lot 3).
+  const parsed = parseMetricFilters(withRememberedPeriod(p, display.preferences), fmt.timeZone);
+  const figures = await listPartnerFigures(user, { from: parsed.filters.from, to: parsed.filters.to });
   // Le répertoire tient en mémoire (quelques dizaines de lignes) : filtrer et trier ici évite une requête par geste.
   const q = p.q?.trim().toLowerCase() || undefined;
   const metier = p.metier?.trim().toLowerCase() || undefined;
   const statut = p.statut === "actifs" || p.statut === "inactifs" ? p.statut : undefined;
   const dir = p.dir === "desc" ? -1 : 1;
+  const zero = { broughtInPeriod: 0, dealsOpen: 0, dealsWon: 0, wonAmount: 0, transformationRate: null, missingForRate: PARTNER_RATE_MIN, lastBroughtAt: null, lastExchangeAt: null };
+  const figuresOf = (id: string) => figures.get(id) ?? { partnerId: id, ...zero };
   const filtered = all
     .filter((row) => (statut === "actifs" ? row.active : statut === "inactifs" ? !row.active : true))
     .filter((row) => (metier ? (row.profession ?? "").toLowerCase() === metier : true))
     .filter((row) =>
       q ? [row.name, row.company, row.profession, row.email, row.phone].some((field) => (field ?? "").toLowerCase().includes(q)) : true
     )
-    .sort((a, b) =>
-      dir * (p.tri === "metier" ? (a.profession ?? "").localeCompare(b.profession ?? "") || a.name.localeCompare(b.name) : a.name.localeCompare(b.name))
-    );
-  const active = filtered.filter((row) => row.active);
-  const inactive = filtered.filter((row) => !row.active);
+    .sort((a, b) => {
+      const fa = figuresOf(a.id);
+      const fb = figuresOf(b.id);
+      const byName = a.name.localeCompare(b.name);
+      switch (p.tri) {
+        case "metier":
+          return dir * ((a.profession ?? "").localeCompare(b.profession ?? "") || byName);
+        case "apports":
+          return dir * (fb.broughtInPeriod - fa.broughtInPeriod || byName);
+        case "montant":
+          return dir * (fb.wonAmount - fa.wonAmount || byName);
+        case "dernier-apport":
+          // « Jamais » passe en dernier dans les deux sens : l'absence n'est pas la date la plus ancienne.
+          if (!fa.lastBroughtAt && !fb.lastBroughtAt) return byName;
+          if (!fa.lastBroughtAt) return 1;
+          if (!fb.lastBroughtAt) return -1;
+          return dir * (fb.lastBroughtAt.getTime() - fa.lastBroughtAt.getTime() || byName);
+        default:
+          return dir * byName;
+      }
+    });
+  // Les totaux de l'en-tête portent sur CE qui est affiché : filtrer change les totaux, et c'est voulu.
+  const totals = filtered.reduce(
+    (acc, row) => {
+      const f = figuresOf(row.id);
+      return {
+        brought: acc.brought + f.broughtInPeriod,
+        won: acc.won + f.dealsWon,
+        amount: acc.amount + f.wonAmount,
+        active: acc.active + (row.active ? 1 : 0),
+      };
+    },
+    { brought: 0, won: 0, amount: 0, active: 0 }
+  );
   const professions = [...new Set(all.map((row) => row.profession?.trim()).filter((v): v is string => Boolean(v)))].sort((a, b) => a.localeCompare(b));
 
   const hrefWith = (changes: Record<string, string | undefined>) => `/partenaires${queryString(withParams(p, changes))}`;
@@ -108,6 +147,17 @@ export default async function PartnersPage({
           defaultViewId={preferenceString(display.preferences, PREF.defaultView("partenaires")) ?? null}
         />
         <DensityToggle current={density} hrefFor={(d) => hrefWith({ densite: d === DEFAULT_DENSITY ? undefined : d })} />
+      </div>
+
+      {/* LA période du produit (lot 1), désormais ici : les chiffres d'apport de ce tableau en dépendent. */}
+      <PeriodPicker basePath="/partenaires" parsed={parsed} keep={{ ...p, periode: undefined, du: undefined, au: undefined }} />
+
+      {/* Ce que la période raconte, en tête — sur ce qui est AFFICHÉ : filtrer change les totaux, et c'est voulu. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatTile label={t("apports_sur_la_periode")} value={totals.brought} icon={<UserPlus />} />
+        <StatTile label={t("affaires_gagnees")} value={totals.won} icon={<Trophy />} />
+        <StatTile label={t("montant_gagne")} value={totals.amount > 0 ? (fmt.money(totals.amount) ?? "—") : "—"} icon={<Banknote />} />
+        <StatTile label={t("confreres_actifs")} value={totals.active} icon={<Users />} />
       </div>
 
       <form method="get" className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -153,6 +203,15 @@ export default async function PartnersPage({
           <SortLink href={hrefWith({ tri: "metier", dir: p.tri === "metier" && dir === 1 ? "desc" : undefined })} active={p.tri === "metier"} descending={dir === -1}>
             {t("metier")}
           </SortLink>
+          <SortLink href={hrefWith({ tri: "apports", dir: p.tri === "apports" && dir === 1 ? "desc" : undefined })} active={p.tri === "apports"} descending={dir === -1}>
+            {t("tri_apports")}
+          </SortLink>
+          <SortLink href={hrefWith({ tri: "montant", dir: p.tri === "montant" && dir === 1 ? "desc" : undefined })} active={p.tri === "montant"} descending={dir === -1}>
+            {t("tri_montant")}
+          </SortLink>
+          <SortLink href={hrefWith({ tri: "dernier-apport", dir: p.tri === "dernier-apport" && dir === 1 ? "desc" : undefined })} active={p.tri === "dernier-apport"} descending={dir === -1}>
+            {t("tri_dernier_apport")}
+          </SortLink>
         </span>
       </div>
 
@@ -187,72 +246,80 @@ export default async function PartnersPage({
         </form>
       </DetailsCard>
 
-      <PartnerList
-        title={t("partenaire_partenaires_actif_actifs", { count: active.length })}
-        partners={active}
-        dense={density === "compacte"}
-        emptyState={
-          <EmptyState
-            title={t("aucun_partenaire_pour_l_instant")}
-            action={
-              <Link href="/partenaires?nouveau=1" className={buttonVariants({ variant: "outline" })}>
-                {t("ajouter_un_partenaire")}
-              </Link>
-            }
-          >
-            {t("les_confreres_vers_qui_tu_partages_12b6")}
-          </EmptyState>
-        }
-      />
-
-      {/* Les partenaires se désactivent, ne se suppriment pas — cohérent
-          avec un journal qui n'efface jamais son historique. Ils restent
-          donc visibles, mais rangés à part. */}
-      {inactive.length > 0 && statut !== "actifs" && (
-        <PartnerList
-          title={t("inactif_inactifs", { count: inactive.length })}
-          partners={inactive}
-          dense={density === "compacte"}
-          emptyState={null}
+      {filtered.length === 0 ? (
+        <EmptyState
+          title={all.length === 0 ? t("aucun_partenaire_pour_l_instant") : t("aucun_partenaire_ne_correspond")}
+          action={
+            <Link href={all.length === 0 ? "/partenaires?nouveau=1" : "/partenaires"} className={buttonVariants({ variant: "outline" })}>
+              {all.length === 0 ? t("ajouter_un_partenaire") : t("tout_afficher")}
+            </Link>
+          }
+        >
+          {t("les_confreres_vers_qui_tu_partages_12b6")}
+        </EmptyState>
+      ) : (
+        /* UN tableau, plus deux listes séparées : le statut est une COLONNE, pas une section — on trie et on
+           filtre sur lui comme sur le reste. Les colonnes se choisissent et se mémorisent (lot 1). */
+        <ColumnChooserTable
+          storageKey="partenaires"
+          stored={user.organizationId ? (preferenceList(display.preferences, PREF.columns("partenaires")) ?? null) : undefined}
+          density={density}
+          caption={t("les_confreres_et_ce_qu_ils_apportent")}
+          columns={[
+            { key: "partenaire", label: t("partenaire"), align: "left" },
+            { key: "apportes", label: t("contacts_apportes") },
+            { key: "en_cours", label: t("en_cours") },
+            { key: "gagnees", label: t("gagnees") },
+            { key: "montant", label: t("montant_gagne") },
+            { key: "transformation", label: t("transformation") },
+            { key: "dernier_apport", label: t("dernier_apport") },
+            { key: "dernier_echange", label: t("dernier_echange"), defaultVisible: false },
+            { key: "metier", label: t("metier"), align: "left", defaultVisible: false },
+            { key: "statut", label: t("statut"), align: "left" },
+          ]}
+          rows={filtered.map((row) => {
+            const f = figuresOf(row.id);
+            return {
+              key: row.id,
+              cells: {
+                partenaire: (
+                  <Link href={`/partenaires/${row.id}`} className="font-medium hover:underline">
+                    {row.name}
+                  </Link>
+                ),
+                apportes: f.broughtInPeriod,
+                en_cours: f.dealsOpen,
+                gagnees: f.dealsWon,
+                montant: f.wonAmount > 0 ? fmt.money(f.wonAmount) : "—",
+                // Sous le seuil, on DIT pourquoi le taux manque plutôt que d'afficher un pourcentage qui ment.
+                transformation:
+                  f.transformationRate === null ? (
+                    <span title={t("masque_sous_contacts", { n: PARTNER_RATE_MIN })}>—</span>
+                  ) : (
+                    fmt.percent(Math.round(f.transformationRate * 1000) / 10)
+                  ),
+                dernier_apport: f.lastBroughtAt ? fmt.date(f.lastBroughtAt) : "—",
+                dernier_echange: f.lastExchangeAt ? fmt.date(f.lastExchangeAt) : "—",
+                metier: [row.profession, row.company].filter(Boolean).join(" · ") || "—",
+                statut: row.active ? <Badge variant="secondary">{t("actif")}</Badge> : <Badge variant="outline">{t("inactif")}</Badge>,
+              },
+            };
+          })}
+          foot={{
+            partenaire: t("partenaire_partenaires", { count: filtered.length }),
+            apportes: totals.brought,
+            en_cours: "",
+            gagnees: totals.won,
+            montant: totals.amount > 0 ? fmt.money(totals.amount) : "—",
+            transformation: "",
+            dernier_apport: "",
+            dernier_echange: "",
+            metier: "",
+            statut: t("actif_actifs", { count: totals.active }),
+          }}
         />
       )}
     </>
-  );
-}
-
-function PartnerList({
-  title,
-  partners,
-  emptyState,
-  dense,
-}: {
-  title: string;
-  partners: Awaited<ReturnType<typeof listPartners>>;
-  /** Ce qu'on montre quand la liste est vide — un état structuré qui dit quoi faire. */
-  emptyState: ReactNode;
-  dense?: boolean;
-}) {
-  const t = useTranslations("partners.list");
-  return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold">{title}</h2>
-      {partners.length === 0 ? (
-        emptyState
-      ) : (
-        <ListCard>
-          {partners.map((p) => (
-            <ListRowLink
-              key={p.id}
-              href={`/partenaires/${p.id}`}
-              dense={dense}
-              title={p.name}
-              subtitle={[p.profession, p.company].filter(Boolean).join(" · ") || "—"}
-              trailing={!p.active ? <Badge variant="secondary">{t("inactif")}</Badge> : undefined}
-            />
-          ))}
-        </ListCard>
-      )}
-    </section>
   );
 }
 

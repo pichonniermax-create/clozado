@@ -54,8 +54,9 @@ export const DISPLAY_SCREENS: readonly DisplayScreen[] = [
   {
     key: "partenaires",
     href: "/partenaires",
-    // Pas de période ici tant que la liste ne porte aucun chiffre daté (elle en aura au lot 3 : apports, affaires, montants).
-    params: ["v", "q", "metier", "statut", "tri", "dir", "densite"],
+    // Depuis le lot 3, la liste porte des chiffres datés (apports, affaires, montants) : elle a donc la période.
+    params: ["v", "q", "metier", "statut", "tri", "dir", "densite", "periode", "du", "au"],
+    period: true,
     view: "partenaires",
   },
   { key: "analytique-funnel", href: "/analytique/funnel", params: [...METRIC_PARAMS], period: true },
