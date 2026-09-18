@@ -19,6 +19,22 @@ import "../globals.css";
  * dépôt (sous-ensemble latin, 29 Ko, graisses 100 à 900). Aucune requête
  * ne part vers un tiers, ni depuis le navigateur, ni pendant le build.
  */
+/**
+ * LES CHIFFRES ONT LEUR POLICE : Geist Mono, auto-hébergée elle aussi
+ * (sous-ensemble latin, 23 Ko, graisses 400 à 600). Un chiffre proportionnel
+ * danse d'une ligne à l'autre ; en chasse fixe et en `tabular-nums`, les
+ * colonnes s'alignent et un compteur qui monte ne fait pas bouger sa ligne.
+ * C'est la SEULE seconde famille admise, et elle ne sert qu'aux nombres.
+ */
+const geistMono = localFont({
+  src: "../fonts/geist-mono-latin.woff2",
+  weight: "400 600",
+  style: "normal",
+  display: "swap",
+  variable: "--font-geist-mono",
+  fallback: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
+});
+
 const geist = localFont({
   src: "../fonts/geist-latin.woff2",
   weight: "100 900",
@@ -62,7 +78,7 @@ export default async function LocaleLayout(props: LayoutProps<"/[locale]">) {
   const { common } = getDictionary(locale);
 
   return (
-    <html lang={HTML_LANG[locale]} className={geist.variable}>
+    <html lang={HTML_LANG[locale]} className={`${geist.variable} ${geistMono.variable}`}>
       <body className="flex min-h-dvh flex-col">
         <SkipLink label={common.coquille.allerAuContenu} />
         <SiteHeader locale={locale} />

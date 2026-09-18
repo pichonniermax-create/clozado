@@ -5,9 +5,10 @@ import { ActionLink } from "@/components/action-link";
 import { BandeRupture } from "@/components/bande-rupture";
 import { EcranFunnel, EcranRegles, EcranSuivi, EcranTableauDeBord } from "@/components/ecran-produit";
 import { EcransOnglets } from "@/components/ecrans-onglets";
+import { Card, Puce } from "@/components/layout-primitives";
 import { Mouvement } from "@/components/mouvement";
-import { Card, Container, Puce, Section } from "@/components/layout-primitives";
 import { References } from "@/components/references";
+import { SectionEditoriale } from "@/components/section-editoriale";
 import { getDictionary, isLocale } from "@/lib/i18n";
 import { pageMetadata } from "@/lib/metadata";
 import { path, ROUTES } from "@/lib/routes";
@@ -26,26 +27,23 @@ export async function generateMetadata(props: PageProps<"/[locale]">): Promise<M
 }
 
 /**
- * LA PAGE D'ACCUEIL.
+ * LA PAGE D'ACCUEIL — composée, plus posée au centre.
  *
- * AUCUNE IMAGE N'EST AFFICHÉE ICI, ni sur aucune page du site : pas de
- * photo, pas d'illustration, pas de capture, pas de pictogramme décoratif.
- * Quand une section doit montrer le produit, elle en REDESSINE l'écran en
- * HTML (`components/ecran-produit.tsx`) — c'est du texte, donc c'est net à
- * toutes les densités, sélectionnable, lu par une synthèse vocale, indexé,
- * et cela ne coûte aucun octet de téléchargement. Les images de partage
- * (OpenGraph) restent : elles ne s'affichent jamais dans la page.
+ * Ce qui la tient depuis le 2026-09-18 : une grille de DOUZE colonnes où le
+ * contenu est désaxé, des sections NUMÉROTÉES en chasse fixe et séparées par
+ * un filet pleine largeur, un contraste d'échelle assumé (un numéro peut
+ * atteindre 180 px quand le corps tient à 17 px), et des blocs de texte qui
+ * ne dépassent jamais 65 caractères de ligne. Les chiffres sont en Geist
+ * Mono, tabulaires : une colonne de nombres s'aligne, un compteur qui monte
+ * ne pousse pas sa ligne.
  *
- * Son rythme : un premier écran qui pose le propos à côté du produit, un
- * constat en trois temps, trois preuves où le texte et l'écran alternent de
- * côté, une rupture pleine largeur sur fond blanc, puis des sections de plus
- * en plus étroites à mesure que le propos devient dense.
+ * AUCUNE IMAGE N'EST AFFICHÉE ICI, ni sur aucune page du site. Quand une
+ * section doit montrer le produit, elle en REDESSINE l'écran en HTML
+ * (`components/ecran-produit.tsx`).
  *
  * LE MOUVEMENT est propre à cette page : un attribut posé sur `<html>` par
- * le script en tête de page arme le CSS (`app/globals.css`), et
- * `MiseEnMouvement` pose les observateurs. Sans JavaScript, l'attribut
- * n'existe pas et la page est exactement celle d'avant : rien n'est caché
- * en attendant un script.
+ * le script en tête de page arme le CSS, et `MiseEnMouvement` pose les
+ * observateurs. Sans JavaScript, rien n'est masqué.
  *
  * Aucun texte n'est écrit ici : tout vient de `content/<langue>/accueil.ts`.
  */
@@ -67,21 +65,13 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
 
   /** Les trois vues du premier écran, sous leurs onglets. */
   const vues = [
-    {
-      cle: "suivi",
-      libelle: ecrans.onglets.suivi,
-      contenu: <EcranSuivi ecran={ecrans.suivi} sansLegende />,
-    },
+    { cle: "suivi", libelle: ecrans.onglets.suivi, contenu: <EcranSuivi ecran={ecrans.suivi} sansLegende /> },
     {
       cle: "tableau-de-bord",
       libelle: ecrans.onglets.tableauDeBord,
       contenu: <EcranTableauDeBord ecran={ecrans.tableauDeBord} sansLegende />,
     },
-    {
-      cle: "funnel",
-      libelle: ecrans.onglets.funnel,
-      contenu: <EcranFunnel ecran={ecrans.funnel} sansLegende />,
-    },
+    { cle: "funnel", libelle: ecrans.onglets.funnel, contenu: <EcranFunnel ecran={ecrans.funnel} sansLegende /> },
   ];
 
   /** L'écran qui prouve une affirmation. Chaque preuve porte la clé du sien. */
@@ -97,62 +87,82 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
   };
 
   return (
-    <>
+    <div className="editorial">
       <Mouvement />
 
-      {/* PREMIER ÉCRAN — le propos à gauche, l'écran du produit à droite.
-          Les deux colonnes s'alignent en haut : le titre est très grand, et
-          un alignement au milieu le ferait flotter au-dessus du vide. */}
+      {/* PREMIER ÉCRAN — le propos sur sept colonnes, l'écran du produit sur
+          cinq, et qui ROMPT LA MARGE : il file vers le bord droit au lieu de
+          s'arrêter sur la gouttière. C'est ce débord qui sort la page de la
+          composition centrée dès la première ligne. */}
       <section className="border-b border-border">
-        <Container largeur="large" className="py-16 sm:py-24 lg:py-28">
-          <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
-            <div data-entree className="min-w-0 lg:col-span-6">
-              {/* Pas de `text-balance` sur un titre de quatre lignes : il égalise
-                  les longueurs et produit un pavé en escalier. */}
+        <div className="editorial-conteneur py-14 sm:py-20 lg:py-24">
+          <div className="grid grid-cols-12 gap-x-6 gap-y-12">
+            <div data-entree className="col-span-12 min-w-0 lg:col-span-7">
               <h1 className="text-titre-1 text-foreground">{accueil.hero.titre}</h1>
-              <p className="mt-8 text-pretty text-chapo text-muted-foreground">{accueil.hero.chapo}</p>
-              <p className="mt-4 text-pretty text-chapo text-muted-foreground">{accueil.hero.precision}</p>
+              <p className="mesure mt-8 text-pretty text-chapo text-muted-foreground">{accueil.hero.chapo}</p>
+              <p className="mesure mt-4 text-pretty text-chapo text-muted-foreground">{accueil.hero.precision}</p>
               <div className="mt-10">{appels}</div>
               <p className="mt-4 text-sm text-muted-foreground">{accueil.hero.note}</p>
             </div>
 
-            <div data-entree data-rang={1} className="min-w-0 lg:col-span-6">
+            <div
+              data-entree
+              data-rang={1}
+              className="rompt-a-droite col-span-12 min-w-0 lg:col-start-8 lg:col-span-5"
+            >
               <EcransOnglets vues={vues} libelleListe={ecrans.onglets.libelleListe} />
-              <p className="mt-4 text-sm text-muted-foreground">{mentionEcrans}</p>
+              <p className="mesure mt-4 text-sm text-muted-foreground">{mentionEcrans}</p>
             </div>
           </div>
-        </Container>
+        </div>
       </section>
 
-      <Section intitule={accueil.probleme.intitule} titre={accueil.probleme.titre} bordered={false}>
+      <SectionEditoriale
+        numero="01"
+        intitule={accueil.probleme.intitule}
+        titre={accueil.probleme.titre}
+        largeurContenu="lg:col-start-4 lg:col-span-9"
+      >
         <ul className="grid gap-4 sm:grid-cols-3">
           {accueil.probleme.elements.map((element, rang) => (
             <li key={element.titre} data-entree data-rang={rang}>
               <Card className="h-full">
-                <h3 className="text-xl font-bold tracking-tight text-foreground">{element.titre}</h3>
-                <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
+                <p className="tabulaire text-sm text-muted-foreground">{String(rang + 1).padStart(2, "0")}</p>
+                <h3 className="mt-6 text-xl font-bold tracking-tight text-foreground">{element.titre}</h3>
+                <p className="mesure mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
               </Card>
             </li>
           ))}
         </ul>
-      </Section>
+      </SectionEditoriale>
 
-      {/* Les trois preuves : le texte et l'écran changent de côté à chaque fois. */}
-      <Section intitule={accueil.preuves.intitule} titre={accueil.preuves.titre} largeur="large" ton="doux">
-        <div className="flex flex-col gap-20 lg:gap-28">
+      {/* LES TROIS PREUVES — le propos et l'écran changent de côté à chaque
+          fois, et l'écran occupe toujours plus de place que le texte. */}
+      <SectionEditoriale
+        numero="02"
+        intitule={accueil.preuves.intitule}
+        titre={accueil.preuves.titre}
+        ton="doux"
+        largeurContenu="lg:col-start-2 lg:col-span-11"
+      >
+        <div className="flex flex-col gap-20 lg:gap-32">
           {accueil.preuves.elements.map((preuve, index) => (
-            <div key={preuve.cle} className="grid items-center gap-8 lg:grid-cols-12 lg:gap-16">
+            <div key={preuve.cle} className="grid grid-cols-12 items-center gap-x-6 gap-y-8">
               <div
                 data-entree
-                className={index % 2 === 1 ? "min-w-0 lg:order-2 lg:col-span-5" : "min-w-0 lg:col-span-5"}
+                className={
+                  index % 2 === 1
+                    ? "col-span-12 min-w-0 lg:order-2 lg:col-start-9 lg:col-span-4"
+                    : "col-span-12 min-w-0 lg:col-span-4"
+                }
               >
                 <h3 className="text-balance text-titre-3 text-foreground">{preuve.titre}</h3>
-                <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">{preuve.texte}</p>
+                <p className="mesure mt-4 text-pretty leading-relaxed text-muted-foreground">{preuve.texte}</p>
                 <ul className="mt-8 flex flex-col gap-4">
                   {preuve.points.map((point) => (
                     <li key={point} className="flex gap-4 text-sm leading-relaxed">
                       <Puce />
-                      <span className="text-muted-foreground">{point}</span>
+                      <span className="mesure text-muted-foreground">{point}</span>
                     </li>
                   ))}
                 </ul>
@@ -160,37 +170,53 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
               <div
                 data-entree
                 data-rang={1}
-                className={index % 2 === 1 ? "min-w-0 lg:order-1 lg:col-span-7" : "min-w-0 lg:col-span-7"}
+                className={
+                  index % 2 === 1
+                    ? "col-span-12 min-w-0 lg:order-1 lg:col-span-7"
+                    : "col-span-12 min-w-0 lg:col-start-6 lg:col-span-7"
+                }
               >
                 {ecranDe(preuve.cle)}
               </div>
             </div>
           ))}
         </div>
-      </Section>
+      </SectionEditoriale>
 
       <BandeRupture titre={accueil.rupture.titre} elements={accueil.rupture.elements} />
 
-      <Section intitule={accueil.reste.intitule} titre={accueil.reste.titre} bordered={false}>
+      <SectionEditoriale
+        numero="03"
+        intitule={accueil.reste.intitule}
+        titre={accueil.reste.titre}
+        largeurContenu="lg:col-start-4 lg:col-span-9"
+      >
         <ul className="grid gap-4 sm:grid-cols-3">
           {accueil.reste.elements.map((element, rang) => (
             <li key={element.titre} data-entree data-rang={rang}>
               <Card className="h-full">
                 <h3 className="text-xl font-bold tracking-tight text-foreground">{element.titre}</h3>
-                <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
+                <p className="mesure mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
               </Card>
             </li>
           ))}
         </ul>
-      </Section>
+      </SectionEditoriale>
 
-      <Section intitule={accueil.pourQui.intitule} titre={accueil.pourQui.titre} chapo={accueil.pourQui.chapo}>
+      <SectionEditoriale
+        numero="04"
+        intitule={accueil.pourQui.intitule}
+        titre={accueil.pourQui.titre}
+        chapo={accueil.pourQui.chapo}
+        ton="doux"
+        largeurContenu="lg:col-start-4 lg:col-span-9"
+      >
         <ul className="grid gap-4 sm:grid-cols-3">
           {accueil.pourQui.elements.map((element, rang) => {
             const corps = (
               <>
                 <h3 className="text-xl font-bold tracking-tight text-foreground">{element.titre}</h3>
-                <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
+                <p className="mesure mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
               </>
             );
             // La carte n'est cliquable que si sa page existe : le site n'a jamais de lien mort.
@@ -199,7 +225,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
                 {ROUTES[element.cle].built ? (
                   <Link
                     href={path(locale, element.cle)}
-                    className="block h-full rounded-xl border border-border bg-card p-6 text-card-foreground transition-colors hover:border-primary"
+                    className="block h-full rounded-xl border border-border bg-card p-6 text-card-foreground transition-colors duration-200 ease-out hover:border-primary"
                   >
                     {corps}
                     <p className="mt-6 text-sm font-medium text-primary-ink underline underline-offset-4">
@@ -213,48 +239,58 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
             );
           })}
         </ul>
-      </Section>
+      </SectionEditoriale>
 
-      <Section
+      <SectionEditoriale
+        numero="05"
         intitule={accueil.conformite.intitule}
         titre={accueil.conformite.titre}
         chapo={accueil.conformite.chapo}
-        largeur="lisible"
-        ton="doux"
+        largeurContenu="lg:col-start-4 lg:col-span-8"
       >
         <dl className="grid gap-x-12 gap-y-10 sm:grid-cols-2">
           {accueil.conformite.elements.map((element, rang) => (
             <div key={element.titre} data-entree data-rang={rang}>
               <dt className="font-semibold text-foreground">{element.titre}</dt>
-              <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{element.texte}</dd>
+              <dd className="mesure mt-2 text-sm leading-relaxed text-muted-foreground">{element.texte}</dd>
             </div>
           ))}
         </dl>
-      </Section>
+      </SectionEditoriale>
 
-      <Section intitule={accueil.perimetre.intitule} titre={accueil.perimetre.titre} largeur="etroite">
+      <SectionEditoriale
+        numero="06"
+        intitule={accueil.perimetre.intitule}
+        titre={accueil.perimetre.titre}
+        ton="doux"
+        largeurContenu="lg:col-start-4 lg:col-span-6"
+      >
         <ul className="flex flex-col gap-4">
           {accueil.perimetre.elements.map((element, rang) => (
-            <li key={element} data-entree data-rang={rang} className="flex gap-4 text-base leading-relaxed">
+            <li key={element} data-entree data-rang={rang} className="flex gap-4 leading-relaxed">
               <Puce />
-              <span className="text-muted-foreground">{element}</span>
+              <span className="mesure text-muted-foreground">{element}</span>
             </li>
           ))}
         </ul>
-      </Section>
+      </SectionEditoriale>
 
       <References locale={locale} />
 
-      <Section>
-        <div data-entree className="rounded-xl border border-border bg-card px-6 py-16 sm:px-12">
-          <div className="max-w-3xl">
-            <h2 className="text-balance text-titre-2 text-foreground">{accueil.final.titre}</h2>
-            <p className="mt-6 text-pretty text-chapo text-muted-foreground">{accueil.final.texte}</p>
-            <div className="mt-10">{appels}</div>
+      <section className="border-t border-border py-20 sm:py-28 lg:py-36">
+        <div className="editorial-conteneur">
+          <div className="grid grid-cols-12 gap-x-6">
+            <div
+              data-entree
+              className="col-span-12 rounded-xl border border-border bg-card px-6 py-16 sm:px-12 lg:col-start-3 lg:col-span-10"
+            >
+              <h2 className="text-balance text-titre-2 text-foreground">{accueil.final.titre}</h2>
+              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{accueil.final.texte}</p>
+              <div className="mt-10">{appels}</div>
+            </div>
           </div>
         </div>
-      </Section>
-
-    </>
+      </section>
+    </div>
   );
 }

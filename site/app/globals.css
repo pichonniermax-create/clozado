@@ -29,6 +29,8 @@
 @theme inline {
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* La seconde famille, réservée aux CHIFFRES. */
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -53,7 +55,7 @@
   --radius-2xl: 16px;
 
   /* L'ÉCHELLE DE TITRES, fluide. `titre-1` n'existe qu'une fois par page. */
-  --text-titre-1: clamp(2.75rem, 1.95rem + 3.2vw, 4rem);
+  --text-titre-1: clamp(2.75rem, 1.4rem + 5.4vw, 6rem);
   --text-titre-1--line-height: 1.02;
   --text-titre-1--letter-spacing: -0.035em;
   --text-titre-1--font-weight: 800;
@@ -70,6 +72,24 @@
 
   --text-chapo: clamp(1.0625rem, 1rem + 0.45vw, 1.375rem);
   --text-chapo--line-height: 1.55;
+
+  /*
+   * L'ÉCHELLE ÉDITORIALE (2026-09-18). Le site n'est plus une page
+   * d'atterrissage : il est composé. Le contraste d'échelle est donc
+   * assumé — un numéro de section peut atteindre 180 px quand le corps
+   * tient à 17 px, et c'est ce rapport de 1 à 10 qui fait la page.
+   */
+  --text-geant: clamp(4.5rem, 1rem + 12vw, 11.25rem);
+  --text-geant--line-height: 0.82;
+  --text-geant--letter-spacing: -0.05em;
+
+  --text-corps: 1.0625rem;
+  --text-corps--line-height: 1.6;
+
+  --text-label: 0.6875rem;
+  --text-label--line-height: 1.2;
+  --text-label--letter-spacing: 0.18em;
+  --text-label--font-weight: 600;
 }
 
 @layer base {
@@ -332,10 +352,10 @@
     @apply bg-card px-4 py-4 sm:px-5;
   }
   .ecran-tuile-valeur {
-    @apply mt-2 text-2xl font-bold tabular-nums tracking-tight text-foreground;
+    @apply mt-2 font-mono text-2xl font-semibold tabular-nums tracking-tight text-foreground;
   }
   .ecran-compte {
-    @apply rounded-full bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums text-foreground;
+    @apply rounded-full bg-muted px-2 py-0.5 font-mono text-xs font-semibold tabular-nums text-foreground;
   }
   .faux-bouton {
     @apply inline-flex shrink-0 items-center rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground;
@@ -349,10 +369,128 @@
   .ecran-cellule {
     @apply px-4 py-3 text-sm tabular-nums sm:px-5;
   }
+  /* Un nombre pris dans une phrase — « sans réponse depuis 24 j » — garde sa
+     police : c'est un chiffre, il ne danse pas pendant qu'il monte. */
+  [data-compteur],
+  td.ecran-cellule {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
   .ecran-rangee {
     @apply border-b border-border transition-colors duration-200 ease-out last:border-b-0 hover:border-primary;
   }
   .piste-passage {
     @apply mt-1 ml-auto block h-[3px] w-24 rounded-full bg-border;
+  }
+}
+
+/*
+ * LE SYSTÈME ÉDITORIAL — l'accueil, 2026-09-18.
+ *
+ * La page quitte la composition centrée. Une grille de DOUZE colonnes la
+ * tient, le contenu y est délibérément désaxé (il commence rarement à la
+ * colonne 1, et ne finit presque jamais au milieu), et certaines sections
+ * rompent la marge pour aller au bord de l'écran.
+ *
+ * Trois règles dures, qui valent plus que le reste :
+ *   — aucun bloc de texte au-delà de 65 caractères de ligne (`.mesure`) ;
+ *   — tout chiffre est en chasse fixe et tabulaire (`.tabulaire`) ;
+ *   — le corps tient à 17 px, et rien ne l'entraîne vers le bas.
+ *
+ * Tout est porté par `.editorial`, posé sur l'accueil : les pages métier
+ * gardent leur composition jusqu'à ce qu'on les reprenne.
+ */
+@layer components {
+  .editorial {
+    font-size: var(--text-corps);
+    line-height: 1.6;
+  }
+
+  /* La gouttière de la page composée : large, et VOLONTAIREMENT inégale au
+     grand écran — la colonne de gauche porte les numéros, la droite laisse
+     les écrans filer vers le bord. */
+  .editorial-conteneur {
+    width: 100%;
+    max-width: 96rem;
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+  }
+  @media (min-width: 768px) {
+    .editorial-conteneur {
+      padding-inline: 2.5rem;
+    }
+  }
+  @media (min-width: 1280px) {
+    .editorial-conteneur {
+      padding-left: 5rem;
+      padding-right: 3rem;
+    }
+  }
+
+  /*
+   * LA MESURE DE LECTURE : 65 caractères, jamais plus.
+   *
+   * Et 65 caractères ne font PAS 65 `ch` : l'unité `ch` vaut la largeur du
+   * zéro (0,6 em en Geist), quand un caractère de texte français en vaut
+   * 0,44 en moyenne. Régler `max-width: 65ch` laissait passer des lignes de
+   * 100 caractères — mesuré au canvas sur la page servie. La borne juste est
+   * donc 42 ch, vérifiée bloc par bloc.
+   */
+  .mesure {
+    max-width: 42ch;
+  }
+
+  /* Un chiffre ne s'écrit jamais dans la police du texte. */
+  .tabulaire {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  /* Le label en petites capitales, précédé de son filet. */
+  .label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: var(--text-label);
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+  .label::before {
+    content: "";
+    display: block;
+    height: 1px;
+    width: 2.5rem;
+    flex: none;
+    background: currentColor;
+    opacity: 0.45;
+  }
+
+  /* Le numéro d'une section : le plus grand caractère de la page, et le
+     plus discret en couleur — il structure, il ne parle pas. */
+  /*
+   * Le numéro d'une section : le plus grand caractère de la page, et le plus
+   * discret en couleur — il structure, il ne parle pas.
+   *
+   * Sa pâleur est une COULEUR, pas une opacité : le numéro porte aussi
+   * `data-entree`, et la règle d'entrée remet l'opacité à 1 en arrivant —
+   * elle écrasait un `opacity: .14` et le numéro virait au noir plein
+   * (constaté à la capture).
+   */
+  .numero-section {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 400;
+    color: #d7d4cc;
+    color: color-mix(in oklab, var(--foreground) 16%, var(--background));
+  }
+
+  /* Rompre la marge : un bloc qui va jusqu'au bord droit de l'écran. */
+  @media (min-width: 1280px) {
+    .rompt-a-droite {
+      margin-right: calc(-3rem - (100vw - min(100vw, 96rem)) / 2);
+    }
   }
 }
