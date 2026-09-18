@@ -133,6 +133,24 @@ export const organizations = pgTable("organizations", {
   /** Au plus un email automatique par contact par période, toutes règles confondues. */
   autoSendPeriodDays: integer("auto_send_period_days").notNull().default(14),
   /** La fenêtre d'envoi automatique : heures de bureau (dans le fuseau de l'organisation), jours ouvrés du lundi au vendredi. */
+  /**
+   * LES GARDE-FOUS D'ENVOI (chantier envoi) — combien d'emails marketing
+   * cette organisation peut envoyer par jour, et depuis quand elle
+   * s'échauffe. La montée est progressive : un domaine neuf qui part à
+   * 5 000 messages se fait classer en spam le premier jour. Le quota du
+   * jour se calcule depuis `send_warmup_started_at` (le palier atteint) et
+   * se plafonne à `daily_send_quota`.
+   */
+  dailySendQuota: integer("daily_send_quota").notNull().default(2000),
+  sendWarmupStartedAt: timestamp("send_warmup_started_at", { withTimezone: true }),
+  /**
+   * L'envoi marketing est SUSPENDU depuis cette date (rebonds ou plaintes
+   * au-dessus du seuil, ou geste du super admin). Les emails relationnels
+   * — lien de connexion, confirmation de rendez-vous, partage — ne sont
+   * jamais suspendus : ils ne sont pas du marketing.
+   */
+  sendingPausedAt: timestamp("sending_paused_at", { withTimezone: true }),
+  sendingPauseReason: text("sending_pause_reason"),
   officeHoursStart: integer("office_hours_start").notNull().default(9),
   officeHoursEnd: integer("office_hours_end").notNull().default(18),
   // --- Démo (chantier du 2026-09-03, migration 0017, docs/module-demo.md §1.1) ---
@@ -156,6 +174,8 @@ export const organizations = pgTable("organizations", {
   // Un jeton d'ingestion ne désigne qu'une organisation.
   uniqueIndex("organizations_ingest_token_unique").on(table.ingestToken).where(sql`${table.ingestToken} IS NOT NULL`),
   check("organizations_auto_send_period_check", sql`${table.autoSendPeriodDays} >= 1 AND ${table.autoSendPeriodDays} <= 365`),
+  check("organizations_daily_send_quota_check", sql`${table.dailySendQuota} >= 0 AND ${table.dailySendQuota} <= 200000`),
+  check("organizations_sending_pause_check", sql`(${table.sendingPausedAt} IS NULL) = (${table.sendingPauseReason} IS NULL)`),
   // Le seuil est borné comme les autres : un jour n'a pas de sens, deux ans non plus.
   check("organizations_partner_stale_days_check", sql`${table.partnerStaleDays} >= 7 AND ${table.partnerStaleDays} <= 730`),
   check(

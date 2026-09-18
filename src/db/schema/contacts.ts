@@ -112,6 +112,22 @@ export const contacts = pgTable(
      */
     partnerAttributedAt: timestamp("partner_attributed_at", { withTimezone: true }),
     source: contactSourceEnum("source").notNull().default("manual"),
+    /**
+     * L'AUTORISATION D'ÉCRIRE (chantier envoi) — le statut COURANT, recopié
+     * du dernier événement de `consent_events` : la vague et les cibles le
+     * lisent sans rejouer le journal. La vérité reste le journal ; ceci est
+     * un cache, et il se reconstruit.
+     *
+     * `not_established` par défaut, y compris pour les fiches d'avant : on
+     * ne s'invente pas une autorisation qu'on n'a pas. Ce que la vague
+     * accepte (`granted`, `client` si le sujet est analogue, `professional`)
+     * et ce qu'elle exclut en le DISANT est décidé à l'envoi, pas ici.
+     */
+    emailConsentStatus: text("email_consent_status").notNull().default("not_established"),
+    emailConsentAt: timestamp("email_consent_at", { withTimezone: true }),
+    /** Le téléphone a sa propre autorisation (démarchage téléphonique, loi du 30 juin 2025). */
+    phoneConsentStatus: text("phone_consent_status").notNull().default("not_established"),
+    phoneConsentAt: timestamp("phone_consent_at", { withTimezone: true }),
     /** Nom du système d'origine (« hubspot », « pipedrive »…) — texte libre, on ne connaît pas la liste du marché. */
     externalSystem: text("external_system"),
     /** Identifiant du contact DANS le système d'origine. */
@@ -182,6 +198,8 @@ export const contacts = pgTable(
     index("contacts_org_name_idx")
       .on(table.organizationId, table.name)
       .where(sql`${table.deletedAt} IS NULL`),
+    check("contacts_email_consent_check", sql`${table.emailConsentStatus} IN ('granted', 'client', 'professional', 'not_established', 'objected')`),
+    check("contacts_phone_consent_check", sql`${table.phoneConsentStatus} IN ('granted', 'client', 'professional', 'not_established', 'objected')`),
     // Filtre « mes contacts » (par conseiller).
     index("contacts_org_owner_idx").on(table.organizationId, table.ownerId),
     // Analytique : arrivées de contacts dans le temps.

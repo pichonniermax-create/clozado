@@ -169,6 +169,13 @@
       "when": 1789747357472,
       "tag": "0023_partenaire_responsable_journal_et_veille",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789759517991,
+      "tag": "0024_autorisations_quotas_et_liste_repoussoir",
+      "breakpoints": true
     }
   ]
 }

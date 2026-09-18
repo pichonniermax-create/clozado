@@ -1,5 +1,7 @@
 export * from "./organizations";
 export * from "./organization-assets";
+export * from "./consent";
+export * from "./platform-suppressions";
 export * from "./users";
 export * from "./auth";
 export * from "./signatories";
