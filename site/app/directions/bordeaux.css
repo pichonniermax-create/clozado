@@ -1,0 +1,46 @@
+/*
+ * DIRECTION DE COULEUR « Bordeaux profond » — sobriété notariale, une couleur qui n'appartient à aucun logiciel
+ *
+ * Les jetons du SITE, distincts de ceux de l'application : le bleu du
+ * produit reste au produit. La grammaire, elle, ne change pas — neutres à
+ * chroma minuscule sur la teinte de l'accent, accent réservé à ce qui est
+ * actionnable, aucune couleur décorative.
+ *
+ * Contrastes vérifiés par calcul (oklch → sRGB), clair et sombre :
+ *   texte 18,25:1 · secondaire 5,86:1 sur le fond et 6,05:1 sur carte
+ *   lien 8,82:1 · bouton 8,84:1 — sombre : 16,83 / 7,48 / 8,57 / 6,37
+ */
+:root {
+  --background: oklch(0.989 0.003 40);
+  --foreground: oklch(0.18 0.014 30);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.014 30);
+  --muted: oklch(0.964 0.006 40);
+  --muted-foreground: oklch(0.5 0.018 30);
+  --border: oklch(0.91 0.008 40);
+  --primary: oklch(0.42 0.14 20);
+  --primary-foreground: oklch(0.99 0.004 40);
+  --primary-hover: oklch(0.36 0.13 20);
+  --primary-ink: oklch(0.42 0.14 20);
+  --primary-soft: oklch(0.955 0.025 25);
+  --ring: oklch(0.42 0.14 20);
+  --radius: 0.625rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(0.168 0.01 30);
+    --foreground: oklch(0.955 0.005 40);
+    --card: oklch(0.208 0.012 30);
+    --card-foreground: oklch(0.955 0.005 40);
+    --muted: oklch(0.264 0.014 30);
+    --muted-foreground: oklch(0.712 0.012 30);
+    --border: oklch(1 0 0 / 11%);
+    --primary: oklch(0.68 0.13 22);
+    --primary-foreground: oklch(0.16 0.018 25);
+    --primary-hover: oklch(0.76 0.115 22);
+    --primary-ink: oklch(0.76 0.105 25);
+    --primary-soft: oklch(0.272 0.04 25);
+    --ring: oklch(0.68 0.13 22);
+  }
+}

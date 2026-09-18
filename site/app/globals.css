@@ -1,21 +1,25 @@
 @import "tailwindcss";
 
 /*
- * LE DESIGN SYSTEM DU SITE — les jetons de l'application (src/app/globals.css),
- * recopiés ici plutôt qu'importés : le site ne doit dépendre d'aucun fichier
- * de l'application, sans quoi un déploiement de l'une casserait l'autre.
- * Quand une valeur change côté produit, elle se recopie ici sciemment.
+ * LA DIRECTION DE COULEUR DU SITE — une seule ligne à changer, celle qui suit.
  *
- * La retenue chromatique est la même : les neutres portent une chroma
- * minuscule (0.004–0.02) sur la teinte du bleu de marque — pas de gris
- * informatique — et le bleu ne sert qu'à ce qui est actionnable. Aucune
- * couleur décorative.
+ * Deux directions sont écrites, chacune avec son mode sombre et ses
+ * contrastes vérifiés par calcul : `directions/verte.css` (vert forêt) et
+ * `directions/bordeaux.css` (bordeaux profond). Elles remplacent le bleu de
+ * l'application — le bleu du produit reste au produit.
  *
- * Contrastes vérifiés (WCAG AA, calcul oklch → sRGB) : texte secondaire
- * 5,10:1 sur le fond et 5,28:1 sur une carte ; lien 4,99:1 ; texte du
- * bouton principal 5,50:1 ; en sombre, 7,65:1 et 6,49:1.
+ * Le thème clair/sombre suit le système : aucun sélecteur, donc aucun
+ * JavaScript, donc aucun clignotement au chargement.
  */
+@import "./directions/verte.css";
 
+/*
+ * LE DESIGN SYSTEM DU SITE — la grammaire reste celle de l'application
+ * (src/app/globals.css) : neutres à chroma minuscule sur la teinte de
+ * l'accent, accent réservé à ce qui est actionnable, rouge/ambre/vert
+ * jamais décoratifs. Seule la palette diffère, et elle vit dans
+ * `directions/`.
+ */
 @theme inline {
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -38,44 +42,6 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
-}
-
-:root {
-  --background: oklch(0.988 0.002 264);
-  --foreground: oklch(0.21 0.018 264);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.018 264);
-  --muted: oklch(0.968 0.004 264);
-  --muted-foreground: oklch(0.53 0.022 264);
-  --border: oklch(0.918 0.006 264);
-  --primary: oklch(0.52 0.168 263);
-  --primary-foreground: oklch(0.99 0.002 264);
-  --primary-hover: #1652da;
-  --primary-ink: #2563eb;
-  --primary-soft: #e9f1ff;
-  --ring: oklch(0.52 0.168 263);
-  --radius: 0.625rem;
-}
-
-/* Le thème suit le système : aucun sélecteur, donc aucun JavaScript, donc
-   aucun clignotement au chargement. Les valeurs sont celles du mode sombre
-   de l'application, déjà tenues à jour là-bas. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(0.175 0.014 264);
-    --foreground: oklch(0.96 0.004 264);
-    --card: oklch(0.216 0.016 264);
-    --card-foreground: oklch(0.96 0.004 264);
-    --muted: oklch(0.27 0.018 264);
-    --muted-foreground: oklch(0.72 0.018 264);
-    --border: oklch(1 0 0 / 11%);
-    --primary: oklch(0.68 0.152 263);
-    --primary-foreground: oklch(0.17 0.02 264);
-    --primary-hover: #8fb2ff;
-    --primary-ink: #6296ff;
-    --primary-soft: #23304a;
-    --ring: oklch(0.68 0.152 263);
-  }
 }
 
 @layer base {

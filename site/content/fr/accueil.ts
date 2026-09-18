@@ -18,7 +18,18 @@ export const accueil = {
       "Clozado suit ce qui attend une relance, les affaires que vous confiez à un confrère et les commissions qui vous restent dues, et la communication que vous adressez à vos clients.",
     precision: "Il s’installe à côté de votre CRM : vous gardez le vôtre.",
     note: "Démonstration en lecture seule, sans inscription.",
+    visuelAlt:
+      "L’écran Suivi de Clozado : la pile « Partages sans réponse » liste huit affaires confiées à un confrère, chacune avec le nom du partenaire, le nombre de jours écoulés sans réponse et un bouton « Renvoyer le lien » ; la pile « Acceptées sans suite » commence dessous.",
   },
+
+  /**
+   * LES CAPTURES VIENNENT DE LA DÉMONSTRATION PUBLIQUE, donc d'un cabinet
+   * fictif. Les nombres qu'on y lit sont inventés par construction : il faut
+   * le dire à l'écran, sinon la page présente des chiffres non sourcés —
+   * exactement ce qu'elle s'interdit partout ailleurs.
+   */
+  mentionCaptures:
+    "Les captures de cette page viennent de la démonstration publique : un cabinet fictif, des données inventées.",
 
   probleme: {
     intitule: "Le constat",
@@ -42,25 +53,66 @@ export const accueil = {
     ],
   },
 
-  produit: {
+  preuves: {
     intitule: "Le produit",
-    titre: "Ce que Clozado tient à votre place",
+    titre: "Trois affirmations, et l’écran qui les prouve",
     elements: [
       {
-        titre: "Ce qui attend une action, en trois piles",
+        cle: "tableau-de-bord" as const,
+        titre: "Ce qui attend une action, dès l’ouverture",
         texte:
-          "Les partages sans réponse, les dossiers acceptés puis restés sans suite, les commissions confirmées non réglées. Et une liste de tâches — échéance, priorité, responsable — qui se referme d’un clic depuis n’importe quel écran.",
+          "Quatre nombres et la liste du jour : les tâches en retard, les partages qu’il faut relancer, les dossiers acceptés puis restés sans suite, et ce qui reste à encaisser. Chaque tuile mène à l’écran où l’on agit.",
+        points: [
+          "Les tâches de relance naissent du suivi, pas d’une saisie.",
+          "Une tâche se referme d’un clic, depuis n’importe quel écran.",
+          "Les indicateurs mis en avant sont ceux de votre métier.",
+        ],
+        alt: "Le tableau de bord de Clozado : quatre tuiles — trente et une tâches à faire dont trente et une en retard, huit partages sans réponse, quatre dossiers acceptés sans suite, 4 476 € de commissions à encaisser — puis la liste des tâches du jour, chacune avec son échéance, sa priorité et le contact concerné.",
       },
       {
+        cle: "regles" as const,
         titre: "Des relances écrites en phrases",
         texte:
-          "Une règle se lit : aucun rendez-vous depuis quinze jours, alors créer une tâche pour le conseiller. Un déclencheur, un seuil, des conditions, une action. Rien d’implicite.",
+          "Une règle se lit d’un coup d’œil : « Sans rendez-vous après 7 jours → tâche ». Un déclencheur, un seuil, des conditions, une action. Et pour celles qui écrivent un email, une vague de brouillons qu’une personne relit avant d’envoyer.",
+        points: [
+          "Le dernier passage et son résultat s’affichent sous chaque règle.",
+          "La vague annonce exactement combien d’emails un clic enverra.",
+          "Aucun envoi automatique ne part sans ce clic.",
+        ],
+        alt: "L’écran Règles de relance de Clozado : une vague de deux emails en attente, avec le bouton « Envoyer les 2 emails », et deux règles écrites chacune en une phrase avec leur déclencheur et leur action.",
       },
       {
-        titre: "Aucun email automatique ne part sans un clic",
+        cle: "funnel" as const,
+        titre: "Des indicateurs à définition unique",
         texte:
-          "Les règles préparent une vague de brouillons. Une personne les relit et les envoie. À l’envoi, chaque garde-fou est revérifié : arrêt demandé, désinscription, plafond d’emails par contact, heures de bureau.",
+          "De la visite à la signature, une seule chaîne : combien passent chaque pas, combien se perdent, et depuis quelle origine. Chaque indicateur porte sa définition à côté du chiffre, et l’export CSV reprend la même.",
+        points: [
+          "Le libellé d’un pas ouvre la liste des affaires qu’il compte.",
+          "Un taux calculé sur trop peu d’observations n’est pas affiché.",
+          "La période se choisit une fois et vaut pour tout le produit.",
+        ],
+        alt: "L’écran Funnel de conversion de Clozado : la chaîne visiteurs, simulations démarrées, simulations terminées, leads reçus, contacts établis, affaires issues de ces leads et affaires gagnées, avec le nombre, le taux de passage et la déperdition à chaque pas.",
       },
+    ],
+  },
+
+  /** La rupture de rythme : une bande sombre, une seule phrase, trois appuis. C'est le point qui nous distingue. */
+  rupture: {
+    titre: "Aucun email automatique ne part sans qu’une personne l’ait relu.",
+    elements: [
+      { titre: "La règle prépare", texte: "Elle écrit des brouillons. Elle n’envoie rien." },
+      { titre: "Une personne relit", texte: "La vague montre chaque message, et ce qu’un clic enverra." },
+      {
+        titre: "Les garde-fous sont revérifiés",
+        texte: "À l’envoi : arrêt demandé, désinscription, plafond par contact, heures de bureau.",
+      },
+    ],
+  },
+
+  reste: {
+    intitule: "Le reste du produit",
+    titre: "Ce que vous n’aurez plus à tenir ailleurs",
+    elements: [
       {
         titre: "Les affaires confiées à un confrère",
         texte:
@@ -72,9 +124,9 @@ export const accueil = {
           "Vos cibles sont des segments vivants de votre base — étiquettes, ville, affaires en cours — recalculés à chaque consultation. Le composeur ne cite que des chiffres qui portent leur source et leur date.",
       },
       {
-        titre: "Des indicateurs à définition unique",
+        titre: "Les emails reçus, rattachés tout seuls",
         texte:
-          "Funnel, délais, pertes, apporteurs, origines. Chaque indicateur a une définition écrite une fois, affichée à l’écran à côté du chiffre, et reprise à l’identique dans les exports.",
+          "Transférez un email à votre adresse d’ingestion, ou mettez-la en copie cachée : le produit propose une fiche et une interaction. Rien n’est écrit sans votre confirmation.",
       },
     ],
   },
