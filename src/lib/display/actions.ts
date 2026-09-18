@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import {
   countOwnViews,
+  listViews,
   createView,
   deleteView,
   duplicateView,
@@ -235,4 +236,28 @@ export async function toggleNavFavoriteAction(href: string): Promise<void> {
   const current = (preferenceList(await getPreferences(user), PREF.navFavorites) ?? []).filter((h) => known.has(h));
   const next = current.includes(href) ? current.filter((h) => h !== href) : [...current, href].slice(-MAX_NAV_FAVORITES);
   await rememberPreference(user, PREF.navFavorites, next);
+}
+
+/**
+ * MONTER OU DESCENDRE une vue dans la liste (reste du lot 1). L'ordre est
+ * personnel : il vit dans `user_preferences`, pas sur la vue — l'ordre d'un
+ * admin ne s'impose à personne, et les vues FOURNIES (qui vivent dans le
+ * code, sans ligne en base) se classent comme les autres.
+ *
+ * On enregistre la liste ENTIÈRE telle qu'elle est affichée, une fois les
+ * deux voisines échangées : pas de numéros à recalculer, pas de trous, et
+ * une vue supprimée disparaît d'elle-même de l'ordre à la lecture suivante.
+ */
+export async function moveViewAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const screen = screenOrThrow(String(formData.get("ecran") ?? ""));
+  const id = String(formData.get("vue") ?? "");
+  const direction = String(formData.get("sens") ?? "") === "bas" ? 1 : -1;
+  const ids = (await listViews(user, screen)).map((v) => v.id);
+  const from = ids.indexOf(id);
+  const to = from + direction;
+  if (from < 0 || to < 0 || to >= ids.length) return;
+  [ids[from], ids[to]] = [ids[to], ids[from]];
+  await rememberPreference(user, PREF.viewOrder(screen), ids);
+  revalidatePath("/", "layout");
 }

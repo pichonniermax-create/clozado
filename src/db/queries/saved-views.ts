@@ -3,6 +3,7 @@ import { and, asc, eq, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { savedViews, SAVED_VIEW_SCREENS, type SavedViewScreen } from "@/db/schema";
 import { AppError } from "@/lib/errors";
+import { getPreferences, PREF, preferenceList } from "./preferences";
 import { BUILT_IN_VIEWS, builtInViewId, builtInViewKey } from "@/lib/display/built-in-views";
 import { displayScreen, screenForView } from "@/lib/display/screens";
 import { parseDensity, sanitizeScreenState, VIEW_PARAM, type Density, type ScreenState } from "@/lib/display/state";
@@ -129,7 +130,20 @@ export const listViews = cache(async function listViews(user: SessionUser, scree
   }));
 
   // Les vues fournies d'abord (le cadrage d'usine), puis celles de l'équipe, puis les personnelles.
-  return [...provided, ...stored.filter((v) => !v.mine), ...stored.filter((v) => v.mine)];
+  const natural = [...provided, ...stored.filter((v) => !v.mine), ...stored.filter((v) => v.mine)];
+
+  /**
+   * L'ORDRE CHOISI (reste du lot 1) — par PERSONNE, dans `user_preferences`,
+   * jamais en base sur la vue : `saved_views.position` aurait imposé l'ordre
+   * d'un admin à toute l'équipe et laissé les vues fournies (qui vivent dans
+   * le code) hors du classement. Ici, une liste d'identifiants ; ce qui n'y
+   * figure pas garde sa place naturelle, derrière ce qui y figure. Un tri
+   * STABLE : sans préférence, l'ordre ne bouge pas d'un pouce.
+   */
+  const order = preferenceList(await getPreferences(user), PREF.viewOrder(screen)) ?? [];
+  if (order.length === 0) return natural;
+  const rank = new Map(order.map((id, i) => [id, i]));
+  return [...natural].sort((a, b) => (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER));
 });
 
 /** Une vue par son identifiant, pour l'appliquer — fournie (code) ou enregistrée (base). */

@@ -195,7 +195,22 @@ millisecondes, à confirmer sur la production.
 |---|---|
 | Constructeur de filtres générique (opérateurs par type, §1.4 point 4) | **lot 3, étape 0** — voir §3.0 |
 | Période sur les partenaires (sans objet tant que la liste n'a aucun chiffre daté) | **lot 3**, avec les chiffres |
-| Ordre des vues (`position` en base, pas réglable à l'écran) | **plus tard**, non planifié |
+| Ordre des vues (`position` en base, pas réglable à l'écran) | **FAIT le 2026-09-18** — voir ci-dessous |
+
+**L'ordre des vues, réglé à l'écran (2026-09-18)** : deux gestes sur la vue
+ouverte — « Monter cette vue », « Descendre cette vue ». L'ordre est
+PERSONNEL et vit dans `user_preferences` (`ordre-vues:<écran>`), pas dans
+`saved_views.position` : la colonne en base aurait imposé l'ordre d'un admin
+à toute l'équipe, et laissé les vues FOURNIES (qui vivent dans le code, sans
+ligne en base) hors du classement. La liste entière est enregistrée telle
+qu'elle s'affiche, deux voisines échangées : pas de numéros à recalculer, et
+une vue supprimée disparaît d'elle-même de l'ordre. Le tri est stable —
+sans préférence, rien ne bouge. Pas de flèches dans chaque ligne du menu :
+une entrée de menu n'est pas un conteneur de boutons, le clavier s'y perdrait.
+
+**Preuve** : `scripts/_tmp-vues-ordre.ts`, 6 contrôles au vert — l'ordre
+enregistré en base, la vue remontée d'un cran, aucune vue perdue au passage,
+et l'ordre d'une personne qui ne s'impose pas à son collègue.
 
 Effort : L. Dépend de : rien d'autre (les préférences sont le socle des
 lots 3 et 4).

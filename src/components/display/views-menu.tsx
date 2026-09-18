@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Check, EyeOff, Home, ListFilter, Pencil, Plus, RotateCcw, Save, Share2, Trash2, Users } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, EyeOff, Home, ListFilter, Pencil, Plus, RotateCcw, Save, Share2, Trash2, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -26,6 +26,7 @@ import {
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
+  moveViewAction,
   resetDisplayAction,
   saveViewAction,
   setDefaultViewAction,
@@ -160,6 +161,21 @@ export function ViewsMenu({
                     >
                       <Share2 className="size-4" aria-hidden />
                       {current.shared ? t("ne_plus_partager") : t("partager_a_l_equipe")}
+                    </DropdownMenuItem>
+                  )}
+                  {/* L'ORDRE DES VUES (reste du lot 1) : deux gestes sur la vue ouverte, jamais des flèches dans
+                      chaque ligne du menu — une entrée de menu n'est pas un conteneur de boutons, et le clavier
+                      s'y perdrait. L'ordre est personnel : il ne bouge que pour celui qui le règle. */}
+                  {views.length > 1 && views[0]?.id !== current.id && (
+                    <DropdownMenuItem onClick={() => run(moveViewAction, { ecran: screen, vue: current.id, sens: "haut" })}>
+                      <ArrowUp className="size-4" aria-hidden />
+                      {t("monter_la_vue")}
+                    </DropdownMenuItem>
+                  )}
+                  {views.length > 1 && views[views.length - 1]?.id !== current.id && (
+                    <DropdownMenuItem onClick={() => run(moveViewAction, { ecran: screen, vue: current.id, sens: "bas" })}>
+                      <ArrowDown className="size-4" aria-hidden />
+                      {t("descendre_la_vue")}
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={() => run(setDefaultViewAction, { ecran: screen, vue: current.id === defaultViewId ? "" : current.id })}>

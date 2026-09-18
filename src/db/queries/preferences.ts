@@ -36,6 +36,8 @@ export const PREF = {
   columns: (table: string) => `colonnes:${table}`,
   /** La vue ouverte par défaut sur un écran. */
   defaultView: (screen: string) => `vue-par-defaut:${screen}`,
+  /** L'ordre des vues d'un écran, choisi par la personne (lot 1, reste) : des identifiants de vues. */
+  viewOrder: (screen: string) => `ordre-vues:${screen}`,
   /** La barre de navigation reste dépliée (lot 4) : vrai ou faux. */
   navPinned: "nav:epingle",
   /** Les écrans épinglés en haut de la barre (lot 4) : des chemins, dans l'ordre choisi. */
@@ -43,7 +45,7 @@ export const PREF = {
 } as const;
 
 /** Les préfixes qu'une réinitialisation d'affichage efface (les vues enregistrées, elles, survivent). */
-const RESETTABLE_PREFIXES = ["ecran:", "colonnes:", "vue-par-defaut:"] as const;
+const RESETTABLE_PREFIXES = ["ecran:", "colonnes:", "vue-par-defaut:", "ordre-vues:"] as const;
 const RESETTABLE_KEYS = [PREF.period, PREF.density, PREF.hiddenViews] as const;
 
 /** La même contrainte qu'en base, vérifiée avant l'aller-retour : une clé inventée n'atteint pas la base. */
