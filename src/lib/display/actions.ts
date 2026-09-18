@@ -92,10 +92,17 @@ export async function setDefaultViewAction(formData: FormData): Promise<void> {
   const view = screenOrThrow(String(formData.get("ecran") ?? ""));
   const screen = screenForView(view)!;
   const id = String(formData.get("vue") ?? "");
-  let destination = screen.href;
+  // Désigner une vue par défaut ne fait pas SORTIR de cette vue : on revient dedans (`?v=`), sinon le menu
+  // rebascule sur « Affichage libre » et la personne perd l'écran qu'elle était en train de régler.
+  // Retirer le réglage, à l'inverse, rend l'écran nu — c'est précisément ce qu'on demande.
+  let destination = id ? `${screen.href}?${VIEW_PARAM}=${encodeURIComponent(id)}` : screen.href;
   try {
-    if (!id) await rememberPreference(user, PREF.defaultView(view), null);
-    else {
+    if (!id) {
+      // « Retirer par défaut » rend l'AFFICHAGE D'ORIGINE du module : sans cela, on retomberait
+      // sur le dernier état mémorisé — le souvenir d'hier au lieu de l'écran nu (2026-09-18).
+      await rememberPreference(user, PREF.defaultView(view), null);
+      await resetPreferences(user, screen.key);
+    } else {
       const found = await getView(user, view, id);
       if (!found) throw new AppError("vue_introuvable", undefined, 404);
       await rememberPreference(user, PREF.defaultView(view), id);

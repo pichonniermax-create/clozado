@@ -118,10 +118,13 @@ export function ViewsMenu({
               </DropdownMenuItem>
               {views.map((view) => (
                 <DropdownMenuItem key={view.id} render={<Link href={href(view.id)} />}>
-                  <span className="flex-1 truncate">{label(view)}</span>
-                  {view.shared && !view.mine && <Users className="size-3.5 text-muted-foreground" aria-label={t("vue_d_equipe")} />}
-                  {view.id === defaultViewId && <Home className="size-3.5 text-muted-foreground" aria-label={t("vue_d_accueil")} />}
-                  {view.id === currentId && <Check className="size-4" aria-hidden />}
+                  <span className="min-w-0 flex-1 truncate">{label(view)}</span>
+                  {view.shared && !view.mine && <Users className="size-3.5 shrink-0 text-muted-foreground" aria-label={t("vue_d_equipe")} />}
+                  {/* La vue par défaut se voit d'un coup d'œil : le mot, pas seulement une icône (2026-09-18). */}
+                  {view.id === defaultViewId && (
+                    <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[0.625rem] font-medium text-muted-foreground">{t("par_defaut")}</span>
+                  )}
+                  {view.id === currentId && <Check className="size-4 shrink-0" aria-hidden />}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuGroup>
@@ -161,7 +164,7 @@ export function ViewsMenu({
                   )}
                   <DropdownMenuItem onClick={() => run(setDefaultViewAction, { ecran: screen, vue: current.id === defaultViewId ? "" : current.id })}>
                     <Home className="size-4" aria-hidden />
-                    {current.id === defaultViewId ? t("ne_plus_ouvrir_par_defaut") : t("ouvrir_ce_module_sur_cette_vue")}
+                    {current.id === defaultViewId ? t("retirer_par_defaut") : t("definir_comme_vue_par_defaut")}
                   </DropdownMenuItem>
                   {current.builtin && (
                     <DropdownMenuItem onClick={() => run(toggleHiddenViewAction, { ecran: screen, vue: current.id })}>

@@ -68,26 +68,31 @@ export async function resolveDisplay(
 }
 
 /**
- * LES LIENS DE LA NAVIGATION (lot 1, étape 1) — chaque entrée mène à
- * l'écran TEL QU'ON L'A LAISSÉ : ses filtres, sa page, sa vue. Une seule
- * lecture pour toute la coquille (les préférences sont déjà mémoïsées) ;
- * sans rien de mémorisé, l'entrée garde son chemin nu.
+ * LES LIENS DE LA NAVIGATION — où mène chaque entrée du menu. Deux règles,
+ * dans cet ordre (correction du 2026-09-18) :
  *
- * Quand rien n'est mémorisé mais qu'une vue d'accueil est choisie pour ce
- * module, c'est elle qui ouvre : `?v=<vue>` suffit, l'écran la déplie —
- * la coquille n'a aucune vue à charger.
+ * 1. la VUE PAR DÉFAUT du module, si la personne en a désigné une : elle
+ *    s'ouvre à chaque arrivée, c'est tout le sens du réglage. Un choix
+ *    durable et explicite passe avant un souvenir implicite ;
+ * 2. sinon le DERNIER ÉTAT de l'écran (lot 1, étape 1) : ses filtres, son
+ *    tri, sa page — revenir, c'est retrouver son travail ;
+ * 3. sinon le chemin nu.
+ *
+ * `?v=<vue>` suffit pour la première règle : l'écran déplie la vue
+ * lui-même, la coquille n'en charge aucune. Une seule lecture pour toute
+ * la coquille (les préférences sont déjà mémoïsées).
  */
 export async function navigationHrefs(user: SessionUser): Promise<Record<string, string>> {
   const preferences = await getPreferences(user);
   const hrefs: Record<string, string> = {};
   for (const screen of DISPLAY_SCREENS) {
-    const state = parseScreenState(screen, preferences.get(PREF.screen(screen.key)));
-    if (Object.keys(state).length > 0) {
-      hrefs[screen.href] = `${screen.href}${queryString(state)}`;
+    const byDefault = screen.view ? preferenceString(preferences, PREF.defaultView(screen.view)) : undefined;
+    if (byDefault) {
+      hrefs[screen.href] = `${screen.href}?${VIEW_PARAM}=${encodeURIComponent(byDefault)}`;
       continue;
     }
-    const fallback = screen.view ? preferenceString(preferences, PREF.defaultView(screen.view)) : undefined;
-    if (fallback) hrefs[screen.href] = `${screen.href}?${VIEW_PARAM}=${encodeURIComponent(fallback)}`;
+    const state = parseScreenState(screen, preferences.get(PREF.screen(screen.key)));
+    if (Object.keys(state).length > 0) hrefs[screen.href] = `${screen.href}${queryString(state)}`;
   }
   return hrefs;
 }

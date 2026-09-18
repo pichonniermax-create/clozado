@@ -13,13 +13,21 @@ prochaines après les correctifs — à confirmer avant le premier commit.
 |---|---|---|---|
 | 1 | État d'affichage mémorisé, période partagée, vues enregistrées, filtres, colonnes et densité | C partie 3, nouvelle étape 3 (« priorité de construction après les correctifs ») | oui |
 | 2 | Origine et propriétaire d'un contact : « Apporté par », conseiller dès la création, import CSV, une seule notion d'origine | ajout 2.1 (conception rattachée à C partie 3 étape 5) | oui |
-| 3 | Module Partenaires : liste en tableau chiffré, fiche en lecture, définitions uniques, « sans apport depuis N jours » | ajout 2.2 | oui |
+| 3 | **Constructeur de filtres** (étape 0), puis module Partenaires : liste en tableau chiffré, fiche en lecture, définitions uniques, « sans apport depuis N jours » | ajout 2.2 ; filtres commandés le 2026-09-18 | oui |
 | 4 | Barre de navigation fine (Brevo), panneau, favoris, clavier, mobile | C partie 3, nouvelle étape 2 | oui (favoris, épingle) |
 
 Ordre proposé : 1 → 2 → 3 → 4. Le lot 1 porte l'infrastructure de
 préférences que 3 et 4 réutilisent ; le lot 2 pose l'apport partenaire dont
 les chiffres du lot 3 dépendent ; le lot 4 dépend des jetons du chantier H
 (voir §4).
+
+**Arbitrage du 2026-09-18** — le constructeur de filtres, laissé de côté au
+lot 1, ouvre le **lot 3** (§3.0) plutôt que le lot 4 : le lot 3 construit
+justement une liste chiffrée avec tri, filtres, vues et colonnes, il lui
+faut ce moteur de toute façon, et le poser d'abord le rend disponible du
+même coup sur les contacts et les affaires. Le lot 4 (barre de navigation)
+ne partage rien avec lui. Il arrive après le lot 2 : filtrer les contacts
+par « apporté par » suppose que la colonne existe.
 
 ---
 
@@ -181,12 +189,13 @@ par le proxy HTTP local contre 1 à 3 ms entre `fra1` et Neon
 `eu-central-1` : le coût attendu en production est de quelques
 millisecondes, à confirmer sur la production.
 
-**Ce qui reste du lot 1** : le constructeur de filtres GÉNÉRIQUE (opérateurs
-par type sur tous les champs du modèle, §1.4 point 4) n'est pas fait — les
-filtres livrés sont les filtres rapides nommés au brief plus ceux qui
-existaient. Les partenaires n'ont pas de période tant que leur liste ne
-porte aucun chiffre daté (lot 3). L'ordre des vues (`position`) est en base
-mais ne se règle pas encore à l'écran.
+**Ce qui reste du lot 1, et où c'est parti** (arbitrage du 2026-09-18) :
+
+| Manque | Destination |
+|---|---|
+| Constructeur de filtres générique (opérateurs par type, §1.4 point 4) | **lot 3, étape 0** — voir §3.0 |
+| Période sur les partenaires (sans objet tant que la liste n'a aucun chiffre daté) | **lot 3**, avec les chiffres |
+| Ordre des vues (`position` en base, pas réglable à l'écran) | **plus tard**, non planifié |
 
 Effort : L. Dépend de : rien d'autre (les préférences sont le socle des
 lots 3 et 4).
@@ -194,6 +203,38 @@ lots 3 et 4).
 ---
 
 ## 2. Origine et propriétaire d'un contact
+
+### 2.0 Correction du lot 1 : la vue par défaut se désigne depuis la vue ouverte (2026-09-18)
+
+Demandé après la validation du lot 1. Ne dépend d'aucune colonne nouvelle,
+donc traité en premier, pendant que la migration 0022 attend.
+
+**Ce qui existait déjà** : le réglage est bien par personne ET par module
+(`user_preferences`, clé `vue-par-defaut:<écran>`), il se pose depuis le
+menu de la vue ouverte, il vaut pour les vues fournies, et une vue
+partagée par l'admin peut être choisie comme défaut par chacun sans rien
+imposer aux autres.
+
+**Ce qui manquait, et qui change** :
+
+1. **La priorité était inversée.** L'entrée de navigation menait au
+   DERNIER état de l'écran, et la vue par défaut ne servait que s'il n'y
+   avait rien de mémorisé. « Elle s'ouvrira à chaque arrivée sur ce
+   module » veut dire l'inverse : la vue par défaut gagne. Choix durable
+   et explicite contre souvenir implicite — l'explicite l'emporte. La
+   mémoire d'écran du lot 1 continue de servir partout où aucune vue par
+   défaut n'est posée.
+2. **Les mots.** « Ouvrir ce module sur cette vue » devient « Définir
+   comme vue par défaut » ; « Ne plus ouvrir par défaut » devient
+   « Retirer par défaut ».
+3. **La liste des vues le dit en clair**, pas seulement par une icône.
+4. **« Retirer par défaut » rend l'affichage d'origine du module** : le
+   réglage ET le dernier état mémorisé de cet écran sont retirés, sinon
+   on retomberait sur le souvenir d'hier plutôt que sur l'écran nu.
+
+**Preuve attendue** (celle demandée) : une vue par défaut posée sur les
+contacts, quitter le module, y revenir, elle s'ouvre ; idem après
+rechargement et depuis un autre navigateur ; chez Thomas, rien n'a bougé.
 
 ### 2.1 Faits
 
@@ -249,7 +290,69 @@ Effort : M. Dépend de : rien ; le lot 3 en dépend.
 
 ---
 
-## 3. Module Partenaires
+## 3. Constructeur de filtres, puis module Partenaires
+
+### 3.0 Constructeur de filtres (étape 0, commandé le 2026-09-18)
+
+Le manque retenu du lot 1. Une personne doit pouvoir écrire, sans
+l'écrire : « montant supérieur à 200 000 ET étape égale à Négociation ET
+conseiller égal à moi ». Aujourd'hui, seuls les filtres rapides nommés au
+brief existent ; tout le reste demande une URL forgée à la main.
+
+**Ce qui est demandé**
+
+- Filtres combinables sur les champs du modèle **et sur les champs
+  personnalisés**.
+- Opérateurs selon le TYPE du champ :
+
+  | Type | Opérateurs |
+  |---|---|
+  | Texte | contient, commence par, est, est vide |
+  | Nombre et montant | supérieur, inférieur, entre |
+  | Date | avant, après, entre, dans les N derniers jours |
+  | Liste | est, n'est pas, fait partie de |
+  | Booléen | vrai, faux |
+
+- Combinaison **ET par défaut** ; le **OU** si on sait le rendre lisible —
+  sinon on s'en passe et on le dit.
+- Filtres actifs affichés et retirables un à un (les pastilles du lot 1,
+  étendues), nombre de résultats visible.
+- Une vue enregistrée porte ces filtres comme elle porte le reste : ils
+  entrent dans `saved_views.definition`, sous la même liste blanche.
+
+**Ce qu'il faut regarder avant de coder**
+
+- **Les champs personnalisés n'existent pas** dans le produit : aucune
+  table, aucune colonne (vérifié le 2026-09-18 sur `src/db/schema`). Ce
+  qui s'en approche : les étiquettes de contact (`contact_tags`,
+  `contact_tag_assignments`) et les « chiffres vérifiés »
+  (`verified_figures`). Deux routes possibles, à trancher avec
+  l'utilisateur : (a) le constructeur ne couvre d'abord que les champs du
+  modèle et les étiquettes, les champs personnalisés arrivant avec leur
+  propre construction ; (b) on construit les champs personnalisés dans le
+  même lot, ce qui l'allonge nettement (définition par organisation,
+  valeurs par fiche, saisie, import, migration dédiée).
+- L'adresse reste la vérité (lot 1) : un jeu de filtres doit s'écrire dans
+  l'URL sans devenir illisible, et rester dans la liste blanche de
+  l'écran. C'est le point de conception principal — un paramètre par
+  filtre ne tient pas, un JSON encodé dans l'URL se partage mal. Proposer
+  la forme avant de coder.
+- Réutiliser ce qui existe plutôt que d'inventer : `parseMetricFilters`,
+  `parseDealSelection`, et surtout le **moteur de critères des cibles**
+  (`src/lib/targets`), qui sait déjà composer des conditions typées.
+- La sécurité ne bouge pas : les filtres sont rejoués côté serveur dans
+  les requêtes existantes, sous `orgScope`, jamais des identifiants de
+  fiches figés.
+
+**Preuves attendues** : l'exemple de l'utilisateur construit à l'écran et
+rendant le bon nombre de lignes, recalculé par requête à la main ; chaque
+type d'opérateur exercé une fois ; un jeu de filtres enregistré en vue,
+rouvert dans une fenêtre neuve, identique ; un member qui ouvre une vue
+filtrée ne voit rien de plus que son rôle.
+
+Effort : M à L selon la route retenue pour les champs personnalisés.
+Dépend de : lot 1 (vues, pastilles, liste blanche) et lot 2 (pour filtrer
+sur l'apporteur).
 
 ### 3.1 Faits
 
