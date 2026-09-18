@@ -83,7 +83,7 @@ export default async function Demo(props: PageProps<"/[locale]/demo">) {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 lg:grid-cols-2">
+        <div className="grille-cartes mt-12" data-colonnes="2-lg" style={{ "--ecart": "1.5rem" } as React.CSSProperties}>
           <Geste
             locale={locale}
             surtitre={demo.ouvrir.surtitre}

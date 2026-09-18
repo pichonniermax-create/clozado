@@ -41,6 +41,7 @@ export function NavDeroulant({
   intitule,
   entrees,
   classeLien,
+  classeCourante,
 }: {
   href: string;
   libelle: string;
@@ -48,6 +49,7 @@ export function NavDeroulant({
   intitule: string;
   entrees: readonly { href: string; libelle: string }[];
   classeLien: string;
+  classeCourante: string;
 }) {
   const [ouvert, setOuvert] = useState(false);
   const groupe = useRef<HTMLLIElement>(null);
@@ -160,8 +162,9 @@ export function NavDeroulant({
         href={href}
         aria-expanded={ouvert}
         aria-controls={`${identifiant}-panneau`}
+        aria-current={chemin === href ? "page" : undefined}
         onClick={auClic}
-        className={classeLien}
+        className={chemin === href ? classeCourante : classeLien}
       >
         {libelle}
       </Link>

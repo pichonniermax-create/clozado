@@ -109,7 +109,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
             <div
               data-entree
               data-rang={1}
-              className="ecran-compact rompt-a-droite col-span-12 min-w-0 lg:col-start-8 lg:col-span-5"
+              className="ecran-compact col-span-12 min-w-0 lg:col-start-8 lg:col-span-5"
             >
               <EcransOnglets vues={vues} libelleListe={ecrans.onglets.libelleListe} />
               <p className="mesure mt-4 text-sm text-muted-foreground">{mentionEcrans}</p>
@@ -124,7 +124,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
         titre={accueil.probleme.titre}
         largeurContenu="lg:col-start-4 lg:col-span-9"
       >
-        <ul className="grid gap-4 sm:grid-cols-3">
+        <ul className="grille-cartes" data-colonnes="3">
           {accueil.probleme.elements.map((element, rang) => (
             <li key={element.titre} data-entree data-rang={rang}>
               <Card className="h-full">
@@ -192,7 +192,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
         titre={accueil.reste.titre}
         largeurContenu="lg:col-start-4 lg:col-span-9"
       >
-        <ul className="grid gap-4 sm:grid-cols-3">
+        <ul className="grille-cartes" data-colonnes="3">
           {accueil.reste.elements.map((element, rang) => (
             <li key={element.titre} data-entree data-rang={rang}>
               <Card className="h-full">
@@ -212,7 +212,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
         ton="doux"
         largeurContenu="lg:col-start-4 lg:col-span-9"
       >
-        <ul className="grid gap-4 sm:grid-cols-3">
+        <ul className="grille-cartes" data-colonnes="3">
           {accueil.pourQui.elements.map((element, rang) => {
             const corps = (
               <>
@@ -249,7 +249,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
         chapo={accueil.conformite.chapo}
         largeurContenu="lg:col-start-4 lg:col-span-8"
       >
-        <dl className="grid gap-x-12 gap-y-10 sm:grid-cols-2">
+        <dl className="grille-cartes grille-large" data-colonnes="2">
           {accueil.conformite.elements.map((element, rang) => (
             <div key={element.titre} data-entree data-rang={rang}>
               <dt className="font-semibold text-foreground">{sansOrphelin(element.titre)}</dt>

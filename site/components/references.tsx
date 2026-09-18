@@ -14,7 +14,7 @@ export function References({ locale }: { locale: Locale }) {
 
   return (
     <Section titre={common.references.titre}>
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grille-cartes" data-colonnes="3">
         {common.references.elements.map((reference) => (
           <li key={reference.nom}>
             <Card className="h-full">

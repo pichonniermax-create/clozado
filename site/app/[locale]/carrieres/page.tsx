@@ -54,7 +54,7 @@ export default async function Carrieres(props: PageProps<"/[locale]/carrieres">)
         ton="doux"
         largeurContenu="lg:col-start-4 lg:col-span-9"
       >
-        <ul className="grid gap-4 sm:grid-cols-2">
+        <ul className="grille-cartes" data-colonnes="2">
           {carrieres.methode.elements.map((element, rang) => (
             <li key={element.titre} data-entree data-rang={rang}>
               <Card className="h-full">

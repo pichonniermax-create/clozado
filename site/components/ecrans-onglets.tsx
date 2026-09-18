@@ -32,7 +32,7 @@ export function EcransOnglets({ vues, libelleListe }: { vues: readonly Vue[]; li
   useEffect(() => {
     if (cycleArrete) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const minuteur = window.setInterval(() => setActif((rang) => (rang + 1) % vues.length), 5000);
+    const minuteur = window.setInterval(() => setActif((rang) => (rang + 1) % vues.length), 6000);
     return () => window.clearInterval(minuteur);
   }, [cycleArrete, vues.length]);
 

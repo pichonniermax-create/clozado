@@ -104,6 +104,21 @@
 }
 
 @layer base {
+  :root {
+    /* La gouttière extérieure du site, identique des deux côtés. */
+    --gouttiere: 1.25rem;
+  }
+  @media (min-width: 768px) {
+    :root {
+      --gouttiere: 2.5rem;
+    }
+  }
+  @media (min-width: 1280px) {
+    :root {
+      --gouttiere: 4rem;
+    }
+  }
+
   * {
     border-color: var(--border);
   }
@@ -212,9 +227,11 @@
     transform-origin: left;
     transition: transform 180ms ease-out;
   }
+  /* Le souligné ne dit que le TRANSITOIRE : survol et focus clavier. La page
+     courante se dit par l'encre du libellé, pas par un trait qui resterait
+     allumé après un clic à la souris. */
   .lien-nav:hover::after,
-  .lien-nav:focus-visible::after,
-  .lien-nav[aria-current="page"]::after {
+  .lien-nav:focus-visible::after {
     transform: scaleX(1);
   }
 
@@ -417,25 +434,27 @@
     line-height: 1.6;
   }
 
-  /* La gouttière de la page composée : large, et VOLONTAIREMENT inégale au
-     grand écran — la colonne de gauche porte les numéros, la droite laisse
-     les écrans filer vers le bord. */
+  /*
+   * LA GOUTTIÈRE EXTÉRIEURE — la même à gauche et à droite, sur les neuf
+   * pages et à toutes les largeurs.
+   *
+   * Elle était volontairement inégale au grand écran, et l'écran de preuve
+   * du premier plan débordait jusqu'au bord de la fenêtre. Le bord à bord
+   * donnait une page qui fuit : plus aucun bloc, aucune carte, aucun écran
+   * ne touche le bord. Seuls les FILETS de séparation restent pleine
+   * largeur — ce sont eux qui disent la largeur de la page.
+   *
+   * Une seule valeur, tenue par `--gouttiere` : en-tête, contenu et pied
+   * s'alignent donc sur la même verticale.
+   */
+  .gouttiere,
+  .editorial-conteneur {
+    padding-inline: var(--gouttiere);
+  }
   .editorial-conteneur {
     width: 100%;
     max-width: 96rem;
     margin-inline: auto;
-    padding-inline: 1.25rem;
-  }
-  @media (min-width: 768px) {
-    .editorial-conteneur {
-      padding-inline: 2.5rem;
-    }
-  }
-  @media (min-width: 1280px) {
-    .editorial-conteneur {
-      padding-left: 5rem;
-      padding-right: 3rem;
-    }
   }
 
   /*
@@ -498,10 +517,39 @@
     color: color-mix(in oklab, var(--foreground) 16%, var(--background));
   }
 
-  /* Rompre la marge : un bloc qui va jusqu'au bord droit de l'écran. */
-  @media (min-width: 1280px) {
-    .rompt-a-droite {
-      margin-right: calc(-3rem - (100vw - min(100vw, 96rem)) / 2);
+  /*
+   * LES GRILLES DE CARTES — la dernière rangée s'étire, jamais d'orpheline.
+   *
+   * Cinq cartes en deux colonnes laissaient la cinquième seule, avec un vide
+   * à sa droite. Une grille CSS ne sait pas faire autrement ; un flux
+   * flexible, si : chaque carte demande sa fraction de largeur ET accepte de
+   * grandir (`flex-grow: 1`). La dernière rangée occupe donc toute la
+   * largeur — une carte seule prend tout, deux cartes se partagent la
+   * moitié. Règle unique, valable partout.
+   */
+  .grille-cartes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ecart, 1rem);
+  }
+  .grille-cartes > * {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .grille-large {
+    --ecart: 2.5rem;
+  }
+  @media (min-width: 640px) {
+    .grille-cartes[data-colonnes="2"] > * {
+      flex-basis: calc(50% - var(--ecart, 1rem) / 2);
+    }
+    .grille-cartes[data-colonnes="3"] > * {
+      flex-basis: calc(33.333% - var(--ecart, 1rem) * 2 / 3);
+    }
+  }
+  @media (min-width: 1024px) {
+    .grille-cartes[data-colonnes="2-lg"] > * {
+      flex-basis: calc(50% - var(--ecart, 1rem) / 2);
     }
   }
 }

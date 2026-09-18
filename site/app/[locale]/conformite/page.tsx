@@ -61,7 +61,7 @@ export default async function Conformite(props: PageProps<"/[locale]/conformite"
         titre={conformite.blocs.titre}
         largeurContenu="lg:col-start-4 lg:col-span-9"
       >
-        <ul className="grid gap-4 lg:grid-cols-2">
+        <ul className="grille-cartes" data-colonnes="2-lg">
           {conformite.blocs.elements.map((element, rang) => (
             <li key={element.titre} data-entree data-rang={rang}>
               <Card className="h-full">

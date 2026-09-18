@@ -25,7 +25,7 @@ export function BandeRupture({
       <Container largeur="large">
         <h2 data-entree className="max-w-5xl text-balance text-titre-2 text-foreground">{sansOrphelin(titre)}</h2>
         <div aria-hidden data-entree data-rang={1} className="mt-8 h-1 w-16 rounded-full bg-primary" />
-        <dl className="mt-12 grid gap-8 sm:grid-cols-3 sm:gap-12">
+        <dl className="grille-cartes grille-large mt-12" data-colonnes="3">
           {elements.map((element, rang) => (
             <div key={element.titre} data-entree data-rang={rang + 2} className="border-t border-border pt-6">
               <dt className="font-semibold text-foreground">{sansOrphelin(element.titre)}</dt>

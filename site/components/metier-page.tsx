@@ -25,7 +25,7 @@ function Pastille({ children }: { children: React.ReactNode }) {
  */
 function ListeNumerotee({ elements }: { elements: readonly Element[] }) {
   return (
-    <ol className="grid gap-4 sm:grid-cols-2">
+    <ol className="grille-cartes" data-colonnes="2">
       {elements.map((element, rang) => (
         <li key={element.titre} data-entree data-rang={rang}>
           <Card className="h-full">
@@ -156,7 +156,7 @@ export function PageMetier({
       >
         <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
           <div data-entree className="min-w-0 lg:col-span-5">
-            <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+            <ul className="grille-cartes" data-colonnes="1" style={{ "--ecart": "0.5rem" } as React.CSSProperties}>
               {contenu.indicateurs.elements.map((element) => (
                 <Pastille key={element}>{element}</Pastille>
               ))}
@@ -181,7 +181,7 @@ export function PageMetier({
           <div className="flex min-w-0 flex-col gap-12 lg:col-span-7">
             <div data-entree>
               <SousTitre>{contenu.communication.ciblesTitre}</SousTitre>
-              <dl className="mt-6 grid gap-x-12 gap-y-6 sm:grid-cols-2">
+              <dl className="grille-cartes grille-large mt-6" data-colonnes="2">
                 {contenu.communication.cibles.map((cible) => (
                   <div key={cible.titre}>
                     <dt className="text-sm font-semibold text-foreground">{sansOrphelin(cible.titre)}</dt>
@@ -205,7 +205,7 @@ export function PageMetier({
             <div data-entree data-rang={2}>
               <SousTitre>{contenu.communication.marcheTitre}</SousTitre>
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{contenu.communication.marcheTexte}</p>
-              <ul className="mt-6 grid gap-2 sm:grid-cols-2">
+              <ul className="grille-cartes mt-6" data-colonnes="2" style={{ "--ecart": "0.5rem" } as React.CSSProperties}>
                 {contenu.communication.marche.map((indicateur) => (
                   <Pastille key={indicateur}>{indicateur}</Pastille>
                 ))}
@@ -225,7 +225,7 @@ export function PageMetier({
         chapo={contenu.conformite.chapo}
         largeur="lisible"
       >
-        <dl className="grid gap-x-12 gap-y-10 sm:grid-cols-2">
+        <dl className="grille-cartes grille-large" data-colonnes="2">
           {contenu.conformite.elements.map((element, rang) => (
             <div key={element.titre} data-entree data-rang={rang}>
               <dt className="font-semibold text-foreground">{sansOrphelin(element.titre)}</dt>

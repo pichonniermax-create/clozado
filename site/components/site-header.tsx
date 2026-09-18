@@ -5,6 +5,7 @@ import { menuPrincipal, path, sousEntrees, type RouteKey } from "@/lib/routes";
 import { LOGIN_URL, SITE_CONFIG } from "@/lib/site-config";
 import { ActionLink } from "./action-link";
 import { BrandMark } from "./brand-mark";
+import { LienNav } from "./lien-nav";
 import { NavDeroulant } from "./nav-deroulant";
 import { Container } from "./layout-primitives";
 
@@ -14,10 +15,12 @@ import { Container } from "./layout-primitives";
  * revient à basculer un booléen — l'en-tête, le pied et le sitemap suivent.
  *
  * Sa hauteur se resserre et son filet apparaît au-delà de 80 px de
- * défilement — c'est du CSS, piloté par `[data-defile]` sur `<html>`. Le
- * souligné bordeaux d'un lien pousse depuis la gauche au survol et au
- * focus, et reste posé sur la page où l'on se trouve (`aria-current`, posé
- * par le script de mouvement, donc sur les pages qui le chargent).
+ * défilement — c'est du CSS, piloté par `[data-defile]` sur `<html>`.
+ *
+ * LE SOULIGNÉ BORDEAUX est réservé à ce qui est TRANSITOIRE : le survol et
+ * le focus CLAVIER (`:focus-visible`, jamais `:focus` — sinon un clic à la
+ * souris le laissait allumé derrière lui). La page où l'on se trouve se dit
+ * autrement : son libellé passe en encre pleine (`components/lien-nav.tsx`).
  *
  * Le repli mobile est un `<details>` natif : il fonctionne sans
  * JavaScript, il est accessible au clavier d'origine, et il ne coûte pas
@@ -42,12 +45,17 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                 const filles = sousEntrees(cle);
                 const classeLien =
                   "lien-nav inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 ease-out hover:text-foreground";
+                const classeCourante =
+                  "lien-nav inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-foreground";
                 if (filles.length === 0) {
                   return (
                     <li key={cle}>
-                      <Link href={path(locale, cle)} className={classeLien}>
-                        {common.nav[cle]}
-                      </Link>
+                      <LienNav
+                        href={path(locale, cle)}
+                        libelle={common.nav[cle]}
+                        className={classeLien}
+                        classeCourante={classeCourante}
+                      />
                     </li>
                   );
                 }
@@ -58,6 +66,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                     libelle={common.nav[cle]}
                     intitule={common.actions.voirLesMetiers}
                     classeLien={classeLien}
+                    classeCourante={classeCourante}
                     entrees={filles.map((fille) => ({ href: path(locale, fille), libelle: common.nav[fille] }))}
                   />
                 );
@@ -159,7 +168,7 @@ export function SkipLink({ label }: { label: string }) {
       href="#contenu"
       className={cn(
         "sr-only rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground",
-        "focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50"
+        "focus-visible:not-sr-only focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-50"
       )}
     >
       {label}

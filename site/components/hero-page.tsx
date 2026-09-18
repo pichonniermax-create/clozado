@@ -46,7 +46,7 @@ export function HeroPage({
             {note && <p className="mt-4 text-sm text-muted-foreground">{note}</p>}
           </div>
           {aside && (
-            <div data-entree data-rang={1} className="ecran-compact rompt-a-droite col-span-12 min-w-0 lg:col-start-8 lg:col-span-5">
+            <div data-entree data-rang={1} className="ecran-compact col-span-12 min-w-0 lg:col-start-8 lg:col-span-5">
               {aside}
             </div>
           )}

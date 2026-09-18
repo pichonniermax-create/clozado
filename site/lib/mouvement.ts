@@ -127,15 +127,7 @@ export function installer(): () => void {
   );
   zones.forEach((zone) => observateurZones.observe(zone));
 
-  // --- 3. Le lien de la page où l'on est ---
-  // Le serveur ne connaît pas l'adresse courante depuis la coquille : c'est
-  // ici, et seulement pour marquer un état déjà vrai, qu'on la lit.
-  const ici = window.location.pathname.replace(/\/$/, "");
-  document.querySelectorAll<HTMLAnchorElement>("a.lien-nav").forEach((lien) => {
-    if (new URL(lien.href).pathname.replace(/\/$/, "") === ici) lien.setAttribute("aria-current", "page");
-  });
-
-  // --- 4. L'en-tête ---
+  // --- 3. L'en-tête ---
   let demande = 0;
   const auDefilement = () => {
     if (demande) return;

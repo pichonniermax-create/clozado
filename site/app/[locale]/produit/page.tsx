@@ -134,7 +134,7 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
         ton="doux"
         largeurContenu="lg:col-start-4 lg:col-span-9"
       >
-        <ul className="grid gap-4 sm:grid-cols-3">
+        <ul className="grille-cartes" data-colonnes="3">
           {sousEntrees("produit").map((cle, rang) => (
             <li key={cle} data-entree data-rang={rang}>
               <Link

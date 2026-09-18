@@ -28,7 +28,7 @@ export default async function APropos(props: PageProps<"/[locale]/a-propos">) {
   const { common, aPropos } = getDictionary(locale);
 
   const cartes = (elements: readonly { titre: string; texte: string }[]) => (
-    <ul className="grid gap-4 sm:grid-cols-3">
+    <ul className="grille-cartes" data-colonnes="3">
       {elements.map((element, rang) => (
         <li key={element.titre} data-entree data-rang={rang}>
           <Card className="h-full">
@@ -72,7 +72,7 @@ export default async function APropos(props: PageProps<"/[locale]/a-propos">) {
         titre={aPropos.comment.titre}
         largeurContenu="lg:col-start-4 lg:col-span-9"
       >
-        <dl className="grid gap-x-12 gap-y-10 sm:grid-cols-2">
+        <dl className="grille-cartes grille-large" data-colonnes="2">
           {aPropos.comment.elements.map((element, rang) => (
             <div key={element.titre} data-entree data-rang={rang}>
               <dt className="text-xl font-bold tracking-tight text-foreground">{sansOrphelin(element.titre)}</dt>

@@ -17,7 +17,7 @@ const LARGEURS = {
 
 export type Largeur = keyof typeof LARGEURS;
 
-/** La gouttière unique du site : 16 px au doigt, et la largeur demandée au plus. */
+/** La gouttière unique du site (`--gouttiere`), identique des deux côtés, et la largeur demandée au plus. */
 export function Container({
   children,
   className,
@@ -28,7 +28,7 @@ export function Container({
   largeur?: Largeur;
 }) {
   return (
-    <div className={cn("mx-auto w-full px-4 sm:px-6 lg:px-8", LARGEURS[largeur], className)}>{children}</div>
+    <div className={cn("gouttiere mx-auto w-full", LARGEURS[largeur], className)}>{children}</div>
   );
 }
 
