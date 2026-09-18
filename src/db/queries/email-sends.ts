@@ -86,6 +86,15 @@ export async function startNewsletterSend(input: StartSendInput): Promise<{ send
       JOIN ${contacts} c ON c.id = r.contact_id
       WHERE c.email IS NOT NULL AND c.email <> '' AND c.deleted_at IS NULL
         AND NOT EXISTS (SELECT 1 FROM ${emailSuppressions} s WHERE s.organization_id = ${input.organizationId}::uuid AND s.email = lower(c.email))
+        -- L'AUTORISATION D'ÉCRIRE (chantier envoi) : on n'écrit qu'à qui l'a donnée, l'a donnée en devenant
+        -- client, ou relève du B2B. « Non établie » et « opposé » sont exclus — et l'écran le DIT avant l'envoi.
+        AND c.email_consent_status IN ('granted', 'client', 'professional')
+        -- La liste repoussoir de la PLATEFORME : un rebond dur ou une plainte, chez n'importe quelle
+        -- organisation, ferme l'adresse pour tout le service (la réputation est commune).
+        AND NOT EXISTS (
+          SELECT 1 FROM platform_suppressions ps
+          WHERE ps.email_sha256 = encode(sha256(convert_to(lower(trim(c.email)), 'UTF8')), 'hex')
+        )
       RETURNING id
     )
     SELECT (SELECT count(*) FROM msgs)::int AS queued, EXISTS (SELECT 1 FROM send) AS started`);

@@ -166,17 +166,26 @@ export function RailNav({
     // pousse le contenu (c'est une colonne), au survol il se superpose (il ne doit pas décaler l'écran sous la souris).
     <div
       data-nav-shell
-      className="sticky top-0 z-40 hidden h-screen shrink-0 md:flex"
+      /**
+       * Elle commence SOUS le bloc collant du haut (en-tête + bandeaux) et
+       * prend la hauteur qui reste : `--shell-top` est mesurée sur la vraie
+       * hauteur de ce bloc (`ShellOffset`). Avant, elle démarrait à zéro et
+       * sa première entrée passait sous l'en-tête.
+       */
+      style={{ top: "var(--shell-top, 3.5rem)", height: "calc(100dvh - var(--shell-top, 3.5rem))" }}
+      className="sticky z-30 hidden shrink-0 md:flex"
       onMouseLeave={() => { if (!pinned) hoverClose(); }}
     >
       <div
         ref={railRef}
-        className="flex w-14 shrink-0 flex-col items-center gap-1 border-r border-sidebar-border bg-sidebar py-3"
+        className="flex w-14 shrink-0 flex-col items-center overflow-y-auto overscroll-contain border-r border-sidebar-border bg-sidebar py-3"
       >
-        <div className="flex h-8 w-8 items-center justify-center overflow-hidden">{mark}</div>
+        {/* La tête du rail et celle du panneau ont la MÊME hauteur (h-8) et la même marge : le premier
+            groupe du rail tombe donc exactement en face de la première entrée du panneau. */}
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden">{mark}</div>
 
         {pinnedEntries.length > 0 && (
-          <ul className="mt-2 flex w-full flex-col items-center gap-1 border-b border-sidebar-border pb-2">
+          <ul className="mt-2 flex w-full shrink-0 flex-col items-center gap-1 border-b border-sidebar-border pb-2">
             {pinnedEntries.map((entry) => (
               <li key={entry.href}>
                 <RailLink
@@ -192,7 +201,7 @@ export function RailNav({
           </ul>
         )}
 
-        <nav aria-label={t("navigation_principale")} className="flex flex-col items-center gap-1">
+        <nav aria-label={t("navigation_principale")} className="mt-2 flex shrink-0 flex-col items-center gap-1">
           {sections.map((section, index) => {
             const Icon = section.icon;
             const open = shown === section.key;
@@ -231,7 +240,7 @@ export function RailNav({
           })}
         </nav>
 
-        <div className="mt-auto flex flex-col items-center gap-1">
+        <div className="mt-auto flex shrink-0 flex-col items-center gap-1 pt-2">
           {hasOrganization && !readOnly && (
             <RailLink href="/settings" label={t("reglages")} icon={<Settings />} active={isActive("/settings")} badge={0} />
           )}
@@ -255,21 +264,23 @@ export function RailNav({
           onKeyDown={onPanelKeyDown}
           onMouseEnter={() => { if (timer.current) clearTimeout(timer.current); }}
           className={cn(
-            "flex w-52 flex-col gap-0.5 border-r border-sidebar-border bg-sidebar px-2 py-3",
-            // Épinglé, le panneau est une COLONNE (il pousse le contenu) ; au survol, il se superpose.
-            pinned ? "relative" : "absolute top-0 left-14 h-screen shadow-lg"
+            "flex w-52 flex-col overflow-y-auto overscroll-contain border-r border-sidebar-border bg-sidebar px-2 py-3",
+            // Épinglé, le panneau est une COLONNE (il pousse le contenu) ; au survol, il se superpose — mais
+            // toujours DANS la barre : même haut, même hauteur, donc rien ne passe sous l'en-tête.
+            pinned ? "relative" : "absolute inset-y-0 left-14 shadow-lg"
           )}
         >
-          <p className="px-2 pb-2 text-[0.6875rem] font-semibold tracking-wider text-muted-foreground uppercase">
+          <p className="flex h-8 shrink-0 items-center px-2 text-[0.6875rem] font-semibold tracking-wider text-muted-foreground uppercase">
             {tn(`sections.${shownSection.key}`)}
           </p>
+          <div className="mt-2 flex flex-col gap-1">
           {shownSection.entries.map((entry) => {
             const href = hrefs?.[entry.href] ?? entry.href;
             const active = isActive(entry.href);
             const count = entry.badge ? badges[entry.badge] : 0;
             const starred = favorites.includes(entry.href);
             return (
-              <div key={entry.href} className="group/entry flex items-center gap-1">
+              <div key={entry.href} className="group/entry flex min-h-10 items-stretch gap-1">
                 <Link
                   href={href}
                   prefetch={false}
@@ -277,7 +288,7 @@ export function RailNav({
                   onFocus={() => router.prefetch(href)}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium transition-colors",
+                    "flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 text-sm font-medium transition-colors",
                     active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
                   )}
                 >
@@ -302,7 +313,7 @@ export function RailNav({
                   aria-pressed={starred}
                   title={starred ? t("retirer_des_favoris") : t("epingler_en_haut")}
                   className={cn(
-                    "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-sidebar-accent/50",
+                    "flex w-8 shrink-0 items-center justify-center self-center rounded-lg py-1 transition-colors hover:bg-sidebar-accent/50",
                     starred ? "text-primary-ink" : "text-muted-foreground opacity-0 group-hover/entry:opacity-100 focus-visible:opacity-100"
                   )}
                 >
@@ -312,6 +323,7 @@ export function RailNav({
               </div>
             );
           })}
+          </div>
           {!pinned && (
             <button
               type="button"

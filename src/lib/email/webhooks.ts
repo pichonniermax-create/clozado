@@ -1,5 +1,6 @@
 import { addSuppression, getSuppression, recordEmailEvent, type EventType } from "@/db/queries/email-events";
 import { getMessageByProviderId } from "@/db/queries/email-sends";
+import { evaluateAutoPause, recordPlatformSuppression } from "@/db/queries/sending-health";
 import type { ReceivedNotice } from "./inbound/ingest";
 
 /**
@@ -100,12 +101,21 @@ export async function handleResendEvent(event: ResendWebhookEvent, providerEvent
   });
   if (!recorded) return "duplicate";
 
-  // Un rejet définitif ou une plainte : l'adresse ne recevra plus rien de cette organisation.
-  if (type === "bounced" && /permanent/i.test(event.data?.bounce?.type ?? "")) {
+  // Un rejet définitif ou une plainte : l'adresse ne recevra plus rien de cette organisation — ET, depuis les
+  // garde-fous d'envoi, plus rien de TOUT le service : un rebond dur et une plainte parlent de l'adresse et de
+  // la réputation commune, pas de la relation avec un cabinet. La liste de la plateforme ne garde qu'une
+  // empreinte, jamais l'adresse.
+  const hardBounce = type === "bounced" && /permanent/i.test(event.data?.bounce?.type ?? "");
+  if (hardBounce) {
     await addSuppression({ organizationId: message.organizationId, email: message.toEmail, reason: "bounced", source: "webhook", messageId: message.id, contactId: message.contactId });
+    await recordPlatformSuppression({ email: message.toEmail, reason: "bounced", detail: event.data?.bounce?.message ?? event.data?.bounce?.subType ?? null });
   }
   if (type === "complained") {
     await addSuppression({ organizationId: message.organizationId, email: message.toEmail, reason: "complained", source: "webhook", messageId: message.id, contactId: message.contactId });
+    await recordPlatformSuppression({ email: message.toEmail, reason: "complained", detail: null });
   }
+  // Au-dessus des seuils, l'envoi marketing de cette organisation s'arrête tout seul. Il ne repart jamais seul :
+  // reprendre est une décision humaine, après nettoyage.
+  if (hardBounce || type === "complained") await evaluateAutoPause(message.organizationId);
   return "recorded";
 }

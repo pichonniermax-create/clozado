@@ -38,7 +38,7 @@ export function SuperAdminBar({
 
   return (
     // Collant dès md seulement (audit UI du 2026-09-14) : sur un téléphone, en-tête + bandeau + barre d'onglets figeaient ~210 px.
-    <div className="border-b border-warning/50 bg-warning/15 backdrop-blur md:sticky md:top-14 md:z-30">
+    <div className="border-b border-warning/50 bg-warning/15 backdrop-blur">
       {/* COMPACT (lot 4) : une ligne, pas deux. Le sélecteur porte déjà le nom de l'organisation — c'est LE seul
           endroit où il s'écrit pour un super admin, l'en-tête ne le répète plus. La phrase d'explication ne
           s'affiche qu'en vue globale, là où elle dit quoi faire ; en substitution, elle redisait le sélecteur. */}

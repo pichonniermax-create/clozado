@@ -19,6 +19,7 @@ import newsletters from "./fr/newsletters.json";
 import partners from "./fr/partners.json";
 import profile from "./fr/profile.json";
 import rules from "./fr/rules.json";
+import sendingHealth from "./fr/sendingHealth.json";
 import settings from "./fr/settings.json";
 import shares from "./fr/shares.json";
 import shell from "./fr/shell.json";
@@ -60,6 +61,7 @@ const fr = {
   partners,
   profile,
   rules,
+  sendingHealth,
   settings,
   shares,
   shell,

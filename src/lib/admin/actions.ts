@@ -11,6 +11,7 @@ import { updateAuthSettings } from "@/db/queries/auth-settings";
 import { errorMessage, withError } from "@/lib/form-actions";
 import { ACTIVE_ORG_COOKIE, requireSessionUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
+import { setSendingPause } from "@/db/queries/sending-health";
 
 /**
  * Choix de l'organisation active d'un super admin (bandeau de la coquille).
@@ -58,4 +59,18 @@ export async function updateAuthSettingsAction(formData: FormData) {
   }
   revalidatePath("/dashboard");
   redirect(destination);
+}
+
+/**
+ * SUSPENDRE OU RELANCER l'envoi marketing d'une organisation (chantier
+ * envoi, garde-fous) — réservé au super admin RÉEL : c'est lui qui répond
+ * de la réputation du domaine et de l'IP partagés. Un motif vide relance.
+ * Les emails relationnels ne sont jamais concernés.
+ */
+export async function setSendingPauseAction(organizationId: string, motif: string | null) {
+  const user = await requireSessionUser();
+  if (user.role !== "super_admin") throw new AppError("reserve_au_super_admin_un_utilisateur_n_8405");
+  if (!/^[0-9a-f-]{36}$/i.test(organizationId)) throw new AppError("cette_organisation_n_existe_pas_ou_plus_2126");
+  await setSendingPause(organizationId, motif);
+  revalidatePath("/sante-envoi");
 }

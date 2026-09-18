@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/app-shell/app-header";
 import { BottomNav } from "@/components/app-shell/bottom-nav";
 import { FlashToaster } from "@/components/app-shell/flash-toaster";
 import { RememberDisplay } from "@/components/app-shell/remember-display";
+import { ShellOffset } from "@/components/app-shell/shell-offset";
 import { Sidebar } from "@/components/app-shell/sidebar";
 import { SuperAdminBar } from "@/components/app-shell/super-admin-bar";
 import { PRODUCT_MARK, type WorkspaceMarkProps } from "@/components/app-shell/workspace-mark";
@@ -99,9 +100,15 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <>
       {workspace && <BrandStyle light={workspace.brand.light} dark={workspace.brand.dark} />}
+      {/* La barre latérale commence SOUS le bloc collant du haut (en-tête + bandeaux) : une seule variable,
+          mesurée sur la vraie hauteur. La valeur posée ici en ligne est celle du rendu serveur — 3,5 rem
+          d'en-tête, plus le bandeau du super admin s'il est là : aucun saut avant que la mesure prenne le relais. */}
+      <style>{`:root{--shell-top:${isSuperAdmin ? "5.75rem" : "3.5rem"}}`}</style>
       <div className="flex min-h-screen">
         <Sidebar mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={{ followUp, tasksDue }} hrefs={hrefs} pinned={navPinned} favorites={navFavorites} />
         <div className="flex min-w-0 flex-1 flex-col">
+          {/* Le bloc COLLANT du haut, mesuré d'un bloc : en-tête, bandeaux de démo, bandeau super admin. */}
+          <div id="shell-top" className="md:sticky md:top-0 md:z-40">
           <AppHeader
             mark={mark}
             // Le nom de l'organisation, UNE fois (lot 4) : ici pour tout le monde — sauf pour un super admin,
@@ -122,6 +129,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
               activeOrgId={user.organizationId}
             />
           )}
+          </div>
+          <ShellOffset targetId="shell-top" />
           <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 pt-6 pb-24 md:px-8 md:py-8">
             {children}
           </main>

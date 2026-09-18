@@ -19,6 +19,8 @@ import {
 import { buildAudienceSnapshot, getNewsletterOrThrow, getRenderContext, normalizeTopics } from "@/db/queries/newsletters";
 import { getOrganizationOfRecord } from "@/db/queries/organizations";
 import { getUserProfile } from "@/db/queries/users";
+import { sendingAllowance } from "@/db/queries/sending-health";
+import { settingsOfOrganization } from "@/i18n/locale-lookup";
 import { translatorFor } from "@/i18n/translator";
 import { toAppLocale } from "@/i18n/locales";
 import { AppError } from "@/lib/errors";
@@ -158,6 +160,7 @@ export async function runSend(sendId: string, origin: string, options: { already
   }
   if (!send || send.finishedAt) return "busy";
   const content: SendContent = { html: send.html, text: send.textBody };
+  const settings = await settingsOfOrganization(send.organizationId);
   let rateLimitRetries = 0;
 
   while (true) {
@@ -165,7 +168,30 @@ export async function runSend(sendId: string, origin: string, options: { already
       await releaseLease(sendId);
       return "yielded";
     }
-    const batch: EmailMessage[] = await nextQueuedMessages(sendId, BATCH_SIZE);
+    /**
+     * LES GARDE-FOUS D'ENVOI (chantier envoi), relus AVANT CHAQUE LOT et
+     * non une fois au départ : une plainte reçue pendant la vague doit
+     * l'arrêter, pas être découverte à la fin.
+     *
+     * - l'organisation en pause (seuils dépassés, ou geste du super admin) :
+     *   la vague s'arrête et attend une décision humaine — la reprise
+     *   n'est pas automatique, elle se fait après nettoyage ;
+     * - le quota du jour (abaissé par la montée progressive) : la vague
+     *   reprend demain, d'elle-même, par le cron.
+     */
+    const allowance = await sendingAllowance(send.organizationId, settings.timeZone);
+    if (allowance.paused) {
+      await refreshSendCounters(sendId);
+      // Loin devant : seule une reprise manuelle (ou la fin de la pause) relancera l'envoi.
+      await pauseSend(sendId, new Date(Date.now() + 365 * 86_400_000), `organisation_en_pause: ${allowance.pauseReason ?? ""}`.slice(0, 200));
+      return "paused";
+    }
+    if (allowance.remaining <= 0) {
+      await refreshSendCounters(sendId);
+      await pauseSend(sendId, quotaResetDate("daily_quota_exceeded"), `quota_du_jour: ${allowance.quota}`);
+      return "paused";
+    }
+    const batch: EmailMessage[] = await nextQueuedMessages(sendId, Math.min(BATCH_SIZE, allowance.remaining));
     if (batch.length === 0) {
       await refreshSendCounters(sendId);
       await finishSend(sendId);

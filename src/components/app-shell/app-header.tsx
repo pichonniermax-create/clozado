@@ -64,7 +64,9 @@ export function AppHeader({
   }
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-border bg-background/95 px-3 backdrop-blur md:gap-3 md:px-6">
+    // Collant tant que la coquille ne l'est pas (sous md) ; au-dessus, c'est le bloc du haut qui colle,
+    // d'un seul tenant avec les bandeaux — c'est lui que mesure `--shell-top`.
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-border bg-background/95 px-3 backdrop-blur md:static md:z-auto md:gap-3 md:px-6">
       <MobileNav mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={badges} hrefs={hrefs} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">
