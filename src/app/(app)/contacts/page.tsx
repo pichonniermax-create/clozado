@@ -107,6 +107,12 @@ export default async function ContactsPage({
   };
   const labelOf = (field: string, value: string) => options[field]?.find((o) => o.value === value)?.label ?? null;
   const builderFields = filterFields("contacts").map((f) => ({ key: f.key, type: f.type, me: f.me, options: options[f.key] }));
+  // L'apporteur désigné par le filtre, s'il n'y en a qu'un : ce que le formulaire de création reprend (lot 3).
+  const apporteurConditions = conditions.filter((c) => c.field === "apporteur");
+  const broughtFromPartnerId =
+    apporteurConditions.length === 1 && apporteurConditions[0].operator === "eq" && apporteurConditions[0].values.length === 1
+      ? apporteurConditions[0].values[0]
+      : null;
   // Une condition retirée : le même écran, cette condition en moins.
   const conditionChips: FilterChip[] = conditions.map((condition, index) => ({
     key: `f-${index}`,
@@ -243,6 +249,10 @@ export default async function ContactsPage({
         <ContactCreateForm
           orgUsers={orgUsers}
           currentUserId={defaultOwnerId(user, orgUsers) ?? ""}
+          // Arrivé depuis la fiche d'un confrère (`?f=apporteur:eq:<id>&nouveau=1`) : le filtre dit de qui on
+          // parle, le formulaire le reprend. Un seul apporteur désigné, sinon rien — « ou l'un ou l'autre » ne
+          // se préremplit pas.
+          initialPartnerId={broughtFromPartnerId}
           // Seuls les confrères ACTIFS sont proposés : on n'apporte pas une fiche par quelqu'un qu'on a rangé.
           partners={partners.filter((p) => p.active).map((p) => ({ id: p.id, name: p.name, company: p.company, profession: p.profession }))}
           origins={origins.map((o) => ({ id: o.id, label: o.label }))}

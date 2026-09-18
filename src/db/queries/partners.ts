@@ -1,10 +1,11 @@
-import { and, asc, eq, gte, isNotNull, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { contacts, dealEvents, deals, dealShares, dealStatuses, partners } from "@/db/schema";
 import { assertOrgAccess, orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
+import { MIN_OBSERVATIONS } from "@/lib/metrics/definitions";
 import { readInput } from "@/lib/validation";
 
 /** Partenaires de l'organisation de l'appelant. */
@@ -143,8 +144,12 @@ export type PartnerFigures = {
   lastExchangeAt: Date | null;
 };
 
-/** Sous ce nombre d'apports, un taux de transformation ne veut rien dire : il est masqué. */
-export const PARTNER_RATE_MIN = 5;
+/**
+ * Sous ce nombre d'apports, un taux de transformation ne veut rien dire : il
+ * est masqué. LE MÊME seuil que tous les indicateurs du produit
+ * (`MIN_OBSERVATIONS`) — un seul nombre, pas un cinq recopié ici.
+ */
+export const PARTNER_RATE_MIN = MIN_OBSERVATIONS;
 
 export async function listPartnerFigures(
   user: OrgScopeUser,
@@ -235,4 +240,107 @@ export async function listPartnerFigures(
   for (const row of last) if (row.partnerId) ensure(row.partnerId).lastBroughtAt = row.at ? new Date(row.at) : null;
   for (const row of exchanges) if (row.partnerId) ensure(row.partnerId).lastExchangeAt = row.at ? new Date(row.at) : null;
   return figures;
+}
+
+// ---------------------------------------------------------------------------
+// Ce qu'un confrère a amené, pour SA fiche (lot 3)
+// ---------------------------------------------------------------------------
+
+/** Ce qu'une fiche montre d'une liste : les derniers, jamais tout. Le reste se déroule sur l'écran de la liste. */
+export const PARTNER_PREVIEW = 8;
+
+export type BroughtContact = {
+  id: string;
+  name: string;
+  kind: string;
+  city: string | null;
+  attributedAt: Date | null;
+};
+
+export type BroughtDeal = {
+  id: string;
+  title: string;
+  contactId: string | null;
+  contactName: string;
+  amount: number | null;
+  statusLabel: string;
+  statusColor: string | null;
+  outcome: "won" | "lost" | null;
+  createdAt: Date;
+};
+
+/**
+ * LES APPORTS D'UN CONFRÈRE, en clair : les dernières fiches qu'il a
+ * amenées et les dernières affaires qui en sont nées, avec leur TOTAL. La
+ * fiche montre les huit dernières et dit combien il y en a ; la liste
+ * filtrée (`/contacts?f=apporteur:eq:<id>`) déroule le reste — une fiche
+ * n'est pas une liste.
+ *
+ * Hors période, volontairement : ce sont des FAITS (qui, et quand), pas des
+ * mesures. Les quatre chiffres du haut, eux, suivent la période partagée et
+ * viennent de `listPartnerFigures` — la fiche et le tableau comptent avec
+ * la même requête, jamais deux calculs voisins qui divergeraient.
+ *
+ * Le périmètre est celui du CONFRÈRE (son organisation), pas celui de
+ * l'appelant : un super admin lit la fiche qu'il a ouverte, et personne
+ * d'autre ne franchit `assertOrgAccess`.
+ */
+export async function listPartnerBrought(user: OrgScopeUser, partnerId: string, limit = PARTNER_PREVIEW) {
+  const partner = await db.query.partners.findFirst({ where: eq(partners.id, partnerId), columns: { organizationId: true } });
+  if (!partner) throw new AppError("partenaire_introuvable", undefined, 404);
+  assertOrgAccess(user, partner.organizationId);
+  const org = partner.organizationId;
+
+  // Les fiches vivantes qu'il a apportées ; les affaires sont celles de ces fiches-là.
+  const broughtContacts = and(eq(contacts.organizationId, org), eq(contacts.partnerId, partnerId), isNull(contacts.deletedAt));
+
+  const [contactRows, contactCount, dealRows, dealCount] = await Promise.all([
+    db
+      .select({
+        id: contacts.id,
+        name: contacts.name,
+        kind: contacts.kind,
+        city: contacts.city,
+        attributedAt: contacts.partnerAttributedAt,
+      })
+      .from(contacts)
+      .where(broughtContacts)
+      // « Sans date d'attribution » (une fiche d'avant le lot 2) passe en DERNIER, jamais en tête :
+      // en SQL, `desc` met les NULL devant — ici ce serait l'inverse de ce qu'on lit.
+      .orderBy(sql`${contacts.partnerAttributedAt} desc nulls last`, asc(contacts.name))
+      .limit(limit),
+    db.select({ n: sql<number>`count(*)::int` }).from(contacts).where(broughtContacts),
+    db
+      .select({
+        id: deals.id,
+        title: deals.title,
+        contactId: deals.contactId,
+        contactName: contacts.name,
+        amount: deals.estimatedAmount,
+        statusLabel: dealStatuses.label,
+        statusColor: dealStatuses.color,
+        outcome: dealStatuses.outcome,
+        createdAt: deals.createdAt,
+      })
+      .from(deals)
+      .innerJoin(contacts, and(eq(deals.contactId, contacts.id), eq(deals.organizationId, contacts.organizationId)))
+      .innerJoin(dealStatuses, eq(dealStatuses.id, deals.statusId))
+      .where(and(eq(deals.organizationId, org), broughtContacts))
+      .orderBy(desc(deals.createdAt))
+      .limit(limit),
+    db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(deals)
+      .innerJoin(contacts, and(eq(deals.contactId, contacts.id), eq(deals.organizationId, contacts.organizationId)))
+      .where(and(eq(deals.organizationId, org), broughtContacts)),
+  ]);
+
+  return {
+    contacts: contactRows.map((row): BroughtContact => ({ ...row, attributedAt: row.attributedAt ?? null })),
+    contactsTotal: contactCount[0]?.n ?? 0,
+    deals: dealRows.map(
+      (row): BroughtDeal => ({ ...row, amount: row.amount === null ? null : Number(row.amount) })
+    ),
+    dealsTotal: dealCount[0]?.n ?? 0,
+  };
 }

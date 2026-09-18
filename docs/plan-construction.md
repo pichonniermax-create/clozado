@@ -523,13 +523,76 @@ colonnes du lot 2.
   `activities` portera un partenaire — migration 0023, pas encore faite.
 
 Restent au lot 3, et demandent la migration 0023 : `partners.owner_id`,
-« sans apport depuis N jours » dans « Aujourd'hui », le journal de
-partenaire, et la fiche en lecture avec son bouton « Modifier ».
+« sans apport depuis N jours » dans « Aujourd'hui », et le journal de
+partenaire. (La fiche en lecture, elle, n'en dépendait pas : voir §3.0.3.)
 
 **Preuve** : `scripts/_tmp-lot3-preuve.ts`, 13 contrôles au vert, chaque
 chiffre recalculé par requête — six apports semés dont quatre dans les
 trente jours, deux affaires gagnées à 120 000 : la période fait bien
 passer le compte de 4 à 6 et le taux de masqué à 33,3 %.
+
+### 3.0.3 La fiche en lecture, et les définitions des apports — FAIT (2026-09-18)
+
+L'étape 2 du §3.4, moins ce qui demande la migration 0023. La fiche
+s'ouvrait sur son FORMULAIRE : sept champs, aucun chiffre, et pour savoir
+ce qu'un confrère avait apporté il fallait changer d'écran. Elle répond
+maintenant d'abord à « où en sommes-nous avec lui ».
+
+- **Lecture d'abord.** Identité, contacts, statut et notes en clair ; le
+  formulaire attend derrière « Modifier » (le repli natif du socle, aucun
+  état client). Enregistrer revient à la lecture, à jour.
+- **Ses chiffres, sur la période partagée** : contacts apportés, affaires
+  en cours, gagnées, montant gagné — les MÊMES que le tableau de la liste,
+  calculés par la même requête (`listPartnerFigures`), jamais un second
+  calcul voisin. Puis trois faits hors période : transformation (masquée
+  sous cinq apports), dernier apport, dernier échange.
+- **Ce qu'il a amené** : les huit dernières fiches apportées, leur total,
+  et « Voir tous » vers `/contacts` filtré — l'adresse est écrite par le
+  constructeur de filtres du lot 3 (`f=apporteur:eq:<id>`), jamais
+  assemblée à la main. « Ajouter un contact » ouvre le même écran,
+  formulaire déplié, **« Apporté par » déjà rempli** : le filtre dit de qui
+  on parle, le formulaire le reprend.
+- **Ce que ça a donné** : les affaires des contacts apportés, avec leur
+  étape et leur montant.
+- **Les définitions** (étape 3), sur la fiche ET sous le tableau : quatre
+  entrées du registre des métriques, dans une famille NOUVELLE,
+  `referrals`. Volontairement pas `partners` : l'analytique des partenaires
+  parle des PARTAGES (ce qu'on leur envoie), ces quatre-là de ce qu'ils
+  AMÈNENT — et il y a désormais deux « transformations » dans le produit
+  (gagnées ÷ apportés ici, gagnées ÷ partages acceptés là). Chaque écran
+  n'affiche que les définitions de ce qu'il montre, et celle des apports
+  dit la différence en toutes lettres. Au passage, `PARTNER_RATE_MIN` n'est
+  plus un « 5 » recopié : c'est `MIN_OBSERVATIONS`, le seuil du produit.
+
+**Une décision assumée** : la période s'AFFICHE sur la fiche (« sur les 90
+derniers jours — elle se choisit sur la liste des partenaires »), elle ne
+s'y choisit pas. Une fiche n'est pas un écran de liste : son adresse ne se
+mémorise pas (`screens.ts`), donc un sélecteur posé ici aurait changé les
+chiffres sans que la période globale bouge — deux fenêtres de temps sans
+que rien ne le dise, exactement ce que le lot 1 a supprimé. Une adresse qui
+porte `periode` reste honorée (un lien se partage). À rouvrir si le besoin
+se montre : il faudrait alors que la fiche sache mémoriser la période.
+
+**Preuve** : `scripts/_tmp-lot3-fiche.ts`, **48 contrôles au vert** au
+navigateur sur la base locale — dix apports semés dont quatre dans les
+trente jours, trois affaires dont deux gagnées à 120 000. Sont vérifiés :
+la lecture avant le formulaire, les quatre chiffres et leur égalité avec
+ceux du tableau, le taux masqué sous cinq puis affiché à 22,2 % sur douze
+mois, les listes et leur troncature à huit, « Modifier » puis la lecture à
+jour, « Ajouter un contact » qui arrive avec l'apporteur rempli (nom ET
+identifiant), la liste filtrée qui rend bien dix fiches, un confrère sans
+rien (zéros, « Jamais », aucun taux inventé), la fiche d'une AUTRE
+organisation introuvable, chaque chiffre recalculé par requête, zéro erreur
+de page, aucune clé de traduction brute, et rien qui déborde à 390 px.
+
+**Deux défauts du script, aucun du produit** : la ligne d'une affaire porte
+le CONTACT apporté (le lien qui compte ici), pas le libellé client de
+l'affaire ; et `innerText` ne rend pas ce qu'un `<details>` replié cache —
+une définition se lit par `textContent`.
+
+Reste de l'étape 2, en attente de la migration 0023 : le conseiller
+responsable de la relation, le journal des échanges saisis à la main, les
+tâches rattachées au confrère.
 
 ### 3.1 Faits
 
@@ -551,6 +614,13 @@ passer le compte de 4 à 6 et le taux de masqué à 33,3 %.
   d'organisation portent sur les partages et les commissions.
 
 ### 3.2 Modèle (migration 0023)
+
+> **État au 2026-09-18** : la migration est ÉCRITE et le schéma Drizzle
+> l'accompagne, mais elle n'est appliquée NULLE PART — ni en local, ni en
+> production — et ces fichiers ne sont pas committés : un schéma qui
+> déclare des colonnes absentes de la base casserait les écrans qui lisent
+> `partners`, `activities` et `tasks`. Le SQL attend une validation
+> explicite.
 
 - `partners.owner_id` (conseiller responsable de la relation, FK
   composite), `partners.profession` reste libre mais suggéré parmi les

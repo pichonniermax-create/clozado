@@ -17,7 +17,8 @@ import { PREF, preferenceList, preferenceString } from "@/db/queries/preferences
 import { ColumnChooserTable } from "@/components/ui/column-chooser-table";
 import { PeriodPicker } from "@/components/display/period-picker";
 import { getFormats } from "@/i18n/formats";
-import { parseMetricFilters } from "@/lib/metrics";
+import { metricsOfFamily, parseMetricFilters } from "@/lib/metrics";
+import { MetricDefinitions } from "@/components/analytics/metric-definitions";
 import { withRememberedPeriod } from "@/lib/display/period";
 import { DensityToggle } from "@/components/display/density-toggle";
 import { FilterChips, type FilterChip } from "@/components/display/filter-chips";
@@ -319,6 +320,10 @@ export default async function PartnersPage({
           }}
         />
       )}
+
+      {/* Les quatre chiffres de ce tableau, définis une fois pour toutes — le même texte que celui qui gouverne
+          le calcul (registre des métriques, famille `referrals`), jamais une paraphrase d'écran. */}
+      <MetricDefinitions metrics={metricsOfFamily("referrals")} />
     </>
   );
 }

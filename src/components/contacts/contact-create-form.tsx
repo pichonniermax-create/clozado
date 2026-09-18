@@ -26,6 +26,7 @@ export function ContactCreateForm({
   currentUserId,
   partners,
   origins,
+  initialPartnerId = null,
 }: {
   orgUsers: OrgUser[];
   currentUserId: string;
@@ -33,6 +34,12 @@ export function ContactCreateForm({
   partners: PickablePartner[];
   /** Les origines de l'organisation, la même liste que pilote l'analytique (lot 2). */
   origins: { id: string; label: string }[];
+  /**
+   * L'apporteur déjà désigné (lot 3) : venu de la fiche d'un confrère, le
+   * formulaire s'ouvre avec lui — c'est la question qu'on vient de poser à
+   * l'écran d'à côté, elle n'a pas à être retapée. Modifiable, comme le reste.
+   */
+  initialPartnerId?: string | null;
 }) {
   const t = useTranslations("contacts.contactCreateForm");
   const [state, action, pending] = useActionState(createContactAction, initialState);
@@ -139,7 +146,7 @@ export function ContactCreateForm({
         )}
         {/* L'apport ENTRANT : le confrère qui a amené cette personne. Facultatif, et créable d'ici (lot 2). */}
         <Field label={t("apporte_par")} htmlFor="partnerId-recherche" hint={t("facultatif_le_confrere_qui_a_amene")}>
-          <PartnerPicker inputId="partnerId-recherche" partners={partners} />
+          <PartnerPicker inputId="partnerId-recherche" partners={partners} initialId={initialPartnerId} />
         </Field>
         {/* L'origine métier — la MÊME liste que pilote l'analytique, jamais un second vocabulaire. */}
         <Field label={t("origine")} htmlFor="originId">

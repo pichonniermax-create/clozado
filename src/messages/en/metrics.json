@@ -208,6 +208,38 @@
       "howToFeed": "The partner responds from their link (accept, decline).",
       "filters": "The same as “Shares sent”."
     },
+    "partner_brought_contacts": {
+      "label": "Contacts referred",
+      "definition": "Live records this peer referred, counted on the ATTRIBUTION date — the day the link was made, never the date the record was created.",
+      "excludes": "Deleted records; records referred by someone else or by no one; deal shares, which are counted separately (“Shares sent”).",
+      "whenInsufficient": "The number always shows, zero included.",
+      "howToFeed": "Fill in “Referred by” on a contact record, when creating it or later.",
+      "filters": "The shared period, applied to the attribution date: a referral filled in after the fact counts on its attribution date, never retroactively — correcting the past does not change figures already read for a period."
+    },
+    "partner_brought_deals": {
+      "label": "Deals from referrals",
+      "definition": "Deals belonging to contacts this peer referred, split by the outcome of their CURRENT stage: no outcome = open, stage marked “won” = won.",
+      "excludes": "Deals of a contact they did not refer; lost deals, which are neither “open” nor “won”; a deal won then reopened is no longer won.",
+      "whenInsufficient": "The number always shows, zero included.",
+      "howToFeed": "Create the deal from the referred contact’s record — the referrer is carried by the contact, not by the deal.",
+      "filters": "The same as “Contacts referred”: the period applies to the CONTACT’s attribution, not to the deal’s date."
+    },
+    "partner_brought_rate": {
+      "label": "Referral conversion",
+      "definition": "Won deals ÷ contacts referred, over the contacts referred within the period. Not to be confused with “Conversion rate”, which is about SHARES: won ÷ shares accepted.",
+      "excludes": "Contacts referred outside the period; deals of contacts they did not refer.",
+      "whenInsufficient": "Hidden while the peer has fewer than 5 contacts referred in the period: a percentage over four observations lies. The screen says so instead of making it up.",
+      "howToFeed": "Refer records, and move their deals to a stage marked “won”.",
+      "filters": "The same as “Contacts referred”."
+    },
+    "partner_brought_won_amount": {
+      "label": "Amount won from referrals",
+      "definition": "The sum of the estimated amounts of won deals belonging to contacts this peer referred.",
+      "excludes": "Won deals with no estimated amount: in the count, not in the sum — an unknown amount is written “—”, never €0.",
+      "whenInsufficient": "Amounts always show.",
+      "howToFeed": "Fill in the estimated amount on the deal record.",
+      "filters": "The same as “Contacts referred”."
+    },
     "partner_commissions": {
       "label": "Commissions generated",
       "definition": "Per partner, on the period’s shares: EARNED commissions (confirmed or settled, at the calculated amount frozen at confirmation) and EXPECTED commissions still alive (share pending or accepted). A chain of resends carries a single commission: the one on its last link.",

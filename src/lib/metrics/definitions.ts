@@ -17,7 +17,7 @@ export const MIN_OBSERVATIONS = 5;
 export type MetricUnit = "days" | "count" | "ratio" | "euros";
 
 /** La famille d'une métrique — l'écran qui la porte. */
-export type MetricFamily = "delays" | "funnel" | "losses" | "partners" | "volumes";
+export type MetricFamily = "delays" | "funnel" | "losses" | "partners" | "referrals" | "volumes";
 
 /**
  * Les TEXTES d'une métrique — libellé, définition exacte telle qu'affichée,
@@ -202,6 +202,37 @@ export const METRICS = {
     id: "commissions_aging",
     unit: "euros",
     family: "partners",
+    minObservations: MIN_OBSERVATIONS,
+  },
+
+  // --- Les APPORTS d'un confrère (lot 3) ------------------------------------
+  // Une famille à part, et non « partners » : l'analytique des partenaires
+  // parle des PARTAGES (ce qu'on leur envoie), ces quatre-là parlent de ce
+  // qu'ils AMÈNENT. Deux angles, deux écrans, deux jeux de définitions — et
+  // surtout deux « transformations » qu'il ne faut jamais confondre : ici
+  // gagnées ÷ contacts apportés, là gagnées ÷ partages acceptés.
+  partner_brought_contacts: {
+    id: "partner_brought_contacts",
+    unit: "count",
+    family: "referrals",
+    minObservations: MIN_OBSERVATIONS,
+  },
+  partner_brought_deals: {
+    id: "partner_brought_deals",
+    unit: "count",
+    family: "referrals",
+    minObservations: MIN_OBSERVATIONS,
+  },
+  partner_brought_won_amount: {
+    id: "partner_brought_won_amount",
+    unit: "euros",
+    family: "referrals",
+    minObservations: MIN_OBSERVATIONS,
+  },
+  partner_brought_rate: {
+    id: "partner_brought_rate",
+    unit: "ratio",
+    family: "referrals",
     minObservations: MIN_OBSERVATIONS,
   },
 

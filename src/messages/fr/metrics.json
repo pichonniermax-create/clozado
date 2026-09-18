@@ -208,6 +208,38 @@
       "howToFeed": "Le partenaire répond depuis son lien (accepter, refuser).",
       "filters": "Les mêmes que « Partages envoyés »."
     },
+    "partner_brought_contacts": {
+      "label": "Contacts apportés",
+      "definition": "Les fiches vivantes dont ce confrère est l’apporteur, comptées à la date de l’ATTRIBUTION — le jour où le lien a été posé, jamais la date de création de la fiche.",
+      "excludes": "Les fiches supprimées ; les fiches apportées par quelqu’un d’autre ou par personne ; les partages d’affaires, qui se comptent à part (« Partages envoyés »).",
+      "whenInsufficient": "Le nombre s’affiche toujours, zéro compris.",
+      "howToFeed": "Renseigner « Apporté par » sur une fiche contact, à la création ou après coup.",
+      "filters": "La période partagée, appliquée à la date d’attribution : une origine renseignée après coup compte à sa date d’attribution, jamais rétroactivement — corriger le passé ne change pas les chiffres d’une période déjà lue."
+    },
+    "partner_brought_deals": {
+      "label": "Affaires issues des apports",
+      "definition": "Les affaires des contacts apportés par ce confrère, réparties par l’issue de leur étape COURANTE : sans issue = en cours, étape marquée « gagné » = gagnée.",
+      "excludes": "Les affaires d’un contact qu’il n’a pas apporté ; les affaires perdues, qui ne sont ni « en cours » ni « gagnées » ; une affaire gagnée puis rouverte n’est plus gagnée.",
+      "whenInsufficient": "Le nombre s’affiche toujours, zéro compris.",
+      "howToFeed": "Créer l’affaire depuis la fiche du contact apporté — c’est le contact qui porte l’apporteur, pas l’affaire.",
+      "filters": "Les mêmes que « Contacts apportés » : la période porte sur l’attribution du CONTACT, pas sur la date de l’affaire."
+    },
+    "partner_brought_rate": {
+      "label": "Transformation des apports",
+      "definition": "Affaires gagnées ÷ contacts apportés, sur les contacts apportés dans la période. À ne pas confondre avec « Taux de transformation », qui parle des PARTAGES : gagnées ÷ partages acceptés.",
+      "excludes": "Les contacts apportés hors période ; les affaires des contacts qu’il n’a pas apportés.",
+      "whenInsufficient": "Masqué tant que le confrère compte moins de 5 contacts apportés dans la période : un pourcentage sur quatre observations ment. L’écran le dit plutôt que de l’inventer.",
+      "howToFeed": "Apporter des fiches, et faire avancer leurs affaires jusqu’à une étape marquée « gagné ».",
+      "filters": "Les mêmes que « Contacts apportés »."
+    },
+    "partner_brought_won_amount": {
+      "label": "Montant gagné sur les apports",
+      "definition": "La somme des montants estimés des affaires gagnées des contacts apportés par ce confrère.",
+      "excludes": "Les affaires gagnées sans montant estimé : dans le nombre, pas dans la somme — un montant dont rien n’est connu s’écrit « — », jamais 0 €.",
+      "whenInsufficient": "Les montants s’affichent toujours.",
+      "howToFeed": "Renseigner le montant estimé sur la fiche de l’affaire.",
+      "filters": "Les mêmes que « Contacts apportés »."
+    },
     "partner_commissions": {
       "label": "Commissions générées",
       "definition": "Par partenaire, sur les partages de la période : les commissions ACQUISES (confirmées ou réglées, au montant calculé figé à la confirmation) et les commissions PRÉVUES encore vivantes (partage en attente ou accepté). Une chaîne de renvois porte une seule commission : celle de son dernier lien.",
