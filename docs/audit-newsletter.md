@@ -181,6 +181,159 @@ volume significatif, écran refusé à un admin d'organisation, aucune adresse
 emporté par le commit de la barre latérale (un `git add src` trop large),
 ce qui est dit ici pour que l'historique reste lisible.
 
+## A ter. La conformité messageries — MESURÉE (2026-09-19)
+
+Deuxième étape du chantier « envoi ». Rien n'est supposé ici : l'état DNS
+est lu dans le vrai DNS par `scripts/dns-envoi.ts` (nouveau, sans
+dépendance, `npx tsx scripts/dns-envoi.ts`), le reste est lu dans le code.
+
+### A ter.1 Ce qui est en place
+
+| Domaine | Rôle | SPF (chemin de retour) | DKIM | DMARC | MX |
+|---|---|---|---|---|---|
+| `mail.clozado.fr` | envoi du produit | `v=spf1 include:amazonses.com ~all` sur `send.mail` | `resend._domainkey.mail`, ~1 040 bits | `v=DMARC1; p=none;` | rebonds : `feedback-smtp.eu-west-1.amazonses.com` |
+| `in.clozado.fr` | réception | — | présent | — | `inbound-smtp.eu-west-1.amazonaws.com` |
+| `news.clozado.fr` | envoi marketing | **rien** | **rien** | **rien** | **rien** |
+| `clozado.fr` | vitrine | **rien** | — | **rien** | — |
+
+**L'alignement est bon là où l'on envoie** : l'adresse d'expédition est en
+`@mail.clozado.fr`, la signature DKIM est publiée sur ce domaine, et le
+chemin de retour est `send.mail.clozado.fr` — même domaine d'organisation.
+Gmail exige que « l'en-tête `From:` soit aligné avec le domaine SPF **ou**
+le domaine DKIM » ; ici les deux le sont.
+
+**La désinscription en un clic est conforme** (RFC 8058) et l'était déjà :
+`List-Unsubscribe: <https://…/api/unsubscribe/{id}>` et
+`List-Unsubscribe-Post: List-Unsubscribe=One-Click`
+(`src/lib/email/deliver.ts`), la route n'agit que sur un POST portant le
+corps `List-Unsubscribe=One-Click` (`src/app/api/unsubscribe/[id]/route.ts`),
+un GET redirige vers la page — un robot qui pré-visite les liens ne
+désinscrit personne. Le lien visible dans le pied de page existe aussi :
+Gmail demande les deux.
+
+**Le taux de plainte** est tenu sous 0,30 % par la pause automatique des
+garde-fous (§A bis), qui est exactement le seuil publié par Google.
+
+### A ter.2 Ce qui manque, par gravité
+
+1. **La vitrine `clozado.fr` n'a ni SPF ni DMARC.** N'importe qui peut
+   écrire « de » `@clozado.fr` : c'est le domaine que les clients lisent.
+   Rien n'envoie depuis lui aujourd'hui — c'est le cas le plus simple à
+   fermer (SPF vide, DMARC en rejet).
+2. **Aucun rapport DMARC n'est demandé** (`rua=` absent sur
+   `_dmarc.mail.clozado.fr`) : personne ne sait combien de messages
+   échouent l'alignement, ni qui usurpe le domaine. C'est ce qui manque
+   pour sortir un jour de `p=none` sans casser les envois.
+3. **`news.clozado.fr` n'existe pas dans le DNS** : la bascule marketing
+   reste impossible tant que les enregistrements du second compte ne sont
+   pas posés (ils sont listés dans `docs/bascule-compte-envoi.md` §5, clé
+   DKIM dans `docs/dns-dkim.txt`).
+4. **La clé DKIM fait ~1 040 bits.** RFC 8301 : « Signers MUST use RSA
+   keys of at least 1024 bits […] Signers SHOULD use RSA keys of at least
+   2048 bits. » On est au minimum obligatoire, pas au recommandé. Resend
+   génère la clé : la changer demande de recréer le domaine chez lui, donc
+   une fenêtre sans envoi — à faire quand la bascule marketing aura lieu,
+   pas avant.
+5. **`Feedback-ID` était absent** — corrigé aujourd'hui (§A ter.4).
+
+### A ter.3 Les enregistrements à créer chez Hostinger
+
+Zone `clozado.fr`. Le nom est **relatif** (Hostinger ajoute le domaine).
+**Rien de ce qui existe n'est touché** : les quatre premières lignes sont
+des créations ; la cinquième REMPLACE une valeur existante, et c'est dit.
+
+| # | Type | Nom | Valeur | TTL |
+|---|---|---|---|---|
+| 1 | TXT | `@` | `v=spf1 -all` | 3600 |
+| 2 | TXT | `_dmarc` | `v=DMARC1; p=reject; sp=none; adkim=s; aspf=s; fo=1; rua=mailto:dmarc@clozado.fr` | 3600 |
+| 3 | TXT | `*._report._dmarc` | `v=DMARC1` | 3600 |
+| 4 | TXT | `_dmarc.in` | `v=DMARC1; p=reject;` | 3600 |
+| 5 | TXT | `_dmarc.mail` | `v=DMARC1; p=none; fo=1; rua=mailto:dmarc@clozado.fr` | 3600 |
+
+**Ligne 1 — la condition.** `v=spf1 -all` dit « personne n'envoie depuis
+`clozado.fr` ». Si une boîte mail Hostinger existe sur ce domaine et
+qu'elle envoie, la valeur devient
+`v=spf1 include:_spf.mail.hostinger.com -all` (l'include de Hostinger a
+été vérifié : il répond
+`v=spf1 include:relay.mail.hostinger.com include:relay.mailchannels.net ~all`).
+Sinon, un `-all` sec couperait ses propres emails.
+
+**Ligne 2 — pourquoi `sp=none` et pas `sp=reject`.** La politique de
+sous-domaine s'applique à tout sous-domaine qui n'a PAS sa propre ligne
+DMARC. `mail.clozado.fr` a la sienne (ligne 5), `in` l'aura (ligne 4),
+mais `news.clozado.fr` n'a rien : un `sp=reject` posé aujourd'hui ferait
+rejeter les envois marketing le jour où ils partiront. `sp=none` d'abord ;
+il passera à `reject` quand `news` aura sa propre ligne (elle est dans
+`docs/bascule-compte-envoi.md`).
+
+**Ligne 3 — pourquoi elle est nécessaire.** RFC 7489 §7.1 : quand
+l'adresse de rapport est dans un AUTRE domaine que celui de la politique
+(ici la politique vit sur `mail.clozado.fr`, l'adresse sur
+`clozado.fr`), le domaine destinataire doit l'autoriser, sinon
+« the URI MUST be ignored by the Mail Receiver ». Le joker couvre tous
+nos sous-domaines d'un coup.
+
+**L'adresse `dmarc@clozado.fr` doit exister** (boîte Hostinger ou
+redirection). Une adresse Gmail ne peut PAS servir : Google ne publie pas
+l'enregistrement d'autorisation ci-dessus pour les particuliers, et les
+rapports seraient ignorés. Les rapports sont des XML zippés : les LIRE
+demande un outil (service tiers ou lecture à la main) — c'est une
+décision, pas une évidence, et elle n'est pas prise ici.
+
+**Ligne 4 — `in.clozado.fr` ne doit jamais envoyer** : il ne fait que
+recevoir. Une ligne DMARC en rejet le dit.
+
+**Après la pose** : `npx tsx scripts/dns-envoi.ts` doit afficher `✓`
+partout sauf la clé DKIM (point 4 ci-dessus). La propagation prend de
+quelques minutes à quelques heures.
+
+### A ter.4 Ce qui dépendait du code — FAIT
+
+**`Feedback-ID`** (`src/lib/email/headers.ts`, en-tête posé dans
+`buildOutgoing`) : `nature:organisation:vague:clozado`. C'est l'en-tête
+que Gmail utilise pour regrouper les plaintes dans Postmaster Tools —
+sans lui, le taux de plainte est un seul chiffre pour tout le domaine, et
+la pause automatique des garde-fous se déclenche sans qu'on sache QUI
+l'a provoquée. Quatre champs au plus, le dernier identifie l'expéditeur,
+127 caractères au plus : la forme est respectée et testée. Aucune donnée
+personnelle n'y figure (des UUID et des étiquettes internes).
+
+Ce qui ne dépend pas de nous : le PTR, le TLS et l'IP d'envoi sont ceux
+de Resend/Amazon SES.
+
+Non retenu pour l'instant, et pourquoi : un `mailto:` dans
+`List-Unsubscribe` (RFC 2369) demanderait un flux de traitement des
+emails de désinscription — le lien HTTPS et le un-clic suffisent aux
+exigences de Gmail et de Yahoo ; MTA-STS et TLS-RPT concernent la
+RÉCEPTION, qui est chez Resend ; BIMI demande un logo certifié (VMC)
+payant et une politique DMARC en quarantaine ou rejet — donc après les
+rapports.
+
+### A ter.5 Les sources
+
+- Google, *Email sender guidelines* —
+  <https://support.google.com/mail/answer/81126> : « Set up SPF and DKIM
+  email authentication for your domain », « Set up DMARC email
+  authentication for your sending domain. Your DMARC enforcement policy
+  can be set to none », « The sender's From: header must be aligned with
+  either the SPF domain or the DKIM domain », « Marketing messages and
+  subscribed messages must support one-click unsubscribe, and include a
+  clearly visible unsubscribe link in the message body », « Keep spam
+  rates reported in Postmaster Tools below 0.30% » (exigences à partir du
+  1er février 2024, celles « 5 000 messages par jour ou plus » citées
+  ici).
+- Google, *Feedback Loop* — <https://support.google.com/mail/answer/6254652>
+  (forme et rôle de l'en-tête `Feedback-ID`).
+- Yahoo, *Sender Best Practices* — <https://senders.yahooinc.com/best-practices/>.
+- RFC 8058, *Signaling One-Click Functionality for List Email Headers* —
+  <https://www.rfc-editor.org/rfc/rfc8058>.
+- RFC 8301, *Cryptographic Algorithm and Key Usage Update to DKIM* —
+  <https://www.rfc-editor.org/rfc/rfc8301> §3.2 (tailles de clé).
+- RFC 7489, *DMARC* — <https://www.rfc-editor.org/rfc/rfc7489> §7.1
+  (autorisation des rapports vers un domaine externe).
+- RFC 7208, *SPF* — <https://www.rfc-editor.org/rfc/rfc7208>.
+
+
 ## B. Délivrabilité et réputation
 
 ### B.1 L'architecture d'aujourd'hui, et ce qu'elle mutualise
