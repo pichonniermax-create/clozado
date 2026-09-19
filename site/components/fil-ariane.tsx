@@ -20,12 +20,12 @@ export function FilAriane({ maillons, aide }: { maillons: readonly Maillon[]; ai
             {maillon.href ? (
               <Link
                 href={maillon.href}
-                className="transition-colors duration-200 ease-out hover:text-foreground focus-visible:text-foreground"
+                className="inline-flex min-h-6 items-center transition-colors duration-200 ease-out hover:text-foreground focus-visible:text-foreground"
               >
                 {maillon.libelle}
               </Link>
             ) : (
-              <span aria-current="page" className="text-foreground">
+              <span aria-current="page" className="inline-flex min-h-6 items-center text-foreground">
                 {maillon.libelle}
               </span>
             )}

@@ -7,9 +7,8 @@ import { Mouvement } from "@/components/mouvement";
 import { Sommaire } from "@/components/sommaire";
 import { articleParSlug, articles, dateLongue, slugCategorie, voisins } from "@/lib/articles";
 import { getDictionary, isLocale, LOCALES } from "@/lib/i18n";
-import { balisageArticle, balisageFilAriane } from "@/lib/metadata";
-import { path, url } from "@/lib/routes";
-import { SITE_CONFIG } from "@/lib/site-config";
+import { balisageArticle, balisageFilAriane, metadataBlog } from "@/lib/metadata";
+import { path } from "@/lib/routes";
 import { classeTitre, sansOrphelin } from "@/lib/titres";
 
 export const revalidate = 86400;
@@ -27,23 +26,13 @@ export async function generateMetadata(props: PageProps<"/[locale]/blog/[slug]">
   const { locale, slug } = await props.params;
   const article = articleParSlug(slug);
   if (!article || !isLocale(locale)) return {};
-  const { common } = getDictionary(locale);
-  const adresse = `${url(locale, "blog")}/${article.slug}`;
-  return {
-    metadataBase: new URL(SITE_CONFIG.origin),
-    title: { absolute: common.meta.gabaritDeTitre.replace("%s", article.titre) },
+  return metadataBlog({
+    locale,
+    chemin: `${path(locale, "blog")}/${article.slug}`,
+    titre: article.titre,
     description: article.resume,
-    alternates: { canonical: adresse },
-    openGraph: {
-      type: "article",
-      url: adresse,
-      title: article.titre,
-      description: article.resume,
-      publishedTime: article.publie,
-      modifiedTime: article.misAJour ?? article.publie,
-      section: article.categorie,
-    },
-  };
+    article: { publie: article.publie, misAJour: article.misAJour, categorie: article.categorie },
+  });
 }
 
 /**

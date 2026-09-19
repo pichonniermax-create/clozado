@@ -77,7 +77,7 @@ export function BlogIndex({
                   href={base}
                   aria-current={categorieCourante ? undefined : "true"}
                   className={cn(
-                    "-ml-px block border-l pl-4 text-sm transition-colors duration-200 ease-out",
+                    "-ml-px flex min-h-6 items-center border-l pl-4 text-sm transition-colors duration-200 ease-out",
                     categorieCourante
                       ? "border-transparent text-muted-foreground hover:text-foreground"
                       : "border-primary font-medium text-foreground"
@@ -92,7 +92,7 @@ export function BlogIndex({
                     href={`${base}/categorie/${categorie.slug}`}
                     aria-current={categorieCourante === categorie.slug ? "true" : undefined}
                     className={cn(
-                      "-ml-px block border-l pl-4 text-sm transition-colors duration-200 ease-out",
+                      "-ml-px flex min-h-6 items-center border-l pl-4 text-sm transition-colors duration-200 ease-out",
                       categorieCourante === categorie.slug
                         ? "border-primary font-medium text-foreground"
                         : "border-transparent text-muted-foreground hover:text-foreground"
@@ -107,7 +107,7 @@ export function BlogIndex({
             <p className="mt-8">
               <a
                 href={`${base}/rss.xml`}
-                className="text-sm font-medium text-primary-ink underline underline-offset-4"
+                className="inline-flex min-h-6 items-center text-sm font-medium text-primary-ink underline underline-offset-4"
                 title={blog.liste.fluxAide}
               >
                 {blog.liste.fluxTitre}

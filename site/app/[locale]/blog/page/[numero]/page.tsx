@@ -5,7 +5,8 @@ import { HeroPage } from "@/components/hero-page";
 import { Mouvement } from "@/components/mouvement";
 import { articles, nombreDePages, pageDArticles } from "@/lib/articles";
 import { getDictionary, isLocale, LOCALES } from "@/lib/i18n";
-import { path, url } from "@/lib/routes";
+import { metadataBlog } from "@/lib/metadata";
+import { path } from "@/lib/routes";
 import { SITE_CONFIG } from "@/lib/site-config";
 
 export const revalidate = 86400;
@@ -22,15 +23,16 @@ export function generateStaticParams() {
 export async function generateMetadata(props: PageProps<"/[locale]/blog/page/[numero]">): Promise<Metadata> {
   const { locale, numero } = await props.params;
   if (!isLocale(locale)) return {};
-  const { blog, common } = getDictionary(locale);
-  const titre = blog.meta.titrePage.replace("{numero}", numero);
-  return {
-    metadataBase: new URL(SITE_CONFIG.origin),
-    title: { absolute: common.meta.gabaritDeTitre.replace("%s", titre) },
+  const { blog } = getDictionary(locale);
+  return metadataBlog({
+    locale,
+    chemin: `${path(locale, "blog")}/page/${numero}`,
+    titre: blog.meta.titrePage.replace("{numero}", numero),
     description: blog.meta.description,
-    alternates: { canonical: `${url(locale, "blog")}/page/${numero}` },
-    robots: { index: false, follow: true },
-  };
+    indexable: false,
+    // Les pages suivantes n'ont pas d'image à elles : elles reprennent celle de l'index.
+    image: `${SITE_CONFIG.origin}${path(locale, "blog")}/opengraph-image`,
+  });
 }
 
 export default async function BlogPagine(props: PageProps<"/[locale]/blog/page/[numero]">) {

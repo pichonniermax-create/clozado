@@ -5,9 +5,8 @@ import { FilAriane } from "@/components/fil-ariane";
 import { Mouvement } from "@/components/mouvement";
 import { articlesDeCategorie, categories, nombreDePages, pageDArticles } from "@/lib/articles";
 import { getDictionary, isLocale, LOCALES } from "@/lib/i18n";
-import { balisageFilAriane } from "@/lib/metadata";
-import { path, url } from "@/lib/routes";
-import { SITE_CONFIG } from "@/lib/site-config";
+import { balisageFilAriane, metadataBlog } from "@/lib/metadata";
+import { path } from "@/lib/routes";
 import { classeTitre, sansOrphelin } from "@/lib/titres";
 
 export const revalidate = 86400;
@@ -22,13 +21,13 @@ export async function generateMetadata(props: PageProps<"/[locale]/blog/categori
   if (!isLocale(locale)) return {};
   const trouvee = categories().find((c) => c.slug === categorie);
   if (!trouvee) return {};
-  const { blog, common } = getDictionary(locale);
-  return {
-    metadataBase: new URL(SITE_CONFIG.origin),
-    title: { absolute: common.meta.gabaritDeTitre.replace("%s", blog.meta.titreCategorie.replace("{nom}", trouvee.nom)) },
+  const { blog } = getDictionary(locale);
+  return metadataBlog({
+    locale,
+    chemin: `${path(locale, "blog")}/categorie/${categorie}`,
+    titre: blog.meta.titreCategorie.replace("{nom}", trouvee.nom),
     description: blog.meta.descriptionCategorie.replace("{nom}", trouvee.nom),
-    alternates: { canonical: `${url(locale, "blog")}/categorie/${categorie}` },
-  };
+  });
 }
 
 /**

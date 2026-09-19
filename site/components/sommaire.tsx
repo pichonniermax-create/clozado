@@ -65,7 +65,7 @@ export function Sommaire({ titres, titre, aide }: { titres: readonly Titre[]; ti
               href={`#${t.id}`}
               aria-current={actif === t.id ? "true" : undefined}
               className={cn(
-                "-ml-px block border-l pl-4 text-sm leading-snug transition-colors duration-200 ease-out",
+                "-ml-px flex min-h-6 items-center border-l pl-4 text-sm leading-snug transition-colors duration-200 ease-out",
                 t.niveau === 3 && "pl-7",
                 actif === t.id
                   ? "border-primary font-medium text-foreground"

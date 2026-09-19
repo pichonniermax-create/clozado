@@ -36,7 +36,7 @@ export function CarteArticle({
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Link
           href={categorieHref}
-          className="label transition-colors duration-200 ease-out hover:text-foreground focus-visible:text-foreground"
+          className="label inline-flex min-h-6 items-center transition-colors duration-200 ease-out hover:text-foreground focus-visible:text-foreground"
         >
           {categorie}
         </Link>

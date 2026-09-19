@@ -96,6 +96,75 @@ export function donneesStructurees(locale: Locale) {
 }
 
 /**
+ * LES MÉTADONNÉES D'UNE PAGE DU BLOG — article, catégorie, page suivante.
+ *
+ * Ces trois-là ne sont pas des entrées de `ROUTES` : leur adresse vient des
+ * fichiers présents, pas d'une déclaration. Elles se les écrivaient donc à
+ * la main, et il y manquait DEUX CHOSES que toutes les autres pages ont :
+ * les `hreflang` (posés dès la première langue, pour n'avoir rien à écrire
+ * le jour de la seconde) et l'image de partage.
+ *
+ * L'IMAGE MÉRITE UNE EXPLICATION. Une image posée sur un segment parent
+ * n'est pas reprise par un enfant qui déclare son propre `openGraph` — le
+ * même piège que sur `/fr/cgp`, déjà consigné dans `lib/og.tsx`. Les
+ * articles partaient donc SANS vignette, et leur carte retombait en
+ * `summary` au lieu de `summary_large_image` : la seule page du site faite
+ * pour être partagée était la seule à ne pas savoir se montrer. Chaque
+ * segment porte maintenant son `opengraph-image`, et le lien vers l'image
+ * est écrit ici.
+ */
+export function metadataBlog({
+  locale,
+  chemin,
+  titre,
+  description,
+  article,
+  indexable = true,
+  image,
+}: {
+  locale: Locale;
+  /** Le chemin complet de la page, langue comprise : « /fr/blog/mon-article ». */
+  chemin: string;
+  titre: string;
+  description: string;
+  /** Les dates d'un article, quand c'en est un. */
+  article?: { publie: string; misAJour?: string; categorie: string };
+  indexable?: boolean;
+  /** L'image de partage, quand le segment n'en génère pas la sienne (les pages suivantes). */
+  image?: string;
+}): Metadata {
+  const { common } = getDictionary(locale);
+  const canonique = `${SITE_CONFIG.origin}${chemin}`;
+  const titreComplet = common.meta.gabaritDeTitre.replace("%s", titre);
+  const vignette = image ?? `${canonique}/opengraph-image`;
+
+  const languages: Record<string, string> = {};
+  for (const autre of LOCALES) languages[HTML_LANG[autre]] = `${SITE_CONFIG.origin}${chemin}`;
+  languages["x-default"] = canonique;
+
+  return {
+    metadataBase: new URL(SITE_CONFIG.origin),
+    title: { absolute: titreComplet },
+    description,
+    alternates: { canonical: canonique, languages },
+    ...(indexable ? {} : { robots: { index: false, follow: true } }),
+    openGraph: {
+      type: article ? "article" : "website",
+      siteName: common.meta.nomDuSite,
+      locale: OG_LOCALE[locale],
+      url: canonique,
+      title: titreComplet,
+      description,
+      images: [{ url: vignette, width: 1200, height: 630, alt: titre }],
+      ...(article
+        ? { publishedTime: article.publie, modifiedTime: article.misAJour ?? article.publie, section: article.categorie }
+        : {}),
+    },
+    twitter: { card: "summary_large_image", title: titreComplet, description, images: [vignette] },
+  };
+}
+
+/**
  * LE BALISAGE DU BLOG — au même endroit que celui de l'éditeur, et pour la
  * même raison : une page ne doit pas écrire elle-même son vocabulaire
  * `schema.org`. Les trois fonctions ci-dessous reçoivent EXACTEMENT ce que
