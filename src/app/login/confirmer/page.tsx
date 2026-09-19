@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { KeyRound } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { Button } from "@/components/ui/button";
@@ -56,7 +55,6 @@ export default async function ConfirmPage({ searchParams }: { searchParams: Prom
         <input type="hidden" name="email" value={email} />
         <input type="hidden" name="callbackUrl" value={callbackUrl} />
         <Button type="submit" className="w-full" data-geste="me-connecter">
-          <KeyRound />
           {t("me_connecter")}
         </Button>
         <p className="text-xs text-muted-foreground">{t("ce_lien_ne_sert_qu_une_fois", { validity })}</p>

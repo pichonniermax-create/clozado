@@ -2,7 +2,6 @@ import Link from "next/link";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { Button } from "@/components/ui/button";
-import { DetailsCard } from "@/components/ui/details-card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { isPlausibleEmail } from "@/lib/email/address";
@@ -48,9 +47,13 @@ export default async function LoginPage({
       }
     >
       <SignInForm initialError={errorMessage} initialEmail={knownEmail} />
-      {/* Le code à six chiffres reçu dans le même email (correctif du 2026-09-17) : pour quand le lien pose problème. */}
-      <DetailsCard id="code" variant="archive" summary={tc("j_ai_recu_un_code")} defaultOpen={Boolean(codeMessage)}>
-        <form method="post" action="/login/code/valider" className="flex flex-col gap-3">
+      {/* Le code à six chiffres reçu dans le même email (correctif du 2026-09-17) : pour quand le lien pose problème.
+          Le repli du produit portait un chevron : la charte du site n'affiche aucune icône, le libellé se souligne. */}
+      <details id="code" open={codeMessage ? true : undefined} className="rounded-lg border border-border bg-card">
+        <summary className="cursor-pointer list-none px-5 py-4 text-base font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline [&::-webkit-details-marker]:hidden">
+          {tc("j_ai_recu_un_code")}
+        </summary>
+        <form method="post" action="/login/code/valider" className="flex flex-col gap-3 border-t border-border p-5">
           <p className="text-xs text-muted-foreground">{tc("description")}</p>
           <Field label={tc("email")} htmlFor="code-email">
             <Input id="code-email" name="email" type="email" autoComplete="email" required defaultValue={knownEmail} />
@@ -67,7 +70,7 @@ export default async function LoginPage({
             {tc("me_connecter_avec_le_code")}
           </Button>
         </form>
-      </DetailsCard>
+      </details>
     </AuthShell>
   );
 }

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LogOut } from "lucide-react";
 import { signOut } from "@/auth";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
@@ -34,7 +33,6 @@ export default async function SignOutPage() {
     >
       <form action={signOutAction}>
         <Button type="submit" variant="outline" className="w-full">
-          <LogOut />
           {t("se_deconnecter")}
         </Button>
       </form>

@@ -31,6 +31,7 @@ export function BrandMark({
     <>
       <span
         aria-hidden
+        data-slot="brand-square"
         className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-product text-xs font-bold text-product-foreground"
       >
         {PRODUCT_NAME.charAt(0)}

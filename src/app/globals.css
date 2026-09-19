@@ -187,6 +187,114 @@
   --sidebar-ring: oklch(0.68 0.152 263);
 }
 
+/*
+ * LA CHARTE DU SITE, SUR LES ÉCRANS PUBLICS (2026-09-19).
+ *
+ * Quelqu'un qui clique « Se connecter » sur clozado.fr arrive ici : la
+ * connexion, l'inscription, la 404, la désinscription. C'était une rupture
+ * — le site est bordeaux, composé, en clair seul ; l'application est bleue.
+ * Ces écrans-là appartiennent au site : ils en prennent la palette et les
+ * formes, à la valeur près (`site/app/directions/bordeaux.css` et
+ * `site/app/globals.css`).
+ *
+ * Ce n'est PAS un thème de l'application : le bleu reste au produit, et la
+ * couleur d'une organisation reste à ses écrans à elle — la vitrine d'un
+ * partage (`/partage/[token]`) garde donc la marque de l'organisation qui
+ * l'a envoyée, elle ne porte pas cette charte.
+ *
+ * Les jetons sont redéfinis sur un élément, pas sur `:root` : les
+ * utilitaires de Tailwind v4 posent `var(--card)` en clair (`@theme
+ * inline`), la valeur est donc relue dans le contexte de chaque élément et
+ * la cascade suffit.
+ */
+[data-charte="site"] {
+  /* Une seule apparence : pas de variante sombre pour les contrôles natifs. */
+  color-scheme: light;
+
+  /* Les neutres : un blanc cassé chaud pour la page, du blanc pur pour les
+     surfaces — c'est ce très léger écart qui détache une carte sans ombre. */
+  --background: #fafaf8;
+  --foreground: #141310;
+  --card: #ffffff;
+  --card-foreground: #141310;
+  --popover: #ffffff;
+  --popover-foreground: #141310;
+  --muted: #f2f1ec;
+  --muted-foreground: #5c5a52;
+  --secondary: #f2f1ec;
+  --secondary-foreground: #141310;
+  --accent: #f2f1ec;
+  --accent-foreground: #141310;
+  --border: #e6e4de;
+  --input: #e6e4de;
+
+  /* L'accent, et lui seul : bouton plein, lien, souligné, état actif. */
+  --primary: #89202b;
+  --primary-foreground: #ffffff;
+  --primary-hover: #72101f;
+  --primary-active: #72101f;
+  --primary-ink: #89202b;
+  --primary-soft: #f7edec;
+  --ring: #89202b;
+  /* La marque du produit suit la charte ICI : un carré bleu sur une page
+     bordeaux serait un troisième parti pris sur le même écran. */
+  --product: #89202b;
+  --product-foreground: #ffffff;
+
+  /* Un seul rayon de carte (16 px) et un seul corps (17 px). */
+  --radius: 1rem;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.6;
+
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/*
+ * Le corps du document suit, sinon le rebond de défilement (iOS) et les
+ * marges du navigateur laissent voir le fond du PRODUIT derrière la page
+ * du SITE. `:has()` évite d'avoir à distinguer les mises en page racine.
+ */
+body:has([data-charte="site"]) {
+  background-color: #fafaf8;
+  color: #141310;
+  color-scheme: light;
+}
+
+/*
+ * UNE SEULE HAUTEUR D'ÉLÉMENT INTERACTIF — 48 px, au-dessus de la cible
+ * tactile recommandée (44 px) — et UNE SEULE FORME D'ACTION : la pilule.
+ * `group/button` est la première classe de `buttonVariants` : elle attrape
+ * aussi bien un `<Button>` qu'un lien qui en porte les classes (l'accueil
+ * et la 404 en ont quatre).
+ */
+[data-charte="site"] .group\/button {
+  height: 3rem;
+  border-radius: 9999px;
+  padding-inline: 1.5rem;
+}
+[data-charte="site"] [data-slot="input"] {
+  height: 3rem;
+  border-radius: var(--radius);
+  padding-inline: 0.875rem;
+}
+/* Le carré de la marque garde son rayon : à 32 px de côté, 16 en ferait une pilule. */
+[data-charte="site"] [data-slot="brand-square"] {
+  border-radius: 8px;
+}
+
+/*
+ * LE PALIER DE TITRE BAS du site (56 px au maximum), repris à la valeur
+ * près : la porte du produit est la seule page publique qui porte un
+ * titre d'affiche. La taille suit la fenêtre, sans point de rupture.
+ */
+[data-charte="site"] .titre-public {
+  font-size: clamp(2rem, 1.25rem + 2.9vw, 3.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  font-weight: 800;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

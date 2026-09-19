@@ -12,7 +12,7 @@ export default async function UnsubscribeNotFound() {
   const t = await getTranslations("email.unsubscribe");
   return (
     <AuthShell title={t("invalid_title")}>
-      <p className="text-sm text-muted-foreground text-pretty">{t("invalid")}</p>
+      <p className="text-base text-muted-foreground text-pretty">{t("invalid")}</p>
     </AuthShell>
   );
 }

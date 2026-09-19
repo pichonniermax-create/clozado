@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { MailCheck } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { getTranslations } from "next-intl/server";
 
@@ -27,15 +26,11 @@ export default async function VerifyRequestPage({ searchParams }: { searchParams
         </>
       }
     >
-      <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/50 px-4 py-3">
-        <MailCheck className="mt-0.5 size-4 shrink-0 text-success" />
-        <div className="flex flex-col gap-1 text-sm">
-          <p className="font-medium">{t("le_lien_est_valable_une_seule_6cb8")}</p>
-          {fromSignup && <p className="text-muted-foreground">{t("si_cette_adresse_a_deja_un_espace")}</p>}
-          <p className="text-muted-foreground">
-            {t("rien_recu_apres_quelques_minutes_verifie_5bb6")}
-          </p>
-        </div>
+      {/* Un filet et une surface, pas une icône : la charte du site ne décore rien. */}
+      <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted px-4 py-3.5 text-base">
+        <p className="font-medium">{t("le_lien_est_valable_une_seule_6cb8")}</p>
+        {fromSignup && <p className="text-muted-foreground">{t("si_cette_adresse_a_deja_un_espace")}</p>}
+        <p className="text-muted-foreground">{t("rien_recu_apres_quelques_minutes_verifie_5bb6")}</p>
       </div>
     </AuthShell>
   );
