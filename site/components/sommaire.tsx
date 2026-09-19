@@ -9,10 +9,10 @@ import type { Titre } from "@/lib/markdown";
  * lecture.
  *
  * Sans JavaScript, c'est une liste d'ancres : elle fonctionne, elle ne
- * souligne simplement pas la section en cours. Avec, un
- * `IntersectionObserver` regarde le HAUT de la fenêtre (une bande de 20 %
- * sous l'en-tête) et retient le dernier titre passé dessous — c'est la
- * section qu'on lit, pas celle qui occupe le plus de place.
+ * souligne simplement pas la section en cours. Avec, un écouteur de
+ * défilement passif retient le dernier titre passé sous le quart supérieur
+ * de la fenêtre — c'est la section qu'on lit, pas celle qui occupe le plus
+ * de place.
  *
  * `prefers-reduced-motion` ne change rien ici : il n'y a aucune animation,
  * seulement une couleur et un filet qui se déplacent d'un cran.
@@ -24,22 +24,18 @@ export function Sommaire({ titres, titre, aide }: { titres: readonly Titre[]; ti
     const cibles = titres.map((t) => document.getElementById(t.id)).filter((e): e is HTMLElement => Boolean(e));
     if (cibles.length === 0) return;
 
-    const observateur = new IntersectionObserver(
-      () => {
-        // On ne se fie pas à l'ordre des entrées : on relit les positions.
-        const limite = window.innerHeight * 0.25;
-        let courant = cibles[0];
-        for (const cible of cibles) {
-          if (cible.getBoundingClientRect().top <= limite) courant = cible;
-        }
-        setActif(courant.id);
-      },
-      { rootMargin: "-20% 0px -70% 0px", threshold: [0, 1] }
-    );
-    cibles.forEach((cible) => observateur.observe(cible));
-
-    // Le premier calcul, sans attendre un croisement.
-    const auDefilement = () => {
+    /*
+     * UNE SEULE MESURE, et elle regarde le HAUT de la fenêtre : la section
+     * en cours est le dernier titre passé sous le quart supérieur — pas
+     * celle qui occupe le plus de place à l'écran.
+     *
+     * Il y avait ici DEUX mécanismes qui faisaient exactement ce calcul :
+     * un `IntersectionObserver` dont le rappel relisait toutes les
+     * positions, et cet écouteur de défilement. L'observateur n'apportait
+     * rien qu'un `scroll` passif ne donne déjà, et il recalculait tout une
+     * seconde fois à chaque croisement.
+     */
+    const mesurer = () => {
       const limite = window.innerHeight * 0.25;
       let courant = cibles[0];
       for (const cible of cibles) {
@@ -47,11 +43,13 @@ export function Sommaire({ titres, titre, aide }: { titres: readonly Titre[]; ti
       }
       setActif(courant.id);
     };
-    auDefilement();
-    window.addEventListener("scroll", auDefilement, { passive: true });
+
+    mesurer();
+    window.addEventListener("scroll", mesurer, { passive: true });
+    window.addEventListener("resize", mesurer, { passive: true });
     return () => {
-      observateur.disconnect();
-      window.removeEventListener("scroll", auDefilement);
+      window.removeEventListener("scroll", mesurer);
+      window.removeEventListener("resize", mesurer);
     };
   }, [titres]);
 
