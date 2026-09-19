@@ -38,8 +38,8 @@ export const ecransMetiers = {
     ancienneteValeur: "71 j",
     etapes: [
       { libelle: "Dossier ouvert", date: "3 mars", ecart: "", etat: "fait" as const },
-      { libelle: "Rendez-vous découverte", date: "11 mars", ecart: "8 j", etat: "fait" as const },
-      { libelle: "Étude et proposition remises", date: "24 mars", ecart: "13 j", etat: "fait" as const },
+      { libelle: "Rendez-vous découverte", date: "10 mars", ecart: "7 j", etat: "fait" as const },
+      { libelle: "Étude et proposition remises", date: "24 mars", ecart: "14 j", etat: "fait" as const },
       { libelle: "Mandat signé", date: "2 avril", ecart: "9 j", etat: "fait" as const },
       { libelle: "Souscription transmise à l’assureur", date: "9 avril", ecart: "7 j", etat: "fait" as const },
       {

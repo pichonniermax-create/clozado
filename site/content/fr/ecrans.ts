@@ -17,7 +17,7 @@ export const ecrans = {
 
   suivi: {
     nom: "Suivi",
-    resume: "14 éléments attendent une action : relances, dossiers sans suite, commissions dues.",
+    resume: "12 éléments attendent une action : 8 partages sans réponse, 4 affaires acceptées restées sans suite.",
     legende: "L’écran Suivi, redessiné.",
     piles: [
       {
@@ -49,7 +49,7 @@ export const ecrans = {
         lignes: [
           {
             titre: "Maison de ville — Rezé",
-            detail: "Sophie Guérin · acceptée le 2 mai 2026 · rien depuis 90 j",
+            detail: "Sophie Guérin · acceptée le 5 mai 2026 · rien depuis 130 j",
             action: "Ouvrir",
           },
           {
@@ -67,7 +67,7 @@ export const ecrans = {
     resume: "Ce qui attend une action, dès l’ouverture.",
     legende: "Le tableau de bord, redessiné.",
     tuiles: [
-      { libelle: "Tâches à faire", valeur: "31", precision: "dont 31 en retard" },
+      { libelle: "Tâches à faire", valeur: "31", precision: "dont 1 en retard" },
       { libelle: "Partages sans retour", valeur: "8", precision: "à relancer" },
       { libelle: "Acceptés sans suite", valeur: "4", precision: "depuis 5 jours ou plus" },
       { libelle: "Commissions à encaisser", valeur: "4 476 €", precision: "confirmées, non réglées" },

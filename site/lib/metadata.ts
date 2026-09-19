@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getDictionary, HTML_LANG, LOCALES, OG_LOCALE, type Locale } from "./i18n";
+import { type Article, articles, categories, nombreDePages } from "./articles";
 import { path, ROUTES, url, type RouteKey } from "./routes";
 import { SITE_CONFIG } from "./site-config";
 
@@ -94,9 +95,90 @@ export function donneesStructurees(locale: Locale) {
   };
 }
 
-/** Les pages construites, pour le sitemap : leur adresse, leurs variantes de langue et leur priorité. */
+/**
+ * LE BALISAGE DU BLOG — au même endroit que celui de l'éditeur, et pour la
+ * même raison : une page ne doit pas écrire elle-même son vocabulaire
+ * `schema.org`. Les trois fonctions ci-dessous reçoivent EXACTEMENT ce que
+ * la page affiche, donc le balisage ne peut pas diverger de l'écran.
+ */
+
+/** `Blog` : l'index et la liste de ses articles. */
+export function balisageBlog(locale: Locale) {
+  const { blog } = getDictionary(locale);
+  const adresse = url(locale, "blog");
+  return {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    "@id": `${adresse}#blog`,
+    name: blog.meta.titre,
+    description: blog.meta.description,
+    inLanguage: HTML_LANG[locale],
+    url: adresse,
+    publisher: { "@id": `${SITE_CONFIG.origin}/#organisation` },
+    blogPost: articles().map((article) => ({
+      "@type": "BlogPosting",
+      headline: article.titre,
+      description: article.resume,
+      datePublished: article.publie,
+      dateModified: article.misAJour ?? article.publie,
+      url: `${adresse}/${article.slug}`,
+    })),
+  };
+}
+
+/** `Article` : un article, avec son nombre de mots réel et sa section. */
+export function balisageArticle(locale: Locale, article: Article) {
+  const adresse = url(locale, "blog");
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: article.titre,
+    description: article.resume,
+    articleSection: article.categorie,
+    datePublished: article.publie,
+    dateModified: article.misAJour ?? article.publie,
+    wordCount: article.mots,
+    inLanguage: HTML_LANG[locale],
+    url: `${adresse}/${article.slug}`,
+    isPartOf: { "@id": `${adresse}#blog` },
+    publisher: { "@id": `${SITE_CONFIG.origin}/#organisation` },
+    author: { "@id": `${SITE_CONFIG.origin}/#organisation` },
+  };
+}
+
+/**
+ * `BreadcrumbList` : les mêmes maillons que le fil d'Ariane affiché — ils
+ * lui sont passés, jamais reconstruits. Le dernier maillon n'a pas
+ * d'adresse : c'est la page courante.
+ */
+export function balisageFilAriane(
+  locale: Locale,
+  maillons: readonly { readonly libelle: string; readonly href?: string }[]
+) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    inLanguage: HTML_LANG[locale],
+    itemListElement: maillons.map((maillon, rang) => ({
+      "@type": "ListItem",
+      position: rang + 1,
+      name: maillon.libelle,
+      ...(maillon.href ? { item: `${SITE_CONFIG.origin}${maillon.href}` } : {}),
+    })),
+  };
+}
+
+/**
+ * Les pages construites, pour le sitemap : leur adresse, leurs variantes de
+ * langue et leur priorité.
+ *
+ * LE BLOG S'Y AJOUTE DE LUI-MÊME : ses articles, ses catégories et ses pages
+ * suivantes sont dérivés des fichiers Markdown présents. Un article publié
+ * entre au sitemap sans qu'on y touche ; une catégorie sans article n'y
+ * figure pas, puisqu'elle n'a pas de page.
+ */
 export function entreesDuSitemap() {
-  return (Object.keys(ROUTES) as RouteKey[])
+  const fixes = (Object.keys(ROUTES) as RouteKey[])
     .filter((cle) => ROUTES[cle].built)
     .flatMap((cle) =>
       LOCALES.map((locale) => {
@@ -109,4 +191,22 @@ export function entreesDuSitemap() {
         };
       })
     );
+
+  const duBlog = LOCALES.flatMap((locale) => {
+    const base = url(locale, "blog");
+    return [
+      ...articles().map((article) => ({
+        url: `${base}/${article.slug}`,
+        priority: 0.6,
+        lastModified: article.misAJour ?? article.publie,
+      })),
+      ...categories().map((categorie) => ({ url: `${base}/categorie/${categorie.slug}`, priority: 0.4 })),
+      ...Array.from({ length: Math.max(0, nombreDePages() - 1) }, (_, i) => ({
+        url: `${base}/page/${i + 2}`,
+        priority: 0.3,
+      })),
+    ];
+  });
+
+  return [...fixes, ...duBlog];
 }

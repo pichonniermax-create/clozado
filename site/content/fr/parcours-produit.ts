@@ -68,10 +68,7 @@ export const parcoursProduit = {
             titre: "Qualifiée",
             compte: "5",
             montant: "412 000 €",
-            cartes: [
-              { titre: "Marion Delaunay", detail: "Résidence principale · 285 000 €" },
-              { titre: "SCI Vigneron", detail: "Locatif · 127 000 €" },
-            ],
+            cartes: [{ titre: "SCI Vigneron", detail: "Locatif · 127 000 €" }],
           },
           {
             titre: "Proposition",
@@ -79,7 +76,7 @@ export const parcoursProduit = {
             montant: "638 000 €",
             cartes: [
               { titre: "Karim Benslimane", detail: "Renégociation · 196 000 €" },
-              { titre: "Estelle Thouard", detail: "Achat-revente · 442 000 €" },
+              { titre: "Estelle Thouard", detail: "Achat-revente · 368 000 €" },
             ],
           },
           {
@@ -161,7 +158,7 @@ export const parcoursProduit = {
         legende: "Le suivi d’une commission, redessiné.",
         total: "3 600 €",
         parts: [
-          { libelle: "Réglée", montant: "1 200 €", part: "33,3 %", date: "Reçue le 28 avril" },
+          { libelle: "Réglée", montant: "1 200 €", part: "33,3 %", date: "Reçue le 24 avril" },
           { libelle: "Confirmée", montant: "1 800 €", part: "50,0 %", date: "Attendue le 30 mai" },
           { libelle: "Prévue", montant: "600 €", part: "16,7 %", date: "À la signature de l’acte" },
         ],

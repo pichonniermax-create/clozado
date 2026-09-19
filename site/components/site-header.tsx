@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { getDictionary, type Locale } from "@/lib/i18n";
 import { menuPrincipal, path, sousEntrees, type RouteKey } from "@/lib/routes";

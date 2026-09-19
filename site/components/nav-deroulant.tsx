@@ -74,10 +74,27 @@ export function NavDeroulant({
     minuteur.current = window.setTimeout(() => setOuvert(valeur), delai);
   };
 
-  /** La navigation ferme : l'en-tête, lui, ne se démonte pas d'une page à l'autre. */
+  /**
+   * LA NAVIGATION FERME LE PANNEAU — et elle le ferme PENDANT LE RENDU.
+   *
+   * L'en-tête ne se démonte pas d'une page à l'autre : sans cela, le
+   * déroulant resterait ouvert sur la page d'arrivée. Le faire dans un effet
+   * rendait la nouvelle page UNE PREMIÈRE FOIS panneau ouvert, puis une
+   * seconde fois panneau fermé — un battement visible, et l'avertissement
+   * `react-hooks/set-state-in-effect`. Comparer le chemin à celui du rendu
+   * précédent règle les deux : React reprend le rendu sur-le-champ, avant de
+   * peindre quoi que ce soit.
+   */
+  const [cheminRendu, setCheminRendu] = useState(chemin);
+  if (chemin !== cheminRendu) {
+    setCheminRendu(chemin);
+    setOuvert(false);
+  }
+
+  /** Et le minuteur en attente ne doit pas rouvrir le panneau une fois arrivé. */
   useEffect(() => {
-    fermer();
-  }, [chemin, fermer]);
+    window.clearTimeout(minuteur.current);
+  }, [chemin]);
 
   useEffect(() => {
     if (!ouvert) return;

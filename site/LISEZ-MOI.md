@@ -49,6 +49,35 @@ fichier, ni build : un déploiement de l'un ne peut pas casser l'autre.
 - **Aucune adresse en dur.** `lib/site-config.ts` est le seul fichier à
   toucher quand une adresse change (l'application, la prise de rendez-vous).
 
+## Les quatre garde-fous de la construction
+
+`npm run build` enchaîne quatre contrôles avant `next build`. Chacun arrête
+la construction, aucun n'avertit sans conséquence : un site se dégrade par
+petites tolérances.
+
+1. **`verifier:libelles`** — aucun crochet à compléter (« [prix] ») dans un
+   texte affiché, hors les deux pages légales, exemptées à voix haute.
+2. **`verifier:collisions`** — le TABLEAU DE COLLISION. Les treize écrans de
+   preuve sont rangés en cinq familles ; deux familles ne partagent ni nom
+   propre, ni montant, ni date. À l'intérieur d'une famille le partage est
+   voulu : l'accueil montre un seul cabinet, et les six écrans du parcours
+   suivent un seul dossier.
+3. **`verifier:additions`** — le TABLEAU DES ADDITIONS. Quatre-vingt-trois
+   contrôles refont les calculs de chaque écran : un total est la somme de
+   ses lignes, un pourcentage est le rapport qu'il annonce, un écart est la
+   différence de ses deux bornes. Rien n'est recopié dans le contrôle, tout
+   est relu dans `content/fr/` — corriger un nombre suffit, le contrôle dira
+   s'il est cohérent.
+4. **`eslint`** — dont la règle locale `no-visible-text` : aucun texte
+   affiché n'est écrit dans un composant. Elle n'existait ici que depuis le
+   2026-09-19 ; le site n'était linté par rien, et la règle du dépôt visait
+   `src/` seulement. `client-namespaces`, la seconde règle du dépôt, ne se
+   transporte pas : elle surveille `next-intl`, que le site n'utilise pas.
+
+Le contrôle du site EN LIGNE est à part : `./scripts/verifier.sh <adresse>`
+lit le sitemap publié et vérifie chaque adresse qu'il déclare, plus les
+redirections, le flux RSS et les en-têtes de sécurité.
+
 ## Les redirections des anciennes adresses Framer
 
 Elles vivent dans `vercel.json`, avec un **vrai 301** (`statusCode: 301` ;

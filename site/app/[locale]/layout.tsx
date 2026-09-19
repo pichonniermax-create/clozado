@@ -45,6 +45,7 @@ const geist = localFont({
   // affiché avant la police définitive occupe la même place, donc aucun
   // décalage de mise en page (CLS).
   fallback: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
+  // eslint-disable-next-line local/no-visible-text -- un nom de famille de police, pas un texte lu dans une page
   adjustFontFallback: "Arial",
 });
 

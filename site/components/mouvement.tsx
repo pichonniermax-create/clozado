@@ -17,8 +17,12 @@ import { MiseEnMouvement } from "./mise-en-mouvement";
 export function Mouvement() {
   return (
     <>
-      <script dangerouslySetInnerHTML={{ __html:
-            'var d=document.documentElement.dataset;d.mouvement="1";setTimeout(function(){if(!d.anime)delete d.mouvement},2500)', }} />
+      <script
+        dangerouslySetInnerHTML={{
+          // eslint-disable-next-line local/no-visible-text -- du JavaScript, pas un texte : ce script pose data-mouvement avant le premier rendu
+          __html: 'var d=document.documentElement.dataset;d.mouvement="1";setTimeout(function(){if(!d.anime)delete d.mouvement},2500)',
+        }}
+      />
       <MiseEnMouvement />
     </>
   );

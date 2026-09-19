@@ -1,5 +1,5 @@
 import { cn } from "@/lib/cn";
-import { Cadre, Compte, FauxBouton } from "./ecran-produit";
+import { Cadre } from "./ecran-produit";
 
 /**
  * LES TROIS ÉCRANS DE PREUVE DES PAGES MÉTIER — une forme par métier.
