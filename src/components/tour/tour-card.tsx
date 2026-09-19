@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Compass, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
+import { canAnchor, placeCard, type Placement } from "@/lib/tour/placement";
 import { serializeTourState, TOUR_COOKIE, TOUR_COOKIE_MAX_AGE, TOUR_PARAM, TOUR_STEPS, type TourState } from "@/lib/tour/steps";
 import { cn } from "@/lib/utils";
 
@@ -18,27 +19,23 @@ function writeCookie(state: TourState) {
   }
 }
 
-/** La géométrie de l'élément éclairé et la place de la carte, recalculées au défilement et au redimensionnement. */
-type Anchor = { top: number; left: number; width: number; height: number; cardTop: number; cardLeft: number };
+/**
+ * La carte se pose AVANT d'être visible : tant que l'élément à éclairer
+ * n'est pas mesuré, elle reste invisible (elle occupe déjà sa place, donc
+ * sa hauteur est connue). Avant, elle apparaissait en bas à droite puis
+ * sautait sous l'élément dès que l'écran finissait d'arriver — un
+ * mouvement que personne n'a demandé, sur un écran qu'on découvre.
+ *
+ * Passé ce délai, l'élément n'arrivera plus (écran sans repère, contenu en
+ * erreur) : la carte se montre en bas, et n'essaie plus de s'ancrer — elle
+ * ne bougera pas non plus.
+ */
+const SETTLE_MS = 2500;
+/** La hauteur de repli, le temps que la carte existe pour être mesurée. */
+const CARD_HEIGHT_FALLBACK = 232;
 
-const CARD_WIDTH = 384;
-const GAP = 14;
-const PADDING = 8;
-/** En dessous de `md`, la carte reste en bas de l'écran : pas d'éclairage sur un téléphone. */
-const ANCHOR_MIN_WIDTH = 768;
-
-function measure(target: string): Anchor | null {
-  if (window.innerWidth < ANCHOR_MIN_WIDTH) return null;
-  const element = document.querySelector<HTMLElement>(`[data-tour="${target}"]`);
-  if (!element) return null;
-  const rect = element.getBoundingClientRect();
-  if (rect.width === 0 || rect.height === 0) return null;
-  const cardHeight = 232;
-  const below = rect.bottom + GAP + cardHeight <= window.innerHeight;
-  const cardTop = below ? rect.bottom + GAP : Math.max(PADDING, rect.top - GAP - cardHeight);
-  const cardLeft = Math.min(Math.max(PADDING, rect.left), window.innerWidth - CARD_WIDTH - PADDING);
-  return { top: rect.top - PADDING, left: rect.left - PADDING, width: rect.width + PADDING * 2, height: rect.height + PADDING * 2, cardTop, cardLeft };
-}
+/** `useLayoutEffect` pose la carte dans la passe de mise en page, avant la peinture ; le serveur, lui, ne peint rien. */
+const useBeforePaint = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /**
  * La carte de la visite guidée (docs/module-demo.md §1.8, reprise par le
@@ -58,10 +55,17 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
   const params = useSearchParams();
   const forced = params.get(TOUR_PARAM) === "1";
   const [state, setState] = useState<TourState>(() => (forced || !initialState ? { step: 0, status: "en_cours" } : initialState));
-  const [anchor, setAnchor] = useState<Anchor | null>(null);
+  const [spot, setSpot] = useState<Placement | null>(null);
+  /** Tant que c'est faux, la carte existe (donc se mesure) mais ne se voit pas. */
+  const [placed, setPlaced] = useState(false);
+  const cardRef = useRef<HTMLElement | null>(null);
   // Sur un téléphone, la carte fixe masquait le tiers bas de l'écran sans pouvoir se réduire (audit UI du 2026-09-14) :
   // repliée, il ne reste qu'une ligne au-dessus de la barre d'onglets. Un changement d'étape la redéplie.
   const [collapsed, setCollapsed] = useState(false);
+  // L'écran vers lequel « Suivant » / « Précédent » emmène, tant qu'on n'y est pas : la carte reste invisible pendant le
+  // trajet. Sans ça, elle se décrochait de son repère pour filer dans le coin de l'ANCIEN écran, avant de disparaître et
+  // de se reposer sur le nouveau — deux mouvements pour un seul clic (mesuré : 268,522 → 1032,666 → 268,487).
+  const [goingTo, setGoingTo] = useState<string | null>(null);
   const scrolledFor = useRef<string | null>(null);
 
   // L'état de départ (première visite) s'écrit une fois, pour survivre à la navigation.
@@ -92,54 +96,96 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
     window.history.replaceState(window.history.state, "", `${pathname}${query ? `?${query}` : ""}${window.location.hash}`);
   }, [forced, params, pathname]);
 
+  if (goingTo && pathname === goingTo) setGoingTo(null);
+  // Un trajet qui n'arrive jamais (redirection, écran refusé) ne doit pas effacer la carte pour toujours.
+  useEffect(() => {
+    if (!goingTo) return;
+    const timer = window.setTimeout(() => setGoingTo(null), SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [goingTo]);
+
   const step = TOUR_STEPS[state.step];
   const running = state.status === "en_cours";
   const onScreen = pathname === step.href;
   const target = running && onScreen ? step.target : undefined;
 
-  // L'ancrage : mesuré dans une frame d'animation (jamais pendant le rendu), puis à chaque défilement, redimensionnement
-  // et CHANGEMENT DU DOM — l'écran arrive en flux (squelette d'abord, contenu ensuite) : l'élément à éclairer n'existe
-  // souvent pas encore quand la carte se monte. Une seule frame en attente à la fois.
-  useEffect(() => {
+  // L'ancrage. Une clé par écran ET par repère : elle change, la carte redevient invisible et se repose de zéro —
+  // jamais une carte posée pour l'écran précédent qui glisse vers le nouveau.
+  const anchorKey = `${pathname}:${target ?? ""}`;
+  const [lastKey, setLastKey] = useState(anchorKey);
+  if (anchorKey !== lastKey) {
+    setLastKey(anchorKey);
+    setSpot(null);
+    setPlaced(false);
+  }
+
+  // Mesuré dans la passe de mise en page (avant la peinture), puis à chaque défilement, redimensionnement et CHANGEMENT
+  // DU DOM — l'écran arrive en flux (squelette d'abord, contenu ensuite) : l'élément à éclairer n'existe souvent pas
+  // encore quand la carte se monte. Une seule frame en attente à la fois.
+  useBeforePaint(() => {
     let frame = 0;
-    const update = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        if (!target) {
-          setAnchor(null);
-          return;
-        }
-        const element = document.querySelector<HTMLElement>(`[data-tour="${target}"]`);
-        const key = `${pathname}:${target}`;
-        if (element && scrolledFor.current !== key) {
-          scrolledFor.current = key;
-          element.scrollIntoView({ block: "center", behavior: "smooth" });
-        }
-        setAnchor(measure(target));
-      });
+    let anchored = false;
+    let abandoned = false;
+    const place = () => {
+      const viewport = { width: window.innerWidth, height: window.innerHeight };
+      if (!target || collapsed || !canAnchor(viewport)) {
+        setSpot(null);
+        setPlaced(true);
+        return;
+      }
+      const element = document.querySelector<HTMLElement>(`[data-tour="${target}"]`);
+      const rect = element?.getBoundingClientRect();
+      if (!element || !rect || rect.width === 0 || rect.height === 0) return; // l'écran n'est pas arrivé : on attend, invisible
+      if (abandoned) return; // le repère est arrivé trop tard : la carte est déjà posée en bas, elle y reste
+      if (scrolledFor.current !== anchorKey) {
+        scrolledFor.current = anchorKey;
+        // Sans transition : le défilement a lieu pendant que la carte est invisible, il ne se voit donc pas — et la
+        // géométrie est définitive quand on la lit juste après. `smooth` la faisait se poser sur une place périmée.
+        element.scrollIntoView({ block: "center", behavior: "auto" });
+      }
+      const posee = element.getBoundingClientRect();
+      anchored = true;
+      setSpot(placeCard({ top: posee.top, left: posee.left, width: posee.width, height: posee.height }, viewport, cardRef.current?.offsetHeight ?? CARD_HEIGHT_FALLBACK));
+      setPlaced(true);
     };
-    update();
-    const observer = new MutationObserver(update);
+    const schedule = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(place);
+    };
+    place();
+    const observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true });
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", schedule);
+    window.addEventListener("scroll", schedule, true);
+    // Le délai ne concerne QUE la première pose : une carte déjà ancrée continue de suivre son élément au défilement.
+    const timer = window.setTimeout(() => {
+      if (anchored) return;
+      abandoned = true;
+      setPlaced(true);
+    }, SETTLE_MS);
     return () => {
       cancelAnimationFrame(frame);
+      clearTimeout(timer);
       observer.disconnect();
-      window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("scroll", schedule, true);
     };
-  }, [target, pathname]);
+  }, [anchorKey, target, collapsed]);
 
   function update(next: TourState, navigateTo?: string) {
     setState(next);
     setCollapsed(false);
     writeCookie(next);
     if (next.status === "termine") toast.add({ type: "success", description: t("carte.terminee"), timeout: 6000 });
-    if (navigateTo && navigateTo !== pathname) router.push(navigateTo);
+    if (navigateTo && navigateTo !== pathname) {
+      setGoingTo(navigateTo);
+      router.push(navigateTo);
+    }
   }
 
   if (!running) return null;
+  /** Se voir, c'est être posée ET être arrivée : pendant un trajet, la carte existe sans se montrer. */
+  const shown = placed && !goingTo;
   const total = TOUR_STEPS.length;
   const last = state.step === total - 1;
 
@@ -165,21 +211,26 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
 
   return (
     <>
-      {anchor && (
+      {spot && shown && (
         <div
           aria-hidden
+          data-tour-halo
           className="pointer-events-none fixed z-30 rounded-xl ring-2 ring-primary/70 shadow-[0_0_0_9999px_rgba(15,23,42,0.32)] transition-[top,left,width,height] duration-200"
-          style={{ top: anchor.top, left: anchor.left, width: anchor.width, height: anchor.height }}
+          style={{ top: spot.halo.top, left: spot.halo.left, width: spot.halo.width, height: spot.halo.height }}
         />
       )}
       <aside
+        ref={cardRef}
         role="complementary"
         aria-label={t("carte.visite_guidee")}
+        data-tour-card={shown ? (spot ? spot.side : "coin") : "attente"}
         className={cn(
           "fixed z-40 border-border bg-card p-4 text-card-foreground shadow-lg",
-          anchor ? "w-96 rounded-xl border" : "inset-x-0 bottom-14 border-t md:inset-x-auto md:right-6 md:bottom-6 md:w-96 md:rounded-xl md:border"
+          spot ? "w-96 rounded-xl border" : "inset-x-0 bottom-14 border-t md:inset-x-auto md:right-6 md:bottom-6 md:w-96 md:rounded-xl md:border",
+          // Posée avant d'être visible : tant qu'elle attend son repère, elle occupe sa place (donc se mesure) sans se voir.
+          !shown && "invisible"
         )}
-        style={anchor ? { top: anchor.cardTop, left: anchor.cardLeft } : undefined}
+        style={spot ? { top: spot.card.top, left: spot.card.left } : undefined}
       >
         <div className="flex items-start justify-between gap-3">
           <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
