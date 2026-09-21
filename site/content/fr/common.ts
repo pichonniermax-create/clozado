@@ -45,6 +45,10 @@ export const common = {
   actions: {
     reserverUneDemo: "Réserver une démo",
     ouvrirLaDemo: "Ouvrir la démonstration",
+    /* Le même geste, écrit court : la barre du haut n'a pas la largeur du
+       libellé long, et un bouton qui se plie en deux lignes dans une rangée
+       de 64 px déborde de sa rangée. */
+    voirLaDemo: "Voir la démo",
     ouvrirLaDemoAide: "La démonstration s’ouvre dans un nouvel onglet, sur l’application",
     seConnecter: "Se connecter",
     voirLesMetiers: "Par métier",

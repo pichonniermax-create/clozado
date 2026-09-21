@@ -1,7 +1,7 @@
 import { cn } from "@/lib/cn";
 import { getDictionary, type Locale } from "@/lib/i18n";
 import { menuPrincipal, path, sousEntrees, type RouteKey } from "@/lib/routes";
-import { LOGIN_URL, SITE_CONFIG } from "@/lib/site-config";
+import { DEMO_URL, LOGIN_URL, SITE_CONFIG } from "@/lib/site-config";
 import { ActionLink } from "./action-link";
 import { BrandMark } from "./brand-mark";
 import { NavDeroulant } from "./nav-deroulant";
@@ -42,7 +42,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
               {entrees.map((cle) => {
                 const filles = sousEntrees(cle);
                 const classeLien =
-                  "lien-nav inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 ease-out hover:text-foreground";
+                  "lien-nav inline-flex min-h-11 items-center whitespace-nowrap rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 ease-out hover:text-foreground";
                 if (filles.length === 0) {
                   return (
                     <li key={cle}>
@@ -73,7 +73,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
               deux boutons pleins côte à côte ne disent plus lequel compte. */}
           <a
             href={LOGIN_URL}
-            className="hidden min-h-11 items-center rounded-lg px-3 text-sm font-medium text-foreground transition-colors duration-200 ease-out hover:text-primary-ink sm:inline-flex"
+            className="hidden min-h-11 items-center whitespace-nowrap rounded-lg px-3 text-sm font-medium text-foreground transition-colors duration-200 ease-out hover:text-primary-ink sm:inline-flex"
           >
             {common.actions.seConnecter}
           </a>
@@ -89,8 +89,8 @@ export function SiteHeader({ locale }: { locale: Locale }) {
               l'ordre de la feuille de style qui tranche, pas celui des
               classes. */}
           <div className="hidden sm:flex">
-            <ActionLink href={SITE_CONFIG.bookingUrl} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
-              {common.actions.reserverUneDemo}
+            <ActionLink href={DEMO_URL} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
+              {common.actions.voirLaDemo}
             </ActionLink>
           </div>
 
@@ -137,10 +137,24 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                   </li>
                   <li>
                     <a
-                      href={SITE_CONFIG.bookingUrl}
+                      href={DEMO_URL}
                       target="_blank"
                       rel="noopener"
                       className="flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-primary-ink hover:bg-muted"
+                    >
+                      {common.actions.ouvrirLaDemo}
+                      <span className="sr-only">{common.actions.nouvelOnglet}</span>
+                    </a>
+                  </li>
+                  {/* L'agenda reste à un geste : il descend d'un rang, il ne
+                      disparaît pas. Le bouton de la barre, lui, n'a pas la
+                      place de porter les deux. */}
+                  <li>
+                    <a
+                      href={SITE_CONFIG.bookingUrl}
+                      target="_blank"
+                      rel="noopener"
+                      className="flex min-h-11 items-center rounded-lg px-3 text-sm text-foreground hover:bg-muted"
                     >
                       {common.actions.reserverUneDemo}
                       <span className="sr-only">{common.actions.nouvelOnglet}</span>

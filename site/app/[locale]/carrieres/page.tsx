@@ -37,7 +37,6 @@ export default async function Carrieres(props: PageProps<"/[locale]/carrieres">)
       <HeroPage surtitre={carrieres.hero.surtitre} titre={carrieres.hero.titre} chapo={carrieres.hero.chapo} />
 
       <SectionEditoriale
-        numero="01"
         intitule={carrieres.activite.intitule}
         titre={carrieres.activite.titre}
         largeurContenu="lg:col-start-4 lg:col-span-7"
@@ -48,7 +47,6 @@ export default async function Carrieres(props: PageProps<"/[locale]/carrieres">)
       </SectionEditoriale>
 
       <SectionEditoriale
-        numero="02"
         intitule={carrieres.methode.intitule}
         titre={carrieres.methode.titre}
         ton="doux"
@@ -68,7 +66,6 @@ export default async function Carrieres(props: PageProps<"/[locale]/carrieres">)
       </SectionEditoriale>
 
       <SectionEditoriale
-        numero="03"
         intitule={carrieres.candidature.intitule}
         titre={carrieres.candidature.titre}
         largeurContenu="lg:col-start-4 lg:col-span-7"

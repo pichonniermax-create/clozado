@@ -104,13 +104,23 @@ export function PageMetier({
       <EcranJaugeParcours ecran={ecransMetiers.immobilier} />
     );
 
+  /*
+   * LE PREMIER BOUTON OUVRE LA DÉMONSTRATION, le second mène à l'agenda.
+   *
+   * L'agenda est le SEUL tiers que le site touche : le bouton plein
+   * envoyait donc le visiteur dehors, chez HubSpot, avant qu'il n'ait rien
+   * vu. La démonstration est à nous, elle est en lecture seule, elle ne
+   * demande pas d'inscription — c'est elle qui doit recevoir le premier
+   * geste. Réserver reste à un clic, en second. La page « À propos »
+   * faisait déjà ainsi : le site est simplement devenu cohérent.
+   */
   const appels = (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-      <ActionLink href={SITE_CONFIG.bookingUrl} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
-        {common.actions.reserverUneDemo}
-      </ActionLink>
-      <ActionLink href={DEMO_URL} variante="secondaire" externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
+      <ActionLink href={DEMO_URL} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
         {common.actions.ouvrirLaDemo}
+      </ActionLink>
+      <ActionLink href={SITE_CONFIG.bookingUrl} variante="secondaire" externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
+        {common.actions.reserverUneDemo}
       </ActionLink>
     </div>
   );
@@ -142,12 +152,11 @@ export function PageMetier({
         </div>
       </section>
 
-      <SectionEditoriale numero="01" intitule={contenu.coince.intitule} titre={contenu.coince.titre} largeurContenu={COLONNE}>
+      <SectionEditoriale intitule={contenu.coince.intitule} titre={contenu.coince.titre} largeurContenu={COLONNE}>
         <ListeNumerotee elements={contenu.coince.elements} />
       </SectionEditoriale>
 
       <SectionEditoriale
-        numero="02"
         intitule={contenu.reponse.intitule}
         titre={contenu.reponse.titre}
         chapo={contenu.reponse.chapo}
@@ -159,7 +168,6 @@ export function PageMetier({
 
       {/* LES INDICATEURS — la liste de ce métier, et l'écran où on les lit. */}
       <SectionEditoriale
-        numero="03"
         intitule={contenu.indicateurs.intitule}
         titre={contenu.indicateurs.titre}
         chapo={contenu.indicateurs.chapo}
@@ -182,7 +190,6 @@ export function PageMetier({
 
       {/* CE QU'ON ÉCRIT, ET À QUI — en face des règles qui l'écrivent. */}
       <SectionEditoriale
-        numero="04"
         intitule={contenu.communication.intitule}
         titre={contenu.communication.titre}
         chapo={contenu.communication.chapo}
@@ -232,7 +239,6 @@ export function PageMetier({
       </SectionEditoriale>
 
       <SectionEditoriale
-        numero="05"
         intitule={contenu.conformite.intitule}
         titre={contenu.conformite.titre}
         chapo={contenu.conformite.chapo}
@@ -255,7 +261,7 @@ export function PageMetier({
         </p>
       </SectionEditoriale>
 
-      <SectionEditoriale numero="06" intitule={contenu.perimetre.intitule} titre={contenu.perimetre.titre} ton="doux" largeurContenu={COLONNE}>
+      <SectionEditoriale intitule={contenu.perimetre.intitule} titre={contenu.perimetre.titre} ton="doux" largeurContenu={COLONNE}>
         <ul className="flex flex-col gap-4">
           {contenu.perimetre.elements.map((element, rang) => (
             <li key={element} data-entree data-rang={rang} className="flex gap-4 text-base leading-relaxed">

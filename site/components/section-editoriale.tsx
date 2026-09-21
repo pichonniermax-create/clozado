@@ -4,12 +4,19 @@ import { sansOrphelin } from "@/lib/titres";
 /**
  * UNE SECTION DE LA PAGE COMPOSÉE.
  *
- * Elle porte trois choses que la version centrée n'avait pas : un NUMÉRO en
- * chasse fixe, très grand, qui donne à la page sa table des matières
- * implicite ; un FILET pleine largeur qui sépare les sections au lieu d'un
- * simple blanc ; et une GRILLE DE DOUZE COLONNES où le contenu est désaxé —
- * le numéro à gauche, le propos à partir de la quatrième colonne, jamais
- * centré.
+ * Elle porte deux choses que la version centrée n'avait pas : un FILET
+ * pleine largeur qui sépare les sections au lieu d'un simple blanc, et une
+ * GRILLE DE DOUZE COLONNES où le contenu est désaxé — le propos à partir de
+ * la quatrième colonne, jamais centré.
+ *
+ * ET UN NUMÉRO, MAIS SUR LA SEULE PAGE QUI COMPTE VRAIMENT (2026-09-21).
+ * Le numéro géant s'affichait sur six pages, où il ne numérotait rien : les
+ * sections d'une page d'accueil ne sont pas une suite, elles sont un
+ * sommaire. Seul le PARCOURS de la page Produit est une séquence — six
+ * étapes qu'on suit dans l'ordre —, et un numéro y dit quelque chose.
+ * Ailleurs il coûtait une rangée d'environ 148 px, et jusqu'à 230 px de
+ * vide quand une section n'avait qu'un intitulé : le numéro occupait sa
+ * ligne, et le contenu tombait sous elle.
  *
  * Le titre reste un `h2` : la hiérarchie des titres est une exigence
  * d'accessibilité, et le numéro n'en fait pas partie (il est `aria-hidden`,

@@ -122,7 +122,7 @@ export default async function Demo(props: PageProps<"/[locale]/demo">) {
         </div>
       </section>
 
-      <SectionEditoriale numero="01" intitule={demo.limites.intitule} titre={demo.limites.titre} largeurContenu={COLONNE}>
+      <SectionEditoriale intitule={demo.limites.intitule} titre={demo.limites.titre} largeurContenu={COLONNE}>
         <ul className="flex flex-col gap-4">
           {demo.limites.elements.map((element, rang) => (
             <li key={element} data-entree data-rang={rang} className="flex gap-4 leading-relaxed">
@@ -133,7 +133,7 @@ export default async function Demo(props: PageProps<"/[locale]/demo">) {
         </ul>
       </SectionEditoriale>
 
-      <SectionEditoriale numero="02" ton="doux" largeurContenu={COLONNE}>
+      <SectionEditoriale ton="doux" largeurContenu={COLONNE}>
         <div data-entree>
           <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(demo.final.titre)}</h2>
           <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{demo.final.texte}</p>

@@ -38,8 +38,12 @@ export function ActionLink({
   children: React.ReactNode;
   className?: string;
 }) {
+  // UNE PILULE NE SE PLIE PAS. Sur deux lignes elle cesse d'être une pilule,
+  // et dans la rangée de 64 px de la barre du haut elle débordait de sa
+  // rangée (constaté à 1024 px le 2026-09-21). Le libellé court de la barre
+  // vit dans `common.actions.voirLaDemo` ; ici, on interdit le pli.
   const classes = cn(
-    "inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-sm font-medium transition-colors",
+    "inline-flex min-h-12 items-center justify-center gap-2 whitespace-nowrap rounded-full px-6 text-sm font-medium transition-colors",
     STYLES[variante],
     className
   );

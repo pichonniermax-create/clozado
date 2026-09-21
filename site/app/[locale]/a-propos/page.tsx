@@ -47,7 +47,6 @@ export default async function APropos(props: PageProps<"/[locale]/a-propos">) {
       <HeroPage surtitre={aPropos.hero.surtitre} titre={aPropos.hero.titre} chapo={aPropos.hero.chapo} />
 
       <SectionEditoriale
-        numero="01"
         intitule={aPropos.pourquoi.intitule}
         titre={aPropos.pourquoi.titre}
         largeurContenu="lg:col-start-4 lg:col-span-9"
@@ -56,7 +55,6 @@ export default async function APropos(props: PageProps<"/[locale]/a-propos">) {
       </SectionEditoriale>
 
       <SectionEditoriale
-        numero="02"
         intitule={aPropos.pourQui.intitule}
         titre={aPropos.pourQui.titre}
         chapo={aPropos.pourQui.chapo}
@@ -67,7 +65,6 @@ export default async function APropos(props: PageProps<"/[locale]/a-propos">) {
       </SectionEditoriale>
 
       <SectionEditoriale
-        numero="03"
         intitule={aPropos.comment.intitule}
         titre={aPropos.comment.titre}
         largeurContenu="lg:col-start-4 lg:col-span-9"

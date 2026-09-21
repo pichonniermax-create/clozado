@@ -43,13 +43,14 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
   if (!isLocale(locale)) notFound();
   const { common, produit, parcoursProduit, mentionEcrans } = getDictionary(locale);
 
+  /* L'ordre des deux appels : voir `components/metier-page.tsx`. */
   const appels = (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-      <ActionLink href={SITE_CONFIG.bookingUrl} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
-        {common.actions.reserverUneDemo}
-      </ActionLink>
-      <ActionLink href={DEMO_URL} variante="secondaire" externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
+      <ActionLink href={DEMO_URL} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
         {common.actions.ouvrirLaDemo}
+      </ActionLink>
+      <ActionLink href={SITE_CONFIG.bookingUrl} variante="secondaire" externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
+        {common.actions.reserverUneDemo}
       </ActionLink>
     </div>
   );

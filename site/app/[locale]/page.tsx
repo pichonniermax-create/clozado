@@ -52,13 +52,14 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
   if (!isLocale(locale)) notFound();
   const { common, accueil, ecrans, mentionEcrans } = getDictionary(locale);
 
+  /* L'ordre des deux appels : voir `components/metier-page.tsx`. */
   const appels = (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-      <ActionLink href={SITE_CONFIG.bookingUrl} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
-        {common.actions.reserverUneDemo}
-      </ActionLink>
-      <ActionLink href={DEMO_URL} variante="secondaire" externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
+      <ActionLink href={DEMO_URL} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
         {common.actions.ouvrirLaDemo}
+      </ActionLink>
+      <ActionLink href={SITE_CONFIG.bookingUrl} variante="secondaire" externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
+        {common.actions.reserverUneDemo}
       </ActionLink>
     </div>
   );
@@ -118,7 +119,6 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
       </section>
 
       <SectionEditoriale
-        numero="01"
         intitule={accueil.probleme.intitule}
         titre={accueil.probleme.titre}
         largeurContenu="lg:col-start-4 lg:col-span-9"
@@ -139,7 +139,6 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
       {/* LES TROIS PREUVES — le propos et l'écran changent de côté à chaque
           fois, et l'écran occupe toujours plus de place que le texte. */}
       <SectionEditoriale
-        numero="02"
         intitule={accueil.preuves.intitule}
         titre={accueil.preuves.titre}
         ton="doux"
@@ -186,7 +185,6 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
       <BandeRupture titre={accueil.rupture.titre} elements={accueil.rupture.elements} />
 
       <SectionEditoriale
-        numero="03"
         intitule={accueil.reste.intitule}
         titre={accueil.reste.titre}
         largeurContenu="lg:col-start-4 lg:col-span-9"
@@ -204,7 +202,6 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
       </SectionEditoriale>
 
       <SectionEditoriale
-        numero="04"
         intitule={accueil.pourQui.intitule}
         titre={accueil.pourQui.titre}
         chapo={accueil.pourQui.chapo}
@@ -242,7 +239,6 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
       </SectionEditoriale>
 
       <SectionEditoriale
-        numero="05"
         intitule={accueil.conformite.intitule}
         titre={accueil.conformite.titre}
         chapo={accueil.conformite.chapo}
@@ -259,7 +255,6 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
       </SectionEditoriale>
 
       <SectionEditoriale
-        numero="06"
         intitule={accueil.perimetre.intitule}
         titre={accueil.perimetre.titre}
         ton="doux"
