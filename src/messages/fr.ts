@@ -8,6 +8,7 @@ import deals from "./fr/deals.json";
 import demo from "./fr/demo.json";
 import email from "./fr/email.json";
 import errors from "./fr/errors.json";
+import fiches from "./fr/fiches.json";
 import figures from "./fr/figures.json";
 import followup from "./fr/followup.json";
 import google from "./fr/google.json";
@@ -51,6 +52,7 @@ const fr = {
   demo,
   email,
   errors,
+  fiches,
   figures,
   followup,
   google,

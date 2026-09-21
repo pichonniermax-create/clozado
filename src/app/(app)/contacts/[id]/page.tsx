@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, Download, Mail, MailOpen, MessageSquare, MousePointerClick, Plus } from "lucide-react";
 import { StatTile } from "@/components/stat-tile";
-import { PartnerPicker } from "@/components/contacts/partner-picker";
+import { InlineField } from "@/components/fiches/inline-field";
 import { listPartners } from "@/db/queries/partners";
 import { listOrigins } from "@/db/queries/acquisition";
 import { suppressionOfContact } from "@/db/queries/email-events";
@@ -26,7 +26,6 @@ import { AppointmentSection } from "@/components/appointments/appointment-sectio
 import { APPOINTMENT_ERROR_PARAM } from "@/components/appointments/labels";
 import { ContactAutoSendPanel, RELANCE_ERROR_PARAM, RELANCE_INFO_PARAM } from "@/components/rules/contact-auto-send";
 import { TaskSection } from "@/components/tasks/task-section";
-import { Textarea } from "@/components/ui/textarea";
 import { listContactJournal } from "@/db/queries/activities";
 import { listContactAppointments } from "@/db/queries/appointments";
 import { listRuleDraftsOfContact } from "@/db/queries/rules";
@@ -47,8 +46,8 @@ import {
   createNewsletterForContactAction,
   deleteContactAction,
   mergeContactsAction,
+  patchContactFieldAction,
   saveContactTagsAction,
-  updateContactAction,
 } from "@/lib/contacts/actions";
 import { getFormats } from "@/i18n/formats";
 import { requireUser } from "@/lib/session";
@@ -57,6 +56,7 @@ import { getTranslations } from "next-intl/server";
 import type { TranslatorOf } from "@/i18n/translator";
 import { NativeSelect } from "@/components/ui/native-select";
 import { readFlash } from "@/lib/flash";
+import { versionOf } from "@/lib/fiches/inline";
 
 /** L'état de l'email réellement envoyé à cette personne pour une newsletter : remis, ouvert (approx.), cliqué, rejeté… — vide pour un envoi déclaré à la main. */
 function emailStateOf(m: { status: string; firstOpenedAt: Date | null; firstClickedAt: Date | null } | undefined, t: TranslatorOf<"contacts.detail">): string {
@@ -94,6 +94,12 @@ export default async function ContactPage({
 
   const { contact, tags, allTags, deals, tasks, company, employees, owner } = data;
   const isPerson = contact.kind === "person";
+  /**
+   * Ce que tout champ modifiable en place reçoit : la VERSION de la fiche
+   * telle qu'elle est chargée ici (l'écriture est refusée si elle a bougé
+   * ailleurs), l'action serveur, et la lecture seule de la démonstration.
+   */
+  const champ = { version: versionOf(contact), save: patchContactFieldAction.bind(null, contact.id), readOnly: user.readOnly } as const;
 
   // Journal des accès : la consultation est tracée côté serveur, dédupliquée
   // à l'heure (exigence données personnelles, docs/module-relationnel.md §C).
@@ -407,120 +413,88 @@ export default async function ContactPage({
           <CardTitle>{tr("fiche")}</CardTitle>
         </CardHeader>
         <CardContent className="@container">
-          <form
-            // Remonté quand la fiche change (édition, fusion) : des champs
-            // non contrôlés dont les defaultValue bougent sous un composant
-            // monté déclenchent l'avertissement Base UI et gardent l'ancienne
-            // saisie à l'écran.
-            key={contact.updatedAt.getTime()}
-            action={updateContactAction.bind(null, contact.id)}
-            className="flex flex-col gap-4"
-          >
-            <input type="hidden" name="kind" value={contact.kind} />
-            {/* Deux colonnes selon la largeur de la CARTE (pas de l'écran) : une seule dans l'aside de 320 px. */}
-            <div className="grid grid-cols-1 gap-4 @md:grid-cols-2">
-              {isPerson ? (
-                <>
-                  <Field label={tr("prenom")} htmlFor="firstName">
-                    <Input id="firstName" name="firstName" defaultValue={contact.firstName ?? ""} />
-                  </Field>
-                  <Field label={tr("nom")} htmlFor="lastName">
-                    <Input id="lastName" name="lastName" defaultValue={contact.lastName ?? ""} />
-                  </Field>
-                </>
-              ) : (
-                <Field label={tr("raison_sociale")} htmlFor="name" className="sm:col-span-2">
-                  <Input id="name" name="name" defaultValue={contact.name} required />
-                </Field>
-              )}
-              {isPerson && (
-                <input type="hidden" name="name" value="" />
-              )}
-              <Field label={tr("email")} htmlFor="email">
-                <Input id="email" name="email" type="email" defaultValue={contact.email ?? ""} />
-              </Field>
-              <Field label={tr("telephone")} htmlFor="phone">
-                <Input id="phone" name="phone" defaultValue={contact.phone ?? ""} />
-              </Field>
-              {isPerson && (
-                <>
-                  <Field label={tr("societe")} htmlFor="companyName">
-                    <Input id="companyName" name="companyName" defaultValue={contact.companyName ?? ""} />
-                  </Field>
-                  <Field label={tr("fonction")} htmlFor="jobTitle">
-                    <Input id="jobTitle" name="jobTitle" defaultValue={contact.jobTitle ?? ""} />
-                  </Field>
-                  <Field label={tr("date_de_naissance")} htmlFor="birthDate">
-                    <Input id="birthDate" name="birthDate" type="date" defaultValue={contact.birthDate ?? ""} />
-                  </Field>
-                </>
-              )}
-              <Field label={tr("ville")} htmlFor="city">
-                <Input id="city" name="city" defaultValue={contact.city ?? ""} />
-              </Field>
-              <Field label={tr("code_postal")} htmlFor="postalCode">
-                <Input id="postalCode" name="postalCode" defaultValue={contact.postalCode ?? ""} />
-              </Field>
-              <Field label={tr("pays")} htmlFor="country">
-                <Input id="country" name="country" defaultValue={contact.country ?? ""} />
-              </Field>
-              {orgUsers.length > 0 && (
-                <Field
-                  label={tr("conseiller_attribue")}
-                  htmlFor="ownerId"
-                  // La date d'attribution est DITE (lot 2) : « depuis quand » est une question de suivi, pas un détail.
-                  hint={contact.ownerAssignedAt ? tr("attribue_le", { date: fmt.date(contact.ownerAssignedAt) }) : undefined}
-                >
-                  <NativeSelect
-                    id="ownerId"
-                    name="ownerId"
-                    defaultValue={contact.ownerId ?? ""} className="w-full"
-                  >
-                    <option value="">{tr("personne")}</option>
-                    {orgUsers.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name || u.email}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </Field>
-              )}
-              {/* L'apport ENTRANT et l'origine métier (lot 2), modifiables après coup — la date d'attribution suit. */}
-              <Field
-                label={tr("apporte_par")}
-                htmlFor="partnerId-recherche"
-                hint={contact.partnerAttributedAt ? tr("attribue_le", { date: fmt.date(contact.partnerAttributedAt) }) : undefined}
-              >
-                <PartnerPicker
-                  inputId="partnerId-recherche"
-                  partners={pickablePartners}
-                  initialId={contact.partnerId}
+          {/*
+            MODIFICATION EN PLACE, champ par champ (chantier « les fiches
+            deviennent modifiables ») : le formulaire d'ensemble et son
+            couple « Enregistrer / Annuler » ont disparu. On clique sur une
+            valeur, on la corrige, elle part — et c'est le même geste sur
+            les quatre fiches du produit. Les étiquettes gardent leur carte :
+            elles sont multi-valeurs, un champ en place n'en tient qu'une.
+          */}
+          <div className="grid grid-cols-1 gap-3 @md:grid-cols-2">
+            {isPerson ? (
+              <>
+                <InlineField {...champ} label={tr("prenom")} field="firstName" kind="texte" value={contact.firstName ?? ""} />
+                <InlineField {...champ} label={tr("nom")} field="lastName" kind="texte" value={contact.lastName ?? ""} />
+              </>
+            ) : (
+              <InlineField {...champ} label={tr("raison_sociale")} field="name" kind="texte" value={contact.name} required className="@md:col-span-2" />
+            )}
+            <InlineField {...champ} label={tr("email")} field="email" kind="email" value={contact.email ?? ""} />
+            <InlineField {...champ} label={tr("telephone")} field="phone" kind="telephone" value={contact.phone ?? ""} />
+            {isPerson && (
+              <>
+                {/* La société RATTACHÉE (une vraie fiche) prime ; le nom libre d'un import reste corrigeable tant qu'aucune fiche n'est liée. */}
+                <InlineField
+                  {...champ}
+                  label={tr("societe")}
+                  field="companyId"
+                  kind="rattachement"
+                  search="contact"
+                  value={contact.companyId ?? ""}
+                  display={company?.name ?? contact.companyName ?? ""}
                 />
-              </Field>
-              <Field label={tr("origine")} htmlFor="originId">
-                <NativeSelect id="originId" name="originId" defaultValue={contact.originId ?? ""} className="w-full">
-                  <option value="">{tr("non_precisee")}</option>
-                  {origins.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.label}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </Field>
-            </div>
-            <Field label={tr("notes")} htmlFor="notes">
-              <Textarea id="notes" name="notes" defaultValue={contact.notes ?? ""} className="min-h-16" />
-            </Field>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button type="submit" className="w-fit">
-                {tr("enregistrer")}
-              </Button>
-              {/* Revenir aux valeurs enregistrées sans recharger : la seule finition admise sur un formulaire toujours ouvert. */}
-              <Button type="reset" variant="ghost">
-                {tr("annuler")}
-              </Button>
-            </div>
-          </form>
+                {!contact.companyId && (
+                  <InlineField {...champ} label={tr("societe_nom_libre")} field="companyName" kind="texte" value={contact.companyName ?? ""} />
+                )}
+                <InlineField {...champ} label={tr("fonction")} field="jobTitle" kind="texte" value={contact.jobTitle ?? ""} />
+                <InlineField
+                  {...champ}
+                  label={tr("date_de_naissance")}
+                  field="birthDate"
+                  kind="date"
+                  value={contact.birthDate ?? ""}
+                  display={contact.birthDate ? fmt.date(new Date(`${contact.birthDate}T00:00:00`)) : ""}
+                />
+              </>
+            )}
+            <InlineField {...champ} label={tr("ville")} field="city" kind="texte" value={contact.city ?? ""} />
+            <InlineField {...champ} label={tr("code_postal")} field="postalCode" kind="texte" value={contact.postalCode ?? ""} />
+            <InlineField {...champ} label={tr("pays")} field="country" kind="texte" value={contact.country ?? ""} />
+            {orgUsers.length > 0 && (
+              <InlineField
+                {...champ}
+                label={tr("conseiller_attribue")}
+                field="ownerId"
+                kind="liste"
+                value={contact.ownerId ?? ""}
+                display={owner?.name || owner?.email || ""}
+                options={orgUsers.map((u) => ({ value: u.id, label: u.name || u.email }))}
+                // La date d'attribution est DITE (lot 2) : « depuis quand » est une question de suivi, pas un détail.
+                hint={contact.ownerAssignedAt ? tr("attribue_le", { date: fmt.date(contact.ownerAssignedAt) }) : undefined}
+              />
+            )}
+            <InlineField
+              {...champ}
+              label={tr("apporte_par")}
+              field="partnerId"
+              kind="liste"
+              value={contact.partnerId ?? ""}
+              display={pickablePartners.find((p) => p.id === contact.partnerId)?.name ?? ""}
+              options={pickablePartners.map((p) => ({ value: p.id, label: p.name }))}
+              hint={contact.partnerAttributedAt ? tr("attribue_le", { date: fmt.date(contact.partnerAttributedAt) }) : undefined}
+            />
+            <InlineField
+              {...champ}
+              label={tr("origine")}
+              field="originId"
+              kind="liste"
+              value={contact.originId ?? ""}
+              display={origins.find((o) => o.id === contact.originId)?.label ?? ""}
+              options={origins.map((o) => ({ value: o.id, label: o.label }))}
+            />
+            <InlineField {...champ} label={tr("notes")} field="notes" kind="texte_long" value={contact.notes ?? ""} className="@md:col-span-2" />
+          </div>
         </CardContent>
       </Card>
 

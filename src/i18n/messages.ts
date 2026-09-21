@@ -29,6 +29,7 @@ export const CLIENT_NAMESPACES = [
   "contacts",
   "deals",
   "demo",
+  "fiches",
   "nav",
   "newsletters",
   "rules",

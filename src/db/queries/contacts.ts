@@ -31,6 +31,8 @@ import { nameCityKey, phoneKey } from "@/lib/contacts/match-keys";
 import { displayNameAfterUpdate } from "@/lib/contacts/display-name";
 import { listOpenTasksForContact } from "./tasks";
 import { AppError } from "@/lib/errors";
+import { isStale, type InlinePatch } from "@/lib/fiches/inline";
+import { validateContactInput } from "@/lib/contacts/input";
 import { log } from "@/lib/log";
 import type { TranslatorOf } from "@/i18n/translator";
 
@@ -275,6 +277,13 @@ export type CreateContactInput = {
   originId?: string | null;
   /** Le confrère qui a apporté ce contact (lot 2) — l'apport ENTRANT, pas un partage PRM. */
   partnerId?: string | null;
+  /**
+   * La fiche personne morale à laquelle cette personne est rattachée
+   * (chantier « fiches modifiables »). ABSENT (`undefined`) = inchangé —
+   * les formulaires d'avant ne l'envoient pas et ne doivent pas le
+   * détacher ; `null` détache explicitement.
+   */
+  companyId?: string | null;
 };
 
 /**
@@ -365,6 +374,18 @@ async function assertPartnerInOrg(partnerId: string | null | undefined, organiza
   if (!row || row.organizationId !== organizationId) throw new AppError("partenaire_introuvable");
 }
 
+/**
+ * Une société rattachée doit être une fiche PERSONNE MORALE de la même
+ * organisation, vivante, et jamais la fiche elle-même (chantier « fiches
+ * modifiables »).
+ */
+async function assertCompanyInOrg(companyId: string | null | undefined, organizationId: string, selfId: string): Promise<void> {
+  if (!companyId) return;
+  if (companyId === selfId) throw new AppError("une_fiche_ne_peut_pas_etre_sa_propre_societe");
+  const row = await db.query.contacts.findFirst({ where: eq(contacts.id, companyId), columns: { organizationId: true, kind: true, deletedAt: true } });
+  if (!row || row.organizationId !== organizationId || row.kind !== "company" || row.deletedAt) throw new AppError("societe_introuvable");
+}
+
 export async function updateContact(
   user: OrgScopeUser,
   id: string,
@@ -375,6 +396,7 @@ export async function updateContact(
   if (input.ownerId) await assertUserInOrg(input.ownerId, contact.organizationId);
   await assertOriginInOrg(input.originId, contact.organizationId);
   await assertPartnerInOrg(input.partnerId, contact.organizationId);
+  await assertCompanyInOrg(input.companyId, contact.organizationId, id);
 
   const now = new Date();
   const nextOwnerId = input.ownerId || null;
@@ -407,11 +429,76 @@ export async function updateContact(
       originId: input.originId || null,
       partnerId: nextPartnerId,
       partnerAttributedAt,
+      // Absent de l'entrée = inchangé : le formulaire d'ensemble ne l'envoie pas, il ne doit pas détacher.
+      companyId: isCompany ? null : input.companyId === undefined ? contact.companyId : input.companyId || null,
       updatedAt: now,
     })
     .where(eq(contacts.id, id))
     .returning();
   return updated;
+}
+
+
+/**
+ * LA MODIFICATION EN PLACE d'une fiche, champ par champ (chantier « les
+ * fiches deviennent modifiables »).
+ *
+ * Trois gardes avant d'écrire, dans cet ordre : l'organisation (par
+ * `getContact`), la VERSION de la fiche telle que l'écran l'a chargée — si
+ * quelqu'un d'autre l'a modifiée entre-temps, on refuse et l'écran se
+ * recharge —, et la LISTE BLANCHE des champs, qui dépend de la nature de
+ * la fiche : une personne morale n'a ni prénom, ni date de naissance, ni
+ * société de rattachement.
+ *
+ * L'écriture elle-même repasse par `updateContact` : une seule porte pour
+ * toutes les règles (recomposition du nom d'affichage, dates d'attribution
+ * du conseiller et de l'apporteur, appartenance à l'organisation de tout
+ * ce qui est désigné). Le champ modifié est posé sur l'état ACTUEL de la
+ * fiche, jamais sur un formulaire envoyé par l'écran : rien d'autre ne peut
+ * changer au passage.
+ */
+const PERSON_FIELDS = ["firstName", "lastName", "email", "phone", "companyId", "companyName", "jobTitle", "birthDate", "city", "postalCode", "country", "notes", "ownerId", "originId", "partnerId"] as const;
+const COMPANY_FIELDS = ["name", "email", "phone", "city", "postalCode", "country", "notes", "ownerId", "originId", "partnerId"] as const;
+
+export type ContactPatchField = (typeof PERSON_FIELDS)[number] | (typeof COMPANY_FIELDS)[number];
+
+export function contactPatchFields(kind: "person" | "company"): readonly string[] {
+  return kind === "company" ? COMPANY_FIELDS : PERSON_FIELDS;
+}
+
+export async function patchContact(user: OrgScopeUser, id: string, patch: InlinePatch) {
+  const contact = await getContact(user, id);
+  if (contact.deletedAt) throw new AppError("ce_contact_a_ete_supprime");
+  if (isStale(contact, patch.version)) throw new AppError("la_fiche_a_change_ailleurs", undefined, 409);
+  if (!contactPatchFields(contact.kind).includes(patch.field)) throw new AppError("ce_champ_ne_se_modifie_pas_ici");
+
+  const value = patch.value.trim() || null;
+  if (patch.field === "name" && !value) throw new AppError("le_nom_est_obligatoire");
+
+  const input: Omit<CreateContactInput, "kind" | "source"> = {
+    name: contact.name,
+    firstName: contact.firstName,
+    lastName: contact.lastName,
+    email: contact.email,
+    phone: contact.phone,
+    companyName: contact.companyName,
+    companyId: contact.companyId,
+    jobTitle: contact.jobTitle,
+    city: contact.city,
+    postalCode: contact.postalCode,
+    country: contact.country,
+    birthDate: contact.birthDate,
+    notes: contact.notes,
+    ownerId: contact.ownerId,
+    originId: contact.originId,
+    partnerId: contact.partnerId,
+  };
+  (input as Record<string, string | null>)[patch.field] = value;
+
+  // `source` n'est pas relu : il ne se modifie pas ici, et la fiche peut porter une valeur (« lead », « external ») que le schéma de saisie ne connaît pas.
+  const shape = validateContactInput({ kind: contact.kind, ...input });
+  if (!shape.ok) throw new AppError(shape.key);
+  return updateContact(user, id, input);
 }
 
 // ---------------------------------------------------------------------------

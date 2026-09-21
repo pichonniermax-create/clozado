@@ -11,6 +11,7 @@ import {
   findDuplicateCandidates,
   importContacts,
   mergeContacts,
+  patchContact,
   setContactTags,
   updateContact,
   type CreateContactInput,
@@ -21,12 +22,13 @@ import {
 import { createPartner } from "@/db/queries/partners";
 import { actionResult, errorMessage, withError, type ActionResult } from "@/lib/form-actions";
 import { validateContactInput } from "@/lib/contacts/input";
+import { versionOf, type InlinePatch, type InlineSaveResult } from "@/lib/fiches/inline";
 import { saveNewsletter } from "@/lib/newsletter/actions";
 import { log } from "@/lib/log";
 import { requireUser } from "@/lib/session";
 import { readInput } from "@/lib/validation";
 import { getTranslations } from "next-intl/server";
-import { AppError } from "@/lib/errors";
+import { AppError, isAppError } from "@/lib/errors";
 
 /**
  * Server actions du module contacts — org-scopées via `requireUser()`,
@@ -151,6 +153,29 @@ export async function updateContactAction(id: string, formData: FormData) {
     }
   }
   redirect(destination);
+}
+
+/**
+ * LA MODIFICATION EN PLACE d'un champ (chantier « les fiches deviennent
+ * modifiables »). Elle ne redirige pas : elle REND son verdict au champ,
+ * qui remet la valeur précédente et dit pourquoi en cas de refus.
+ *
+ * Toutes les gardes sont côté serveur, dans `patchContact` : organisation,
+ * version de la fiche, liste blanche des champs, forme de la valeur. Un
+ * appel direct à cette action avec l'identifiant d'une fiche d'une autre
+ * organisation ne modifie rien.
+ */
+export async function patchContactFieldAction(id: string, patch: InlinePatch): Promise<InlineSaveResult> {
+  const user = await requireUser();
+  // Un visiteur de la démonstration publique n'écrit rien : le proxy refuse déjà ses requêtes, la garde est ici aussi.
+  if (user.readOnly) return { ok: false, error: (await getTranslations("demo.banner"))("lecture_seule_notice") };
+  try {
+    const updated = await patchContact(user, id, patch);
+    return { ok: true, version: versionOf(updated) };
+  } catch (error) {
+    // 409 = la fiche a changé ailleurs : l'écran doit se recharger avant toute nouvelle saisie.
+    return { ok: false, error: await errorMessage(error), stale: isAppError(error) && error.status === 409 };
+  }
 }
 
 /** Enregistre les étiquettes cochées + en crée une à la volée si un libellé est saisi. */

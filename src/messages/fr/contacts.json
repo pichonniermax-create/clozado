@@ -151,7 +151,8 @@
     "telephone": "Téléphone",
     "toutes_les_donnees_de_cette_fiche_873e": "Toutes les données de cette fiche — identité, étiquettes, affaires, tâches, interactions, journal des accès — dans un fichier JSON.",
     "ville": "Ville",
-    "vip_prospect_notaire": "VIP, Prospect, Notaire…"
+    "vip_prospect_notaire": "VIP, Prospect, Notaire…",
+    "societe_nom_libre": "Société (nom libre)"
   },
   "detailNotFound": {
     "cette_fiche_n_existe_pas": "Cette fiche n’existe pas.",

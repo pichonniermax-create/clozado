@@ -1,0 +1,15 @@
+{
+  "inline": {
+    "obligatoire": "This field cannot be left empty.",
+    "vide": "Not set",
+    "modifier_le_champ": "{label}: {value}. Edit.",
+    "enregistrement": "Saving…",
+    "aide_clavier": "Enter to save, Esc to cancel.",
+    "chercher_une_fiche": "Search for a record",
+    "tapez_deux_lettres": "Type at least two letters.",
+    "aucune_fiche": "No record by that name.",
+    "choisissez_une_fiche": "Pick a record from the list.",
+    "detacher": "Detach",
+    "annuler": "Cancel"
+  }
+}

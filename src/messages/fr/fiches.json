@@ -1,0 +1,15 @@
+{
+  "inline": {
+    "obligatoire": "Ce champ ne peut pas rester vide.",
+    "vide": "Non renseigné",
+    "modifier_le_champ": "{label} : {value}. Modifier.",
+    "enregistrement": "Enregistrement…",
+    "aide_clavier": "Entrée pour enregistrer, Échap pour annuler.",
+    "chercher_une_fiche": "Chercher une fiche",
+    "tapez_deux_lettres": "Tapez au moins deux lettres.",
+    "aucune_fiche": "Aucune fiche à ce nom.",
+    "choisissez_une_fiche": "Choisissez une fiche dans la liste.",
+    "detacher": "Détacher",
+    "annuler": "Annuler"
+  }
+}

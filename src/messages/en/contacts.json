@@ -151,7 +151,8 @@
     "telephone": "Phone",
     "toutes_les_donnees_de_cette_fiche_873e": "All this record’s data — identity, tags, deals, tasks, interactions, access log — in a JSON file.",
     "ville": "City",
-    "vip_prospect_notaire": "VIP, Prospect, Notary…"
+    "vip_prospect_notaire": "VIP, Prospect, Notary…",
+    "societe_nom_libre": "Company (free text)"
   },
   "detailNotFound": {
     "cette_fiche_n_existe_pas": "This record doesn’t exist.",

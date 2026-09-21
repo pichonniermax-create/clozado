@@ -210,6 +210,34 @@ async function main() {
     await expectThrow("deleteContact(B, contact de A) refuse", () => contactsQ.deleteContact(b!.admin, a!.contactId, b!.userId, tc));
     await expectThrow("mergeContacts(B : son contact ← contact de A) refuse", () => contactsQ.mergeContacts(b!.admin, b!.contactId, a!.contactId, b!.userId, tc));
 
+    // LA MODIFICATION EN PLACE (chantier « les fiches deviennent modifiables ») : chaque
+    // écriture champ par champ passe par les mêmes gardes que le reste — l'organisation
+    // d'abord, puis la version de la fiche, puis la liste blanche des champs.
+    console.log("\n--- Modification en place : organisation, version, liste blanche");
+    const contactA = await db.query.contacts.findFirst({ where: eq(contacts.id, a.contactId) });
+    const versionA = contactA!.updatedAt.toISOString();
+    await expectThrow(
+      "patchContact(B, contact de A) refuse",
+      () => contactsQ.patchContact(b!.admin, a!.contactId, { field: "email", value: "pirate@ailleurs.example", version: versionA })
+    );
+    await expectThrow(
+      "patchContact(A, version périmée) refuse",
+      () => contactsQ.patchContact(a!.admin, a!.contactId, { field: "email", value: "trop.tard@a.example", version: "2020-01-01T00:00:00.000Z" })
+    );
+    await expectThrow(
+      "patchContact(A, champ hors liste blanche) refuse",
+      () => contactsQ.patchContact(a!.admin, a!.contactId, { field: "organizationId", value: b!.orgId, version: versionA })
+    );
+    await expectThrow(
+      "patchContact(A, société d'une AUTRE organisation) refuse",
+      () => contactsQ.patchContact(a!.admin, a!.contactId, { field: "companyId", value: b!.contactId, version: versionA })
+    );
+    const patched = await contactsQ.patchContact(a.admin, a.contactId, { field: "city", value: "Nantes", version: versionA });
+    expect("patchContact(A, son contact) écrit, et rien d'autre ne bouge", patched.city === "Nantes" && patched.name === contactA!.name && patched.organizationId === a.orgId, JSON.stringify({ city: patched.city, org: patched.organizationId }));
+    expect("et la version a changé : la saisie suivante ne peut pas rejouer l'ancienne", patched.updatedAt.toISOString() !== versionA);
+    const contactBAfter = await db.query.contacts.findFirst({ where: eq(contacts.id, b.contactId) });
+    expect("la fiche de B n'a pas bougé", contactBAfter!.city !== "Nantes" && contactBAfter!.companyId === null);
+
     // Affectation de masse (audit, constat S1) : l'entrée d'une action serveur est
     // du JSON libre — une clé `organizationId` ou `id` glissée dedans ne doit
     // JAMAIS atterrir dans l'écriture. Refus, ou écriture restée chez A : les
