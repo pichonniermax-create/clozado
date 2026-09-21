@@ -14,5 +14,5 @@ export async function generateMetadata(props: PageProps<"/[locale]/mentions-lega
 export default async function Page(props: PageProps<"/[locale]/mentions-legales">) {
   const { locale } = await props.params;
   if (!isLocale(locale)) notFound();
-  return <PageLegaleRendu contenu={getDictionary(locale).mentionsLegales} />;
+  return <PageLegaleRendu contenu={getDictionary(locale).mentionsLegales} page="mentions-legales" />;
 }

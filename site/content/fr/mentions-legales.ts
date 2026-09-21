@@ -1,13 +1,19 @@
 import type { PageLegale } from "../types";
+import { HEBERGEUR, IDENTITE } from "../identite";
 
 /**
- * /fr/mentions-legales — L'IDENTITÉ DE L'ÉDITEUR EST ENTRE CROCHETS, à
- * remplir avant la mise en ligne. Elle s'affiche telle quelle : on ne peut
- * pas publier sans l'avoir vue.
+ * /fr/mentions-legales — L'IDENTITÉ DE L'ÉDITEUR N'EST PLUS ÉCRITE ICI.
  *
- * L'hébergeur, lui, est connu et sourcé : Vercel Inc., dont l'adresse
- * postale est celle que la société publie elle-même dans sa politique de
- * confidentialité (relevée le 2026-09-18).
+ * Elle vient de `content/identite.ts`, qui est le seul fichier du dépôt où
+ * une valeur peut manquer. Cette page ne fait que la mettre en forme : la
+ * raison sociale, l'adresse et l'adresse électronique qui figuraient aussi
+ * dans la politique de confidentialité ne peuvent plus diverger.
+ *
+ * LA DATE DE MISE À JOUR N'EST PAS SAISIE non plus : elle est lue dans
+ * l'histoire du dépôt (`scripts/dates-legales.mjs`).
+ *
+ * L'hébergeur est connu et sourcé : Vercel Inc., dont l'adresse postale est
+ * celle que la société publie elle-même (relevée le 2026-09-18).
  */
 export const mentionsLegales = {
   meta: {
@@ -16,7 +22,7 @@ export const mentionsLegales = {
   },
   titre: "Mentions légales",
   chapo: "Informations relatives à l’éditeur et à l’hébergeur du site clozado.fr.",
-  miseAJour: "Dernière mise à jour : [date]",
+  miseAJour: "Dernière mise à jour",
   sections: [
     {
       titre: "Éditeur du site",
@@ -24,30 +30,29 @@ export const mentionsLegales = {
         {
           type: "definitions",
           elements: [
-            { terme: "Dénomination sociale", valeur: "[raison sociale]" },
-            { terme: "Forme juridique", valeur: "[forme juridique]" },
-            { terme: "Capital social", valeur: "[capital social]" },
-            { terme: "Siège social", valeur: "[adresse postale complète]" },
-            { terme: "Immatriculation", valeur: "[RCS de …, numéro]" },
-            { terme: "Numéro SIREN", valeur: "[numéro SIREN]" },
-            { terme: "Numéro de TVA intracommunautaire", valeur: "[numéro de TVA]" },
-            { terme: "Adresse électronique", valeur: "[adresse email de contact]" },
-            { terme: "Téléphone", valeur: "[numéro de téléphone]" },
+            { terme: "Dénomination sociale", valeur: IDENTITE.raisonSociale },
+            { terme: "Forme juridique", valeur: IDENTITE.formeJuridique },
+            { terme: "Capital social", valeur: IDENTITE.capitalSocial },
+            { terme: "Siège social", valeur: IDENTITE.adressePostale },
+            { terme: "Immatriculation", valeur: IDENTITE.immatriculation },
+            { terme: "Numéro SIREN", valeur: IDENTITE.siren },
+            { terme: "Numéro de TVA intracommunautaire", valeur: IDENTITE.tva },
+            { terme: "Adresse électronique", valeur: IDENTITE.email },
+            { terme: "Téléphone", valeur: IDENTITE.telephone },
           ],
         },
       ],
     },
     {
       titre: "Directeur de la publication",
-      blocs: [{ type: "definitions", elements: [{ terme: "Responsable", valeur: "[prénom et nom]" }] }],
+      blocs: [{ type: "definitions", elements: [{ terme: "Responsable", valeur: IDENTITE.directeurDePublication }] }],
     },
     {
       titre: "Hébergeur",
       blocs: [
         {
           type: "texte",
-          texte:
-            "Le site est hébergé par Vercel Inc., 440 N Barranca Avenue #4133, Covina, CA 91723, États-Unis — vercel.com.",
+          texte: `Le site est hébergé par ${HEBERGEUR.denomination}, ${HEBERGEUR.adresse} — ${HEBERGEUR.site}.`,
         },
         {
           type: "texte",
@@ -92,7 +97,7 @@ export const mentionsLegales = {
         {
           type: "texte",
           texte:
-            "Ce site ne dépose aucun cookie, n’emploie aucun traceur, ne mesure pas son audience et ne comporte aucun formulaire. Le détail figure dans la politique de confidentialité.",
+            "Ce site ne dépose aucun cookie, n’emploie aucun traceur, ne mesure pas son audience et ne comporte aucun formulaire. La politique de confidentialité couvre en deux parties distinctes ce site et l’application Clozado.",
         },
       ],
     },

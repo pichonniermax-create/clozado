@@ -1,4 +1,6 @@
 import type { BlocLegal, PageLegale } from "@/content/types";
+import datesLegales from "@/content/dates-legales.json";
+import { dateLongue } from "@/lib/dates";
 import { RESERVATION_EN_LIGNE } from "@/lib/site-config";
 import { classeTitre, sansOrphelin } from "@/lib/titres";
 
@@ -45,7 +47,15 @@ function Bloc({ bloc }: { bloc: BlocLegal }) {
  * pages. Elle vivait jusque-là sur l'ancien gabarit, avec son propre rythme
  * et sa propre largeur.
  */
-export function PageLegaleRendu({ contenu }: { contenu: PageLegale }) {
+/**
+ * LA DATE N'EST PAS SAISIE. Elle vient de `content/dates-legales.json`, que
+ * `scripts/dates-legales.mjs` écrit à partir de l'histoire du dépôt : c'est
+ * la date du dernier commit qui a touché le contenu de la page. Une date
+ * écrite à la main est fausse le lendemain du jour où l'on a corrigé le
+ * texte sans y penser.
+ */
+export function PageLegaleRendu({ contenu, page }: { contenu: PageLegale; page: keyof typeof datesLegales }) {
+  const date = datesLegales[page];
   return (
     <div className="editorial">
       <section className="border-b border-border">
@@ -54,7 +64,9 @@ export function PageLegaleRendu({ contenu }: { contenu: PageLegale }) {
             <div className="col-span-12 lg:col-start-4 lg:col-span-8">
               <h1 className={`${classeTitre(contenu.titre)} text-foreground`}>{sansOrphelin(contenu.titre)}</h1>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{contenu.chapo}</p>
-              <p className="mt-3 text-sm text-muted-foreground">{contenu.miseAJour}</p>
+              <p className="mt-3 text-sm text-muted-foreground">
+                {contenu.miseAJour} : <time dateTime={date}>{dateLongue(date)}</time>
+              </p>
             </div>
           </div>
         </div>

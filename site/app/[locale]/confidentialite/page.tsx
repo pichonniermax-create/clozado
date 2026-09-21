@@ -14,5 +14,5 @@ export async function generateMetadata(props: PageProps<"/[locale]/confidentiali
 export default async function Page(props: PageProps<"/[locale]/confidentialite">) {
   const { locale } = await props.params;
   if (!isLocale(locale)) notFound();
-  return <PageLegaleRendu contenu={getDictionary(locale).confidentialite} />;
+  return <PageLegaleRendu contenu={getDictionary(locale).confidentialite} page="confidentialite" />;
 }

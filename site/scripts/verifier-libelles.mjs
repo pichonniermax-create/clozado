@@ -8,18 +8,19 @@
  * une page longue, et il ne se voit qu'une fois EN LIGNE, là où il coûte le
  * plus cher. Ici, il coûte une construction.
  *
- * DEUX FICHIERS SONT EXEMPTÉS, et c'est délibéré : les pages légales
- * portent les valeurs que seul l'éditeur connaît (dénomination, capital,
- * RCS, adresse). Elles sont comptées et affichées à chaque construction —
- * l'exemption est bruyante, pas silencieuse. Le jour où ces valeurs sont
- * fournies, on retire les deux lignes ci-dessous et le garde-fou couvre
- * tout le site.
+ * UN SEUL FICHIER EST EXEMPTÉ depuis le 2026-09-21 : `content/identite.ts`,
+ * où vivent les valeurs que seul l'éditeur connaît (dénomination, capital,
+ * RCS, adresse). Les deux pages légales, qui les portaient en double, les
+ * LISENT maintenant — elles sont donc redevenues contrôlées comme le reste
+ * du site. L'exemption est comptée et affichée à chaque construction : elle
+ * est bruyante, pas silencieuse. Le jour où ces valeurs sont fournies, on
+ * retire la dernière ligne ci-dessous et plus rien n'échappe au contrôle.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const RACINE = "content";
-const EXEMPTS = new Set(["content/fr/mentions-legales.ts", "content/fr/confidentialite.ts"]);
+const EXEMPTS = new Set(["content/identite.ts"]);
 const MOTIF = /\[\p{L}/u;
 
 /** Les littéraux de chaîne d'un fichier TypeScript : guillemets doubles et gabarits. */
@@ -93,4 +94,4 @@ if (fautes.length > 0) {
   process.exit(1);
 }
 
-console.log("libellés : aucun crochet à compléter hors pages légales.");
+console.log("libellés : aucun crochet à compléter hors du fichier d'identité.");

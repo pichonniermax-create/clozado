@@ -2,6 +2,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { analyse, type Bloc, ErreurArticle, motsDe, type Titre, titresDe } from "./markdown";
 
+export { dateLongue } from "./dates";
+
 /**
  * LES ARTICLES DU BLOG — des fichiers Markdown du dépôt, lus AU BUILD.
  *
@@ -160,10 +162,4 @@ export function pageDArticles(numero: number, liste = articles()): Article[] {
   return liste.slice((numero - 1) * PAR_PAGE, numero * PAR_PAGE);
 }
 
-/** Une date écrite en français — « 18 septembre 2026 ». */
-export function dateLongue(iso: string): string {
-  const [annee, mois, jour] = iso.split("-").map(Number);
-  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(
-    new Date(Date.UTC(annee, mois - 1, jour))
-  );
-}
+
