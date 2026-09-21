@@ -32,7 +32,7 @@ function Marques({ segments }: { segments: readonly Segment[] }) {
             );
           case "code":
             return (
-              <code key={rang} className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-sm text-foreground">
+              <code key={rang} className="rounded-md bg-muted px-2 py-1 font-mono text-sm text-foreground">
                 {segment.valeur}
               </code>
             );
@@ -118,7 +118,7 @@ export function ArticleCorps({ blocs }: { blocs: readonly Bloc[] }) {
 
           case "note":
             return (
-              <aside key={rang} className="rounded-xl border border-border bg-muted px-6 py-5">
+              <aside key={rang} className="rounded-xl border border-border bg-muted px-6 py-6">
                 <p className="mesure leading-relaxed text-foreground">
                   <Marques segments={bloc.segments} />
                 </p>

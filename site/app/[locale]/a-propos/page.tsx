@@ -82,16 +82,16 @@ export default async function APropos(props: PageProps<"/[locale]/a-propos">) {
         </dl>
       </SectionEditoriale>
 
-      <section className="border-t border-border py-20 sm:py-28 lg:py-36">
+      <section className="border-t border-border py-24 sm:py-24 lg:py-36">
         <div className="editorial-conteneur">
           <div className="grid grid-cols-12 gap-x-6">
             <div
               data-entree
-              className="col-span-12 rounded-xl border border-border bg-card px-6 py-16 sm:px-12 lg:col-start-4 lg:col-span-9"
+              className="col-span-12 rounded-xl border border-border bg-card px-6 py-12 sm:px-12 lg:col-start-4 lg:col-span-9"
             >
               <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(aPropos.final.titre)}</h2>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{aPropos.final.texte}</p>
-              <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="mt-12 flex flex-col gap-4 sm:flex-row sm:items-center">
                 <ActionLink href={DEMO_URL} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
                   {common.actions.ouvrirLaDemo}
                 </ActionLink>

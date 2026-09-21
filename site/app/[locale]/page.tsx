@@ -95,13 +95,13 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
           s'arrêter sur la gouttière. C'est ce débord qui sort la page de la
           composition centrée dès la première ligne. */}
       <section className="border-b border-border">
-        <div className="editorial-conteneur py-12 sm:py-14 lg:py-12">
-          <div className="grid grid-cols-12 gap-x-6 gap-y-10">
+        <div className="editorial-conteneur py-12 sm:py-12 lg:py-12">
+          <div className="grid grid-cols-12 gap-x-6 gap-y-12">
             <div data-entree className="col-span-12 min-w-0 lg:col-span-7">
               <h1 className={`${classeTitre(accueil.hero.titre)} text-foreground`}>{sansOrphelin(accueil.hero.titre)}</h1>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{accueil.hero.chapo}</p>
               <p className="mesure mt-3 text-pretty text-chapo text-muted-foreground">{accueil.hero.precision}</p>
-              <div className="mt-8">{appels}</div>
+              <div className="mt-6">{appels}</div>
               <p className="mt-4 text-sm text-muted-foreground">{accueil.hero.note}</p>
             </div>
 
@@ -145,9 +145,9 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
         ton="doux"
         largeurContenu="lg:col-start-4 lg:col-span-9"
       >
-        <div className="flex flex-col gap-20 lg:gap-32">
+        <div className="flex flex-col gap-24 lg:gap-36">
           {accueil.preuves.elements.map((preuve, index) => (
-            <div key={preuve.cle} className="grid grid-cols-12 items-center gap-x-6 gap-y-8">
+            <div key={preuve.cle} className="grid grid-cols-12 items-center gap-x-6 gap-y-6">
               <div
                 data-entree
                 className={
@@ -158,7 +158,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
               >
                 <h3 className="text-balance text-titre-3 text-foreground">{sansOrphelin(preuve.titre)}</h3>
                 <p className="mesure mt-4 text-pretty leading-relaxed text-muted-foreground">{preuve.texte}</p>
-                <ul className="mt-8 flex flex-col gap-4">
+                <ul className="mt-6 flex flex-col gap-4">
                   {preuve.points.map((point) => (
                     <li key={point} className="flex gap-4 text-sm leading-relaxed">
                       <Puce />
@@ -277,16 +277,16 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
 
       <References locale={locale} />
 
-      <section className="border-t border-border py-20 sm:py-28 lg:py-36">
+      <section className="border-t border-border py-24 sm:py-24 lg:py-36">
         <div className="editorial-conteneur">
           <div className="grid grid-cols-12 gap-x-6">
             <div
               data-entree
-              className="col-span-12 rounded-xl border border-border bg-card px-6 py-16 sm:px-12 lg:col-start-4 lg:col-span-9"
+              className="col-span-12 rounded-xl border border-border bg-card px-6 py-12 sm:px-12 lg:col-start-4 lg:col-span-9"
             >
               <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(accueil.final.titre)}</h2>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{accueil.final.texte}</p>
-              <div className="mt-8">{appels}</div>
+              <div className="mt-6">{appels}</div>
             </div>
           </div>
         </div>

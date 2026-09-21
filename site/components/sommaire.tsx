@@ -29,7 +29,7 @@ export function Sommaire({ titres, titre, aide }: { titres: readonly Titre[]; ti
             <a
               href={`#${t.id}`}
               aria-current={rang === 0 ? "true" : undefined}
-              className={cn("lien-sommaire", t.niveau === 3 && "pl-7")}
+              className={cn("lien-sommaire", t.niveau === 3 && "pl-6")}
             >
               {t.texte}
             </a>

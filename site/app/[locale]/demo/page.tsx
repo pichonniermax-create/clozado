@@ -40,12 +40,12 @@ function Geste({
 }) {
   const { common } = getDictionary(locale);
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-6 text-card-foreground sm:p-8">
+    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-6 text-card-foreground sm:p-6">
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{surtitre}</p>
       <h2 className="mt-3 text-balance text-2xl font-semibold tracking-tight">{sansOrphelin(titre)}</h2>
       <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">{texte}</p>
 
-      <h3 className="mt-8 text-sm font-semibold">{sansOrphelin(elementsTitre)}</h3>
+      <h3 className="mt-6 text-sm font-semibold">{sansOrphelin(elementsTitre)}</h3>
       <ul className="mt-3 flex flex-1 flex-col gap-3">
         {elements.map((element) => (
           <li key={element} className="flex gap-3 text-sm leading-relaxed">
@@ -55,7 +55,7 @@ function Geste({
         ))}
       </ul>
 
-      <div className="mt-8">
+      <div className="mt-6">
         <ActionLink href={href} variante={variante} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
           {action}
         </ActionLink>
@@ -83,8 +83,8 @@ export default async function Demo(props: PageProps<"/[locale]/demo">) {
       <Mouvement />
 
       <section className="border-b border-border">
-        <div className="editorial-conteneur py-12 sm:py-14 lg:py-12">
-          <div className="grid grid-cols-12 gap-x-6 gap-y-10">
+        <div className="editorial-conteneur py-12 sm:py-12 lg:py-12">
+          <div className="grid grid-cols-12 gap-x-6 gap-y-12">
             <div data-entree className={`col-span-12 ${COLONNE}`}>
               <h1 className={`${classeTitre(demo.hero.titre)} text-foreground`}>{sansOrphelin(demo.hero.titre)}</h1>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{demo.hero.chapo}</p>

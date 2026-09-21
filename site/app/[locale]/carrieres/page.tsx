@@ -76,7 +76,7 @@ export default async function Carrieres(props: PageProps<"/[locale]/carrieres">)
         <div data-entree>
           <p className="mesure leading-relaxed text-muted-foreground">{carrieres.candidature.texte}</p>
           {/* Une adresse, pas un formulaire : rien à héberger, rien à stocker, aucun tiers. */}
-          <p className="mt-8">
+          <p className="mt-6">
             <a
               href={`mailto:${carrieres.candidature.adresse}`}
               className="text-titre-3 text-primary-ink underline underline-offset-8 transition-colors duration-200 ease-out hover:text-primary-hover"

@@ -38,7 +38,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
 
         {entrees.length > 0 && (
           <nav aria-label={common.coquille.navigationPrincipale} className="hidden md:block">
-            <ul className="flex items-center gap-0.5">
+            <ul className="flex items-center gap-1">
               {entrees.map((cle) => {
                 const filles = sousEntrees(cle);
                 const classeLien =

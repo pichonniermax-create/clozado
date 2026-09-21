@@ -27,15 +27,15 @@ export function SiteFooter({ locale }: { locale: Locale }) {
 
   return (
     <footer className="border-t border-border bg-muted/40">
-      <Container className="py-12 sm:py-16">
-        <div className="flex flex-col gap-10 lg:flex-row lg:justify-between">
+      <Container className="py-12 sm:py-12">
+        <div className="flex flex-col gap-12 lg:flex-row lg:justify-between">
           <div className="max-w-sm">
             <BrandMark href={path(locale, "accueil")} />
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{common.pied.presentation}</p>
           </div>
 
           {(groupes.length > 0 || legal.length > 0) && (
-            <nav aria-label={common.coquille.navigationDuPied} className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+            <nav aria-label={common.coquille.navigationDuPied} className="grid grid-cols-2 gap-6 sm:grid-cols-3">
               {groupes.map((groupe) => (
                 <div key={groupe.cle}>
                   <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{sansOrphelin(common.groupes[groupe.cle])}</h2>
@@ -74,7 +74,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
           )}
         </div>
 
-        <div className="mt-10 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-12 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
             {common.pied.droits.replace("{annee}", String(new Date().getFullYear()))}
           </p>

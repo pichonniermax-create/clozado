@@ -33,7 +33,7 @@ export function BlogIndex({
 
   return (
     <SectionEditoriale intitule={blog.liste.intitule} largeurContenu="lg:col-start-4 lg:col-span-9">
-      <div className="grid grid-cols-12 gap-x-6 gap-y-10">
+      <div className="grid grid-cols-12 gap-x-6 gap-y-12">
         <div data-entree className="col-span-12 min-w-0 lg:col-span-8">
           {articlesDeLaPage.length === 0 ? (
             <div>
@@ -59,7 +59,7 @@ export function BlogIndex({
                 />
               ))}
               {pages > 1 && (
-                <div className="mt-8">
+                <div className="mt-6">
                   <PaginationBlog page={page} pages={pages} lien={lien} libelles={blog.pagination} />
                 </div>
               )}
@@ -103,7 +103,7 @@ export function BlogIndex({
                 </li>
               ))}
             </ul>
-            <p className="mt-8">
+            <p className="mt-6">
               <a
                 href={`${base}/rss.xml`}
                 className="inline-flex min-h-6 items-center text-sm font-medium text-primary-ink underline underline-offset-4"

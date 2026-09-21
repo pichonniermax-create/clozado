@@ -58,7 +58,7 @@ export default async function Categorie(props: PageProps<"/[locale]/blog/categor
       <Mouvement />
 
       <section className="border-b border-border">
-        <div className="editorial-conteneur py-12 sm:py-14 lg:py-12">
+        <div className="editorial-conteneur py-12 sm:py-12 lg:py-12">
           <div className="grid grid-cols-12 gap-x-6">
             <div data-entree className="col-span-12 lg:col-start-4 lg:col-span-9">
               <FilAriane maillons={maillons} aide={blog.filAriane.aide} />

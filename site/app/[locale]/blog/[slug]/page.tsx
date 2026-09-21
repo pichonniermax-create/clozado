@@ -66,7 +66,7 @@ export default async function Article(props: PageProps<"/[locale]/blog/[slug]">)
       <Mouvement />
 
       <section className="border-b border-border">
-        <div className="editorial-conteneur py-12 sm:py-14 lg:py-12">
+        <div className="editorial-conteneur py-12 sm:py-12 lg:py-12">
           <div className="grid grid-cols-12 gap-x-6">
             <div data-entree className="col-span-12 lg:col-start-4 lg:col-span-8">
               <FilAriane maillons={maillons} aide={blog.filAriane.aide} />
@@ -91,7 +91,7 @@ export default async function Article(props: PageProps<"/[locale]/blog/[slug]">)
         </div>
       </section>
 
-      <section className="py-16 sm:py-20 lg:py-24">
+      <section className="py-12 sm:py-24 lg:py-24">
         <div className="editorial-conteneur">
           <div className="grid grid-cols-12 gap-x-6 gap-y-12">
             {avecSommaire && (
@@ -107,13 +107,13 @@ export default async function Article(props: PageProps<"/[locale]/blog/[slug]">)
               }
             >
               {article.demonstration && (
-                <aside className="mb-12 rounded-xl border border-border bg-muted px-6 py-5">
+                <aside className="mb-12 rounded-xl border border-border bg-muted px-6 py-6">
                   <p className="label">{blog.demonstration.titre}</p>
                   <p className="mesure mt-3 text-sm leading-relaxed text-foreground">{blog.demonstration.texte}</p>
                 </aside>
               )}
               <ArticleCorps blocs={article.blocs} />
-              <div className="mt-16">
+              <div className="mt-12">
                 <ArticleVoisins
                   precedent={precedent ? { titre: precedent.titre, href: `${base}/${precedent.slug}` } : undefined}
                   suivant={suivant ? { titre: suivant.titre, href: `${base}/${suivant.slug}` } : undefined}

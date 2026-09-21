@@ -39,10 +39,10 @@ export function SectionEditoriale({
   return (
     <section
       id={id}
-      className={cn("border-t border-border py-20 sm:py-28 lg:py-36", ton === "doux" && "bg-muted")}
+      className={cn("border-t border-border py-24 sm:py-24 lg:py-36", ton === "doux" && "bg-muted")}
     >
       <div className="editorial-conteneur">
-        <div className="grid grid-cols-12 gap-x-6 gap-y-10">
+        <div className="grid grid-cols-12 gap-x-6 gap-y-12">
           {numero && (
             <p aria-hidden data-entree className="numero-section col-span-12 text-geant lg:col-span-3">
               {numero}
@@ -59,7 +59,7 @@ export function SectionEditoriale({
               {chapo && <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{chapo}</p>}
             </header>
           )}
-          <div className={cn("col-span-12", largeurContenu, aEnTete && "mt-6 lg:mt-10")}>{children}</div>
+          <div className={cn("col-span-12", largeurContenu, aEnTete && "mt-6 lg:mt-12")}>{children}</div>
         </div>
       </div>
     </section>

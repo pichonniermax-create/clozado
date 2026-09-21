@@ -234,7 +234,7 @@ export function EcranRegles({
     <Cadre nom={ecran.nom} resume={ecran.resume} legende={ecran.legende} className={className}>
       {/* LA VAGUE : le seul bouton plein de l'écran, parce que c'est le seul
           geste qui envoie quelque chose. Le produit ne montre rien d'autre ici. */}
-      <div className="flex flex-wrap items-center gap-4 border-b border-border bg-primary-soft px-4 py-4 sm:px-5">
+      <div className="flex flex-wrap items-center gap-4 border-b border-border bg-primary-soft px-4 py-4 sm:px-6">
         <div className="min-w-0 flex-1">
           <p className="ecran-nom">
             <Nombre valeur={ecran.vague.titre} />

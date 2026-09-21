@@ -10,7 +10,7 @@ function Bloc({ bloc }: { bloc: BlocLegal }) {
       <ul className="flex flex-col gap-3">
         {bloc.elements.map((element) => (
           <li key={element} className="flex gap-3 leading-relaxed">
-            <span aria-hidden className="mt-2.5 size-1.5 shrink-0 rounded-full bg-muted-foreground" />
+            <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-muted-foreground" />
             <span className="text-muted-foreground">{element}</span>
           </li>
         ))}
@@ -18,7 +18,7 @@ function Bloc({ bloc }: { bloc: BlocLegal }) {
     );
   }
   return (
-    <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-[minmax(0,14rem)_1fr]">
+    <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-[minmax(0,14rem)_1fr]">
       {bloc.elements.map((element) => (
         <div key={element.terme} className="contents">
           <dt className="font-medium">{sansOrphelin(element.terme)}</dt>
@@ -46,7 +46,7 @@ export function PageLegaleRendu({ contenu }: { contenu: PageLegale }) {
   return (
     <div className="editorial">
       <section className="border-b border-border">
-        <div className="editorial-conteneur py-12 sm:py-14 lg:py-12">
+        <div className="editorial-conteneur py-12 sm:py-12 lg:py-12">
           <div className="grid grid-cols-12 gap-x-6">
             <div className="col-span-12 lg:col-start-4 lg:col-span-8">
               <h1 className={`${classeTitre(contenu.titre)} text-foreground`}>{sansOrphelin(contenu.titre)}</h1>
@@ -57,10 +57,10 @@ export function PageLegaleRendu({ contenu }: { contenu: PageLegale }) {
         </div>
       </section>
 
-      <section className="py-20 sm:py-28 lg:py-36">
+      <section className="py-24 sm:py-24 lg:py-36">
         <div className="editorial-conteneur">
           <div className="grid grid-cols-12 gap-x-6">
-            <div className="col-span-12 flex flex-col gap-14 lg:col-start-4 lg:col-span-8">
+            <div className="col-span-12 flex flex-col gap-12 lg:col-start-4 lg:col-span-8">
               {contenu.sections.map((section) => (
                 <section key={section.titre}>
                   <h2 className="text-titre-3 text-foreground">{sansOrphelin(section.titre)}</h2>

@@ -31,7 +31,7 @@ export function CarteArticle({
   libelleDemonstration: string;
 }) {
   return (
-    <article className="border-b border-border py-8 first:pt-0">
+    <article className="border-b border-border py-6 first:pt-0">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <a
           href={categorieHref}
@@ -43,7 +43,7 @@ export function CarteArticle({
           <time dateTime={dateISO}>{date}</time> · {minutes} {lecture}
         </p>
         {demonstration && (
-          <p className="rounded-full border border-border px-3 py-0.5 text-detail font-medium text-primary-ink">
+          <p className="rounded-full border border-border px-3 py-1 text-detail font-medium text-primary-ink">
             {libelleDemonstration}
           </p>
         )}

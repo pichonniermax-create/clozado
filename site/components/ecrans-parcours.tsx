@@ -35,7 +35,7 @@ export function EcranFiche({
     <Cadre nom={ecran.nom} resume={ecran.resume} legende={ecran.legende} className={className}>
       <dl className="grid grid-cols-1 gap-px bg-border sm:grid-cols-2">
         {ecran.champs.map((champ) => (
-          <div key={champ.libelle} data-ligne className="bg-card px-4 py-3 sm:px-5">
+          <div key={champ.libelle} data-ligne className="bg-card px-4 py-3 sm:px-6">
             <dt className="ecran-mention">{champ.libelle}</dt>
             <dd className="ecran-ligne-titre mt-1">{champ.valeur}</dd>
           </div>
@@ -86,7 +86,7 @@ export function EcranColonnes({
           </section>
         ))}
       </div>
-      <div className="flex items-baseline justify-between gap-4 border-t border-border px-4 py-3 sm:px-5">
+      <div className="flex items-baseline justify-between gap-4 border-t border-border px-4 py-3 sm:px-6">
         <p className="ecran-nom">{ecran.total.libelle}</p>
         <p className="tabulaire text-sm font-semibold text-foreground">
           {ecran.total.compte} · {ecran.total.montant}
@@ -119,10 +119,10 @@ export function EcranVaEtVient({
   return (
     <Cadre nom={ecran.nom} resume={ecran.resume} legende={ecran.legende} className={className}>
       <div className="grid grid-cols-2 gap-px border-b border-border bg-border">
-        <p className="ecran-mention bg-card px-4 py-2 sm:px-5">{ecran.cotes.vous}</p>
-        <p className="ecran-mention bg-card px-4 py-2 text-right sm:px-5">{ecran.cotes.confrere}</p>
+        <p className="ecran-mention bg-card px-4 py-2 sm:px-6">{ecran.cotes.vous}</p>
+        <p className="ecran-mention bg-card px-4 py-2 text-right sm:px-6">{ecran.cotes.confrere}</p>
       </div>
-      <ul className="flex flex-col gap-3 px-4 py-4 sm:px-5">
+      <ul className="flex flex-col gap-3 px-4 py-4 sm:px-6">
         {ecran.gestes.map((geste) => (
           <li
             key={geste.libelle}
@@ -144,7 +144,7 @@ export function EcranVaEtVient({
           </li>
         ))}
       </ul>
-      <div className="flex items-baseline justify-between gap-4 border-t border-border px-4 py-3 sm:px-5">
+      <div className="flex items-baseline justify-between gap-4 border-t border-border px-4 py-3 sm:px-6">
         <p className="ecran-mention">{ecran.pied.libelle}</p>
         <p className="tabulaire text-sm font-semibold text-foreground">{ecran.pied.valeur}</p>
       </div>
@@ -174,11 +174,11 @@ export function EcranApercu({
 }) {
   return (
     <Cadre nom={ecran.nom} resume={ecran.resume} legende={ecran.legende} className={className}>
-      <div className="border-b border-border px-4 py-3 sm:px-5">
+      <div className="border-b border-border px-4 py-3 sm:px-6">
         <p className="ecran-ligne-detail whitespace-normal">{ecran.destinataire}</p>
         <p className="ecran-ligne-titre mt-1 whitespace-normal">{ecran.objet}</p>
       </div>
-      <div data-ligne className="flex flex-col gap-2 border-b border-border px-4 py-4 sm:px-5">
+      <div data-ligne className="flex flex-col gap-2 border-b border-border px-4 py-4 sm:px-6">
         {ecran.corps.map((paragraphe) => (
           <p key={paragraphe} className="text-detail leading-relaxed text-foreground">
             {paragraphe}
@@ -193,7 +193,7 @@ export function EcranApercu({
           ))}
         </div>
       </div>
-      <div className="px-4 py-3 sm:px-5">
+      <div className="px-4 py-3 sm:px-6">
         <p className="ecran-mention">{ecran.controlesTitre}</p>
         <ul className="mt-2 flex flex-col gap-1">
           {ecran.controles.map((controle) => (
@@ -204,7 +204,7 @@ export function EcranApercu({
           ))}
         </ul>
       </div>
-      <div className="flex justify-end border-t border-border px-4 py-3 sm:px-5">
+      <div className="flex justify-end border-t border-border px-4 py-3 sm:px-6">
         <FauxBouton plein>{ecran.action}</FauxBouton>
       </div>
     </Cadre>
@@ -234,7 +234,7 @@ export function EcranCommission({
   const opacites = [1, 0.55, 0.25];
   return (
     <Cadre nom={ecran.nom} resume={ecran.resume} legende={ecran.legende} className={className}>
-      <div className="px-4 py-4 sm:px-5">
+      <div className="px-4 py-4 sm:px-6">
         <p className="tabulaire text-2xl font-semibold text-foreground">{ecran.total}</p>
         {/* La barre : trois parts d'une même somme, dans l'ordre où elles arrivent. */}
         <div className="mt-3 flex h-3 w-full overflow-hidden rounded-full border border-border">
@@ -267,7 +267,7 @@ export function EcranCommission({
           ))}
         </ul>
       </div>
-      <div className="flex items-baseline justify-between gap-4 border-t border-border px-4 py-3 sm:px-5">
+      <div className="flex items-baseline justify-between gap-4 border-t border-border px-4 py-3 sm:px-6">
         <p className="ecran-mention">{ecran.rappel.libelle}</p>
         <p className="text-detail font-medium text-foreground">{ecran.rappel.valeur}</p>
       </div>
@@ -294,7 +294,7 @@ export function EcranSerie({
   const maximum = Math.max(...ecran.mois.map((mois) => Number(mois.valeur)));
   return (
     <Cadre nom={ecran.nom} resume={ecran.resume} legende={ecran.legende} className={className}>
-      <div className="flex items-end gap-2 px-4 py-4 sm:px-5">
+      <div className="flex items-end gap-2 px-4 py-4 sm:px-6">
         {ecran.mois.map((mois) => (
           <div key={mois.libelle} data-ligne className="flex flex-1 flex-col items-center gap-2">
             <span className="tabulaire text-detail font-semibold text-foreground">{mois.valeur}</span>
@@ -308,16 +308,16 @@ export function EcranSerie({
         ))}
       </div>
       <div className="grid grid-cols-2 gap-px border-t border-border bg-border">
-        <div className="bg-card px-4 py-3 sm:px-5">
+        <div className="bg-card px-4 py-3 sm:px-6">
           <p className="ecran-mention">{ecran.total.libelle}</p>
           <p className="tabulaire mt-1 text-sm font-semibold text-foreground">{ecran.total.valeur}</p>
         </div>
-        <div className="bg-card px-4 py-3 sm:px-5">
+        <div className="bg-card px-4 py-3 sm:px-6">
           <p className="ecran-mention">{ecran.variation.libelle}</p>
           <p className="tabulaire mt-1 text-sm font-semibold text-primary-ink">{ecran.variation.valeur}</p>
         </div>
       </div>
-      <p className="ecran-mention border-t border-border px-4 py-3 sm:px-5">{ecran.definition}</p>
+      <p className="ecran-mention border-t border-border px-4 py-3 sm:px-6">{ecran.definition}</p>
     </Cadre>
   );
 }

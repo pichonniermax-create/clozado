@@ -94,16 +94,16 @@ export default async function Conformite(props: PageProps<"/[locale]/conformite"
         </p>
       </SectionEditoriale>
 
-      <section className="border-t border-border py-20 sm:py-28 lg:py-36">
+      <section className="border-t border-border py-24 sm:py-24 lg:py-36">
         <div className="editorial-conteneur">
           <div className="grid grid-cols-12 gap-x-6">
             <div
               data-entree
-              className="col-span-12 rounded-xl border border-border bg-card px-6 py-16 sm:px-12 lg:col-start-4 lg:col-span-9"
+              className="col-span-12 rounded-xl border border-border bg-card px-6 py-12 sm:px-12 lg:col-start-4 lg:col-span-9"
             >
               <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(conformite.final.titre)}</h2>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{conformite.final.texte}</p>
-              <div className="mt-10">{appels}</div>
+              <div className="mt-12">{appels}</div>
             </div>
           </div>
         </div>

@@ -49,13 +49,13 @@ export function EcranChronologie({
 }) {
   return (
     <Cadre nom={ecran.nom} resume={ecran.resume} legende={ecran.legende} className={className}>
-      <div className="flex items-baseline justify-between gap-4 border-b border-border px-4 py-3 sm:px-5">
+      <div className="flex items-baseline justify-between gap-4 border-b border-border px-4 py-3 sm:px-6">
         <p className="ecran-mention">{ecran.ancienneteLibelle}</p>
         <p className="tabulaire text-xl font-semibold text-foreground">{ecran.ancienneteValeur}</p>
       </div>
-      <ol className="px-4 py-4 sm:px-5">
+      <ol className="px-4 py-4 sm:px-6">
         {ecran.etapes.map((etape, rang) => (
-          <li key={etape.libelle} data-ligne className="relative flex gap-4 pb-5 last:pb-0">
+          <li key={etape.libelle} data-ligne className="relative flex gap-4 pb-6 last:pb-0">
             {/* Le rail : il relie les pastilles, sauf après la dernière. */}
             {rang < ecran.etapes.length - 1 && (
               <span aria-hidden className="absolute left-[5px] top-4 bottom-0 w-px bg-border" />
@@ -63,7 +63,7 @@ export function EcranChronologie({
             <span
               aria-hidden
               className={cn(
-                "relative mt-1.5 size-[11px] shrink-0 rounded-full border",
+                "relative mt-2 size-[11px] shrink-0 rounded-full border",
                 etape.etat === "fait" && "border-border bg-card",
                 etape.etat === "arret" && "border-transparent bg-primary",
                 etape.etat === "attente" && "border-primary bg-card"
@@ -221,7 +221,7 @@ export function EcranJaugeParcours({
   const marques = ecran.dossiers.filter((dossier) => dossier.marque);
   return (
     <Cadre nom={ecran.nom} resume={ecran.resume} legende={ecran.legende} className={className}>
-      <div className="jauge px-4 py-5 sm:px-5">
+      <div className="jauge px-4 py-6 sm:px-6">
         {ecran.positions.map((position) => {
           const dossiers = ecran.dossiers.filter((dossier) => dossier.position === position.cle);
           return (
@@ -248,7 +248,7 @@ export function EcranJaugeParcours({
         })}
       </div>
 
-      <div className="border-t border-border px-4 py-3 sm:px-5">
+      <div className="border-t border-border px-4 py-3 sm:px-6">
         <p className="ecran-mention">{ecran.seuilLibelle}</p>
         <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
           {marques.map((dossier) => (

@@ -123,16 +123,16 @@ export function PageMetier({
           action à droite. Les colonnes s'alignent en haut : le titre est
           très grand, l'aligner au milieu le ferait flotter au-dessus du vide. */}
       <section className="border-b border-border">
-        <div className="editorial-conteneur py-12 sm:py-14 lg:py-12">
-          <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+        <div className="editorial-conteneur py-12 sm:py-12 lg:py-12">
+          <div className="grid gap-12 lg:grid-cols-12 lg:gap-12">
             <div data-entree className="min-w-0 lg:col-span-7">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 {contenu.hero.secteur}
               </p>
-              <h1 className={`mt-5 text-foreground ${classeTitre(contenu.hero.titre)}`}>{sansOrphelin(contenu.hero.titre)}</h1>
+              <h1 className={`mt-6 text-foreground ${classeTitre(contenu.hero.titre)}`}>{sansOrphelin(contenu.hero.titre)}</h1>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{contenu.hero.chapo}</p>
               <p className="mesure mt-3 text-pretty text-chapo text-muted-foreground">{contenu.hero.precision}</p>
-              <div className="mt-8">{appels}</div>
+              <div className="mt-6">{appels}</div>
             </div>
             <div data-entree data-rang={1} className="ecran-compact min-w-0 lg:col-span-5">
               {ecranDuMetier}
@@ -165,14 +165,14 @@ export function PageMetier({
         chapo={contenu.indicateurs.chapo}
         largeurContenu={COLONNE}
       >
-        <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div className="grid gap-12 lg:grid-cols-12 lg:gap-12">
           <div data-entree className="min-w-0 lg:col-span-5">
             <ul className="grille-cartes" data-colonnes="1" style={{ "--ecart": "0.5rem" } as React.CSSProperties}>
               {contenu.indicateurs.elements.map((element) => (
                 <Pastille key={element}>{element}</Pastille>
               ))}
             </ul>
-            <p className="mt-8 text-sm leading-relaxed text-muted-foreground">{contenu.indicateurs.note}</p>
+            <p className="mt-6 text-sm leading-relaxed text-muted-foreground">{contenu.indicateurs.note}</p>
           </div>
           <div data-entree data-rang={1} className="min-w-0 lg:col-span-7">
             <EcranTableauDeBord ecran={ecrans.tableauDeBord} />
@@ -189,7 +189,7 @@ export function PageMetier({
         ton="doux"
         largeurContenu={COLONNE}
       >
-        <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div className="grid gap-12 lg:grid-cols-12 lg:gap-12">
           <div className="flex min-w-0 flex-col gap-12 lg:col-span-7">
             <div data-entree>
               <SousTitre>{contenu.communication.ciblesTitre}</SousTitre>
@@ -266,16 +266,16 @@ export function PageMetier({
         </ul>
       </SectionEditoriale>
 
-      <section className="border-t border-border py-20 sm:py-28 lg:py-36">
+      <section className="border-t border-border py-24 sm:py-24 lg:py-36">
         <div className="editorial-conteneur">
           <div className="grid grid-cols-12 gap-x-6">
             <div
               data-entree
-              className="col-span-12 rounded-xl border border-border bg-card px-6 py-16 sm:px-12 lg:col-start-4 lg:col-span-9"
+              className="col-span-12 rounded-xl border border-border bg-card px-6 py-12 sm:px-12 lg:col-start-4 lg:col-span-9"
             >
             <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(contenu.final.titre)}</h2>
             <p className="mt-6 text-pretty text-chapo text-muted-foreground">{contenu.final.texte}</p>
-              <div className="mt-8">{appels}</div>
+              <div className="mt-6">{appels}</div>
             </div>
           </div>
         </div>

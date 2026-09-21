@@ -66,7 +66,7 @@ export function Section({
   return (
     <section
       id={id}
-      className={cn("py-20 sm:py-24 lg:py-32", bordered && "border-t border-border", TONS[ton])}
+      className={cn("py-24 sm:py-24 lg:py-36", bordered && "border-t border-border", TONS[ton])}
     >
       <Container largeur={largeur}>
         {aEnTete && (
@@ -80,7 +80,7 @@ export function Section({
             {chapo && <p className="mt-6 max-w-2xl text-pretty text-chapo text-muted-foreground">{chapo}</p>}
           </header>
         )}
-        <div className={cn(aEnTete && "mt-12 sm:mt-16")}>{children}</div>
+        <div className={cn(aEnTete && "mt-12 sm:mt-12")}>{children}</div>
       </Container>
     </section>
   );

@@ -20,7 +20,7 @@ export function BandeRupture({
   elements: readonly { titre: string; texte: string }[];
 }) {
   return (
-    <section className="border-y border-border bg-card py-20 sm:py-28 lg:py-36">
+    <section className="border-y border-border bg-card py-24 sm:py-24 lg:py-36">
       <div className="editorial-conteneur">
         <div className="grid grid-cols-12 gap-x-6">
           <div className="col-span-12 lg:col-start-4 lg:col-span-9">
@@ -34,7 +34,7 @@ export function BandeRupture({
               aria-hidden
               data-entree
               data-rang={1}
-              className="mt-8 h-1 w-16 rounded-full bg-primary"
+              className="mt-6 h-1 w-16 rounded-full bg-primary"
             />
             <dl className="grille-cartes grille-large mt-12" data-colonnes="3">
               {elements.map((element, rang) => (

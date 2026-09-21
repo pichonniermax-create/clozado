@@ -17,13 +17,13 @@ export function NotFoundContent({ locale }: { locale: Locale }) {
   const pages = builtRoutes();
 
   return (
-    <Container className="flex flex-1 flex-col justify-center py-20 sm:py-28">
+    <Container className="flex flex-1 flex-col justify-center py-24 sm:py-24">
       <div className="max-w-xl">
         <p className="font-mono text-sm tabular-nums text-muted-foreground">{common.introuvable.code}</p>
         <h1 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">{sansOrphelin(common.introuvable.titre)}</h1>
         <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">{common.introuvable.texte}</p>
 
-        <nav aria-label={common.coquille.navigationPrincipale} className="mt-8">
+        <nav aria-label={common.coquille.navigationPrincipale} className="mt-6">
           <ul className="flex flex-col gap-1">
             {pages.map((cle) => (
               <li key={cle}>

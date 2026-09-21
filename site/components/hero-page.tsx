@@ -35,14 +35,14 @@ export function HeroPage({
 }) {
   return (
     <section className="border-b border-border">
-      <div className="editorial-conteneur py-12 sm:py-14 lg:py-12">
-        <div className="grid grid-cols-12 gap-x-6 gap-y-10">
+      <div className="editorial-conteneur py-12 sm:py-12 lg:py-12">
+        <div className="grid grid-cols-12 gap-x-6 gap-y-12">
           <div data-entree className={cn("col-span-12 min-w-0", aside ? "lg:col-span-7" : "lg:col-span-9")}>
             <p className="label">{surtitre}</p>
-            <h1 className={cn("mt-5 text-foreground", classeTitre(titre))}>{sansOrphelin(titre)}</h1>
+            <h1 className={cn("mt-6 text-foreground", classeTitre(titre))}>{sansOrphelin(titre)}</h1>
             <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{chapo}</p>
             {precision && <p className="mesure mt-3 text-pretty text-chapo text-muted-foreground">{precision}</p>}
-            {appels && <div className="mt-8">{appels}</div>}
+            {appels && <div className="mt-6">{appels}</div>}
             {note && <p className="mt-4 text-sm text-muted-foreground">{note}</p>}
           </div>
           {aside && (

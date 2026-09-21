@@ -99,11 +99,11 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
           ton={rang % 2 === 1 ? "doux" : "normal"}
           largeurContenu={COLONNE}
         >
-          <div className="grid grid-cols-12 items-start gap-x-6 gap-y-8">
+          <div className="grid grid-cols-12 items-start gap-x-6 gap-y-6">
             <div data-entree className="col-span-12 min-w-0 lg:col-span-5">
               <p className="mesure text-pretty leading-relaxed text-muted-foreground">{etape.texte}</p>
               {etape.liaison && (
-                <p className="mesure mt-8 border-l border-border pl-5 text-sm leading-relaxed text-foreground">
+                <p className="mesure mt-6 border-l border-border pl-6 text-sm leading-relaxed text-foreground">
                   {etape.liaison}
                 </p>
               )}
@@ -155,16 +155,16 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
         </ul>
       </SectionEditoriale>
 
-      <section className="border-t border-border py-20 sm:py-28 lg:py-36">
+      <section className="border-t border-border py-24 sm:py-24 lg:py-36">
         <div className="editorial-conteneur">
           <div className="grid grid-cols-12 gap-x-6">
             <div
               data-entree
-              className="col-span-12 rounded-xl border border-border bg-card px-6 py-16 sm:px-12 lg:col-start-4 lg:col-span-9"
+              className="col-span-12 rounded-xl border border-border bg-card px-6 py-12 sm:px-12 lg:col-start-4 lg:col-span-9"
             >
               <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(produit.final.titre)}</h2>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{produit.final.texte}</p>
-              <div className="mt-10">{appels}</div>
+              <div className="mt-12">{appels}</div>
             </div>
           </div>
         </div>
