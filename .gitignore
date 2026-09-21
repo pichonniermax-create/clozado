@@ -41,5 +41,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# scripts de vérification temporaires (jamais committés : ils importent playwright, absent de package.json, et cassent le build Vercel)
-scripts/_tmp-*
+# LES SCRIPTS DE VÉRIFICATION N'ÉCRIVENT PAS DANS LE DÉPÔT.
+# Ils importent playwright, absent de package.json : committés, ils cassent le
+# build Vercel. Leur place est le répertoire de travail de la session, hors du
+# dépôt. Ces règles attrapent ce qui y tomberait quand même — À N'IMPORTE QUEL
+# NIVEAU, la racine comprise, et pas seulement dans scripts/.
+# Elles IGNORENT, elles n'empêchent pas : un fichier ainsi nommé peut encore
+# être écrit, il ne peut simplement plus être committé par inadvertance.
+_tmp-*
+/undefined/
