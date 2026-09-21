@@ -134,6 +134,7 @@ export const produit = {
   final: {
     titre: "Ouvrir ces écrans maintenant",
     texte:
-      "La démonstration publique est en lecture seule, sans inscription : un cabinet fictif et sept mois d’historique. Pour en parler sur votre organisation, réservez un créneau.",
+      "La démonstration publique est en lecture seule, sans inscription : un cabinet fictif et sept mois d’historique.",
+    texteReservation: "Pour en parler sur votre organisation, réservez un créneau.",
   },
 } as const;

@@ -101,6 +101,7 @@ export const conformite = {
   final: {
     titre: "Vérifier par vous-même",
     texte:
-      "La démonstration publique montre les journaux, les garde-fous et les exports sur un cabinet fictif. Pour en parler sur votre organisation, réservez un créneau.",
+      "La démonstration publique montre les journaux, les garde-fous et les exports sur un cabinet fictif.",
+    texteReservation: "Pour en parler sur votre organisation, réservez un créneau.",
   },
 } as const;

@@ -19,16 +19,38 @@ export const SITE_CONFIG = {
    */
   appOrigin: "https://app.clozado.fr",
 
-  /**
-   * Le lien de prise de rendez-vous. Provisoire : il sera remplacé par le
-   * module de réservation quand il existera dans le produit. Un lien
-   * simple, jamais un script embarqué — aucun tiers ne s'exécute ici.
-   */
-  bookingUrl: "https://meetings.hubspot.com/mpichonnier",
 } as const;
 
 /** La démonstration publique, en lecture seule, servie par l'application. */
 export const DEMO_URL = `${SITE_CONFIG.appOrigin}/demo`;
+
+/**
+ * LA PRISE DE RENDEZ-VOUS — chez nous, et nulle part ailleurs.
+ *
+ * Le site envoyait jusqu'au 2026-09-21 sur un AGENDA TIERS, hébergé hors
+ * de notre domaine. C'était le seul tiers que le site touchait, et il
+ * recevait le geste principal : le visiteur quittait le domaine, et sa
+ * saisie partait chez un prestataire dont la politique n'est pas la nôtre.
+ * Décision de l'éditeur, le 2026-09-21 : il disparaît entièrement, nom
+ * compris — le dépôt ne doit plus en porter une seule occurrence.
+ *
+ * L'adresse de remplacement est la page de réservation de l'application.
+ * Elle est écrite ICI, une fois, et nulle part ailleurs.
+ */
+export const RESERVATION_URL = `${SITE_CONFIG.appOrigin}/reserver`;
+
+/**
+ * TANT QU'ELLE N'EST PAS EN LIGNE, AUCUN BOUTON NE L'ANNONCE. « Ouvrir la
+ * démonstration » reste le seul appel à l'action du site : mieux vaut un
+ * seul geste possible que deux dont l'un mène à une page absente.
+ *
+ * Passer cette ligne à `true` remet la réservation en service PARTOUT —
+ * les six boutons, l'entrée du repli mobile, la carte de la page
+ * Démonstration, et la ligne de la politique de confidentialité qui la
+ * décrit (`quand: "reservation"` dans `content/fr/confidentialite.ts`).
+ * Il n'y a rien d'autre à chercher.
+ */
+export const RESERVATION_EN_LIGNE = false;
 
 /** L'écran de connexion de l'application. */
 export const LOGIN_URL = `${SITE_CONFIG.appOrigin}/login`;

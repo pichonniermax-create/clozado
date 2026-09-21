@@ -1,7 +1,7 @@
 import { cn } from "@/lib/cn";
 import { getDictionary, type Locale } from "@/lib/i18n";
 import { menuPrincipal, path, sousEntrees, type RouteKey } from "@/lib/routes";
-import { DEMO_URL, LOGIN_URL, SITE_CONFIG } from "@/lib/site-config";
+import { DEMO_URL, LOGIN_URL, RESERVATION_EN_LIGNE, RESERVATION_URL } from "@/lib/site-config";
 import { ActionLink } from "./action-link";
 import { BrandMark } from "./brand-mark";
 import { NavDeroulant } from "./nav-deroulant";
@@ -146,20 +146,22 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                       <span className="sr-only">{common.actions.nouvelOnglet}</span>
                     </a>
                   </li>
-                  {/* L'agenda reste à un geste : il descend d'un rang, il ne
-                      disparaît pas. Le bouton de la barre, lui, n'a pas la
-                      place de porter les deux. */}
-                  <li>
-                    <a
-                      href={SITE_CONFIG.bookingUrl}
-                      target="_blank"
-                      rel="noopener"
-                      className="flex min-h-11 items-center rounded-lg px-3 text-sm text-foreground hover:bg-muted"
-                    >
-                      {common.actions.reserverUneDemo}
-                      <span className="sr-only">{common.actions.nouvelOnglet}</span>
-                    </a>
-                  </li>
+                  {/* La réservation descend d'un rang quand elle existe : le
+                      bouton de la barre n'a pas la place de porter les deux.
+                      Tant qu'elle n'est pas en ligne, l'entrée n'existe pas. */}
+                  {RESERVATION_EN_LIGNE && (
+                    <li>
+                      <a
+                        href={RESERVATION_URL}
+                        target="_blank"
+                        rel="noopener"
+                        className="flex min-h-11 items-center rounded-lg px-3 text-sm text-foreground hover:bg-muted"
+                      >
+                        {common.actions.reserverUneDemo}
+                        <span className="sr-only">{common.actions.nouvelOnglet}</span>
+                      </a>
+                    </li>
+                  )}
                 </ul>
               </nav>
             </details>

@@ -5,8 +5,14 @@ import type { PageLegale } from "../types";
  *
  * Elle est courte parce que le site ne collecte rien : aucun cookie, aucun
  * traceur, aucune mesure d'audience, aucun formulaire. Ce qui reste — les
- * journaux techniques de l'hébergeur et les deux liens sortants — est dit,
- * plutôt que passé sous silence : c'est ce qui rend le reste crédible.
+ * journaux techniques de l'hébergeur et les liens qui mènent à
+ * l'application — est dit, plutôt que passé sous silence : c'est ce qui
+ * rend le reste crédible.
+ *
+ * DEPUIS LE 2026-09-21, PLUS AUCUN TIERS. La prise de rendez-vous passait
+ * par un prestataire extérieur ; elle passera par l'application. La ligne
+ * qui la décrit porte `quand: "reservation"` et ne paraît donc que le jour
+ * où le bouton existe.
  *
  * La politique de l'APPLICATION est un document distinct : son adresse est
  * entre crochets tant qu'elle n'existe pas.
@@ -66,20 +72,21 @@ export const confidentialite = {
         {
           type: "texte",
           texte:
-            "Deux boutons de ce site mènent ailleurs. Aucun contenu de ces services n’est chargé dans ces pages : rien ne se déclenche tant que vous ne cliquez pas.",
+            "Les boutons de ce site qui mènent ailleurs mènent tous à l’application Clozado, sur son propre domaine. Aucun service tiers n’est appelé, aucun contenu extérieur n’est chargé dans ces pages : rien ne part tant que vous ne cliquez pas.",
         },
         {
           type: "definitions",
           elements: [
             {
-              terme: "Réserver une démo",
-              valeur:
-                "Ouvre l’outil de prise de rendez-vous [nom du prestataire], qui recueille les informations que vous y saisissez selon sa propre politique.",
-            },
-            {
               terme: "Ouvrir la démonstration",
               valeur:
                 "Ouvre la démonstration publique de l’application Clozado, en lecture seule : rien n’y est enregistré, et aucun email n’en part.",
+            },
+            {
+              terme: "Réserver une démo",
+              valeur:
+                "Ouvre la page de prise de rendez-vous de l’application Clozado, qui recueille le nom, l’adresse électronique et le créneau que vous y indiquez.",
+              quand: "reservation",
             },
           ],
         },

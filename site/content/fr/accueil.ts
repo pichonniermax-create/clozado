@@ -197,6 +197,7 @@ export const accueil = {
   final: {
     titre: "Voir le produit sur des données réelles",
     texte:
-      "La démonstration est ouverte en lecture seule, sans inscription : un cabinet fictif et sept mois d’historique. Pour en parler, réservez un créneau.",
+      "La démonstration est ouverte en lecture seule, sans inscription : un cabinet fictif et sept mois d’historique.",
+    texteReservation: "Pour en parler, réservez un créneau.",
   },
 } as const;

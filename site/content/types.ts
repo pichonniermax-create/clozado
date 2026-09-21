@@ -43,7 +43,12 @@ export type ContenuMetier = {
     avertissement: string;
   };
   perimetre: { intitule: string; titre: string; elements: string[] };
-  final: { titre: string; texte: string };
+  final: {
+    titre: string;
+    texte: string;
+    /** La phrase qui n'a de sens que si la prise de rendez-vous est ouverte. */
+    texteReservation?: string;
+  };
 };
 
 /**
@@ -59,7 +64,21 @@ export type ContenuMetier = {
 export type BlocLegal =
   | { type: "texte"; texte: string }
   | { type: "liste"; elements: string[] }
-  | { type: "definitions"; elements: { terme: string; valeur: string }[] };
+  | {
+      type: "definitions";
+      elements: {
+        terme: string;
+        valeur: string;
+        /**
+         * La ligne n'existe que si la prise de rendez-vous est ouverte
+         * (`RESERVATION_EN_LIGNE`). Une politique de confidentialité qui
+         * décrit un bouton absent est fausse ; un bouton que la politique
+         * ne décrit pas l'est aussi. Le lien entre les deux est ici, pas
+         * dans un commentaire qu'on oublie de lire.
+         */
+        quand?: "reservation";
+      }[];
+    };
 
 export type PageLegale = {
   meta: { titre: string; description: string };

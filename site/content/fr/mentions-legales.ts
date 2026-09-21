@@ -72,7 +72,7 @@ export const mentionsLegales = {
         {
           type: "texte",
           texte:
-            "Ce site renvoie vers deux adresses extérieures à ses pages : l’outil de prise de rendez-vous et la démonstration publique de l’application. L’éditeur n’exerce aucun contrôle sur le service de prise de rendez-vous et ne saurait être tenu responsable de son contenu ni de ses pratiques.",
+            "Ce site renvoie vers une seule adresse extérieure à ses pages : l’application Clozado, sur son domaine propre, dont l’éditeur est le même que celui de ce site. Aucun service tiers n’est appelé depuis ces pages, et aucun contenu extérieur n’y est chargé.",
         },
       ],
     },

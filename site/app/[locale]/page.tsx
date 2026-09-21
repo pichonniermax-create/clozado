@@ -8,11 +8,12 @@ import { Card, Puce } from "@/components/layout-primitives";
 import { Mouvement } from "@/components/mouvement";
 import { References } from "@/components/references";
 import { SectionEditoriale } from "@/components/section-editoriale";
+import { avecReservation } from "@/lib/appels";
 import { getDictionary, isLocale } from "@/lib/i18n";
 import { classeTitre, sansOrphelin } from "@/lib/titres";
 import { pageMetadata } from "@/lib/metadata";
 import { path, ROUTES } from "@/lib/routes";
-import { DEMO_URL, SITE_CONFIG } from "@/lib/site-config";
+import { DEMO_URL, RESERVATION_EN_LIGNE, RESERVATION_URL } from "@/lib/site-config";
 
 export async function generateMetadata(props: PageProps<"/[locale]">): Promise<Metadata> {
   const { locale } = await props.params;
@@ -58,9 +59,11 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
       <ActionLink href={DEMO_URL} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
         {common.actions.ouvrirLaDemo}
       </ActionLink>
-      <ActionLink href={SITE_CONFIG.bookingUrl} variante="secondaire" externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
-        {common.actions.reserverUneDemo}
-      </ActionLink>
+      {RESERVATION_EN_LIGNE && (
+        <ActionLink href={RESERVATION_URL} variante="secondaire" externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
+          {common.actions.reserverUneDemo}
+        </ActionLink>
+      )}
     </div>
   );
 
@@ -280,7 +283,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
               className="col-span-12 rounded-xl border border-border bg-card px-6 py-12 sm:px-12 lg:col-start-4 lg:col-span-9"
             >
               <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(accueil.final.titre)}</h2>
-              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{accueil.final.texte}</p>
+              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{avecReservation(accueil.final.texte, accueil.final.texteReservation)}</p>
               <div className="mt-6">{appels}</div>
             </div>
           </div>

@@ -201,6 +201,7 @@ export const immobilier = {
   final: {
     titre: "Regarder le produit sur un cabinet fictif",
     texte:
-      "La démonstration est ouverte en lecture seule, sans inscription : sept mois d’historique — dossiers, partages, commissions, relances et indicateurs. Pour en parler, réservez un créneau.",
+      "La démonstration est ouverte en lecture seule, sans inscription : sept mois d’historique — dossiers, partages, commissions, relances et indicateurs.",
+    texteReservation: "Pour en parler, réservez un créneau.",
   },
 } as const satisfies ContenuMetier;

@@ -6,14 +6,16 @@ import { Mouvement } from "@/components/mouvement";
 import { SectionEditoriale } from "@/components/section-editoriale";
 import { getDictionary, isLocale, type Locale } from "@/lib/i18n";
 import { pageMetadata } from "@/lib/metadata";
-import { DEMO_URL, SITE_CONFIG } from "@/lib/site-config";
+import { DEMO_URL, RESERVATION_EN_LIGNE, RESERVATION_URL } from "@/lib/site-config";
 import { classeTitre, sansOrphelin } from "@/lib/titres";
 
 export async function generateMetadata(props: PageProps<"/[locale]/demo">): Promise<Metadata> {
   const { locale } = await props.params;
   if (!isLocale(locale)) return {};
   const { demo } = getDictionary(locale);
-  return pageMetadata({ locale, route: "demo", titre: demo.meta.titre, description: demo.meta.description });
+  // Le titre et le résumé suivent le nombre de gestes réellement proposés.
+  const meta = RESERVATION_EN_LIGNE ? demo.meta : demo.metaSeul;
+  return pageMetadata({ locale, route: "demo", titre: meta.titre, description: meta.description });
 }
 
 /** Une des deux cartes. Elles sont strictement symétriques : même hauteur, même structure, même poids visuel — aucun des deux gestes n'est présenté comme le bon. */
@@ -77,6 +79,10 @@ export default async function Demo(props: PageProps<"/[locale]/demo">) {
   const { locale } = await props.params;
   if (!isLocale(locale)) notFound();
   const { demo } = getDictionary(locale);
+  /* Un titre qui annonce « deux façons » au-dessus d'une seule carte est un
+     texte faux, pas une approximation. La page prend celui qui correspond à
+     ce qu'elle montre. */
+  const hero = RESERVATION_EN_LIGNE ? demo.hero : demo.heroSeul;
 
   return (
     <div className="editorial">
@@ -86,8 +92,8 @@ export default async function Demo(props: PageProps<"/[locale]/demo">) {
         <div className="editorial-conteneur py-12 sm:py-12 lg:py-12">
           <div className="grid grid-cols-12 gap-x-6 gap-y-12">
             <div data-entree className={`col-span-12 ${COLONNE}`}>
-              <h1 className={`${classeTitre(demo.hero.titre)} text-foreground`}>{sansOrphelin(demo.hero.titre)}</h1>
-              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{demo.hero.chapo}</p>
+              <h1 className={`${classeTitre(hero.titre)} text-foreground`}>{sansOrphelin(hero.titre)}</h1>
+              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{hero.chapo}</p>
             </div>
 
             <div
@@ -106,17 +112,22 @@ export default async function Demo(props: PageProps<"/[locale]/demo">) {
                 href={DEMO_URL}
                 variante="primaire"
               />
-              <Geste
-                locale={locale}
-                surtitre={demo.reserver.surtitre}
-                titre={demo.reserver.titre}
-                texte={demo.reserver.texte}
-                elementsTitre={demo.reserver.elementsTitre}
-                elements={demo.reserver.elements}
-                action={demo.reserver.action}
-                href={SITE_CONFIG.bookingUrl}
-                variante="primaire"
-              />
+              {/* La seconde carte est celle du rendez-vous. Tant que la page
+                  de réservation n'est pas en ligne, la page ne propose qu'un
+                  geste — celui qui fonctionne. */}
+              {RESERVATION_EN_LIGNE && (
+                <Geste
+                  locale={locale}
+                  surtitre={demo.reserver.surtitre}
+                  titre={demo.reserver.titre}
+                  texte={demo.reserver.texte}
+                  elementsTitre={demo.reserver.elementsTitre}
+                  elements={demo.reserver.elements}
+                  action={demo.reserver.action}
+                  href={RESERVATION_URL}
+                  variante="primaire"
+                />
+              )}
             </div>
           </div>
         </div>
@@ -133,12 +144,17 @@ export default async function Demo(props: PageProps<"/[locale]/demo">) {
         </ul>
       </SectionEditoriale>
 
-      <SectionEditoriale ton="doux" largeurContenu={COLONNE}>
-        <div data-entree>
-          <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(demo.final.titre)}</h2>
-          <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{demo.final.texte}</p>
-        </div>
-      </SectionEditoriale>
+      {/* Cette section ne dit qu'une chose : « réservez plutôt un créneau ».
+          Sans prise de rendez-vous, elle n'a rien à dire — on ne la garde pas
+          en la vidant de son sens. */}
+      {RESERVATION_EN_LIGNE && (
+        <SectionEditoriale ton="doux" largeurContenu={COLONNE}>
+          <div data-entree>
+            <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(demo.final.titre)}</h2>
+            <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{demo.final.texte}</p>
+          </div>
+        </SectionEditoriale>
+      )}
     </div>
   );
 }

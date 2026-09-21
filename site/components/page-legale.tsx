@@ -1,4 +1,5 @@
 import type { BlocLegal, PageLegale } from "@/content/types";
+import { RESERVATION_EN_LIGNE } from "@/lib/site-config";
 import { classeTitre, sansOrphelin } from "@/lib/titres";
 
 function Bloc({ bloc }: { bloc: BlocLegal }) {
@@ -17,9 +18,11 @@ function Bloc({ bloc }: { bloc: BlocLegal }) {
       </ul>
     );
   }
+  // Une ligne marquée « reservation » ne paraît que quand le bouton existe.
+  const elements = bloc.elements.filter((element) => element.quand !== "reservation" || RESERVATION_EN_LIGNE);
   return (
     <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-[minmax(0,14rem)_1fr]">
-      {bloc.elements.map((element) => (
+      {elements.map((element) => (
         <div key={element.terme} className="contents">
           <dt className="font-medium">{sansOrphelin(element.terme)}</dt>
           <dd className="text-pretty leading-relaxed text-muted-foreground">{element.valeur}</dd>

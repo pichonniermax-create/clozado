@@ -7,7 +7,7 @@ import { Mouvement } from "@/components/mouvement";
 import { SectionEditoriale } from "@/components/section-editoriale";
 import { getDictionary, isLocale } from "@/lib/i18n";
 import { pageMetadata } from "@/lib/metadata";
-import { DEMO_URL, SITE_CONFIG } from "@/lib/site-config";
+import { DEMO_URL, RESERVATION_EN_LIGNE, RESERVATION_URL } from "@/lib/site-config";
 import { sansOrphelin } from "@/lib/titres";
 
 export async function generateMetadata(props: PageProps<"/[locale]/a-propos">): Promise<Metadata> {
@@ -92,14 +92,16 @@ export default async function APropos(props: PageProps<"/[locale]/a-propos">) {
                 <ActionLink href={DEMO_URL} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
                   {common.actions.ouvrirLaDemo}
                 </ActionLink>
-                <ActionLink
-                  href={SITE_CONFIG.bookingUrl}
-                  variante="secondaire"
-                  externe
-                  mentionNouvelOnglet={common.actions.nouvelOnglet}
-                >
-                  {common.actions.reserverUneDemo}
-                </ActionLink>
+                {RESERVATION_EN_LIGNE && (
+                  <ActionLink
+                    href={RESERVATION_URL}
+                    variante="secondaire"
+                    externe
+                    mentionNouvelOnglet={common.actions.nouvelOnglet}
+                  >
+                    {common.actions.reserverUneDemo}
+                  </ActionLink>
+                )}
               </div>
             </div>
           </div>

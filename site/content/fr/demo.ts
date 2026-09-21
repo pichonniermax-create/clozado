@@ -4,6 +4,13 @@
  * réserver un créneau se fait avec nous. Chacun a sa carte, son titre, sa
  * liste et son bouton.
  *
+ * TANT QUE LA RÉSERVATION N'EST PAS EN LIGNE, il n'y a qu'un geste — et la
+ * page doit le dire. Un titre qui annonce « deux façons » au-dessus d'une
+ * seule carte est un texte faux, pas une approximation : `heroSeul` et
+ * `metaSeul` sont la version à un geste, choisie par la page selon
+ * `RESERVATION_EN_LIGNE`. Le jour où la réservation ouvre, rien à
+ * réécrire.
+ *
  * Tout ce qui est dit de la démonstration est vérifié dans le produit :
  * lecture seule imposée sur tous les chemins publics, aucune écriture en
  * base, blocage des emails au transport, `noindex`, cabinet fictif et sept
@@ -20,6 +27,19 @@ export const demo = {
     titre: "Deux façons de voir le produit",
     chapo:
       "La première ne demande rien et s’ouvre tout de suite. La seconde se fait avec nous, en visioconférence. Elles sont indépendantes : commencez par celle que vous voulez.",
+  },
+
+  /** La même page quand seul le premier geste existe. */
+  heroSeul: {
+    titre: "Voir le produit, tout de suite",
+    chapo:
+      "La démonstration publique s’ouvre sans inscription et sans rien donner. Vous entrez sur le tableau de bord d’un cabinet fictif, vous regardez ce que vous voulez, et vous quittez quand vous voulez.",
+  },
+
+  metaSeul: {
+    titre: "Voir Clozado",
+    description:
+      "La démonstration publique s’ouvre en lecture seule, sans inscription : un cabinet fictif et sept mois d’historique.",
   },
 
   ouvrir: {

@@ -5,9 +5,10 @@ import { Card, Puce } from "@/components/layout-primitives";
 import { SectionEditoriale } from "@/components/section-editoriale";
 import { Mouvement } from "@/components/mouvement";
 import type { ContenuMetier, Element } from "@/content/types";
+import { avecReservation } from "@/lib/appels";
 import { getDictionary, type Locale } from "@/lib/i18n";
 import { classeTitre, sansOrphelin } from "@/lib/titres";
-import { DEMO_URL, SITE_CONFIG } from "@/lib/site-config";
+import { DEMO_URL, RESERVATION_EN_LIGNE, RESERVATION_URL } from "@/lib/site-config";
 
 /** Une pastille : un sujet de veille, un indicateur. Bordée, jamais colorée — ce n'est pas un état. */
 function Pastille({ children }: { children: React.ReactNode }) {
@@ -105,23 +106,26 @@ export function PageMetier({
     );
 
   /*
-   * LE PREMIER BOUTON OUVRE LA DÉMONSTRATION, le second mène à l'agenda.
+   * LE PREMIER BOUTON OUVRE LA DÉMONSTRATION, et c'est le seul tant que la
+   * prise de rendez-vous n'est pas en ligne.
    *
-   * L'agenda est le SEUL tiers que le site touche : le bouton plein
-   * envoyait donc le visiteur dehors, chez HubSpot, avant qu'il n'ait rien
-   * vu. La démonstration est à nous, elle est en lecture seule, elle ne
-   * demande pas d'inscription — c'est elle qui doit recevoir le premier
-   * geste. Réserver reste à un clic, en second. La page « À propos »
-   * faisait déjà ainsi : le site est simplement devenu cohérent.
+   * Le site envoyait le geste principal sur un agenda TIERS : le visiteur
+   * quittait le domaine avant d'avoir rien vu, et sa saisie partait chez un
+   * prestataire. Ce tiers a disparu du site le 2026-09-21. La réservation
+   * reviendra sur notre propre application (`RESERVATION_URL`) ; d'ici là,
+   * un seul geste est proposé, parce qu'un bouton qui mène à une page
+   * absente est pire que pas de bouton.
    */
   const appels = (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
       <ActionLink href={DEMO_URL} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
         {common.actions.ouvrirLaDemo}
       </ActionLink>
-      <ActionLink href={SITE_CONFIG.bookingUrl} variante="secondaire" externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
-        {common.actions.reserverUneDemo}
-      </ActionLink>
+      {RESERVATION_EN_LIGNE && (
+        <ActionLink href={RESERVATION_URL} variante="secondaire" externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
+          {common.actions.reserverUneDemo}
+        </ActionLink>
+      )}
     </div>
   );
 
@@ -280,7 +284,7 @@ export function PageMetier({
               className="col-span-12 rounded-xl border border-border bg-card px-6 py-12 sm:px-12 lg:col-start-4 lg:col-span-9"
             >
             <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(contenu.final.titre)}</h2>
-            <p className="mt-6 text-pretty text-chapo text-muted-foreground">{contenu.final.texte}</p>
+            <p className="mt-6 text-pretty text-chapo text-muted-foreground">{avecReservation(contenu.final.texte, contenu.final.texteReservation)}</p>
               <div className="mt-6">{appels}</div>
             </div>
           </div>
