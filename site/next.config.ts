@@ -15,6 +15,20 @@ import type { NextConfig } from "next";
  */
 const nextConfig: NextConfig = {
   /**
+   * ET IL EST EXPORTÉ EN FICHIERS. `next build` écrit un dossier `out/`
+   * qui contient un `.html` par adresse, les feuilles de style, les
+   * polices et les images de partage — rien d'autre. C'est ce dossier que
+   * Vercel sert, et c'est lui que `scripts/depouiller.mjs` dépouille de la
+   * charge d'hydratation avant de le laisser partir : le navigateur reçoit
+   * du HTML, du CSS et NOTRE seul script.
+   *
+   * Ce que l'export interdit (ISR, réécritures, en-têtes, routes qui
+   * lisent la requête) n'a jamais servi ici : les redirections et les
+   * en-têtes vivent dans `vercel.json` depuis le premier jour.
+   */
+  output: "export",
+
+  /**
    * LA FRONTIÈRE ENTRE LE SITE ET L'APPLICATION, posée ici et pas
    * ailleurs. Sans cette ligne, Turbopack remonte jusqu'au fichier de
    * verrouillage de la racine du dépôt, se croit à la racine, et compile

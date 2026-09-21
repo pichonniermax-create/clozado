@@ -7,13 +7,15 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npm run verifier && eslint && next build",
-    "start": "next start",
+    "build": "npm run verifier && eslint && next build && npm run depouiller && npm run verifier:poids",
+    "start": "node scripts/servir.mjs",
     "lint": "eslint",
     "verifier": "npm run verifier:libelles && npm run verifier:collisions && npm run verifier:additions",
     "verifier:libelles": "node scripts/verifier-libelles.mjs",
     "verifier:collisions": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verifier-collisions.mjs",
-    "verifier:additions": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verifier-additions.mjs"
+    "verifier:additions": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verifier-additions.mjs",
+    "depouiller": "node scripts/depouiller.mjs",
+    "verifier:poids": "node scripts/verifier-poids.mjs"
   },
   "dependencies": {
     "next": "^16.3.5",

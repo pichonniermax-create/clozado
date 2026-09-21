@@ -9,15 +9,22 @@ import { metadataBlog } from "@/lib/metadata";
 import { path } from "@/lib/routes";
 import { SITE_CONFIG } from "@/lib/site-config";
 
-export const revalidate = 86400;
 export const dynamicParams = false;
 
-/** Les pages 2 et suivantes, et elles seules : la page 1 est l'index. */
+/**
+ * Les pages 2 et suivantes — la page 1, c'est l'index.
+ *
+ * SAUF QUAND IL N'Y EN A QU'UNE. L'export en fichiers refuse une route
+ * dynamique qui ne produit aucune adresse, et le blog n'a pas encore assez
+ * d'articles pour une seconde page. On génère alors `page/1`, qui rend
+ * exactement l'index et le déclare CANONIQUE : l'adresse existe, rien ne
+ * la lie, et aucun moteur ne la comptera deux fois. Le jour où le blog
+ * passe sept articles, la liste redevient 2, 3, 4… toute seule.
+ */
 export function generateStaticParams() {
   const pages = nombreDePages();
-  return LOCALES.flatMap((locale) =>
-    Array.from({ length: Math.max(0, pages - 1) }, (_, i) => ({ locale, numero: String(i + 2) }))
-  );
+  const numeros = pages > 1 ? Array.from({ length: pages - 1 }, (_, i) => String(i + 2)) : ["1"];
+  return LOCALES.flatMap((locale) => numeros.map((numero) => ({ locale, numero })));
 }
 
 export async function generateMetadata(props: PageProps<"/[locale]/blog/page/[numero]">): Promise<Metadata> {
@@ -26,7 +33,8 @@ export async function generateMetadata(props: PageProps<"/[locale]/blog/page/[nu
   const { blog } = getDictionary(locale);
   return metadataBlog({
     locale,
-    chemin: `${path(locale, "blog")}/page/${numero}`,
+    // La page 1 pointe sa canonique sur l'index : c'est la même page.
+    chemin: numero === "1" ? path(locale, "blog") : `${path(locale, "blog")}/page/${numero}`,
     titre: blog.meta.titrePage.replace("{numero}", numero),
     description: blog.meta.description,
     indexable: false,
@@ -38,7 +46,7 @@ export async function generateMetadata(props: PageProps<"/[locale]/blog/page/[nu
 export default async function BlogPagine(props: PageProps<"/[locale]/blog/page/[numero]">) {
   const { locale, numero } = await props.params;
   const page = Number(numero);
-  if (!isLocale(locale) || !Number.isInteger(page) || page < 2) notFound();
+  if (!isLocale(locale) || !Number.isInteger(page) || page < 1) notFound();
   const tous = articles();
   const pages = nombreDePages(tous.length);
   if (page > pages) notFound();

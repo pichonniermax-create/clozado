@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getDictionary, type Locale } from "@/lib/i18n";
 import { builtRoutes, path } from "@/lib/routes";
 import { Container } from "./layout-primitives";
@@ -28,12 +27,12 @@ export function NotFoundContent({ locale }: { locale: Locale }) {
           <ul className="flex flex-col gap-1">
             {pages.map((cle) => (
               <li key={cle}>
-                <Link
+                <a
                   href={path(locale, cle)}
                   className="inline-flex min-h-11 items-center text-base font-medium text-primary-ink hover:underline"
                 >
                   {common.nav[cle]}
-                </Link>
+                </a>
               </li>
             ))}
           </ul>

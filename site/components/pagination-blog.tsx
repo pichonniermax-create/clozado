@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { cn } from "@/lib/cn";
 
 /**
@@ -22,9 +21,9 @@ export function PaginationBlog({
   return (
     <nav aria-label={libelles.aide} className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-8">
       {page > 1 ? (
-        <Link href={lien(page - 1)} className={classe}>
+        <a href={lien(page - 1)} className={classe}>
           {libelles.precedente}
-        </Link>
+        </a>
       ) : (
         <span className={cn(classe, "invisible")} aria-hidden />
       )}
@@ -32,9 +31,9 @@ export function PaginationBlog({
         {libelles.page} {page} {libelles.sur} {pages}
       </p>
       {page < pages ? (
-        <Link href={lien(page + 1)} className={classe}>
+        <a href={lien(page + 1)} className={classe}>
           {libelles.suivante}
-        </Link>
+        </a>
       ) : (
         <span className={cn(classe, "invisible")} aria-hidden />
       )}

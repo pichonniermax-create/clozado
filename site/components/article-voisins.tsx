@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { sansOrphelin } from "@/lib/titres";
 
 /**
@@ -27,7 +26,7 @@ export function ArticleVoisins({
   return (
     <nav aria-label={libelles.aide} className="grille-cartes" data-colonnes="2">
       {voisins.map((voisin) => (
-        <Link
+        <a
           key={voisin.href}
           href={voisin.href}
           className="block rounded-xl border border-border bg-card p-6 transition-colors duration-200 ease-out hover:border-primary"
@@ -36,7 +35,7 @@ export function ArticleVoisins({
           <p className="mt-4 text-balance text-xl font-bold tracking-tight text-foreground">
             {sansOrphelin(voisin.titre)}
           </p>
-        </Link>
+        </a>
       ))}
     </nav>
   );

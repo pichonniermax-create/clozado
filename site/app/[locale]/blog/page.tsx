@@ -8,9 +8,7 @@ import { getDictionary, isLocale } from "@/lib/i18n";
 import { balisageBlog, pageMetadata } from "@/lib/metadata";
 import { path, url } from "@/lib/routes";
 
-/** Les pages du blog sont statiques, et se revérifient une fois par jour. */
-export const revalidate = 86400;
-
+/** Les pages du blog sont écrites au build : un article publié paraît au déploiement suivant. */
 export async function generateMetadata(props: PageProps<"/[locale]/blog">): Promise<Metadata> {
   const { locale } = await props.params;
   if (!isLocale(locale)) return {};

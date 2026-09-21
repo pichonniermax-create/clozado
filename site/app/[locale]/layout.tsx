@@ -87,6 +87,14 @@ export default async function LocaleLayout(props: LayoutProps<"/[locale]">) {
           {props.children}
         </main>
         <SiteFooter locale={locale} />
+        {/* LE SEUL SCRIPT DU SITE, et il est à nous : cinq comportements en
+            un fichier lisible (`public/comportements.js`). `defer` le fait
+            attendre la fin de l'analyse du document et ne bloque aucun
+            rendu. Rien d'autre ne part chez le visiteur — ni React, ni
+            routeur, ni charge d'hydratation : voir `scripts/depouiller.mjs`,
+            qui retire du HTML rendu ce qui n'aurait servi qu'à cela. */}
+        <script src="/comportements.js" defer />
+
         <script
           type="application/ld+json"
           // Des données construites par nous, jamais une saisie : rien à échapper d'autre que la fin de balise.

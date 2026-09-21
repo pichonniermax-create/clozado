@@ -1,4 +1,3 @@
-import Link from "next/link";
 
 /**
  * LE FIL D'ARIANE — il dit où l'on est, et il est aussi le balisage
@@ -18,12 +17,12 @@ export function FilAriane({ maillons, aide }: { maillons: readonly Maillon[]; ai
           <li key={maillon.libelle} className="flex items-center gap-2">
             {rang > 0 && <span aria-hidden>·</span>}
             {maillon.href ? (
-              <Link
+              <a
                 href={maillon.href}
                 className="inline-flex min-h-6 items-center transition-colors duration-200 ease-out hover:text-foreground focus-visible:text-foreground"
               >
                 {maillon.libelle}
-              </Link>
+              </a>
             ) : (
               <span aria-current="page" className="inline-flex min-h-6 items-center text-foreground">
                 {maillon.libelle}

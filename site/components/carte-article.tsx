@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { sansOrphelin } from "@/lib/titres";
 
 /**
@@ -34,12 +33,12 @@ export function CarteArticle({
   return (
     <article className="border-b border-border py-8 first:pt-0">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Link
+        <a
           href={categorieHref}
           className="label inline-flex min-h-6 items-center transition-colors duration-200 ease-out hover:text-foreground focus-visible:text-foreground"
         >
           {categorie}
-        </Link>
+        </a>
         <p className="tabulaire text-detail text-muted-foreground">
           <time dateTime={dateISO}>{date}</time> · {minutes} {lecture}
         </p>
@@ -50,12 +49,12 @@ export function CarteArticle({
         )}
       </div>
       <h2 className="mt-4 text-balance text-titre-3">
-        <Link
+        <a
           href={href}
           className="text-foreground transition-colors duration-200 ease-out hover:text-primary-ink focus-visible:text-primary-ink"
         >
           {sansOrphelin(titre)}
-        </Link>
+        </a>
       </h2>
       <p className="mesure mt-4 text-pretty leading-relaxed text-muted-foreground">{resume}</p>
     </article>

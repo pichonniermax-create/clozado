@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { CarteArticle } from "@/components/carte-article";
 import { PaginationBlog } from "@/components/pagination-blog";
 import { SectionEditoriale } from "@/components/section-editoriale";
@@ -73,7 +72,7 @@ export function BlogIndex({
             <p className="label">{blog.liste.categoriesTitre}</p>
             <ul className="mt-6 flex flex-col gap-3 border-l border-border">
               <li>
-                <Link
+                <a
                   href={base}
                   aria-current={categorieCourante ? undefined : "true"}
                   className={cn(
@@ -84,11 +83,11 @@ export function BlogIndex({
                   )}
                 >
                   {blog.liste.toutes}
-                </Link>
+                </a>
               </li>
               {toutes.map((categorie) => (
                 <li key={categorie.slug}>
-                  <Link
+                  <a
                     href={`${base}/categorie/${categorie.slug}`}
                     aria-current={categorieCourante === categorie.slug ? "true" : undefined}
                     className={cn(
@@ -100,7 +99,7 @@ export function BlogIndex({
                   >
                     {categorie.nom}{" "}
                     <span className="tabulaire text-detail text-muted-foreground">{categorie.compte}</span>
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>

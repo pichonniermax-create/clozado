@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { common } from "@/content/fr/common";
 
@@ -11,7 +10,7 @@ import { common } from "@/content/fr/common";
  * Le nom de la marque ne se traduit pas — il est lu directement dans les
  * contenus français, quelle que soit la langue de la page.
  */
-export function BrandMark({ href, size = "sm", prefetch }: { href?: string; size?: "sm" | "lg"; prefetch?: false }) {
+export function BrandMark({ href, size = "sm" }: { href?: string; size?: "sm" | "lg" }) {
   const content = (
     <>
       <span
@@ -27,9 +26,9 @@ export function BrandMark({ href, size = "sm", prefetch }: { href?: string; size
   );
   const classes = "flex items-center gap-3 text-foreground";
   return href ? (
-    <Link href={href} prefetch={prefetch} className={classes}>
+    <a href={href} className={classes}>
       {content}
-    </Link>
+    </a>
   ) : (
     <span className={classes}>{content}</span>
   );

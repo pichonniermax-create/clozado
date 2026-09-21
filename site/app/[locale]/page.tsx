@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActionLink } from "@/components/action-link";
 import { BandeRupture } from "@/components/bande-rupture";
@@ -224,7 +223,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
             return (
               <li key={element.cle} data-entree data-rang={rang}>
                 {ROUTES[element.cle].built ? (
-                  <Link
+                  <a
                     href={path(locale, element.cle)}
                     className="block h-full rounded-xl border border-border bg-card p-6 text-card-foreground transition-colors duration-200 ease-out hover:border-primary"
                   >
@@ -232,7 +231,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
                     <p className="mt-6 text-sm font-medium text-primary-ink underline underline-offset-4">
                       {common.actions.enSavoirPlus}
                     </p>
-                  </Link>
+                  </a>
                 ) : (
                   <Card className="h-full">{corps}</Card>
                 )}

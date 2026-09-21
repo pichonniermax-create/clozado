@@ -7,8 +7,14 @@ fichier, ni build : un déploiement de l'un ne peut pas casser l'autre.
 ## Les règles tenues ici
 
 - **Tout est statique.** Aucune route d'API, aucun proxy, aucune base,
-  aucun rendu à la requête. Chaque page est un fichier HTML servi par le
-  CDN.
+  aucun rendu à la requête. `next build` EXPORTE le site en fichiers
+  (`output: "export"`) : chaque adresse est un `.html` posé sur le CDN.
+- **React ne va pas chez le visiteur.** Il construit les pages, il ne les
+  hydrate pas : `scripts/depouiller.mjs` retire du HTML rendu les morceaux
+  du socle et la charge `self.__next_f`, qui ne servaient qu'à reprendre en
+  JavaScript ce que le HTML dit déjà — 214 Kio sur 293 pour QUATRE
+  comportements. Le navigateur reçoit du HTML, du CSS, les polices, et un
+  seul script écrit à la main : `public/comportements.js`.
 - **Aucun tiers, aucun cookie.** Aucun script externe, aucune mesure
   d'audience, aucun stockage navigateur — donc aucun bandeau de
   consentement à afficher.
@@ -30,9 +36,14 @@ fichier, ni build : un déploiement de l'un ne peut pas casser l'autre.
   décorative, aucun dégradé de texte.
 - **Les formes** : un bouton est une pilule (rayon plein), une carte a
   16 px de rayon, et tout espacement est un multiple de 4 px.
-- **Le mouvement** (accueil seulement) tient en deux fichiers :
-  `app/globals.css` pour les transitions, `lib/mouvement.ts` pour les
-  observateurs. Aucune librairie d'animation. Tout est conditionné par
+- **Le comportement** tient en deux fichiers : `app/globals.css` pour les
+  transitions, `public/comportements.js` pour les cinq comportements
+  (déroulant de la barre, onglets du premier écran, entrées au défilement
+  et compteurs, en-tête qui se resserre, sommaire d'un article). Aucune
+  librairie, aucun framework — et il n'y a plus de composant client sur le
+  site. Deux scripts écrits en clair dans la coquille s'y ajoutent : le
+  drapeau du mouvement, qui doit être posé avant la première peinture, et
+  le marquage de la page courante, pour la même raison. Tout est conditionné par
   `[data-mouvement]`, posé sur `<html>` par un script synchrone en tête de
   page : **sans JavaScript, rien n'est masqué et rien n'attend**. Chaque
   entrée ne joue qu'une fois — la cible est retirée de l'observateur —, les
@@ -49,11 +60,11 @@ fichier, ni build : un déploiement de l'un ne peut pas casser l'autre.
 - **Aucune adresse en dur.** `lib/site-config.ts` est le seul fichier à
   toucher quand une adresse change (l'application, la prise de rendez-vous).
 
-## Les quatre garde-fous de la construction
+## Les cinq garde-fous de la construction
 
-`npm run build` enchaîne quatre contrôles avant `next build`. Chacun arrête
-la construction, aucun n'avertit sans conséquence : un site se dégrade par
-petites tolérances.
+`npm run build` enchaîne quatre contrôles avant `next build`, et un
+cinquième après. Chacun arrête la construction, aucun n'avertit sans
+conséquence : un site se dégrade par petites tolérances.
 
 1. **`verifier:libelles`** — aucun crochet à compléter (« [prix] ») dans un
    texte affiché, hors les deux pages légales, exemptées à voix haute.
@@ -73,6 +84,20 @@ petites tolérances.
    2026-09-19 ; le site n'était linté par rien, et la règle du dépôt visait
    `src/` seulement. `client-namespaces`, la seconde règle du dépôt, ne se
    transporte pas : elle surveille `next-intl`, que le site n'utilise pas.
+
+5. **`verifier:poids`** — le PLAFOND, mesuré. Chaque page est pesée telle
+   qu'elle part sur le réseau : le HTML, ses feuilles de style, ses scripts
+   et les polices qu'elle précharge, comprimés en brotli comme le fait le
+   CDN. Au-delà de 160 Kio, la construction s'arrête ; elle s'arrête aussi
+   s'il reste la moindre trace d'hydratation dans une page. Le plafond
+   était écrit dans la doctrine depuis le premier jour et n'avait jamais
+   été tenu — mesuré au navigateur le 2026-09-19, le site pesait de 283 à
+   295 Kio par page. Un plafond que personne ne mesure est un vœu.
+
+`node scripts/servir.mjs` sert le site construit en LOCAL comme Vercel le
+sert : il lit `vercel.json`, applique ses redirections et ses en-têtes, et
+comprime en brotli. C'est ce qui rend `scripts/verifier.sh` jouable sans
+déployer.
 
 Le contrôle du site EN LIGNE est à part : `./scripts/verifier.sh <adresse>`
 lit le sitemap publié et vérifie chaque adresse qu'il déclare, plus les

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActionLink } from "@/components/action-link";
 import {
@@ -126,7 +125,7 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
         <ul className="grille-cartes" data-colonnes="3">
           {sousEntrees("produit").map((cle, rang) => (
             <li key={cle} data-entree data-rang={rang}>
-              <Link
+              <a
                 href={path(locale, cle)}
                 className="block h-full rounded-xl border border-border bg-card p-6 text-card-foreground transition-colors duration-200 ease-out hover:border-primary"
               >
@@ -134,7 +133,7 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
                 <p className="mt-6 text-sm font-medium text-primary-ink underline underline-offset-4">
                   {common.actions.enSavoirPlus}
                 </p>
-              </Link>
+              </a>
             </li>
           ))}
         </ul>

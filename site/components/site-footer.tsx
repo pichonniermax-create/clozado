@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getDictionary, IS_MONOLINGUAL, LOCALES, LOCALE_LABEL, type Locale } from "@/lib/i18n";
 import { groupeDuPied, path, ROUTES, type RouteKey } from "@/lib/routes";
 import { BrandMark } from "./brand-mark";
@@ -31,7 +30,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
       <Container className="py-12 sm:py-16">
         <div className="flex flex-col gap-10 lg:flex-row lg:justify-between">
           <div className="max-w-sm">
-            <BrandMark href={path(locale, "accueil")} prefetch={false} />
+            <BrandMark href={path(locale, "accueil")} />
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{common.pied.presentation}</p>
           </div>
 
@@ -43,13 +42,12 @@ export function SiteFooter({ locale }: { locale: Locale }) {
                   <ul className="mt-4 flex flex-col gap-1">
                     {groupe.entrees.map((cle) => (
                       <li key={cle}>
-                        <Link
+                        <a
                           href={path(locale, cle)}
-                          prefetch={false}
                           className="inline-flex min-h-9 items-center text-sm text-foreground hover:text-primary-ink"
                         >
                           {common.nav[cle]}
-                        </Link>
+                        </a>
                       </li>
                     ))}
                   </ul>
@@ -61,13 +59,12 @@ export function SiteFooter({ locale }: { locale: Locale }) {
                   <ul className="mt-4 flex flex-col gap-1">
                     {legal.map((cle) => (
                       <li key={cle}>
-                        <Link
+                        <a
                           href={path(locale, cle)}
-                          prefetch={false}
                           className="inline-flex min-h-9 items-center text-sm text-foreground hover:text-primary-ink"
                         >
                           {common.nav[cle]}
-                        </Link>
+                        </a>
                       </li>
                     ))}
                   </ul>
@@ -86,14 +83,14 @@ export function SiteFooter({ locale }: { locale: Locale }) {
               <ul className="flex items-center gap-3">
                 {LOCALES.map((autre) => (
                   <li key={autre}>
-                    <Link
+                    <a
                       href={path(autre, "accueil")}
                       hrefLang={autre}
                       aria-current={autre === locale ? "true" : undefined}
                       className="text-sm text-muted-foreground hover:text-foreground aria-[current]:text-foreground"
                     >
                       {LOCALE_LABEL[autre]}
-                    </Link>
+                    </a>
                   </li>
                 ))}
               </ul>

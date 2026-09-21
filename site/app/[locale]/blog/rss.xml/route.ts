@@ -10,7 +10,6 @@ import { url } from "@/lib/routes";
  * sa règle — rien ne tourne à la demande — tout en publiant un vrai flux.
  */
 export const dynamic = "force-static";
-export const revalidate = 86400;
 
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));

@@ -1,10 +1,11 @@
-"use client";
-
-import { useEffect, useId, useRef, useState } from "react";
-import { animeZone } from "@/lib/mouvement";
+import type { ReactNode } from "react";
 
 /**
  * LES TROIS ÉCRANS DU PREMIER PLAN, sous des onglets qui tournent.
+ *
+ * Rendu au build, première vue active, sans une ligne de React dans le
+ * navigateur : `public/comportements.js` fait tourner le cycle, écoute les
+ * flèches, et anime la vue qui devient visible.
  *
  * Le cycle existe pour dire qu'il y a TROIS écrans à voir : sans lui, deux
  * restent invisibles à qui ne clique pas. Il s'arrête DÉFINITIVEMENT dès
@@ -12,86 +13,51 @@ import { animeZone } from "@/lib/mouvement";
  * focus au clavier : à partir de là, c'est elle qui choisit, et rien ne
  * doit plus bouger sous ses yeux.
  *
- * Il ne démarre pas du tout si le système demande moins de mouvement : la
- * première vue reste affichée, les onglets marchent toujours.
- *
  * Les vues sont EMPILÉES dans la même case de grille : la hauteur est celle
  * de la plus haute, donc rien ne saute pendant le fondu. Les vues cachées
  * le sont par `visibility`, ce qui les retire aussi des lecteurs d'écran et
  * du parcours au clavier.
+ *
+ * SANS JAVASCRIPT, la liste d'onglets n'est pas affichée (CSS conditionné
+ * par `[data-mouvement]`) : une rangée de boutons morts serait un piège au
+ * clavier. La première vue reste seule, et la page se lit entière.
+ *
+ * LES CLASSES DES DEUX ÉTATS voyagent dans le balisage (`data-classe`,
+ * `data-classe-active`) : le script échange un attribut, il n'écrit aucune
+ * classe de sa poche — les noms restent là où ils sont écrits.
  */
-type Vue = { readonly cle: string; readonly libelle: string; readonly contenu: React.ReactNode };
+type Vue = { readonly cle: string; readonly libelle: string; readonly contenu: ReactNode };
 
-export function EcransOnglets({ vues, libelleListe }: { vues: readonly Vue[]; libelleListe: string }) {
-  const [actif, setActif] = useState(0);
-  const [cycleArrete, setCycleArrete] = useState(false);
-  const identifiant = useId();
-  const panneaux = useRef<(HTMLDivElement | null)[]>([]);
-  const onglets = useRef<(HTMLButtonElement | null)[]>([]);
+const ONGLET =
+  "inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium text-muted-foreground transition-colors duration-200 ease-out hover:text-foreground";
+const ONGLET_ACTIF =
+  "inline-flex min-h-11 items-center rounded-full bg-primary-soft px-4 text-sm font-semibold text-primary-ink transition-colors duration-200 ease-out";
 
-  useEffect(() => {
-    if (cycleArrete) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const minuteur = window.setInterval(() => setActif((rang) => (rang + 1) % vues.length), 6000);
-    return () => window.clearInterval(minuteur);
-  }, [cycleArrete, vues.length]);
-
-  // La vue qui devient visible s'anime — `animeZone` ne le fait qu'une fois.
-  useEffect(() => {
-    const zone = panneaux.current[actif]?.querySelector<HTMLElement>("[data-ecran]");
-    if (zone) animeZone(zone);
-  }, [actif]);
-
-  const choisir = (rang: number) => {
-    setActif(rang);
-    setCycleArrete(true);
-  };
-
-  /** Les flèches parcourent les onglets, comme l'attend le motif « tablist ». */
-  const auClavier = (evenement: React.KeyboardEvent) => {
-    const nombre = vues.length;
-    const cible =
-      evenement.key === "ArrowRight"
-        ? (actif + 1) % nombre
-        : evenement.key === "ArrowLeft"
-          ? (actif - 1 + nombre) % nombre
-          : evenement.key === "Home"
-            ? 0
-            : evenement.key === "End"
-              ? nombre - 1
-              : null;
-    if (cible === null) return;
-    evenement.preventDefault();
-    choisir(cible);
-    onglets.current[cible]?.focus();
-  };
-
+export function EcransOnglets({
+  vues,
+  libelleListe,
+  identifiant = "ecrans",
+}: {
+  vues: readonly Vue[];
+  libelleListe: string;
+  /** Il nomme les onglets et leurs vues : deux constructions donnent le même HTML. */
+  identifiant?: string;
+}) {
   return (
-    <div data-onglets onMouseEnter={() => setCycleArrete(true)} onFocus={() => setCycleArrete(true)}>
-      <div
-        role="tablist"
-        aria-label={libelleListe}
-        onKeyDown={auClavier}
-        className="liste-onglets"
-      >
+    <div data-onglets>
+      <div role="tablist" aria-label={libelleListe} className="liste-onglets">
         {vues.map((vue, rang) => (
           <button
             key={vue.cle}
             type="button"
             role="tab"
             id={`${identifiant}-onglet-${rang}`}
-            aria-selected={rang === actif}
+            aria-selected={rang === 0}
             aria-controls={`${identifiant}-vue-${rang}`}
-            tabIndex={rang === actif ? 0 : -1}
-            ref={(element) => {
-              onglets.current[rang] = element;
-            }}
-            onClick={() => choisir(rang)}
-            className={
-              rang === actif
-                ? "inline-flex min-h-11 items-center rounded-full bg-primary-soft px-4 text-sm font-semibold text-primary-ink transition-colors duration-200 ease-out"
-                : "inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium text-muted-foreground transition-colors duration-200 ease-out hover:text-foreground"
-            }
+            tabIndex={rang === 0 ? 0 : -1}
+            data-classe={ONGLET}
+            data-classe-active={ONGLET_ACTIF}
+            className={rang === 0 ? ONGLET_ACTIF : ONGLET}
           >
             {vue.libelle}
           </button>
@@ -102,13 +68,10 @@ export function EcransOnglets({ vues, libelleListe }: { vues: readonly Vue[]; li
         {vues.map((vue, rang) => (
           <div
             key={vue.cle}
-            ref={(element) => {
-              panneaux.current[rang] = element;
-            }}
             role="tabpanel"
             id={`${identifiant}-vue-${rang}`}
             aria-labelledby={`${identifiant}-onglet-${rang}`}
-            data-actif={rang === actif ? "oui" : "non"}
+            data-actif={rang === 0 ? "oui" : "non"}
             className="vue"
           >
             {vue.contenu}

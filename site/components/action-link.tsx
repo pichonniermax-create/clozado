@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { cn } from "@/lib/cn";
 
 /**
@@ -53,8 +52,8 @@ export function ActionLink({
     );
   }
   return (
-    <Link href={href} className={classes}>
+    <a href={href} className={classes}>
       {children}
-    </Link>
+    </a>
   );
 }

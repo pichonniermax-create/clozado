@@ -39,9 +39,13 @@ redirection() {
   local reponse code lieu
   reponse=$(curl -sS -o /dev/null -m 20 -w "%{http_code} %{redirect_url}" "$BASE$source" 2>/dev/null)
   code="${reponse%% *}"; lieu="${reponse#* }"
+  # `curl` NORMALISE la cible qu'il rapporte : « https://app.clozado.fr »
+  # revient « https://app.clozado.fr/ ». Ce n'est pas l'en-tête qui change,
+  # c'est la mesure — on compare donc sans la barre oblique finale.
+  lieu="${lieu%/}"
   if [ "$code" != "$attendu" ]; then
     ko "$source → attendu $attendu, reçu $code"
-  elif [ "$lieu" != "$BASE$cible" ] && [ "$lieu" != "$cible" ]; then
+  elif [ "$lieu" != "${BASE}${cible%/}" ] && [ "$lieu" != "${cible%/}" ]; then
     ko "$source → $attendu mais vers « $lieu » au lieu de « $cible »"
   else
     ok "$source → $attendu → $cible"

@@ -9,7 +9,6 @@ import { balisageFilAriane, metadataBlog } from "@/lib/metadata";
 import { path } from "@/lib/routes";
 import { classeTitre, sansOrphelin } from "@/lib/titres";
 
-export const revalidate = 86400;
 export const dynamicParams = false;
 
 export function generateStaticParams() {

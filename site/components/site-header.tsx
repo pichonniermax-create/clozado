@@ -4,7 +4,6 @@ import { menuPrincipal, path, sousEntrees, type RouteKey } from "@/lib/routes";
 import { LOGIN_URL, SITE_CONFIG } from "@/lib/site-config";
 import { ActionLink } from "./action-link";
 import { BrandMark } from "./brand-mark";
-import { LienNav } from "./lien-nav";
 import { NavDeroulant } from "./nav-deroulant";
 import { Container } from "./layout-primitives";
 
@@ -19,14 +18,14 @@ import { Container } from "./layout-primitives";
  * LE SOULIGNÉ BORDEAUX est réservé à ce qui est TRANSITOIRE : le survol et
  * le focus CLAVIER (`:focus-visible`, jamais `:focus` — sinon un clic à la
  * souris le laissait allumé derrière lui). La page où l'on se trouve se dit
- * autrement : son libellé passe en encre pleine (`components/lien-nav.tsx`).
+ * autrement : son libellé passe en encre pleine, posée par l'attribut
+ * `aria-current` et le CSS qui le lit.
  *
  * Le repli mobile est un `<details>` natif : il fonctionne sans
  * JavaScript, il est accessible au clavier d'origine, et il ne coûte pas
- * un octet de script. Ses liens sont des `<a>` et non des `<Link>` : une
- * navigation client laisserait le repli OUVERT derrière elle, et le
- * refermer demanderait du JavaScript. Un chargement de page le referme
- * tout seul. La navigation de bureau, elle, reste en `<Link>`.
+ * un octet de script. Un chargement de page le referme tout seul — ce qui
+ * est devenu vrai de toute la barre depuis que le site ne fait plus de
+ * navigation client : tous ses liens sont des `<a>`.
  */
 export function SiteHeader({ locale }: { locale: Locale }) {
   const { common } = getDictionary(locale);
@@ -44,28 +43,23 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                 const filles = sousEntrees(cle);
                 const classeLien =
                   "lien-nav inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 ease-out hover:text-foreground";
-                const classeCourante =
-                  "lien-nav inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-foreground";
                 if (filles.length === 0) {
                   return (
                     <li key={cle}>
-                      <LienNav
-                        href={path(locale, cle)}
-                        libelle={common.nav[cle]}
-                        className={classeLien}
-                        classeCourante={classeCourante}
-                      />
+                      <a href={path(locale, cle)} data-nav className={classeLien}>
+                        {common.nav[cle]}
+                      </a>
                     </li>
                   );
                 }
                 return (
                   <NavDeroulant
                     key={cle}
+                    cle={cle}
                     href={path(locale, cle)}
                     libelle={common.nav[cle]}
                     intitule={common.actions.voirLesMetiers}
                     classeLien={classeLien}
-                    classeCourante={classeCourante}
                     entrees={filles.map((fille) => ({ href: path(locale, fille), libelle: common.nav[fille] }))}
                   />
                 );
@@ -114,6 +108,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                     <li key={cle}>
                       <a
                         href={path(locale, cle)}
+                        data-nav
                         className="flex min-h-11 items-center rounded-lg px-3 text-sm text-foreground hover:bg-muted"
                       >
                         {common.nav[cle]}
@@ -124,6 +119,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                             <li key={fille}>
                               <a
                                 href={path(locale, fille)}
+                                data-nav
                                 className="flex min-h-11 items-center rounded-lg px-3 text-sm text-muted-foreground hover:bg-muted"
                               >
                                 {common.nav[fille]}
@@ -156,9 +152,32 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           )}
         </div>
       </Container>
+
+      {/* LA PAGE OÙ L'ON SE TROUVE, marquée AVANT LA PREMIÈRE PEINTURE.
+          La coquille est rendue au build et ne connaît pas l'adresse
+          courante. Ce script tient en une ligne, il est écrit ici même —
+          donc exécuté dès que la barre est analysée, avant que quoi que ce
+          soit ne soit peint : aucun battement, aucune entrée qui s'allume
+          après coup. Il pose un ATTRIBUT et rien d'autre ; c'est le CSS qui
+          en tire l'encre pleine (`app/globals.css`).
+          Les deux défauts de la version précédente tombent d'eux-mêmes :
+          il n'y a plus de navigation client qui laisserait deux entrées
+          « courantes », et ce script est dans l'en-tête, donc sur TOUTES
+          les pages — y compris les pages légales. */}
+      <script dangerouslySetInnerHTML={{ __html: MARQUEUR_PAGE_COURANTE }} />
     </header>
   );
 }
+
+/**
+ * Voir le commentaire ci-dessus. AUCUNE EXPRESSION RÉGULIÈRE ici : écrite
+ * dans une chaîne, `/\/+$/` perdrait sa barre oblique d'échappement en
+ * arrivant dans la page et deviendrait `//+$/` — un script cassé, et
+ * cassé SILENCIEUSEMENT. Deux comparaisons de fin de chaîne font le même
+ * travail et ne se trompent pas de couche.
+ */
+// eslint-disable-next-line local/no-visible-text -- du JavaScript, pas un texte lu dans une page
+const MARQUEUR_PAGE_COURANTE = 'function n(v){return v.length>1&&v.slice(-1)==="/"?v.slice(0,-1):v}var c=n(location.pathname);document.querySelectorAll("a[data-nav]").forEach(function(a){if(n(a.getAttribute("href"))===c)a.setAttribute("aria-current","page")})';
 
 /** Le premier élément focalisable de la page : un saut vers le contenu, visible seulement au clavier. */
 export function SkipLink({ label }: { label: string }) {

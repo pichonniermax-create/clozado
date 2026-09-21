@@ -778,3 +778,63 @@
     }
   }
 }
+
+/*
+ * DEUX ÉTATS QUI TIENNENT DANS UN ATTRIBUT.
+ *
+ * Depuis que le site ne fait plus tourner React dans le navigateur
+ * (2026-09-21), les deux états qui dépendaient d'un composant — la page
+ * courante dans la barre, la section lue dans le sommaire d'un article —
+ * sont posés par un attribut, et lus ici. Le script (`public/comportements.js`,
+ * et la ligne écrite dans l'en-tête) n'écrit AUCUNE classe : les noms de
+ * classes restent dans les fichiers où on les lit.
+ *
+ * CES DEUX RÈGLES SONT HORS COUCHE, volontairement. Les utilitaires de
+ * Tailwind vivent dans `@layer utilities`, qui vient après `components` :
+ * une règle de `components`, si spécifique soit-elle, perdrait contre le
+ * `text-muted-foreground` posé sur le même lien. Une règle SANS couche
+ * l'emporte sur toutes les couches — c'est la seule façon de dire « cet
+ * état gagne » sans écrire un `!important`.
+ *
+ * L'apparence de base du lien de sommaire, elle, reste EN COUCHE : la
+ * variante de niveau 3 ajoute `pl-7`, un utilitaire, et il doit pouvoir
+ * gagner contre le retrait par défaut.
+ */
+@layer components {
+  .lien-sommaire {
+    display: flex;
+    align-items: center;
+    min-height: 1.5rem;
+    margin-left: -1px;
+    padding-left: 1rem;
+    border-left: 1px solid transparent;
+    font-size: 0.875rem;
+    line-height: 1.375;
+    color: var(--muted-foreground);
+    transition:
+      color 200ms ease-out,
+      border-color 200ms ease-out;
+  }
+  .lien-sommaire:hover {
+    color: var(--foreground);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lien-sommaire {
+      transition: none;
+    }
+  }
+}
+
+/* La page où l'on se trouve : encre pleine, jamais un souligné — celui-ci
+   ne dit que le transitoire (survol, focus clavier). */
+[data-nav][aria-current="page"] {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+/* La section qu'on lit : le filet passe à l'accent et se remplit. */
+.lien-sommaire[aria-current] {
+  border-left-color: var(--primary);
+  color: var(--foreground);
+  font-weight: 500;
+}
