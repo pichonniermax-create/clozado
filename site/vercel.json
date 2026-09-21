@@ -1,7 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- .",
+  "framework": null,
+  "buildCommand": "npm run build",
+  "outputDirectory": "out",
+  "cleanUrls": true,
+  "ignoreCommand": "bash ../scripts/ignorer-le-build.sh .",
   "redirects": [
     {
       "source": "/",
@@ -92,6 +95,21 @@
       "source": "/fr/tarifs",
       "destination": "/fr/demo",
       "statusCode": 308
+    },
+    {
+      "source": "/demonstration",
+      "destination": "/fr/demo",
+      "statusCode": 308
+    },
+    {
+      "source": "/fr/demonstration",
+      "destination": "/fr/demo",
+      "statusCode": 308
+    },
+    {
+      "source": "/demo",
+      "destination": "/fr/demo",
+      "statusCode": 308
     }
   ],
   "headers": [
@@ -126,6 +144,24 @@
         {
           "key": "Content-Type",
           "value": "application/rss+xml; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)/opengraph-image",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "image/png"
+        }
+      ]
+    },
+    {
+      "source": "/_next/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
         }
       ]
     }

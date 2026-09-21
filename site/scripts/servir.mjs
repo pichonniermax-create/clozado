@@ -45,6 +45,8 @@ const COMPRESSIBLE = new Set([".html", ".css", ".js", ".json", ".xml", ".txt", "
 
 const config = JSON.parse(readFileSync("vercel.json", "utf8"));
 const REDIRECTIONS = new Map((config.redirects ?? []).map((r) => [r.source, r]));
+/** `cleanUrls` : `/a.html` renvoie vers `/a`, et `/a` sert `a.html`. */
+const URLS_PROPRES = config.cleanUrls === true;
 /**
  * Les groupes d'en-têtes, avec leur motif — `/(.*)`, `/(.*)/rss.xml`… La
  * syntaxe de Vercel est assez proche d'une expression régulière pour que
@@ -78,6 +80,14 @@ const serveur = createServer((requete, reponse) => {
       reponse.setHeader(entete.key, entete.value);
       entetesDuChemin.push(entete.key.toLowerCase());
     }
+  }
+
+  // Comme Vercel : une adresse qui porte encore son extension est renvoyée
+  // vers la version sans extension, en 308.
+  if (URLS_PROPRES && /\.html$/.test(adresse.pathname)) {
+    reponse.writeHead(308, { Location: adresse.pathname.replace(/\.html$/, "") + adresse.search });
+    reponse.end();
+    return;
   }
 
   const redirection = REDIRECTIONS.get(chemin) ?? REDIRECTIONS.get(adresse.pathname);
