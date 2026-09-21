@@ -334,6 +334,141 @@ rapports.
 - RFC 7208, *SPF* — <https://www.rfc-editor.org/rfc/rfc7208>.
 
 
+## A quater. La prévisualisation et le contrôle avant envoi — CONSTRUITS (2026-09-21)
+
+Troisième étape du chantier « envoi » (partie 3 du brief). Commit
+`0cadfcc`. Aucune migration.
+
+### A quater.1 Le décompte était faux — c'est le vrai sujet
+
+La carte d'envoi annonçait « Envoyer à N contacts » avec
+`countSendableMembers`, qui comptait les fiches **ayant une adresse et
+non supprimées chez l'organisation**. La mise en file
+(`startNewsletterSend`) écarte trois choses de plus, posées par les
+garde-fous du 2026-09-18 : l'autorisation d'écrire non établie,
+l'opposition déclarée, et la liste repoussoir de la PLATEFORME. Une
+organisation qui importait des prospects voyait donc un nombre
+supérieur à ce qui partait, sans savoir de combien ni pourquoi.
+
+`audienceBreakdown` (`src/db/queries/email-sends.ts`) reprend **mot pour
+mot** les conditions de la mise en file — même condition d'appartenance
+stricte, mêmes cinq exclusions — et rend le détail. Une fiche exclue est
+comptée UNE fois, dans la première raison qui la rattrape : sans
+adresse, opposition, autorisation non établie, supprimée chez
+l'organisation, fermée pour toute la plateforme. L'expression de la
+raison est écrite une seule fois (`exclusionReasonSql`) et sert au
+décompte comme à l'échantillon « vu par ».
+
+### A quater.2 Le contrôle, en onze lignes toujours affichées
+
+`src/lib/newsletter/preflight.ts` — pur, sans IA, sans réseau : les mêmes
+faits donnent toujours la même liste. Chaque ligne est rendue même au
+vert : une liste qui ne montre que les problèmes ne dit pas ce qui a été
+vérifié.
+
+| Ligne | Bloquant | Avertissement |
+|---|---|---|
+| Objet | vide | plus de 42 caractères |
+| Pré-en-tête | — | vide, ou plus de 85 caractères |
+| Contenu | un champ de copie vide (« newsletter aboutie » non atteint) | — |
+| Variables | `{prenom}` et consorts laissés dans le texte | — |
+| Liens | adresse d'exemple (`example.com`, `localhost`…) | `http:`, ou aucun lien |
+| Désinscription | le marqueur absent du rendu | — |
+| Pied de page | adresse postale manquante (profil du pays) | — |
+| Expéditeur | aucune adresse de réponse | domaine mutualisé de la plateforme |
+| Destinataires | personne ne recevra | des fiches écartées, avec le détail des cinq raisons |
+| Rythme d'envoi | organisation suspendue | vague étalée par le quota du jour |
+| Email de test | — | aucun test, ou test antérieur à la dernière modification |
+
+**Pourquoi une variable bloque** : une newsletter est rendue UNE fois
+pour toute la vague (un seul HTML en base, un envoi par lots) ; rien n'y
+est substitué par destinataire, sauf le lien de désinscription. Une
+variable de gabarit partirait donc telle quelle, accolades comprises.
+Supporter les variables demanderait un rendu par message — un changement
+d'architecture d'envoi, hors de cette étape.
+
+**Le refus est côté serveur.** `launchNewsletterSend` rejoue le contrôle
+avant de mettre quoi que ce soit en file (`sendPreflight`) et refuse
+l'envoi sur un bloquant : la case cochée dans le navigateur ne passe pas
+outre. La carte d'envoi affiche le verdict et désactive le bouton ; c'est
+du confort, pas la garde.
+
+**Ce qui n'y est pas** : les attributs `alt` et le poids des images
+(aucun bloc image dans le composer — §J.3), et les mentions métier, qui
+attendent leurs tables (N3). Le jour où elles existent, elles s'ajoutent
+comme une douzième ligne.
+
+### A quater.3 L'aperçu — et pourquoi il ne peut pas mentir
+
+`/newsletters/[id]/apercu`. Un seul chemin de rendu (`buildSendDraft`,
+`src/lib/email/send-draft.ts`) sert l'aperçu, l'email de test et l'envoi
+réel ; une seule fonction substitue le lien de désinscription
+(`withUnsubscribeUrl`, celle-là même qu'utilise la remise). La seule
+différence entre ce qui est montré et ce qui part est ce lien, propre à
+chaque message — l'écran le dit.
+
+- **Ordinateur** (720 px) et **téléphone** (390 px) : le document n'est
+  pas retouché, seule la largeur du cadre change.
+- **Mode sombre** : une SIMULATION, annoncée comme telle. L'email n'a pas
+  de version sombre à lui ; ce qui est reproduit est l'inversion que
+  posent les clients qui n'en trouvent pas (Outlook.com, Apple Mail) :
+  `invert(1) hue-rotate(180deg)`, images ré-inversées. Gmail n'inverse
+  que partiellement, selon des règles qu'il ne publie pas : aucun aperçu
+  ne peut le montrer exactement, et le dire vaut mieux que le promettre.
+- **Version texte** : la partie `text/plain` qui accompagne chaque email,
+  que personne ne voyait jamais.
+- **« Vu par »** un destinataire réel de la cible, exclus compris — avec
+  la phrase qui dit pourquoi il ne recevra rien.
+
+Le cadre est un `<iframe sandbox>` sans attribut : ni script, ni origine
+commune, ni formulaire. Le HTML d'une organisation ne peut rien contre
+l'application qui l'affiche.
+
+**Défaut trouvé au navigateur** : à 1 440 px, une colonne d'aperçu à côté
+d'un panneau de 22 rem tombait à 558 px — plus étroite que l'email
+lui-même (600 px), qui s'affichait donc coupé dans l'écran censé le
+montrer. L'écran est en une seule colonne : l'email d'abord, les
+contrôles dessous.
+
+### A quater.4 L'email de test
+
+Il part à SOI ou à un membre de l'organisation, alias `+quelque-chose`
+compris (`mailboxKey` / `isSameMailbox`, `src/lib/email/address.ts` : la
+même boîte au sous-adressage près). Toute autre adresse est refusée —
+**côté serveur**, pas seulement dans le champ. C'est la doctrine du brief
+(« aucun email de test vers une adresse autre que les siennes »), et
+c'est ce qui permet de tester sur un alias sans ouvrir l'envoi de test à
+l'adresse d'un contact.
+
+### A quater.5 La preuve
+
+`scripts/_tmp-d3-preuve.ts` (non committé) : **43 contrôles au vert**, sur
+une organisation JETABLE (`_d3-preuve`, supprimée à la fin) portant six
+fiches dans six situations — une qui reçoit, une sans adresse, une sans
+autorisation, une opposée, une supprimée chez l'organisation, une fermée
+pour toute la plateforme.
+
+- le décompte rend 1 sur 6, et les cinq raisons une par une ;
+- le contrôle rend onze lignes, et aucun bloquant sur un brouillon sain ;
+- une variable ajoutée bloque, et `launchNewsletterSend` **refuse**
+  (`le_controle_avant_envoi_bloque_cet_envoi`), sans rien mettre en file ;
+- la carte annonce « Envoyer à 1 contact » ;
+- l'écran liste les onze contrôles, dit « 1 sur 6 recevront ; 5 sont
+  écartés », détaille les cinq raisons, montre « vu par » ;
+- le `srcdoc` du cadre est **exactement** le HTML de l'envoi, marqueur de
+  désinscription substitué ;
+- les quatre vues : 600-720 px, 390 px, l'inversion superposée sans
+  toucher au corps, la version texte ;
+- un test vers l'adresse d'un CONTACT est refusé, et aucun message n'est
+  créé ;
+- la mise en file vaut exactement le nombre annoncé, et n'écrit qu'à la
+  fiche autorisée.
+
+**Aucun email n'est parti** : l'exécutant (`runSend`), seul à parler au
+fournisseur, n'a jamais été appelé — la preuve s'arrête à la mise en
+file, qui n'écrit qu'en base.
+
+
 ## B. Délivrabilité et réputation
 
 ### B.1 L'architecture d'aujourd'hui, et ce qu'elle mutualise
