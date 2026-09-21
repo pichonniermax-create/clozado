@@ -3,6 +3,7 @@ titre: La relance qui n’a jamais été écrite
 resume: Une affaire ne se perd presque jamais d’un coup. Elle s’arrête, et personne ne le voit. Ce qu’il faut inscrire pour qu’un silence redevienne une action.
 categorie: Relance
 publie: 2026-09-21
+brouillon: oui
 ---
 
 Demandez à un cabinet combien d’affaires il a perdues le trimestre dernier : il saura répondre. Demandez-lui combien se sont simplement **arrêtées** — plus de réponse, plus de relance, plus de date — et la question tombe dans le vide. Ce ne sont pourtant pas les mêmes dossiers, et les seconds sont les plus nombreux.

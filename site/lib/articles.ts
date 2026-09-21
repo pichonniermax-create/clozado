@@ -10,14 +10,21 @@ import { analyse, type Bloc, ErreurArticle, motsDe, type Titre, titresDe } from 
  * quotidienne posée sur chaque route. Un article se publie en déposant un
  * fichier dans `content/articles/` et en poussant.
  *
- * L'EN-TÊTE EST STRICTE : six clés, pas une de plus, et chacune obligatoire
- * sauf deux. Une clé inconnue, une date mal formée ou un résumé manquant
+ * L'EN-TÊTE EST STRICTE : sept clés, pas une de plus, et chacune obligatoire
+ * sauf trois. Une clé inconnue, une date mal formée ou un résumé manquant
  * arrêtent la construction en nommant le fichier — comme le garde-fou des
  * libellés. Un blog se casse silencieusement, sinon.
+ *
+ * `brouillon: oui` RETIENT UN ARTICLE. Le fichier reste dans le dépôt — on
+ * le relit, on le corrige, on en discute —, mais aucune page n'est
+ * construite pour lui : il ne paraît ni à l'index, ni dans une catégorie,
+ * ni au flux, ni au sitemap, et son adresse rend 404. Le filtre est posé
+ * UNE FOIS, dans `articles()`, d'où tout le blog découle : il n'y a aucun
+ * endroit où l'oublier.
  */
 
 const DOSSIER = join(process.cwd(), "content", "articles");
-const CLES = ["titre", "resume", "categorie", "publie", "misAJour", "demonstration"] as const;
+const CLES = ["titre", "resume", "categorie", "publie", "misAJour", "demonstration", "brouillon"] as const;
 const OBLIGATOIRES = ["titre", "resume", "categorie", "publie"] as const;
 /** Deux cent vingt mots à la minute : la vitesse de lecture d'un texte technique en français. */
 const MOTS_PAR_MINUTE = 220;
@@ -30,6 +37,7 @@ export type Article = {
   readonly publie: string;
   readonly misAJour?: string;
   readonly demonstration: boolean;
+  readonly brouillon: boolean;
   readonly minutes: number;
   readonly mots: number;
   readonly titres: readonly Titre[];
@@ -78,6 +86,7 @@ function lis(fichier: string): Article {
     publie: tete.publie,
     misAJour: tete.misAJour,
     demonstration: tete.demonstration === "oui",
+    brouillon: tete.brouillon === "oui",
     minutes: Math.max(1, Math.round(mots / MOTS_PAR_MINUTE)),
     mots,
     titres: titresDe(blocs),
@@ -85,7 +94,13 @@ function lis(fichier: string): Article {
   };
 }
 
-/** Tous les articles, du plus récent au plus ancien. */
+/**
+ * Tous les articles PUBLIÉS, du plus récent au plus ancien.
+ *
+ * Les brouillons sont écartés ici et nulle part ailleurs : l'index, les
+ * catégories, le flux, le sitemap, les voisins et la pagination lisent tous
+ * cette liste. Un article retenu l'est donc partout à la fois.
+ */
 export function articles(): Article[] {
   let fichiers: string[];
   try {
@@ -95,6 +110,7 @@ export function articles(): Article[] {
   }
   return fichiers
     .map(lis)
+    .filter((article) => !article.brouillon)
     .sort((a, b) => (a.publie === b.publie ? a.slug.localeCompare(b.slug) : b.publie.localeCompare(a.publie)));
 }
 

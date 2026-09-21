@@ -3,6 +3,7 @@ titre: Une commission due, et personne pour la réclamer
 resume: Entre l’affaire signée et l’argent encaissé, il y a trois états et deux trous. Ce qu’un cabinet doit tenir pour ne plus découvrir ses oublis en fin d’exercice.
 categorie: Commissions
 publie: 2026-09-21
+brouillon: oui
 ---
 
 Un cabinet sait ce qu’il a signé. Il sait ce qu’il a encaissé. Entre les deux, il ne sait presque jamais ce qui lui est **dû** — et c’est pourtant là que vivent les sommes qu’il ne réclamera pas.
