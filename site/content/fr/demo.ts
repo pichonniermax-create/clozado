@@ -79,11 +79,11 @@ export const demo = {
     intitule: "Ce qu’il faut savoir",
     titre: "Ce que la démonstration publique n’est pas",
     elements: [
-      "Ce n’est pas un compte d’essai : rien de ce que vous faites n’est enregistré.",
-      "Elle est en lecture seule : les gestes qui écrivent sont refusés, et le disent.",
-      "Aucun email ne part : l’envoi est bloqué au transport, pas seulement masqué à l’écran.",
-      "Les données sont inventées : le cabinet, les personnes et les montants sont fictifs.",
-      "Elle n’est pas indexée par les moteurs de recherche.",
+      { intitule: "Ce n’est pas un compte d’essai", precision: "rien de ce que vous faites n’y est enregistré." },
+      { intitule: "Elle est en lecture seule", precision: "les gestes qui écrivent sont refusés, et le disent." },
+      { intitule: "Aucun email ne part", precision: "l’envoi est bloqué au transport, pas seulement masqué à l’écran." },
+      { intitule: "Les données sont inventées", precision: "le cabinet, les personnes et les montants sont fictifs." },
+      { intitule: "Elle n’est pas indexée", precision: "les moteurs de recherche ne la référencent pas." },
     ],
   },
 

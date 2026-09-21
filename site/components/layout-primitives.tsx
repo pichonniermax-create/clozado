@@ -17,9 +17,41 @@ export function Container({ children, className }: { children: React.ReactNode; 
 export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={cn(
-      "rounded-xl border border-border bg-card p-6 text-card-foreground transition-colors duration-200 ease-out hover:border-primary",
+      "rounded-xl border border-border bg-card p-6 text-card-foreground transition-colors duration-200 ease-out hover:border-primary focus-within:border-primary",
       className
     )}>{children}</div>
+  );
+}
+
+/**
+ * UNE LISTE STRUCTURÉE — un intitulé en demi-gras, et sa précision.
+ *
+ * Elle remplace les listes à puces de contenu (2026-09-21). Une puce ne dit
+ * rien : elle annonce qu'il y a une suite, et l'œil doit lire la ligne
+ * entière pour savoir de quoi elle parle. Un intitulé se balaie ; on lit la
+ * précision de celui qui nous concerne, et pas des six autres.
+ *
+ * C'est une liste de DÉFINITIONS, pas une liste à puces déguisée : le
+ * balisage le dit aussi (`dl`, `dt`, `dd`).
+ */
+export function ListeStructuree({
+  elements,
+  colonnes = 1,
+}: {
+  elements: readonly { intitule: string; precision?: string }[];
+  colonnes?: 1 | 2;
+}) {
+  return (
+    <dl className={cn("grid gap-6", colonnes === 2 && "sm:grid-cols-2")}>
+      {elements.map((element, rang) => (
+        <div key={element.intitule} data-entree data-rang={rang}>
+          <dt className="font-medium text-foreground">{element.intitule}</dt>
+          {element.precision && (
+            <dd className="mesure mt-2 text-sm leading-relaxed text-muted-foreground">{element.precision}</dd>
+          )}
+        </div>
+      ))}
+    </dl>
   );
 }
 

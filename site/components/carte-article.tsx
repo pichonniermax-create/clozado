@@ -56,7 +56,7 @@ export function CarteArticle({
           {sansOrphelin(titre)}
         </a>
       </h2>
-      <p className="mesure mt-4 text-pretty leading-relaxed text-muted-foreground">{resume}</p>
+      <p className="mesure mt-4 text-pretty leading-relaxed text-foreground">{resume}</p>
     </article>
   );
 }

@@ -54,7 +54,7 @@ export function SectionEditoriale({
             {numero && <p aria-hidden className="numero-section text-geant">{numero}</p>}
             {intitule && <p className="label">{intitule}</p>}
             {titre && <h2 className="mt-6 text-balance text-titre-2 text-foreground">{sansOrphelin(titre)}</h2>}
-            {chapo && <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{chapo}</p>}
+            {chapo && <p className="mesure mt-6 text-pretty text-chapo text-foreground">{chapo}</p>}
           </header>
         )}
         <div data-entree data-rang={1} className={cn("corps-section", aEnTete && "mt-12")}>

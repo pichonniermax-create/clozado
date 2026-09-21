@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ActionLink } from "@/components/action-link";
-import { Card, Puce } from "@/components/layout-primitives";
+import { Card, ListeStructuree } from "@/components/layout-primitives";
 import { HeroPage } from "@/components/hero-page";
 import { Mouvement } from "@/components/mouvement";
 import { SectionEditoriale } from "@/components/section-editoriale";
@@ -70,14 +70,9 @@ export default async function Conformite(props: PageProps<"/[locale]/conformite"
                 <p className="tabulaire text-sm text-muted-foreground">{String(rang + 1).padStart(2, "0")}</p>
                 <h3 className="mt-4 text-xl font-bold tracking-tight text-foreground">{sansOrphelin(element.titre)}</h3>
                 <p className="mesure mt-4 text-sm leading-relaxed text-muted-foreground">{element.texte}</p>
-                <ul className="mt-6 flex flex-col gap-3">
-                  {element.points.map((point) => (
-                    <li key={point} className="flex gap-3 text-sm leading-relaxed">
-                      <Puce />
-                      <span className="mesure text-muted-foreground">{point}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="mt-6">
+                  <ListeStructuree elements={element.points} />
+                </div>
               </Card>
             </li>
           ))}
@@ -100,7 +95,7 @@ export default async function Conformite(props: PageProps<"/[locale]/conformite"
           <div data-entree className="rounded-xl border border-border bg-card px-6 py-12 sm:px-12">
             <div className="colonne-lecture-centree">
               <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(conformite.final.titre)}</h2>
-              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{avecReservation(conformite.final.texte, conformite.final.texteReservation)}</p>
+              <p className="mesure mt-6 text-pretty text-chapo text-foreground">{avecReservation(conformite.final.texte, conformite.final.texteReservation)}</p>
               <div className="mt-12">{appels}</div>
           </div>
           </div>

@@ -1,7 +1,7 @@
 import { ActionLink } from "@/components/action-link";
 import { EcranRegles, EcranTableauDeBord } from "@/components/ecran-produit";
 import { EcranChronologie, EcranJaugeParcours, EcranTableauCourtage } from "@/components/ecrans-metiers";
-import { Card, Puce } from "@/components/layout-primitives";
+import { Card, ListeStructuree } from "@/components/layout-primitives";
 import { SectionEditoriale } from "@/components/section-editoriale";
 import { Mouvement } from "@/components/mouvement";
 import type { ContenuMetier, Element } from "@/content/types";
@@ -142,8 +142,8 @@ export function PageMetier({
                 {contenu.hero.secteur}
               </p>
               <h1 className={`mt-6 text-foreground ${classeTitre(contenu.hero.titre)}`}>{sansOrphelin(contenu.hero.titre)}</h1>
-              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{contenu.hero.chapo}</p>
-              <p className="mesure mt-3 text-pretty text-chapo text-muted-foreground">{contenu.hero.precision}</p>
+              <p className="mesure mt-6 text-pretty text-chapo text-foreground">{contenu.hero.chapo}</p>
+              <p className="mesure mt-3 text-pretty text-chapo text-foreground">{contenu.hero.precision}</p>
               <div className="mt-6">{appels}</div>
             </div>
             <div data-entree data-rang={1} className="ecran-compact">
@@ -175,11 +175,9 @@ export function PageMetier({
       >
         <div className="duo">
           <div data-entree>
-            <ul className="grille-cartes" data-colonnes="1" style={{ "--ecart": "0.5rem" } as React.CSSProperties}>
-              {contenu.indicateurs.elements.map((element) => (
-                <Pastille key={element}>{element}</Pastille>
-              ))}
-            </ul>
+            {/* Des contenus, pas des étiquettes : les pastilles ne servent
+                qu'aux filtres et aux étiquettes (2026-09-21). */}
+            <ListeStructuree elements={contenu.indicateurs.elements.map((e) => ({ intitule: e }))} />
             <p className="mt-6 text-sm leading-relaxed text-muted-foreground">{contenu.indicateurs.note}</p>
           </div>
           <div data-entree data-rang={1}>
@@ -260,14 +258,7 @@ export function PageMetier({
       </SectionEditoriale>
 
       <SectionEditoriale intitule={contenu.perimetre.intitule} titre={contenu.perimetre.titre} ton="doux">
-        <ul className="flex flex-col gap-4">
-          {contenu.perimetre.elements.map((element, rang) => (
-            <li key={element} data-entree data-rang={rang} className="flex gap-4 text-base leading-relaxed">
-              <Puce />
-              <span className="text-muted-foreground">{element}</span>
-            </li>
-          ))}
-        </ul>
+        <ListeStructuree elements={contenu.perimetre.elements} colonnes={2} />
       </SectionEditoriale>
 
       <section className="border-t border-border py-24 sm:py-24 lg:py-36">
@@ -277,7 +268,7 @@ export function PageMetier({
           <div data-entree className="rounded-xl border border-border bg-card px-6 py-12 sm:px-12">
             <div className="colonne-lecture-centree">
               <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(contenu.final.titre)}</h2>
-              <p className="mt-6 text-pretty text-chapo text-muted-foreground">
+              <p className="mt-6 text-pretty text-chapo text-foreground">
                 {avecReservation(contenu.final.texte, contenu.final.texteReservation)}
               </p>
               <div className="appels mt-6 flex">{appels}</div>

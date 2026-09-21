@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ActionLink } from "@/components/action-link";
-import { Puce } from "@/components/layout-primitives";
+import {ListeStructuree} from "@/components/layout-primitives";
 import { Mouvement } from "@/components/mouvement";
 import { SectionEditoriale } from "@/components/section-editoriale";
 import { getDictionary, isLocale, type Locale } from "@/lib/i18n";
@@ -45,7 +45,7 @@ function Geste({
     <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-6 text-card-foreground sm:p-6">
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{surtitre}</p>
       <h2 className="mt-3 text-balance text-2xl font-semibold tracking-tight">{sansOrphelin(titre)}</h2>
-      <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">{texte}</p>
+      <p className="mt-4 text-pretty leading-relaxed text-foreground">{texte}</p>
 
       <h3 className="mt-6 text-sm font-semibold">{sansOrphelin(elementsTitre)}</h3>
       <ul className="mt-3 flex flex-1 flex-col gap-3">
@@ -93,7 +93,7 @@ export default async function Demo(props: PageProps<"/[locale]/demo">) {
               écran est entièrement centré. */}
           <div data-entree className="colonne-lecture-centree">
             <h1 className={`${classeTitre(hero.titre)} text-foreground`}>{sansOrphelin(hero.titre)}</h1>
-            <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{hero.chapo}</p>
+            <p className="mesure mt-6 text-pretty text-chapo text-foreground">{hero.chapo}</p>
           </div>
 
           <div className="corps-section mt-12">
@@ -135,14 +135,7 @@ export default async function Demo(props: PageProps<"/[locale]/demo">) {
       </section>
 
       <SectionEditoriale intitule={demo.limites.intitule} titre={demo.limites.titre}>
-        <ul className="flex flex-col gap-4">
-          {demo.limites.elements.map((element, rang) => (
-            <li key={element} data-entree data-rang={rang} className="flex gap-4 leading-relaxed">
-              <Puce />
-              <span className="mesure text-muted-foreground">{element}</span>
-            </li>
-          ))}
-        </ul>
+        <ListeStructuree elements={demo.limites.elements} colonnes={2} />
       </SectionEditoriale>
 
       {/* Cette section ne dit qu'une chose : « réservez plutôt un créneau ».
@@ -152,7 +145,7 @@ export default async function Demo(props: PageProps<"/[locale]/demo">) {
         <SectionEditoriale ton="doux">
           <div data-entree>
             <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(demo.final.titre)}</h2>
-            <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{demo.final.texte}</p>
+            <p className="mesure mt-6 text-pretty text-chapo text-foreground">{demo.final.texte}</p>
           </div>
         </SectionEditoriale>
       )}

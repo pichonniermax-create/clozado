@@ -123,11 +123,11 @@ export const produit = {
     intitule: "Le périmètre",
     titre: "Ce que Clozado ne fait pas",
     elements: [
-      "Ce n’est pas un CRM : vous gardez le vôtre.",
-      "Aucune gestion de contrats, de programmes ni de mandats.",
-      "Aucun encaissement : les commissions sont suivies, jamais perçues.",
-      "Aucune signature électronique, aucune gestion documentaire.",
-      "Aucun envoi automatique sans relecture humaine.",
+      { intitule: "Ce n’est pas un CRM", precision: "vous gardez le vôtre, et Clozado s’installe à côté." },
+      { intitule: "Aucune gestion de contrats", precision: "ni de programmes, ni de mandats." },
+      { intitule: "Aucun encaissement", precision: "les commissions sont suivies, jamais perçues." },
+      { intitule: "Aucune signature électronique", precision: "ni gestion documentaire." },
+      { intitule: "Aucun envoi sans relecture", precision: "une règle écrit le brouillon, une personne l’envoie." },
     ],
   },
 

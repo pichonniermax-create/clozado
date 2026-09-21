@@ -196,11 +196,11 @@ export const courtiers = {
     intitule: "Le périmètre",
     titre: "Ce que Clozado ne fait pas pour un courtier",
     elements: [
-      "Ce n’est pas un CRM : vous gardez le vôtre.",
-      "Aucune gestion de contrats : ni contrat, ni compagnie, ni date d’échéance native. Une échéance se porte par une tâche, au besoin récurrente.",
-      "Aucune comparaison de garanties, aucun tarificateur, aucune connexion à un extranet compagnie.",
-      "Aucun document de devoir de conseil : la trace des échanges, pas la pièce réglementaire.",
-      "Aucun encaissement : les commissions sont suivies, jamais perçues.",
+      { intitule: "Ce n’est pas un CRM", precision: "vous gardez le vôtre." },
+      { intitule: "Aucune gestion de contrats", precision: "ni contrat, ni compagnie, ni date d’échéance native. Une échéance se porte par une tâche, au besoin récurrente." },
+      { intitule: "Aucune comparaison de garanties, aucun tarificateur, aucune connexion à un extranet compagnie." },
+      { intitule: "Aucun document de devoir de conseil", precision: "la trace des échanges, pas la pièce réglementaire." },
+      { intitule: "Aucun encaissement", precision: "les commissions sont suivies, jamais perçues." },
     ],
   },
 

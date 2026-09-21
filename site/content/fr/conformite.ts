@@ -33,9 +33,9 @@ export const conformite = {
         texte:
           "Vous restez responsable des données de vos clients ; Clozado les traite pour votre compte, selon vos instructions. Les droits des personnes sont outillés dans le produit, pas promis dans un document.",
         points: [
-          "Export complet d’une fiche, en un geste.",
-          "Suppression qui détruit l’identité et conserve la traçabilité des affaires.",
-          "Journal des accès consultable sur chaque fiche.",
+          { intitule: "Export complet d’une fiche, en un geste." },
+          { intitule: "Suppression qui détruit l’identité et conserve la traçabilité des affaires." },
+          { intitule: "Journal des accès consultable sur chaque fiche." },
         ],
       },
       {
@@ -43,9 +43,9 @@ export const conformite = {
         texte:
           "L’application et sa base de données sont hébergées à Francfort, dans l’Union européenne. Les emails partent par un prestataire d’envoi ; tant que votre domaine n’est pas vérifié, ils partent d’un sous-domaine mutualisé, à votre nom.",
         points: [
-          "Aucune donnée de production hors de l’Union européenne.",
-          "Les enregistrements DNS à créer vous sont donnés, avec leur mode d’emploi.",
-          "Le site que vous lisez n’exécute aucun script tiers et ne pose aucun cookie.",
+          { intitule: "Aucune donnée de production hors de l’Union européenne." },
+          { intitule: "Les enregistrements DNS à créer vous sont donnés, avec leur mode d’emploi." },
+          { intitule: "Le site que vous lisez n’exécute aucun script tiers et ne pose aucun cookie." },
         ],
       },
       {
@@ -53,9 +53,9 @@ export const conformite = {
         texte:
           "Chaque ligne de la base porte son organisation, et les clés étrangères la portent aussi : une tâche, un échange ou une commission ne peuvent pas désigner l’élément d’un autre espace. C’est la base de données qui l’interdit, pas une condition dans le code.",
         points: [
-          "Les rattachements passent par des clés composites vérifiées à l’écriture.",
-          "Un script d’isolation rejoue ces garanties à chaque évolution du schéma.",
-          "Un lien de partage ne donne accès qu’à l’affaire qu’il désigne.",
+          { intitule: "Les rattachements passent par des clés composites vérifiées à l’écriture." },
+          { intitule: "Un script d’isolation rejoue ces garanties à chaque évolution du schéma." },
+          { intitule: "Un lien de partage ne donne accès qu’à l’affaire qu’il désigne." },
         ],
       },
       {
@@ -63,9 +63,9 @@ export const conformite = {
         texte:
           "Une adresse désinscrite ne reçoit plus rien de l’organisation, définitivement. Les garde-fous sont revérifiés au moment de l’envoi, pas seulement au moment où la règle s’écrit.",
         points: [
-          "Désinscription en un clic conforme à la RFC 8058, depuis le client de messagerie.",
-          "Plafond d’envois par contact, heures de bureau, arrêt demandé.",
-          "Un contact qui a demandé l’arrêt sort de toutes les cibles, sans exception.",
+          { intitule: "Désinscription en un clic conforme à la RFC 8058, depuis le client de messagerie." },
+          { intitule: "Plafond d’envois par contact, heures de bureau, arrêt demandé." },
+          { intitule: "Un contact qui a demandé l’arrêt sort de toutes les cibles, sans exception." },
         ],
       },
       {
@@ -73,9 +73,9 @@ export const conformite = {
         texte:
           "Chaque passage d’une règle est journalisé contact par contact : l’action faite, ou l’action écartée avec son motif. La mémoire anti-répétition est lisible, jamais devinée.",
         points: [
-          "Le pied de page légal est composé à l’envoi, jamais oublié.",
-          "Sans adresse postale renseignée, aucun envoi réel ne part.",
-          "L’état de chaque message est conservé : remis, ouvert, cliqué, en échec.",
+          { intitule: "Le pied de page légal est composé à l’envoi, jamais oublié." },
+          { intitule: "Sans adresse postale renseignée, aucun envoi réel ne part." },
+          { intitule: "L’état de chaque message est conservé", precision: "remis, ouvert, cliqué, en échec." },
         ],
       },
       {
@@ -83,9 +83,9 @@ export const conformite = {
         texte:
           "Vos données sortent comme elles sont entrées. Les exports reprennent les définitions affichées à l’écran, à l’identique : un chiffre exporté veut dire la même chose qu’un chiffre lu.",
         points: [
-          "Export CSV des contacts, des affaires, des commissions et des indicateurs.",
-          "Les définitions sont écrites une fois et servent à l’écran comme à l’export.",
-          "Aucune donnée n’est revendue, agrégée ni utilisée pour entraîner un modèle.",
+          { intitule: "Export CSV des contacts, des affaires, des commissions et des indicateurs." },
+          { intitule: "Les définitions sont écrites une fois et servent à l’écran comme à l’export." },
+          { intitule: "Aucune donnée n’est revendue, agrégée ni utilisée pour entraîner un modèle." },
         ],
       },
     ],

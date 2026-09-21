@@ -6,7 +6,7 @@ import { classeTitre, sansOrphelin } from "@/lib/titres";
 
 function Bloc({ bloc }: { bloc: BlocLegal }) {
   if (bloc.type === "texte") {
-    return <p className="text-pretty leading-relaxed text-muted-foreground">{bloc.texte}</p>;
+    return <p className="text-pretty leading-relaxed text-foreground">{bloc.texte}</p>;
   }
   if (bloc.type === "liste") {
     return (
@@ -27,7 +27,7 @@ function Bloc({ bloc }: { bloc: BlocLegal }) {
       {elements.map((element) => (
         <div key={element.terme} className="contents">
           <dt className="font-medium">{sansOrphelin(element.terme)}</dt>
-          <dd className="text-pretty leading-relaxed text-muted-foreground">{element.valeur}</dd>
+          <dd className="text-pretty leading-relaxed text-foreground">{element.valeur}</dd>
         </div>
       ))}
     </dl>
@@ -63,7 +63,7 @@ export function PageLegaleRendu({ contenu, page }: { contenu: PageLegale; page: 
           <div>
             <div className="colonne-lecture-centree">
               <h1 className={`${classeTitre(contenu.titre)} text-foreground`}>{sansOrphelin(contenu.titre)}</h1>
-              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{contenu.chapo}</p>
+              <p className="mesure mt-6 text-pretty text-chapo text-foreground">{contenu.chapo}</p>
               <p className="mt-3 text-sm text-muted-foreground">
                 {contenu.miseAJour} : <time dateTime={date}>{dateLongue(date)}</time>
               </p>

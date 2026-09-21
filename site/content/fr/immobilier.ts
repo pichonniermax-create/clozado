@@ -190,11 +190,11 @@ export const immobilier = {
     intitule: "Le périmètre",
     titre: "Ce que Clozado ne fait pas pour un agent immobilier",
     elements: [
-      "Aucune gestion de mandats, aucun registre des mandats ni des répertoires.",
-      "Aucun fichier de biens, aucun rapprochement entre un bien et un acquéreur.",
-      "Aucune diffusion vers les portails, aucune passerelle vers un logiciel de transaction.",
-      "Aucun document de transaction, aucune signature électronique.",
-      "Aucun encaissement : les commissions sont suivies, jamais perçues.",
+      { intitule: "Aucune gestion de mandats, aucun registre des mandats ni des répertoires." },
+      { intitule: "Aucun fichier de biens, aucun rapprochement entre un bien et un acquéreur." },
+      { intitule: "Aucune diffusion vers les portails, aucune passerelle vers un logiciel de transaction." },
+      { intitule: "Aucun document de transaction, aucune signature électronique." },
+      { intitule: "Aucun encaissement", precision: "les commissions sont suivies, jamais perçues." },
     ],
   },
 

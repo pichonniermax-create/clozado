@@ -52,9 +52,9 @@ export const accueil = {
         texte:
           "Quatre nombres et la liste du jour : les tâches en retard, les partages qu’il faut relancer, les dossiers acceptés puis restés sans suite, et ce qui reste à encaisser. Chaque tuile mène à l’écran où l’on agit.",
         points: [
-          "Les tâches de relance naissent du suivi, pas d’une saisie.",
-          "Une tâche se referme d’un clic, depuis n’importe quel écran.",
-          "Les indicateurs mis en avant sont ceux de votre métier.",
+          { intitule: "Les tâches de relance naissent du suivi, pas d’une saisie." },
+          { intitule: "Une tâche se referme d’un clic, depuis n’importe quel écran." },
+          { intitule: "Les indicateurs mis en avant sont ceux de votre métier." },
         ],
       },
       {
@@ -63,9 +63,9 @@ export const accueil = {
         texte:
           "Une règle se lit d’un coup d’œil : « Sans rendez-vous après 7 jours → tâche ». Un déclencheur, un seuil, des conditions, une action. Et pour celles qui écrivent un email, une vague de brouillons qu’une personne relit avant d’envoyer.",
         points: [
-          "Le dernier passage et son résultat s’affichent sous chaque règle.",
-          "La vague annonce exactement combien d’emails un clic enverra.",
-          "Aucun envoi automatique ne part sans ce clic.",
+          { intitule: "Le dernier passage et son résultat s’affichent sous chaque règle." },
+          { intitule: "La vague annonce exactement combien d’emails un clic enverra." },
+          { intitule: "Aucun envoi automatique ne part sans ce clic." },
         ],
       },
       {
@@ -74,9 +74,9 @@ export const accueil = {
         texte:
           "De la visite à la signature, une seule chaîne : combien passent chaque pas, combien se perdent, et depuis quelle origine. Chaque indicateur porte sa définition à côté du chiffre, et l’export CSV reprend la même.",
         points: [
-          "Le libellé d’un pas ouvre la liste des affaires qu’il compte.",
-          "Un taux calculé sur trop peu d’observations n’est pas affiché.",
-          "La période se choisit une fois et vaut pour tout le produit.",
+          { intitule: "Le libellé d’un pas ouvre la liste des affaires qu’il compte." },
+          { intitule: "Un taux calculé sur trop peu d’observations n’est pas affiché." },
+          { intitule: "La période se choisit une fois et vaut pour tout le produit." },
         ],
       },
     ],
@@ -186,11 +186,11 @@ export const accueil = {
     intitule: "Le périmètre",
     titre: "Ce que Clozado ne fait pas",
     elements: [
-      "Ce n’est pas un CRM : vous gardez le vôtre.",
-      "Aucune gestion de contrats, de programmes ni de mandats.",
-      "Aucun encaissement : les commissions sont suivies, jamais perçues.",
-      "Aucune signature électronique, aucune gestion documentaire.",
-      "Aucun envoi automatique sans relecture humaine.",
+      { intitule: "Ce n’est pas un CRM", precision: "vous gardez le vôtre, et Clozado s’installe à côté." },
+      { intitule: "Aucune gestion de contrats", precision: "ni de programmes, ni de mandats." },
+      { intitule: "Aucun encaissement", precision: "les commissions sont suivies, jamais perçues." },
+      { intitule: "Aucune signature électronique", precision: "ni gestion documentaire." },
+      { intitule: "Aucun envoi sans relecture", precision: "une règle écrit le brouillon, une personne l’envoie." },
     ],
   },
 

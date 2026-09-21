@@ -37,7 +37,7 @@ export function BlogIndex({
           {articlesDeLaPage.length === 0 ? (
             <div>
               <h2 className="text-titre-2 text-foreground">{blog.vide.titre}</h2>
-              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{blog.vide.texte}</p>
+              <p className="mesure mt-6 text-pretty text-chapo text-foreground">{blog.vide.texte}</p>
             </div>
           ) : (
             <div className="flex flex-col">

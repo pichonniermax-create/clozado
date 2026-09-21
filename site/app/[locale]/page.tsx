@@ -4,7 +4,7 @@ import { ActionLink } from "@/components/action-link";
 import { BandeRupture } from "@/components/bande-rupture";
 import { EcranFunnel, EcranRegles, EcranSuivi, EcranTableauDeBord } from "@/components/ecran-produit";
 import { EcransOnglets } from "@/components/ecrans-onglets";
-import { Card, Puce } from "@/components/layout-primitives";
+import { Card, ListeStructuree } from "@/components/layout-primitives";
 import { Mouvement } from "@/components/mouvement";
 import { References } from "@/components/references";
 import { SectionEditoriale } from "@/components/section-editoriale";
@@ -103,8 +103,8 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
           <div className="duo">
             <div data-entree>
               <h1 className={`${classeTitre(accueil.hero.titre)} text-foreground`}>{sansOrphelin(accueil.hero.titre)}</h1>
-              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{accueil.hero.chapo}</p>
-              <p className="mesure mt-3 text-pretty text-chapo text-muted-foreground">{accueil.hero.precision}</p>
+              <p className="mesure mt-6 text-pretty text-chapo text-foreground">{accueil.hero.chapo}</p>
+              <p className="mesure mt-3 text-pretty text-chapo text-foreground">{accueil.hero.precision}</p>
               <div className="mt-6">{appels}</div>
               <p className="mt-4 text-sm text-muted-foreground">{accueil.hero.note}</p>
             </div>
@@ -149,15 +149,10 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
             <div key={preuve.cle} className="duo" data-ecran={index % 2 === 1 ? "avant" : undefined}>
               <div data-entree>
                 <h3 className="text-balance text-titre-3 text-foreground">{sansOrphelin(preuve.titre)}</h3>
-                <p className="mesure mt-4 text-pretty leading-relaxed text-muted-foreground">{preuve.texte}</p>
-                <ul className="mt-6 flex flex-col gap-4">
-                  {preuve.points.map((point) => (
-                    <li key={point} className="flex gap-4 text-sm leading-relaxed">
-                      <Puce />
-                      <span className="mesure text-muted-foreground">{point}</span>
-                    </li>
-                  ))}
-                </ul>
+                <p className="mesure mt-4 text-pretty leading-relaxed text-foreground">{preuve.texte}</p>
+                <div className="mt-6">
+                  <ListeStructuree elements={preuve.points} />
+                </div>
               </div>
               <div data-entree data-rang={1}>
                 {ecranDe(preuve.cle)}
@@ -241,14 +236,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
         titre={accueil.perimetre.titre}
         ton="doux"
       >
-        <ul className="flex flex-col gap-4">
-          {accueil.perimetre.elements.map((element, rang) => (
-            <li key={element} data-entree data-rang={rang} className="flex gap-4 leading-relaxed">
-              <Puce />
-              <span className="mesure text-muted-foreground">{element}</span>
-            </li>
-          ))}
-        </ul>
+        <ListeStructuree elements={accueil.perimetre.elements} colonnes={2} />
       </SectionEditoriale>
 
       <References locale={locale} />
@@ -259,7 +247,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
           <div data-entree className="rounded-xl border border-border bg-card px-6 py-12 sm:px-12">
             <div className="colonne-lecture-centree">
               <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(accueil.final.titre)}</h2>
-              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{avecReservation(accueil.final.texte, accueil.final.texteReservation)}</p>
+              <p className="mesure mt-6 text-pretty text-chapo text-foreground">{avecReservation(accueil.final.texte, accueil.final.texteReservation)}</p>
               <div className="mt-6">{appels}</div>
           </div>
           </div>

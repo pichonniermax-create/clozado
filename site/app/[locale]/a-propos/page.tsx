@@ -82,7 +82,7 @@ export default async function APropos(props: PageProps<"/[locale]/a-propos">) {
           <div data-entree className="rounded-xl border border-border bg-card px-6 py-12 sm:px-12">
             <div className="colonne-lecture-centree">
               <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(aPropos.final.titre)}</h2>
-              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{aPropos.final.texte}</p>
+              <p className="mesure mt-6 text-pretty text-chapo text-foreground">{aPropos.final.texte}</p>
               <div className="appels mt-12 flex flex-col gap-4 sm:flex-row sm:items-center">
                 <ActionLink href={DEMO_URL} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
                   {common.actions.ouvrirLaDemo}

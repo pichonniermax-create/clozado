@@ -194,11 +194,11 @@ export const cgp = {
     intitule: "Le périmètre",
     titre: "Ce que Clozado ne fait pas pour un cabinet de gestion de patrimoine",
     elements: [
-      "Ce n’est pas un CRM : vous gardez le vôtre.",
-      "Aucun suivi d’encours ni de portefeuille par support : les montants suivis sont ceux des affaires.",
-      "Aucune gestion documentaire, aucune signature électronique.",
-      "Aucun agrégateur de comptes, aucune connexion à un dépositaire.",
-      "Aucune consolidation entre deux cabinets : un espace est une organisation.",
+      { intitule: "Ce n’est pas un CRM", precision: "vous gardez le vôtre." },
+      { intitule: "Aucun suivi d’encours ni de portefeuille par support", precision: "les montants suivis sont ceux des affaires." },
+      { intitule: "Aucune gestion documentaire, aucune signature électronique." },
+      { intitule: "Aucun agrégateur de comptes, aucune connexion à un dépositaire." },
+      { intitule: "Aucune consolidation entre deux cabinets", precision: "un espace est une organisation." },
     ],
   },
 

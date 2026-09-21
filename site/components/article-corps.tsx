@@ -76,7 +76,7 @@ export function ArticleCorps({ blocs }: { blocs: readonly Bloc[] }) {
 
           case "paragraphe":
             return (
-              <p key={rang} className="mesure text-pretty leading-relaxed text-muted-foreground">
+              <p key={rang} className="mesure text-pretty leading-relaxed text-foreground">
                 <Marques segments={bloc.segments} />
               </p>
             );

@@ -1,3 +1,6 @@
+/** Un point d'une liste structurée : un intitulé qui se balaie, une précision qu'on lit. */
+export type PointStructure = { intitule: string; precision?: string };
+
 /**
  * LA FORME D'UNE PAGE MÉTIER. Les trois pages — gestion de patrimoine,
  * courtage, transaction immobilière — partagent exactement cette
@@ -42,7 +45,7 @@ export type ContenuMetier = {
     elements: Element[];
     avertissement: string;
   };
-  perimetre: { intitule: string; titre: string; elements: string[] };
+  perimetre: { intitule: string; titre: string; elements: PointStructure[] };
   final: {
     titre: string;
     texte: string;

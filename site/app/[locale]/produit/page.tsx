@@ -9,7 +9,7 @@ import {
   EcranSerie,
   EcranVaEtVient,
 } from "@/components/ecrans-parcours";
-import { Puce } from "@/components/layout-primitives";
+import {ListeStructuree} from "@/components/layout-primitives";
 import { HeroPage } from "@/components/hero-page";
 import { Mouvement } from "@/components/mouvement";
 import { SectionEditoriale } from "@/components/section-editoriale";
@@ -103,7 +103,7 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
         >
           <div className="duo">
             <div data-entree>
-              <p className="mesure text-pretty leading-relaxed text-muted-foreground">{etape.texte}</p>
+              <p className="mesure text-pretty leading-relaxed text-foreground">{etape.texte}</p>
               {etape.liaison && (
                 <p className="mesure mt-6 border-l border-border pl-6 text-sm leading-relaxed text-foreground">
                   {etape.liaison}
@@ -145,14 +145,7 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
         titre={produit.perimetre.titre}
         ton="doux"
       >
-        <ul className="flex flex-col gap-4">
-          {produit.perimetre.elements.map((element, rang) => (
-            <li key={element} data-entree data-rang={rang} className="flex gap-4 leading-relaxed">
-              <Puce />
-              <span className="mesure text-muted-foreground">{element}</span>
-            </li>
-          ))}
-        </ul>
+        <ListeStructuree elements={produit.perimetre.elements} colonnes={2} />
       </SectionEditoriale>
 
       <section className="border-t border-border py-24 sm:py-24 lg:py-36">
@@ -161,7 +154,7 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
           <div data-entree className="rounded-xl border border-border bg-card px-6 py-12 sm:px-12">
             <div className="colonne-lecture-centree">
               <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(produit.final.titre)}</h2>
-              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{avecReservation(produit.final.texte, produit.final.texteReservation)}</p>
+              <p className="mesure mt-6 text-pretty text-chapo text-foreground">{avecReservation(produit.final.texte, produit.final.texteReservation)}</p>
               <div className="mt-12">{appels}</div>
           </div>
           </div>

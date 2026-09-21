@@ -21,7 +21,7 @@ export function NotFoundContent({ locale }: { locale: Locale }) {
       <div className="colonne-lecture-centree">
         <p className="font-mono text-sm tabular-nums text-muted-foreground">{common.introuvable.code}</p>
         <h1 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">{sansOrphelin(common.introuvable.titre)}</h1>
-        <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">{common.introuvable.texte}</p>
+        <p className="mt-4 text-pretty leading-relaxed text-foreground">{common.introuvable.texte}</p>
 
         <nav aria-label={common.coquille.navigationPrincipale} className="mt-6">
           <ul className="flex flex-col gap-1">

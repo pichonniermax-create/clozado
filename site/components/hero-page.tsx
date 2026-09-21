@@ -44,8 +44,8 @@ export function HeroPage({
     <div data-entree className={aside ? undefined : "colonne-lecture-centree"}>
       <p className="label">{surtitre}</p>
       <h1 className={`mt-6 text-foreground ${classeTitre(titre)}`}>{sansOrphelin(titre)}</h1>
-      <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{chapo}</p>
-      {precision && <p className="mesure mt-3 text-pretty text-chapo text-muted-foreground">{precision}</p>}
+      <p className="mesure mt-6 text-pretty text-chapo text-foreground">{chapo}</p>
+      {precision && <p className="mesure mt-3 text-pretty text-chapo text-foreground">{precision}</p>}
       {appels && <div className="mt-6">{appels}</div>}
       {note && <p className="mt-4 text-sm text-muted-foreground">{note}</p>}
     </div>

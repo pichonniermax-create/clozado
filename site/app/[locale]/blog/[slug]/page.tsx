@@ -71,7 +71,7 @@ export default async function Article(props: PageProps<"/[locale]/blog/[slug]">)
             <div data-entree className="colonne-lecture-centree">
               <FilAriane maillons={maillons} aide={blog.filAriane.aide} />
               <h1 className={`mt-6 ${classeTitre(article.titre)} text-foreground`}>{sansOrphelin(article.titre)}</h1>
-              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{article.resume}</p>
+              <p className="mesure mt-6 text-pretty text-chapo text-foreground">{article.resume}</p>
               <p className="tabulaire mt-6 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
                 <span>
                   {blog.article.publieLe} <time dateTime={article.publie}>{dateLongue(article.publie)}</time>
