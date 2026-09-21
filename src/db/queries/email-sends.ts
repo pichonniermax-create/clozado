@@ -1,12 +1,14 @@
-import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { db } from "@/db";
-import { contacts, emailEvents, emailMessages, emailSuppressions, newsletterRecipients, newsletterSends, newsletters, users } from "@/db/schema";
+import { contacts, emailEvents, emailMessages, emailSuppressions, newsletterRecipients, newsletterSends, newsletters, platformSuppressions, users } from "@/db/schema";
 import type { EmailMessage, NewsletterSend } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import type { OrgScopeUser } from "@/lib/session";
 import { assertOrgAccess } from "@/db/scope";
-import { memberCondition, memberConditionStrict, type TargetLike } from "./mail-targets";
+import { memberConditionStrict, type TargetLike } from "./mail-targets";
+import { emailFingerprintSql } from "./sending-health";
+import type { AudienceBreakdown } from "@/lib/newsletter/preflight";
 
 /**
  * L'ENVOI RÉEL d'une newsletter, côté base (docs/module-engagement.md §3.3) :
@@ -380,13 +382,85 @@ export async function countSentSince(organizationId: string, since: Date): Promi
   return Number((result.rows[0] as { n: number }).n);
 }
 
-/** Les membres d'une cible qui recevraient vraiment un envoi maintenant : une adresse, pas de suppression. */
-export async function countSendableMembers(target: TargetLike): Promise<number> {
+/** Les cinq raisons pour lesquelles un membre de la cible ne recevra pas — l'ordre est celui de la lecture. */
+export type ExclusionReason = "without_email" | "objected" | "consent_missing" | "suppressed" | "platform";
+
+/**
+ * LA RAISON D'EXCLUSION D'UNE FICHE, en une expression SQL — écrite UNE
+ * fois, lue par le décompte et par l'échantillon. Ses conditions sont mot
+ * pour mot celles de `startNewsletterSend` : ce qui est annoncé avant
+ * l'envoi est ce qui part après.
+ */
+function exclusionReasonSql(target: TargetLike): SQL {
+  return sql`CASE
+        WHEN ${contacts.email} IS NULL OR ${contacts.email} = '' THEN 'without_email'
+        WHEN ${contacts.emailConsentStatus} = 'objected' THEN 'objected'
+        WHEN ${contacts.emailConsentStatus} NOT IN ('granted', 'client', 'professional') THEN 'consent_missing'
+        WHEN EXISTS (SELECT 1 FROM ${emailSuppressions} s WHERE s.organization_id = ${target.organizationId}::uuid AND s.email = lower(${contacts.email})) THEN 'suppressed'
+        WHEN EXISTS (SELECT 1 FROM ${platformSuppressions} ps WHERE ps.email_sha256 = ${emailFingerprintSql(sql`${contacts.email}`)}) THEN 'platform'
+        ELSE NULL END`;
+}
+
+/**
+ * QUI RECEVRA, ET POURQUOI LES AUTRES NON (chantier envoi, partie 3).
+ *
+ * Les conditions sont MOT POUR MOT celles de `startNewsletterSend` : la
+ * même condition d'appartenance stricte, les mêmes cinq exclusions. C'est
+ * la seule façon que le nombre annoncé avant l'envoi soit le nombre parti
+ * après — avant ce contrôle, l'écran comptait les contacts sans
+ * autorisation et les adresses fermées par la plateforme parmi ceux « qui
+ * recevront », et promettait plus qu'il ne partait.
+ *
+ * Une fiche exclue est comptée UNE fois, dans la première raison qui la
+ * rattrape, dans cet ordre : sans adresse, opposition déclarée,
+ * autorisation non établie, désinscrit ou supprimé chez l'organisation,
+ * adresse fermée pour toute la plateforme.
+ */
+export async function audienceBreakdown(target: TargetLike): Promise<AudienceBreakdown> {
   const result = await db.execute(sql`
-    SELECT count(*)::int AS n FROM ${contacts}
-    WHERE ${memberCondition(target)} AND ${contacts.email} IS NOT NULL AND ${contacts.email} <> ''
-      AND NOT EXISTS (SELECT 1 FROM ${emailSuppressions} s WHERE s.organization_id = ${target.organizationId}::uuid AND s.email = lower(${contacts.email}))`);
-  return Number((result.rows[0] as { n: number }).n);
+    SELECT
+      count(*)::int AS total,
+      count(*) FILTER (WHERE reason IS NULL)::int AS sendable,
+      count(*) FILTER (WHERE reason = 'without_email')::int AS without_email,
+      count(*) FILTER (WHERE reason = 'objected')::int AS objected,
+      count(*) FILTER (WHERE reason = 'consent_missing')::int AS consent_missing,
+      count(*) FILTER (WHERE reason = 'suppressed')::int AS suppressed,
+      count(*) FILTER (WHERE reason = 'platform')::int AS platform_suppressed
+    FROM (
+      SELECT ${exclusionReasonSql(target)} AS reason
+      FROM ${contacts}
+      WHERE ${memberConditionStrict(target)} AND ${contacts.deletedAt} IS NULL
+    ) fiches`);
+  const row = result.rows[0] as Record<string, number>;
+  return {
+    total: Number(row.total),
+    sendable: Number(row.sendable),
+    withoutEmail: Number(row.without_email),
+    objected: Number(row.objected),
+    consentMissing: Number(row.consent_missing),
+    suppressed: Number(row.suppressed),
+    platformSuppressed: Number(row.platform_suppressed),
+  };
+}
+
+export type AudienceSampleRow = { id: string; name: string; email: string | null; reason: ExclusionReason | null };
+
+/**
+ * QUELQUES DESTINATAIRES, avec leur sort — de quoi choisir « vu par » dans
+ * l'aperçu (chantier envoi, partie 3). Ceux qui recevront d'abord, les
+ * exclus ensuite, chacun avec sa raison : c'est le même calcul que le
+ * décompte, donc la même vérité.
+ */
+export async function listAudienceSample(target: TargetLike, limit = 25): Promise<AudienceSampleRow[]> {
+  const result = await db.execute(sql`
+    SELECT id, name, email, reason FROM (
+      SELECT ${contacts.id} AS id, ${contacts.name} AS name, ${contacts.email} AS email, ${exclusionReasonSql(target)} AS reason
+      FROM ${contacts}
+      WHERE ${memberConditionStrict(target)} AND ${contacts.deletedAt} IS NULL
+    ) fiches
+    ORDER BY (reason IS NOT NULL), name ASC, id ASC
+    LIMIT ${limit}`);
+  return result.rows as AudienceSampleRow[];
 }
 
 export type SendPhase = "running" | "paused" | "stalled" | "done";

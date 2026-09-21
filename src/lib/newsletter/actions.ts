@@ -270,16 +270,25 @@ export async function sendNewsletterAction(id: string) {
   redirect(destination);
 }
 
-/** « M'envoyer un test » : vers l'adresse de connexion de la personne, jamais vers un contact. */
-export async function sendTestAction(id: string) {
+/**
+ * « Envoyer un test » : à soi, ou à un membre de l'organisation — la
+ * vérification de l'adresse est dans `sendTestEmail`, côté serveur. Sans
+ * adresse saisie (la carte d'envoi), c'est l'adresse de connexion.
+ *
+ * `retour=apercu` ramène à l'écran d'aperçu d'où le test est parti — une
+ * valeur attendue, jamais une adresse fournie par l'appelant (une
+ * redirection ouverte s'écrit exactement comme ça).
+ */
+export async function sendTestAction(id: string, formData?: FormData) {
   const user = await requireUser();
   const session = await requireSessionUser();
-  let destination = `/newsletters/${id}#envoi`;
+  const back = formData?.get("retour") === "apercu" ? `/newsletters/${id}/apercu` : `/newsletters/${id}#envoi`;
+  let destination = back;
   try {
     if (!session.email) throw new AppError("aucune_adresse_de_reponse");
-    await sendTestEmail(user, { id: session.id, email: session.email }, id, await requestOrigin());
+    await sendTestEmail(user, { id: session.id, email: session.email }, id, await requestOrigin(), String(formData?.get("to") ?? ""));
   } catch (error) {
-    destination = withError(`/newsletters/${id}#envoi`, await errorMessage(error), SEND_ERROR_PARAM);
+    destination = withError(back, await errorMessage(error), SEND_ERROR_PARAM);
   }
   redirect(destination);
 }

@@ -1,6 +1,6 @@
 import { use } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DetailsCard } from "@/components/ui/details-card";
 import { Field } from "@/components/ui/field";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import type { CampaignStats, TestMessageRow } from "@/db/queries/email-sends";
 import { parseAudienceSnapshot } from "@/db/queries/newsletters";
 import type { Newsletter, NewsletterSend } from "@/db/schema";
+import type { AudienceBreakdown } from "@/lib/newsletter/preflight";
 import {
   markNewsletterSentAction,
   resumeSendAction,
@@ -39,8 +40,15 @@ export type SendCardProps = {
   stats: CampaignStats | null;
   tests: TestMessageRow[];
   sender: SenderPreview | null;
-  /** Les contacts de la cible aujourd'hui, et ceux qui recevront vraiment (une adresse, pas de suppression). */
-  audience: { total: number; sendable: number } | null;
+  /** Les contacts de la cible aujourd'hui, ceux qui recevront vraiment, et ce que chaque exclusion doit à sa raison. */
+  audience: AudienceBreakdown | null;
+  /**
+   * Le contrôle avant envoi (partie 3) : combien de bloquants, combien
+   * d'avertissements. `null` quand il n'a pas pu s'exécuter (une cible
+   * illisible, aucun domaine d'envoi) — l'envoi est alors refusé, comme il
+   * le sera côté serveur.
+   */
+  preflight: { blocking: number; warning: number } | null;
   footerMissing: boolean;
   sentToday: number;
   /** La phase de l'envoi en cours, calculée par la page (l'horloge ne se lit pas pendant le rendu). */
@@ -64,7 +72,7 @@ function pauseLabel(reason: string | null, t: SendCardTranslator): string {
 }
 
 export function SendStatusCard(props: SendCardProps) {
-  const { newsletter, send, stats, tests, sender, audience, footerMissing, sentToday, phase, error, simulated } = props;
+  const { newsletter, send, stats, tests, sender, audience, preflight, footerMissing, sentToday, phase, error, simulated } = props;
   const t = useTranslations("newsletters.sendStatusCard");
   const fmt = use(getFormats());
   const snapshot = parseAudienceSnapshot(newsletter.audienceSnapshot);
@@ -210,7 +218,8 @@ export function SendStatusCard(props: SendCardProps) {
   // -------------------------------------------------------------------
   // Brouillon : tester, envoyer — ou marquer comme envoyée ailleurs
   // -------------------------------------------------------------------
-  const canSend = Boolean(sender) && !footerMissing && (audience?.sendable ?? 0) > 0;
+  // L'envoi n'est proposé que si le contrôle avant envoi ne bloque rien — et le serveur le rejoue de toute façon.
+  const canSend = preflight !== null && preflight.blocking === 0;
   return (
     <Card id="envoi" className="scroll-mt-24">
       <CardHeader>
@@ -234,6 +243,24 @@ export function SendStatusCard(props: SendCardProps) {
             {t.rich("pied_de_page_incomplet", { link: (chunks) => <Link href="/settings#pied-de-page" className="underline underline-offset-2">{chunks}</Link> })}
           </p>
         )}
+        {/*
+          LE CONTRÔLE AVANT ENVOI (partie 3) : son verdict, et le chemin vers
+          l'écran qui le détaille et montre l'email tel qu'il partira.
+        */}
+        <div className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm ${preflight && preflight.blocking > 0 ? "border-destructive/40 bg-destructive/5" : "border-border bg-muted/40"}`}>
+          <span className="text-pretty">
+            {!preflight
+              ? t("controle_indisponible")
+              : preflight.blocking > 0
+                ? t("controle_bloque", { count: preflight.blocking })
+                : preflight.warning > 0
+                  ? t("controle_avertit", { count: preflight.warning })
+                  : t("controle_pret")}
+          </span>
+          <Link href={`/newsletters/${newsletter.id}/apercu`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            {t("voir_l_apercu")}
+          </Link>
+        </div>
         <div className="flex flex-wrap items-start gap-3">
           {/* `items-start` : le bouton garde sa largeur naturelle au lieu de s'étirer sur celle de sa note. */}
           <form action={sendTestAction.bind(null, newsletter.id)} className="flex flex-col items-start gap-1">

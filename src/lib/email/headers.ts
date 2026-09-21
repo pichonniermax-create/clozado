@@ -5,6 +5,19 @@ import type { EmailMessage } from "@/db/schema";
  * testent sans base (la remise, elle, parle au fournisseur et à la base).
  */
 
+/** Le marqueur laissé dans le rendu à la place du lien de désinscription, propre à chaque message. */
+export const UNSUBSCRIBE_PLACEHOLDER = "%%CLOZADO_UNSUBSCRIBE%%";
+
+/**
+ * La substitution du marqueur par l'adresse de désinscription — la MÊME
+ * fonction pour la remise et pour l'aperçu (chantier envoi, partie 3) :
+ * c'est ce qui rend vraie la phrase « le HTML de l'aperçu est le HTML
+ * envoyé », au lien propre à chaque message près.
+ */
+export function withUnsubscribeUrl(text: string, url: string): string {
+  return text.split(UNSUBSCRIBE_PLACEHOLDER).join(url);
+}
+
 /** Les adresses de désinscription d'un message : la page (dans le pied de page) et la route en un clic (en-tête `List-Unsubscribe`). */
 export function unsubscribeUrls(origin: string, messageId: string): { page: string; oneClick: string } {
   return { page: `${origin}/desinscription/${messageId}`, oneClick: `${origin}/api/unsubscribe/${messageId}` };

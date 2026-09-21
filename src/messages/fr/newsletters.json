@@ -207,7 +207,7 @@
     "clics": "{count} {count, plural, one {clic} other {clics}}",
     "compteurs": "{sent} envoyés · {queued} en attente · {failed} en échec",
     "date_d_envoi": "Date d’envoi",
-    "destinataires_detail": "{sendable} avec une adresse et non désinscrits, sur {total} dans la cible aujourd’hui.",
+    "destinataires_detail": "{sendable} recevront vraiment, sur {total} dans la cible aujourd’hui.",
     "en_pause_jusqu_a": "En pause jusqu’au {when} — {reason}.",
     "enregistrer_les_sujets": "Enregistrer les sujets",
     "envoi_en_cours": "Envoi en cours",
@@ -257,7 +257,12 @@
     "test_ligne": "{when} · {to} · {status}",
     "teste_d_abord_puis_envoie": "Envoie-toi d’abord un test, puis envoie pour de vrai : l’audience est figée à cet instant, les emails partent par lots.",
     "tests_envoyes": "Tests envoyés",
-    "simulation_demo": "Démo : l’envoi est simulé — aucun email n’est parti, aucun ne partira depuis cette organisation."
+    "simulation_demo": "Démo : l’envoi est simulé — aucun email n’est parti, aucun ne partira depuis cette organisation.",
+    "controle_indisponible": "Le contrôle avant envoi n’a pas pu s’exécuter : l’envoi est refusé tant que ce n’est pas réglé.",
+    "controle_bloque": "{count, plural, one {# contrôle bloque l’envoi} other {# contrôles bloquent l’envoi}}.",
+    "controle_avertit": "Rien ne bloque, {count, plural, one {# point mérite un œil} other {# points méritent un œil}}.",
+    "controle_pret": "Contrôle avant envoi : tout est au vert.",
+    "voir_l_apercu": "Voir l’aperçu"
   },
   "unitFrame": {
     "deplacer_ce_bloc": "Déplacer ce bloc",
@@ -274,5 +279,116 @@
     "cette_newsletter_n_existe_pas": "Cette newsletter n’existe pas.",
     "le_lien_est_peut_etre_perime": "Le lien est peut-être périmé, ou la newsletter a été créée dans un autre espace.",
     "voir_les_newsletters": "Voir les newsletters"
+  },
+  "preview": {
+    "titre": "Aperçu avant envoi",
+    "sous_titre": "« {titre} », telle qu’elle arrivera dans une boîte aux lettres.",
+    "retour": "Revenir à la newsletter",
+    "aller_a_l_envoi": "Aller à l’envoi",
+    "cadre": "L’email tel qu’il partira",
+    "ecrans": {
+      "ordinateur": "Ordinateur",
+      "mobile": "Téléphone",
+      "sombre": "Mode sombre",
+      "texte": "Version texte"
+    },
+    "entete": {
+      "de": "De",
+      "reponse": "Réponse à",
+      "a": "Vu par",
+      "objet": "Objet",
+      "preheader": "Pré-en-tête",
+      "aucun_expediteur": "Aucun expéditeur : ton organisation n’a pas de domaine d’envoi.",
+      "aucune_reponse": "Aucune adresse de réponse.",
+      "personne": "Aucun destinataire dans cette cible.",
+      "objet_vide": "Pas encore d’objet.",
+      "preheader_vide": "Pas de pré-en-tête."
+    },
+    "note_identique": "Ce cadre affiche le HTML qui partira, sans retouche : seul le lien de désinscription, propre à chaque message, est remplacé ici par un exemple. La version texte accompagne chaque email.",
+    "note_sombre": "Le mode sombre est une SIMULATION : l’email n’a pas de version sombre à lui, donc l’inversion appliquée par Outlook.com ou Apple Mail est reproduite ici. Gmail, lui, n’inverse que partiellement et sans règle publiée — aucun aperçu ne peut le montrer exactement.",
+    "controle": {
+      "bloque": "{count, plural, one {# contrôle bloque l’envoi} other {# contrôles bloquent l’envoi}}",
+      "a_regarder": "Rien ne bloque, {count, plural, one {# point à regarder} other {# points à regarder}}",
+      "pret": "Tout est au vert"
+    },
+    "vu_par": {
+      "titre": "Vu par un destinataire",
+      "contact": "Destinataire",
+      "voir": "Voir",
+      "exclu": "{nom} (exclu)",
+      "note": "Une newsletter est rendue UNE fois pour toute la vague : tout le monde reçoit le même email, au lien de désinscription près. Rien n’y est personnalisé par contact.",
+      "raisons": {
+        "without_email": "Ce contact n’a pas d’adresse email : il ne recevra rien.",
+        "objected": "Ce contact s’est opposé aux emails : il ne recevra rien.",
+        "consent_missing": "L’autorisation d’écrire à ce contact n’est pas établie : il ne recevra rien tant qu’elle ne l’est pas.",
+        "suppressed": "Ce contact est désinscrit ou supprimé chez toi : il ne recevra rien.",
+        "platform": "Cette adresse est fermée pour tout le service (rebond définitif ou plainte) : elle ne recevra rien, nulle part."
+      }
+    },
+    "test": {
+      "titre": "M’envoyer un test",
+      "adresse": "Adresse",
+      "regle": "La tienne ou celle d’un membre de ton organisation, alias « +quelque-chose » compris. Jamais l’adresse d’un contact.",
+      "envoyer": "Envoyer le test"
+    }
+  },
+  "preflight": {
+    "etats": {
+      "ok": "Au vert",
+      "warning": "À regarder",
+      "blocking": "Bloque l’envoi"
+    },
+    "libelles": {
+      "objet": "Objet",
+      "preheader": "Pré-en-tête",
+      "contenu": "Contenu",
+      "variables": "Variables",
+      "liens": "Liens",
+      "desinscription": "Désinscription",
+      "pied_de_page": "Pied de page",
+      "expediteur": "Expéditeur",
+      "destinataires": "Destinataires",
+      "rythme": "Rythme d’envoi",
+      "test": "Email de test"
+    },
+    "details": {
+      "objet_vide": "Il n’y a pas d’objet : écris-le avant d’envoyer.",
+      "objet_trop_long": "{count} caractères : au-delà de {max}, la fin est coupée sur un téléphone.",
+      "objet_ok": "{count} caractères.",
+      "preheader_vide": "Vide : la messagerie affichera le début de l’email à la place.",
+      "preheader_trop_long": "{count} caractères : au-delà de {max}, la fin ne s’affiche nulle part.",
+      "preheader_ok": "{count} caractères.",
+      "contenu_inacheve": "Un bloc est encore vide : finis-le avant d’envoyer.",
+      "contenu_ok": "{count, plural, one {# bloc, rempli} other {# blocs, tous remplis}}.",
+      "variables_non_remplacees": "{sample} — une newsletter n’est rendue qu’une fois : {count, plural, one {cette variable partirait} other {ces variables partiraient}} telle quelle, accolades comprises.",
+      "variables_aucune": "Aucune variable de gabarit oubliée dans le texte.",
+      "liens_exemple": "{url} est une adresse d’exemple : remplace-la.",
+      "liens_non_securises": "{url} n’est pas en « https » : certains clients signalent le lien.",
+      "liens_aucun": "Aucun lien : personne ne pourra cliquer, et rien ne se mesurera.",
+      "liens_ok": "{count, plural, one {# lien} other {# liens}}, tous en https.",
+      "desinscription_absente": "Le lien de désinscription n’est pas dans le rendu. Il est obligatoire : l’envoi est refusé.",
+      "desinscription_ok": "Le lien est là, propre à chaque destinataire, avec la désinscription en un clic.",
+      "pied_adresse_manquante": "L’adresse postale manque au pied de page : renseigne-la dans les réglages.",
+      "pied_ok": "Mentions et adresse postale en place.",
+      "expediteur_sans_reponse": "Aucune adresse de réponse : un email sans retour possible ne part pas.",
+      "expediteur_domaine_partage": "L’email partira de {domain}, le domaine partagé de la plateforme : la réputation y est commune à toutes les organisations. Vérifie ton domaine pour partir de chez toi.",
+      "expediteur_ok": "{from}",
+      "destinataires_aucun": "Personne ne recevra cette newsletter, alors que la cible compte {total} {total, plural, one {contact} other {contacts}}.",
+      "destinataires_exclus": "{sendable} sur {total} recevront ; {excluded} sont écartés.",
+      "destinataires_ok": "{sendable, plural, one {# contact recevra} other {# contacts recevront}}.",
+      "rythme_en_pause": "L’envoi est suspendu pour ton organisation : une liste est à nettoyer avant de repartir.",
+      "rythme_etale": "Le quota du jour laisse partir {remaining} {remaining, plural, one {email} other {emails}} sur {recipients} : la vague s’étalera sur plusieurs jours, d’elle-même.",
+      "rythme_ok": "{recipients, plural, one {# email partira} other {# emails partiront}} aujourd’hui.",
+      "test_aucun": "Tu n’as pas encore reçu de test de cette newsletter.",
+      "test_perime": "Le dernier test date du {at}, avant ta dernière modification : ce n’est plus ce qui partirait.",
+      "test_ok": "Test reçu le {at}, après ta dernière modification."
+    },
+    "raisons": {
+      "without_email": "{count, plural, one {# sans adresse email} other {# sans adresse email}}",
+      "consent_missing": "{count, plural, one {# sans autorisation établie} other {# sans autorisation établie}}",
+      "objected": "{count, plural, one {# opposé aux emails} other {# opposés aux emails}}",
+      "suppressed": "{count, plural, one {# désinscrit ou supprimé} other {# désinscrits ou supprimés}}",
+      "platform": "{count, plural, one {# adresse fermée pour tout le service} other {# adresses fermées pour tout le service}}"
+    }
   }
 }

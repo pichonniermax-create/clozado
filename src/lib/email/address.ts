@@ -30,3 +30,24 @@ export function bareAddress(mailbox: string): string {
   const match = /<([^>]+)>\s*$/.exec(mailbox);
   return (match ? match[1] : mailbox).trim();
 }
+
+/**
+ * LA CLÉ D'UNE BOÎTE AUX LETTRES : en minuscules, sans le sous-adressage
+ * `+quelque-chose` du local. `claire+test@cabinet.fr` et
+ * `claire@cabinet.fr` sont la même boîte — c'est ce qui permet d'envoyer un
+ * email de test sur un alias à soi sans ouvrir l'envoi de test à n'importe
+ * quelle adresse (chantier envoi, partie 3).
+ */
+export function mailboxKey(email: string): string {
+  const address = bareAddress(email).trim().toLowerCase();
+  const at = address.lastIndexOf("@");
+  if (at <= 0) return "";
+  const local = address.slice(0, at).split("+")[0];
+  return local ? `${local}@${address.slice(at + 1)}` : "";
+}
+
+/** Cette adresse est-elle l'une des adresses autorisées, au sous-adressage près ? */
+export function isSameMailbox(candidate: string, allowed: readonly string[]): boolean {
+  const key = mailboxKey(candidate);
+  return key !== "" && allowed.some((address) => mailboxKey(address) === key);
+}

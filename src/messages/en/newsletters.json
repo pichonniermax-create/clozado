@@ -207,7 +207,7 @@
     "clics": "{count} {count, plural, one {click} other {clicks}}",
     "compteurs": "{sent} sent · {queued} queued · {failed} failed",
     "date_d_envoi": "Send date",
-    "destinataires_detail": "{sendable} with an address and not unsubscribed, out of {total} in the audience today.",
+    "destinataires_detail": "{sendable} will actually receive it, out of {total} in the audience today.",
     "en_pause_jusqu_a": "Paused until {when} — {reason}.",
     "enregistrer_les_sujets": "Save topics",
     "envoi_en_cours": "Sending in progress",
@@ -257,7 +257,12 @@
     "test_ligne": "{when} · {to} · {status}",
     "teste_d_abord_puis_envoie": "Send yourself a test first, then send for real: the audience is frozen at that moment and emails go out in batches.",
     "tests_envoyes": "Tests sent",
-    "simulation_demo": "Demo: sending is simulated — no email left, none ever will from this organisation."
+    "simulation_demo": "Demo: sending is simulated — no email left, none ever will from this organisation.",
+    "controle_indisponible": "The pre-send check could not run: sending is refused until that is fixed.",
+    "controle_bloque": "{count, plural, one {# check blocks sending} other {# checks block sending}}.",
+    "controle_avertit": "Nothing blocks, {count, plural, one {# point deserves a look} other {# points deserve a look}}.",
+    "controle_pret": "Pre-send check: everything is green.",
+    "voir_l_apercu": "See the preview"
   },
   "unitFrame": {
     "deplacer_ce_bloc": "Move this block",
@@ -274,5 +279,116 @@
     "cette_newsletter_n_existe_pas": "This newsletter doesn’t exist.",
     "le_lien_est_peut_etre_perime": "The link may be out of date, or the newsletter was created in another workspace.",
     "voir_les_newsletters": "View newsletters"
+  },
+  "preview": {
+    "titre": "Preview before sending",
+    "sous_titre": "“{titre}”, as it will land in an inbox.",
+    "retour": "Back to the newsletter",
+    "aller_a_l_envoi": "Go to sending",
+    "cadre": "The email as it will be sent",
+    "ecrans": {
+      "ordinateur": "Desktop",
+      "mobile": "Phone",
+      "sombre": "Dark mode",
+      "texte": "Plain text"
+    },
+    "entete": {
+      "de": "From",
+      "reponse": "Reply to",
+      "a": "Seen by",
+      "objet": "Subject",
+      "preheader": "Preheader",
+      "aucun_expediteur": "No sender: your organisation has no sending domain.",
+      "aucune_reponse": "No reply address.",
+      "personne": "No recipient in this audience.",
+      "objet_vide": "No subject yet.",
+      "preheader_vide": "No preheader."
+    },
+    "note_identique": "This frame shows the HTML that will be sent, untouched: only the unsubscribe link, unique to each message, is replaced here by an example. The plain-text version travels with every email.",
+    "note_sombre": "Dark mode is a SIMULATION: the email has no dark version of its own, so the inversion applied by Outlook.com or Apple Mail is reproduced here. Gmail inverts only partly, by rules it does not publish — no preview can show it exactly.",
+    "controle": {
+      "bloque": "{count, plural, one {# check blocks sending} other {# checks block sending}}",
+      "a_regarder": "Nothing blocks, {count, plural, one {# point to look at} other {# points to look at}}",
+      "pret": "Everything is green"
+    },
+    "vu_par": {
+      "titre": "Seen by a recipient",
+      "contact": "Recipient",
+      "voir": "Show",
+      "exclu": "{nom} (excluded)",
+      "note": "A newsletter is rendered ONCE for the whole wave: everyone gets the same email, bar the unsubscribe link. Nothing in it is personalised per contact.",
+      "raisons": {
+        "without_email": "This contact has no email address: they will not receive anything.",
+        "objected": "This contact objected to emails: they will not receive anything.",
+        "consent_missing": "Permission to write to this contact is not established: they will receive nothing until it is.",
+        "suppressed": "This contact unsubscribed or was suppressed in your organisation: they will not receive anything.",
+        "platform": "This address is closed for the whole service (hard bounce or complaint): it will receive nothing, anywhere."
+      }
+    },
+    "test": {
+      "titre": "Send myself a test",
+      "adresse": "Address",
+      "regle": "Yours or a member of your organisation, “+something” aliases included. Never a contact’s address.",
+      "envoyer": "Send the test"
+    }
+  },
+  "preflight": {
+    "etats": {
+      "ok": "Green",
+      "warning": "Worth a look",
+      "blocking": "Blocks sending"
+    },
+    "libelles": {
+      "objet": "Subject",
+      "preheader": "Preheader",
+      "contenu": "Content",
+      "variables": "Variables",
+      "liens": "Links",
+      "desinscription": "Unsubscribe",
+      "pied_de_page": "Footer",
+      "expediteur": "Sender",
+      "destinataires": "Recipients",
+      "rythme": "Sending pace",
+      "test": "Test email"
+    },
+    "details": {
+      "objet_vide": "There is no subject: write one before sending.",
+      "objet_trop_long": "{count} characters: beyond {max}, the end is cut off on a phone.",
+      "objet_ok": "{count} characters.",
+      "preheader_vide": "Empty: the mail app will show the start of the email instead.",
+      "preheader_trop_long": "{count} characters: beyond {max}, the end shows nowhere.",
+      "preheader_ok": "{count} characters.",
+      "contenu_inacheve": "A block is still empty: finish it before sending.",
+      "contenu_ok": "{count, plural, one {# block, filled in} other {# blocks, all filled in}}.",
+      "variables_non_remplacees": "{sample} — a newsletter is rendered only once: {count, plural, one {this variable would go out} other {these variables would go out}} as is, braces and all.",
+      "variables_aucune": "No template variable left in the text.",
+      "liens_exemple": "{url} is an example address: replace it.",
+      "liens_non_securises": "{url} is not “https”: some clients flag the link.",
+      "liens_aucun": "No link: nobody can click, and nothing will be measured.",
+      "liens_ok": "{count, plural, one {# link} other {# links}}, all over https.",
+      "desinscription_absente": "The unsubscribe link is not in the render. It is mandatory: sending is refused.",
+      "desinscription_ok": "The link is there, unique to each recipient, with one-click unsubscribe.",
+      "pied_adresse_manquante": "The postal address is missing from the footer: fill it in under settings.",
+      "pied_ok": "Legal lines and postal address in place.",
+      "expediteur_sans_reponse": "No reply address: an email nobody can answer does not go out.",
+      "expediteur_domaine_partage": "The email will go from {domain}, the platform’s shared domain: reputation there is common to every organisation. Verify your own domain to send from home.",
+      "expediteur_ok": "{from}",
+      "destinataires_aucun": "Nobody will receive this newsletter, although the audience holds {total} {total, plural, one {contact} other {contacts}}.",
+      "destinataires_exclus": "{sendable} of {total} will receive it; {excluded} are left out.",
+      "destinataires_ok": "{sendable, plural, one {# contact will receive it} other {# contacts will receive it}}.",
+      "rythme_en_pause": "Sending is suspended for your organisation: a list needs cleaning before it starts again.",
+      "rythme_etale": "Today’s quota allows {remaining} {remaining, plural, one {email} other {emails}} out of {recipients}: the wave will spread over several days by itself.",
+      "rythme_ok": "{recipients, plural, one {# email will go out} other {# emails will go out}} today.",
+      "test_aucun": "You have not received a test of this newsletter yet.",
+      "test_perime": "The last test is from {at}, before your last change: it is no longer what would go out.",
+      "test_ok": "Test received on {at}, after your last change."
+    },
+    "raisons": {
+      "without_email": "{count, plural, one {# with no email address} other {# with no email address}}",
+      "consent_missing": "{count, plural, one {# with no established permission} other {# with no established permission}}",
+      "objected": "{count, plural, one {# who objected to emails} other {# who objected to emails}}",
+      "suppressed": "{count, plural, one {# unsubscribed or suppressed} other {# unsubscribed or suppressed}}",
+      "platform": "{count, plural, one {# address closed for the whole service} other {# addresses closed for the whole service}}"
+    }
   }
 }

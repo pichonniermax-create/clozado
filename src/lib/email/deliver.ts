@@ -1,7 +1,7 @@
 import type { EmailMessage } from "@/db/schema";
 import { DEMO_PROVIDER_PREFIX } from "@/lib/demo/constants";
 import { isDemoOrganization } from "@/lib/demo/guard";
-import { feedbackId, unsubscribeUrls } from "./headers";
+import { feedbackId, unsubscribeUrls, withUnsubscribeUrl } from "./headers";
 import { BATCH_MAX, marketingMail, ResendError, type OutgoingEmail } from "./resend";
 
 /**
@@ -13,10 +13,7 @@ import { BATCH_MAX, marketingMail, ResendError, type OutgoingEmail } from "./res
  * duplique rien.
  */
 
-/** Le marqueur laissé dans le rendu à la place du lien de désinscription, propre à chaque message. */
-export const UNSUBSCRIBE_PLACEHOLDER = "%%CLOZADO_UNSUBSCRIBE%%";
-
-export { feedbackId, unsubscribeUrls } from "./headers";
+export { feedbackId, unsubscribeUrls, UNSUBSCRIBE_PLACEHOLDER, withUnsubscribeUrl } from "./headers";
 
 export type SendContent = { html: string; text: string };
 
@@ -26,8 +23,8 @@ export function buildOutgoing(message: EmailMessage, content: SendContent, origi
     from: message.fromEmail,
     to: [message.toEmail],
     subject: message.subject,
-    html: content.html.split(UNSUBSCRIBE_PLACEHOLDER).join(urls.page),
-    text: content.text.split(UNSUBSCRIBE_PLACEHOLDER).join(urls.page),
+    html: withUnsubscribeUrl(content.html, urls.page),
+    text: withUnsubscribeUrl(content.text, urls.page),
     ...(message.replyTo ? { replyTo: message.replyTo } : {}),
     headers: {
       "List-Unsubscribe": `<${urls.oneClick}>`,

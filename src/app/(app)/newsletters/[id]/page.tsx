@@ -13,12 +13,13 @@ import { getRenderContext, listNewsletterSources } from "@/db/queries/newsletter
 import { loadNewsletter } from "@/lib/newsletter/actions";
 import { requestOrigin } from "@/lib/request-origin";
 import { requireSessionUser, requireUser } from "@/lib/session";
-import { countSendableMembers, countSentSince, getCampaignStats, getLatestSend, listTestMessages, sendPhase } from "@/db/queries/email-sends";
+import { countSentSince, getCampaignStats, getLatestSend, listTestMessages, sendPhase } from "@/db/queries/email-sends";
 import { getOrganizationOfRecord } from "@/db/queries/organizations";
 import { getUserProfile } from "@/db/queries/users";
 import { marketingSendingDomain } from "@/lib/email/config";
 import { missingFooterFacts } from "@/lib/email/footer";
 import { resolveSender } from "@/lib/email/sender";
+import { sendPreflight } from "@/lib/email/send-preflight";
 import { getTranslations } from "next-intl/server";
 import { settingsOfOrganization } from "@/i18n/locale-lookup";
 import { DEFAULT_LOCALE } from "@/i18n/locales";
@@ -57,14 +58,29 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
   // La carte d'envoi (chantier engagement) : l'envoi en cours ou terminé, ses agrégats, les tests, l'expéditeur effectif, l'audience réelle.
   const session = await requireSessionUser();
   const org = await getOrganizationOfRecord(user, data.newsletter.organizationId);
-  const currentTarget = editorTargets.find((t) => t.id === data.newsletter.targetId) ?? null;
-  const [send, tests, profile, sendable, sentToday] = await Promise.all([
+  const [send, tests, profile, sentToday] = await Promise.all([
     getLatestSend(data.newsletter.id),
     listTestMessages(data.newsletter.id),
     getUserProfile(session.id),
-    currentTarget && !data.newsletter.sentAt ? countSendableMembers(currentTarget) : Promise.resolve(0),
     countSentSince(org.id, new Date(new Date().setUTCHours(0, 0, 0, 0))),
   ]);
+  /**
+   * LE CONTRÔLE AVANT ENVOI (chantier envoi, partie 3) : il rend le verdict
+   * affiché ici et le décompte réel des destinataires — le même calcul que
+   * celui qui met les messages en file, et que le serveur rejouera à
+   * l'envoi. Il ne tourne que pour un brouillon (une newsletter partie n'a
+   * plus rien à contrôler) et son échec — une cible devenue illisible,
+   * aucun domaine d'envoi — n'emporte pas l'écran : l'envoi est alors
+   * refusé, et la carte le dit.
+   */
+  let report = null;
+  if (!data.newsletter.sentAt) {
+    try {
+      report = await sendPreflight(user, session.id, data.newsletter.id, origin);
+    } catch {
+      report = null;
+    }
+  }
   const stats = data.newsletter.sendMode === "sent" ? await getCampaignStats(data.newsletter.id, org.id) : null;
   const phase = sendPhase(send);
   let sender = null;
@@ -124,7 +140,8 @@ export default async function EditNewsletterPage(props: PageProps<"/newsletters/
         stats={stats}
         tests={session.readOnly ? [] : tests /* les tests portent l'adresse de la personne qui les a demandés : jamais montrés à un visiteur de la démo */}
         sender={sender}
-        audience={currentTarget ? { total: counts.get(currentTarget.id) ?? 0, sendable } : null}
+        audience={report?.audience ?? null}
+        preflight={report ? { blocking: report.blocking.length, warning: report.rows.filter((r) => r.state === "warning").length } : null}
         footerMissing={missingFooterFacts(org).length > 0}
         simulated={org.isDemo}
         sentToday={sentToday}

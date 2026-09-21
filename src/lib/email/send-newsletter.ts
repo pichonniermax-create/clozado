@@ -1,7 +1,7 @@
 import { after } from "next/server";
-import { asc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { newsletterBlocks, newsletterSends, newsletters } from "@/db/schema";
+import { newsletterSends, newsletters } from "@/db/schema";
 import type { EmailMessage, NewsletterSend, Organization } from "@/db/schema";
 import {
   claimSend,
@@ -16,20 +16,19 @@ import {
   renewLease,
   startNewsletterSend,
 } from "@/db/queries/email-sends";
-import { buildAudienceSnapshot, getNewsletterOrThrow, getRenderContext, normalizeTopics } from "@/db/queries/newsletters";
-import { getOrganizationOfRecord } from "@/db/queries/organizations";
-import { getUserProfile } from "@/db/queries/users";
+import { buildAudienceSnapshot, normalizeTopics } from "@/db/queries/newsletters";
 import { sendingAllowance } from "@/db/queries/sending-health";
+import { listMemberEmails } from "@/db/queries/inbound";
 import { settingsOfOrganization } from "@/i18n/locale-lookup";
 import { translatorFor } from "@/i18n/translator";
 import { toAppLocale } from "@/i18n/locales";
 import { AppError } from "@/lib/errors";
-import { parseBlockPayload, NEWSLETTER_OUTPUT_SCHEMA, type AnyBlock } from "@/lib/newsletter/blocks";
-import { renderNewsletterHtml, renderNewsletterText } from "@/lib/newsletter/render-email";
+import type { AnyBlock } from "@/lib/newsletter/blocks";
 import type { OrgScopeUser } from "@/lib/session";
-import { deliverMessages, UNSUBSCRIBE_PLACEHOLDER, type SendContent } from "./deliver";
-import { buildFooter, missingFooterFacts } from "./footer";
-import { resolveSender } from "./sender";
+import { isPlausibleEmail, isSameMailbox } from "./address";
+import { deliverMessages, type SendContent } from "./deliver";
+import { buildSendDraft, type SendDraft } from "./send-draft";
+import { sendPreflight } from "./send-preflight";
 
 /**
  * L'ENVOI D'UNE NEWSLETTER, de bout en bout (docs/module-engagement.md §3.3) :
@@ -55,37 +54,28 @@ type Prepared = {
   fallback: boolean;
 };
 
-async function loadBlocks(newsletterId: string): Promise<AnyBlock[]> {
-  const rows = await db.select().from(newsletterBlocks).where(eq(newsletterBlocks.newsletterId, newsletterId)).orderBy(asc(newsletterBlocks.position));
-  return rows.map((row) => ({ type: row.type, ...parseBlockPayload(row.type, row.payload) }) as AnyBlock);
-}
-
 /**
- * Prépare ce qui partira : contrôles (objet, blocs aboutis, faits du pied
- * de page), rendu HTML et texte avec le marqueur de désinscription,
- * expéditeur et adresse de réponse. `test` relâche le contrôle du pied de
- * page (un test peut partir avant que l'adresse postale soit saisie) et
- * pose l'avertissement de test dans le pied de page.
+ * Ce qui partira, contrôlé : le rendu vient de `buildSendDraft` (le MÊME
+ * que celui de l'aperçu, docs/audit-newsletter.md §A quater), et les refus
+ * historiques restent posés ici — objet vide, document inachevé, adresse
+ * postale absente, adresse de réponse absente. Ce sont des
+ * invariants de dernière ligne : le contrôle avant envoi les a déjà vus et
+ * a déjà refusé l'envoi (`launchNewsletterSend`) ; s'ils remontent
+ * jusqu'ici, c'est qu'on a été appelé sans lui.
+ *
+ * `test` relâche le contrôle du pied de page (un test peut partir avant que
+ * l'adresse postale soit saisie) et pose l'avertissement de test.
  */
 export async function prepareNewsletterEmail(user: OrgScopeUser, sessionUserId: string, newsletterId: string, origin: string, options: { test: boolean }): Promise<Prepared> {
-  const newsletter = await getNewsletterOrThrow(user, newsletterId);
-  const org = await getOrganizationOfRecord(user, newsletter.organizationId);
-  const blocks = await loadBlocks(newsletterId);
-  const subject = newsletter.subject?.trim() ?? "";
-  if (!subject) throw new AppError("l_objet_est_vide_ecris_le_avant_d_envoyer");
-  // Le niveau « aboutie » des blocs, de l'objet et de l'aperçu — les sujets, eux, sont posés par l'envoi.
-  const finished = NEWSLETTER_OUTPUT_SCHEMA.omit({ topics: true }).safeParse({ subject, preheader: newsletter.preheader ?? "", blocks });
-  if (!finished.success) throw new AppError("la_newsletter_n_est_pas_finie_un_bloc_est_vide");
-  if (!options.test && missingFooterFacts(org).length > 0) throw new AppError("l_adresse_postale_manque_au_pied_de_page");
+  return assertSendable(await buildSendDraft(user, sessionUserId, newsletterId, origin, options), options);
+}
 
-  const [context, profile] = await Promise.all([getRenderContext(user, newsletter.targetId, origin), getUserProfile(sessionUserId)]);
-  const sender = resolveSender(org, profile);
-  if (!sender.replyTo) throw new AppError("aucune_adresse_de_reponse");
-  const footer = await buildFooter(org, context.locale, { unsubscribeUrl: UNSUBSCRIBE_PLACEHOLDER }, { test: options.test });
-  const input = { brand: context.brand, subject, preheader: newsletter.preheader ?? "", blocks, signatory: context.signatory, footer, lang: context.locale };
-  const html = renderNewsletterHtml(input);
-  const text = renderNewsletterText(input);
-  return { newsletter, org, blocks, subject, content: { html, text }, from: sender.from, replyTo: sender.replyTo, fallback: sender.fallback };
+function assertSendable(draft: SendDraft, options: { test: boolean }): Prepared {
+  if (!draft.subject) throw new AppError("l_objet_est_vide_ecris_le_avant_d_envoyer");
+  if (!draft.finished) throw new AppError("la_newsletter_n_est_pas_finie_un_bloc_est_vide");
+  if (!options.test && draft.postalMissing) throw new AppError("l_adresse_postale_manque_au_pied_de_page");
+  if (!draft.replyTo || !draft.from) throw new AppError("aucune_adresse_de_reponse");
+  return { newsletter: draft.newsletter, org: draft.org, blocks: draft.blocks, subject: draft.subject, content: draft.content, from: draft.from, replyTo: draft.replyTo, fallback: draft.fallback };
 }
 
 // ---------------------------------------------------------------------------
@@ -94,7 +84,17 @@ export async function prepareNewsletterEmail(user: OrgScopeUser, sessionUserId: 
 
 /** « Envoyer » : prépare, fige, crée l'envoi et ses messages, et lance l'exécutant après la réponse. */
 export async function launchNewsletterSend(user: OrgScopeUser, sessionUserId: string, newsletterId: string, origin: string): Promise<{ sendId: string; queued: number }> {
-  const prepared = await prepareNewsletterEmail(user, sessionUserId, newsletterId, origin, { test: false });
+  /**
+   * LE CONTRÔLE AVANT ENVOI EST REJOUÉ ICI (chantier envoi, partie 3) — la
+   * liste affichée à l'écran ne protège que l'écran. Un bloquant refuse
+   * l'envoi côté serveur, quelle que soit la case cochée dans le
+   * navigateur, et la personne est renvoyée vers la liste qui le dit.
+   */
+  const report = await sendPreflight(user, sessionUserId, newsletterId, origin);
+  if (report.blocking.length > 0) {
+    throw new AppError("le_controle_avant_envoi_bloque_cet_envoi", { count: report.blocking.length });
+  }
+  const prepared = assertSendable(report.draft, { test: false });
   if (prepared.newsletter.sentAt) throw new AppError("cette_newsletter_est_deja_marquee_envoyee");
   const t = await translatorFor(toAppLocale(prepared.org.defaultLocale), "targets");
   const { target, snapshot } = await buildAudienceSnapshot(prepared.newsletter, t);
@@ -236,13 +236,30 @@ export async function runSend(sendId: string, origin: string, options: { already
 // L'email de test — vers la personne connectée, jamais vers un contact
 // ---------------------------------------------------------------------------
 
-export async function sendTestEmail(user: OrgScopeUser, session: { id: string; email: string }, newsletterId: string, origin: string): Promise<EmailMessage> {
+/**
+ * L'email de test part à SOI, ou à un membre de l'organisation — jamais à
+ * un contact (chantier envoi, partie 3 ; doctrine : « aucun email de test
+ * vers une adresse autre que les siennes »). Le sous-adressage est accepté
+ * (`claire+relecture@…` est la boîte de `claire@…`) : on teste sur un
+ * alias sans ouvrir la porte à une adresse quelconque. La vérification est
+ * ICI, côté serveur : le champ de l'écran ne protège que l'écran.
+ */
+export async function sendTestEmail(
+  user: OrgScopeUser,
+  session: { id: string; email: string },
+  newsletterId: string,
+  origin: string,
+  requestedTo?: string
+): Promise<EmailMessage> {
   const prepared = await prepareNewsletterEmail(user, session.id, newsletterId, origin, { test: true });
+  const toEmail = (requestedTo ?? "").trim() || session.email;
+  const allowed = [session.email, ...(await listMemberEmails(prepared.org.id))];
+  if (!isPlausibleEmail(toEmail) || !isSameMailbox(toEmail, allowed)) throw new AppError("un_test_ne_part_qu_a_toi_ou_a_un_membre");
   const tEmail = await translatorFor(toAppLocale(prepared.org.defaultLocale), "email.test");
   const message = await createTestMessage({
     organizationId: prepared.org.id,
     newsletterId,
-    toEmail: session.email,
+    toEmail,
     from: prepared.from,
     replyTo: prepared.replyTo,
     subject: `${tEmail("subject_prefix")}${prepared.subject}`,
