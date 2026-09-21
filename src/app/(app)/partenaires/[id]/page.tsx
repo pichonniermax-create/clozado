@@ -1,23 +1,19 @@
 import Link from "next/link";
 import { nullIfNotFound } from "@/lib/errors";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { Banknote, Mail, Phone, Trophy, UserPlus, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DealStatusBadge } from "@/components/deals/deal-status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Field } from "@/components/ui/field";
-import { InlineDetails } from "@/components/ui/inline-details";
-import { Input } from "@/components/ui/input";
 import { ListCard, ListRowLink } from "@/components/ui/list-card";
 import { MetricDefinitions } from "@/components/analytics/metric-definitions";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { ShareStatusBadge } from "@/components/deal-shares/share-status-badge";
 import { StatTile } from "@/components/stat-tile";
-import { Textarea } from "@/components/ui/textarea";
 import { getPartner, listPartnerBrought, listPartnerFigures, PARTNER_RATE_MIN } from "@/db/queries/partners";
 import { listPartnerJournal } from "@/db/queries/activities";
 import { listOpenTasksForPartner } from "@/db/queries/tasks";
@@ -25,11 +21,12 @@ import { listOrgUsers } from "@/db/queries/contacts";
 import { Journal } from "@/components/activities/journal";
 import { JOURNAL_ERROR_PARAM } from "@/components/activities/labels";
 import { TaskSection } from "@/components/tasks/task-section";
-import { NativeSelect } from "@/components/ui/native-select";
 import { readFlash } from "@/lib/flash";
 import { getPreferences } from "@/db/queries/preferences";
 import { listDealSharesForPartner } from "@/db/queries/deal-shares";
-import { updatePartnerAction } from "@/lib/deals/actions";
+import { patchPartnerFieldAction } from "@/lib/deals/actions";
+import { FicheVersion, InlineField } from "@/components/fiches/inline-field";
+import { versionOf } from "@/lib/fiches/inline";
 import { FILTER_PARAM, serializeFilters } from "@/lib/display/filters";
 import { queryString } from "@/lib/display/state";
 import { withRememberedPeriod } from "@/lib/display/period";
@@ -100,32 +97,15 @@ export default async function PartnerPage({
     lastExchangeAt: null,
   };
 
+  /** La version de la fiche, l'action serveur, la lecture seule — les trois choses que tout champ en place reçoit. */
+  const champ = { version: versionOf(partner), save: patchPartnerFieldAction.bind(null, id), readOnly: user.readOnly } as const;
+
   // Ses contacts, sur l'écran des contacts : le constructeur de filtres du lot 3 porte la question, écrite par
   // le module qui possède la syntaxe (jamais une adresse assemblée à la main ici).
   const broughtFilter = serializeFilters([{ field: "apporteur", type: "liste", operator: "eq", values: [id] }]);
   const broughtHref = `/contacts${queryString({ [FILTER_PARAM]: broughtFilter })}`;
   const addContactHref = `/contacts${queryString({ [FILTER_PARAM]: broughtFilter, nouveau: "1" })}`;
 
-  async function savePartner(formData: FormData) {
-    "use server";
-    // Pas de requireUser() ici : updatePartnerAction en fait déjà un
-    // (src/lib/deals/actions.ts) — jamais deux vérifications qui pourraient diverger.
-    const name = String(formData.get("name") ?? "").trim();
-    if (!name) return;
-
-    await updatePartnerAction(id, {
-      name,
-      company: String(formData.get("company") ?? "").trim() || null,
-      profession: String(formData.get("profession") ?? "").trim() || null,
-      email: String(formData.get("email") ?? "").trim() || null,
-      phone: String(formData.get("phone") ?? "").trim() || null,
-      notes: String(formData.get("notes") ?? "").trim() || null,
-      // « Personne » est une valeur : le champ vide efface le responsable, il ne le laisse pas en place.
-      ownerId: String(formData.get("ownerId") ?? "").trim() || null,
-      active: formData.get("active") === "on",
-    });
-    redirect(`/partenaires/${id}`);
-  }
 
   return (
     <>
@@ -190,84 +170,42 @@ export default async function PartnerPage({
           <CardTitle>{t("fiche")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-            <Fact label={t("societe")} value={partner.company} />
-            <Fact label={t("metier")} value={partner.profession} />
-            <Fact
-              label={t("email")}
-              value={
-                partner.email ? (
-                  <a href={`mailto:${partner.email}`} className="break-words hover:underline">
-                    {partner.email}
-                  </a>
-                ) : null
-              }
+          {/*
+            MODIFICATION EN PLACE (chantier « les fiches deviennent
+            modifiables ») : la fiche ne se lit plus d'un côté et ne se
+            corrige plus de l'autre derrière « Modifier » — on clique sur
+            la valeur. Le même composant que les fiches contact, société et
+            affaire : un seul geste dans toute l'application.
+          */}
+          <FicheVersion version={champ.version}>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <InlineField {...champ} label={t("nom")} field="name" kind="texte" value={partner.name} required />
+            <InlineField {...champ} label={t("societe")} field="company" kind="texte" value={partner.company ?? ""} />
+            <InlineField {...champ} label={t("metier")} field="profession" kind="texte" value={partner.profession ?? ""} />
+            <InlineField {...champ} label={t("telephone")} field="phone" kind="telephone" value={partner.phone ?? ""} />
+            <InlineField {...champ} label={t("email")} field="email" kind="email" value={partner.email ?? ""} className="sm:col-span-2" />
+            {/* Le conseiller qui tient la RELATION — pas le propriétaire d'une fiche : la personne à qui
+                l'on demande « où en es-tu avec lui », et qui hérite de la tâche quand il s'endort. */}
+            <InlineField
+              {...champ}
+              label={t("responsable")}
+              field="ownerId"
+              kind="liste"
+              value={partner.ownerId ?? ""}
+              display={owner ? owner.name || owner.email : ""}
+              options={orgUsers.map((u) => ({ value: u.id, label: u.name || u.email }))}
+              hint={t("le_conseiller_qui_tient_la_relation")}
             />
-            <Fact
-              label={t("telephone")}
-              value={
-                partner.phone ? (
-                  <a href={`tel:${partner.phone.replace(/\s/g, "")}`} className="hover:underline">
-                    {partner.phone}
-                  </a>
-                ) : null
-              }
-            />
-            <Fact label={t("responsable")} value={owner ? (owner.name || owner.email) : <span className="text-muted-foreground">{t("personne")}</span>} />
-            <Fact label={t("statut")} value={partner.active ? <Badge variant="secondary">{t("actif")}</Badge> : <Badge variant="outline">{t("inactif")}</Badge>} />
-            <Fact label={t("notes")} value={partner.notes ? <span className="whitespace-pre-wrap">{partner.notes}</span> : null} className="sm:col-span-2" />
-          </dl>
-
-          <InlineDetails summary={t("modifier")}>
-            <form action={savePartner} className="mt-3 flex flex-col gap-4">
-              {/* Une colonne à 390 px (deux colonnes forcées tronquaient l'email), deux dès sm ; l'email — long — sur
-                  toute la ligne et les notes en dessous : plus de cellule vide dans la grille. */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label={t("nom")} htmlFor="name">
-                  <Input id="name" name="name" defaultValue={partner.name} required />
-                </Field>
-                <Field label={t("societe")} htmlFor="company">
-                  <Input id="company" name="company" defaultValue={partner.company ?? ""} />
-                </Field>
-                <Field label={t("metier")} htmlFor="profession">
-                  <Input id="profession" name="profession" defaultValue={partner.profession ?? ""} />
-                </Field>
-                <Field label={t("telephone")} htmlFor="phone">
-                  <Input id="phone" name="phone" type="tel" defaultValue={partner.phone ?? ""} />
-                </Field>
-                <Field label={t("email")} htmlFor="email" className="sm:col-span-2">
-                  <Input id="email" name="email" type="email" defaultValue={partner.email ?? ""} />
-                </Field>
-                {/* Le conseiller qui tient la RELATION — pas le propriétaire d'une fiche : la personne à qui
-                    l'on demande « où en es-tu avec lui », et qui hérite de la tâche quand il s'endort. */}
-                <Field label={t("responsable")} htmlFor="ownerId" hint={t("le_conseiller_qui_tient_la_relation")}>
-                  <NativeSelect id="ownerId" name="ownerId" defaultValue={partner.ownerId ?? ""}>
-                    <option value="">{t("personne")}</option>
-                    {orgUsers.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name || u.email}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </Field>
-                <Field label={t("notes")} htmlFor="notes" className="sm:col-span-2">
-                  <Textarea id="notes" name="notes" defaultValue={partner.notes ?? ""} className="min-h-16" />
-                </Field>
-              </div>
-              <label className="flex min-h-10 items-center gap-2 text-sm">
-                <input type="checkbox" name="active" defaultChecked={partner.active} />
-                {t("partenaire_actif")}
-              </label>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button type="submit" className="w-fit">
-                  {t("enregistrer")}
-                </Button>
-                <Button type="reset" variant="ghost">
-                  {t("annuler")}
-                </Button>
-              </div>
-            </form>
-          </InlineDetails>
+            {/* Le statut n'est pas un champ qu'on corrige : c'est une décision, avec son geste et sa confirmation. */}
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs text-muted-foreground">{t("statut")}</span>
+              <span className="flex min-h-8 items-center">
+                {partner.active ? <Badge variant="secondary">{t("actif")}</Badge> : <Badge variant="outline">{t("inactif")}</Badge>}
+              </span>
+            </div>
+            <InlineField {...champ} label={t("notes")} field="notes" kind="texte_long" value={partner.notes ?? ""} className="sm:col-span-2" />
+          </div>
+          </FicheVersion>
         </CardContent>
       </Card>
 

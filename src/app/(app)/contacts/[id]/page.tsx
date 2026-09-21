@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, Download, Mail, MailOpen, MessageSquare, MousePointerClick, Plus } from "lucide-react";
 import { StatTile } from "@/components/stat-tile";
-import { InlineField } from "@/components/fiches/inline-field";
+import { FicheVersion, InlineField } from "@/components/fiches/inline-field";
 import { listPartners } from "@/db/queries/partners";
 import { listOrigins } from "@/db/queries/acquisition";
 import { suppressionOfContact } from "@/db/queries/email-events";
@@ -421,6 +421,7 @@ export default async function ContactPage({
             les quatre fiches du produit. Les étiquettes gardent leur carte :
             elles sont multi-valeurs, un champ en place n'en tient qu'une.
           */}
+          <FicheVersion version={champ.version}>
           <div className="grid grid-cols-1 gap-3 @md:grid-cols-2">
             {isPerson ? (
               <>
@@ -495,6 +496,7 @@ export default async function ContactPage({
             />
             <InlineField {...champ} label={tr("notes")} field="notes" kind="texte_long" value={contact.notes ?? ""} className="@md:col-span-2" />
           </div>
+          </FicheVersion>
         </CardContent>
       </Card>
 

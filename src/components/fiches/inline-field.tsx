@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { createContext, useContext, useEffect, useId, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { AmountInput } from "@/components/ui/amount-input";
@@ -35,6 +35,34 @@ import type { InlinePatch, InlineSaveResult } from "@/lib/fiches/inline";
  * modifiable : le clic affiche la phrase de lecture seule qui existe
  * déjà, à l'endroit même du clic.
  */
+
+/**
+ * LA VERSION PARTAGÉE D'UNE FICHE — trouvée au navigateur : sans elle,
+ * corriger deux champs à la suite refusait le second. Chaque champ part
+ * avec la version de la fiche ; la première écriture la fait changer, et
+ * les autres champs, eux, portaient encore l'ancienne tant que la page
+ * rafraîchie n'était pas revenue. La personne voyait « cette fiche a été
+ * modifiée » alors qu'elle était seule.
+ *
+ * Ici, les champs d'une même fiche lisent et écrivent UNE version, tenue
+ * côté client entre deux rendus du serveur : une écriture la met à jour
+ * tout de suite, un rechargement du serveur la remplace. La garde contre
+ * l'écrasement reste entière — une autre personne écrit, et sa version ne
+ * correspond plus à celle qu'on porte.
+ */
+const VersionContext = createContext<{ value: string; adopt: (next: string) => void } | null>(null);
+
+export function FicheVersion({ version, children }: { version: string; children: ReactNode }) {
+  const [current, setCurrent] = useState(version);
+  const [seen, setSeen] = useState(version);
+  // Le serveur a rendu la fiche à nouveau : c'est SA version qui fait foi.
+  if (version !== seen) {
+    setSeen(version);
+    setCurrent(version);
+  }
+  const shared = useMemo(() => ({ value: current, adopt: setCurrent }), [current]);
+  return <VersionContext.Provider value={shared}>{children}</VersionContext.Provider>;
+}
 
 export type InlineOption = { value: string; label: string };
 
@@ -74,6 +102,7 @@ export function InlineField(props: InlineFieldProps) {
   const { label, field, kind, value, display, options, required, search, version, save, readOnly, hint, className } = props;
   const t = useTranslations("fiches.inline");
   const tDemo = useTranslations("demo.banner");
+  const shared = useContext(VersionContext);
   const fmt = useFormats();
   const router = useRouter();
   const inputId = useId();
@@ -143,9 +172,11 @@ export function InlineField(props: InlineFieldProps) {
     savingRef.current = true;
     setError(null);
     startTransition(async () => {
-      const result = await save({ field, value: trimmed, version });
+      const result = await save({ field, value: trimmed, version: shared?.value ?? version });
       savingRef.current = false;
       if (result.ok) {
+        // La fiche a une nouvelle version : les autres champs la reprennent, sinon le prochain se croirait périmé.
+        shared?.adopt(result.version);
         setSaved({ value: trimmed, display: result.display ?? displayFor(trimmed, chosen) });
         setEditing(false);
         // Tout ce qui dépend de cette valeur ailleurs sur l'écran se remet à jour.

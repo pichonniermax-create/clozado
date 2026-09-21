@@ -52,6 +52,7 @@ async function main() {
   const tasksQ = await import("../src/db/queries/tasks");
   const activitiesQ = await import("../src/db/queries/activities");
   const { createPartner, updatePartner } = await import("../src/db/queries/partners");
+  const partnersQ = await import("../src/db/queries/partners");
   const { getFollowUpBoard } = await import("../src/db/queries/deal-follow-up");
   const { organizations, users, contacts, deals, tasks, activities, dealEvents, dealStageChanges, dealShares, dealTypes, dealStatuses, contactAccessLog, partners, commissions, pipelines } = schema;
 
@@ -237,6 +238,32 @@ async function main() {
     expect("et la version a changé : la saisie suivante ne peut pas rejouer l'ancienne", patched.updatedAt.toISOString() !== versionA);
     const contactBAfter = await db.query.contacts.findFirst({ where: eq(contacts.id, b.contactId) });
     expect("la fiche de B n'a pas bougé", contactBAfter!.city !== "Nantes" && contactBAfter!.companyId === null);
+
+    // Les mêmes gardes sur les deux autres fiches modifiables en place.
+    const dealA = await db.query.deals.findFirst({ where: eq(deals.id, a.dealId) });
+    const partnerARow = await db.query.partners.findFirst({ where: eq(partners.id, a.partnerId) });
+    await expectThrow(
+      "patchDeal(B, affaire de A) refuse",
+      () => dealsQ.patchDeal(b!.admin, b!.userId, a!.dealId, { field: "title", value: "Pirate", version: dealA!.updatedAt.toISOString() })
+    );
+    await expectThrow(
+      "patchDeal(A, étape d'une AUTRE organisation) refuse",
+      () => dealsQ.patchDeal(a!.admin, a!.userId, a!.dealId, { field: "statusId", value: b!.statuses[2].id, version: dealA!.updatedAt.toISOString() })
+    );
+    await expectThrow(
+      "patchDeal(A, montant illisible) refuse",
+      () => dealsQ.patchDeal(a!.admin, a!.userId, a!.dealId, { field: "estimatedAmount", value: "beaucoup", version: dealA!.updatedAt.toISOString() })
+    );
+    await expectThrow(
+      "patchPartner(B, confrère de A) refuse",
+      () => partnersQ.patchPartner(b!.admin, a!.partnerId, { field: "name", value: "Pirate", version: partnerARow!.updatedAt.toISOString() })
+    );
+    await expectThrow(
+      "patchPartner(A, adresse email invalide) refuse",
+      () => partnersQ.patchPartner(a!.admin, a!.partnerId, { field: "email", value: "pas-une-adresse", version: partnerARow!.updatedAt.toISOString() })
+    );
+    const dealPatched = await dealsQ.patchDeal(a.admin, a.userId, a.dealId, { field: "estimatedAmount", value: "1 234,50", version: dealA!.updatedAt.toISOString() });
+    expect("patchDeal(A, montant écrit à la française) écrit un nombre brut", Number(dealPatched.estimatedAmount) === 1234.5, String(dealPatched.estimatedAmount));
 
     // Affectation de masse (audit, constat S1) : l'entrée d'une action serveur est
     // du JSON libre — une clé `organizationId` ou `id` glissée dedans ne doit

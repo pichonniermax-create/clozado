@@ -60,7 +60,12 @@
     "affaire_close_pas_de_partage": "This deal is closed: it can no longer be shared. Its past shares stay listed above.",
     "partager_cette_affaire": "Share this deal",
     "rattacher_une_fiche_contact": "Attach a contact record",
-    "rattacher": "Attach"
+    "rattacher": "Attach",
+    "nom_de_l_affaire": "Deal name",
+    "type_d_affaire": "Deal type",
+    "client": "Client",
+    "commission_sur_ancien_montant": "Commission agreed on {base}; the deal is now worth {actuel}. It has not been recalculated — what was agreed with the partner stands.",
+    "rattachez_dans_le_champ_client": "Attach one from the “Client” field at the top of this record."
   },
   "detailNotFound": {
     "cette_affaire_n_existe_pas": "This deal doesn’t exist.",

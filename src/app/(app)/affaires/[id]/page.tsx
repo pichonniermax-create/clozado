@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { ContactPicker } from "@/components/contacts/contact-picker";
-import { withError } from "@/lib/form-actions";
+
 import { nullIfNotFound } from "@/lib/errors";
 import { notFound, redirect } from "next/navigation";
 import { safeColor } from "@/lib/brand/color";
@@ -8,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { DetailsCard } from "@/components/ui/details-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DealStatusBadge } from "@/components/deals/deal-status-badge";
+import { FicheVersion, InlineField } from "@/components/fiches/inline-field";
+import { versionOf } from "@/lib/fiches/inline";
+import { commissionOnOldAmount } from "@/lib/deals/commission-gap";
 import { ListCard } from "@/components/ui/list-card";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Journal } from "@/components/activities/journal";
@@ -20,8 +22,6 @@ import { ShareStatusBadge } from "@/components/deal-shares/share-status-badge";
 import { TaskSection } from "@/components/tasks/task-section";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
-import { AmountInput } from "@/components/ui/amount-input";
-import { Input } from "@/components/ui/input";
 import { leadOriginLabel, listLeadsForContact } from "@/db/queries/acquisition";
 import { listDealJournal } from "@/db/queries/activities";
 import { setDealOriginAction } from "@/lib/acquisition/actions";
@@ -30,9 +30,8 @@ import { listLossReasonsOf } from "@/db/queries/loss-reasons";
 import { listOrgUsersOf } from "@/db/queries/contacts";
 import { listDealShares } from "@/db/queries/deal-shares";
 import {
-  moveDealStageAction,
+  patchDealFieldAction,
   revokeDealShareAction,
-  updateDealDetailsAction,
 } from "@/lib/deals/actions";
 import { listDealStatuses } from "@/db/queries/deal-statuses";
 import { listDealTypes } from "@/db/queries/deal-types";
@@ -106,6 +105,8 @@ export default async function DealPage({
   const partnerStages = pipelineStages.filter((s) => s.outcome === null);
 
   const commissionByShareId = new Map(commissions.map((c) => [c.shareId, c]));
+  /** La version de l'affaire, l'action serveur, la lecture seule — les trois choses que tout champ en place reçoit. */
+  const champ = { version: versionOf(deal), save: patchDealFieldAction.bind(null, id), readOnly: user.readOnly } as const;
   const typeLabel = types.find((t) => t.id === deal.typeId)?.label ?? "—";
   const currentDealStatus = pipelineStages.find((s) => s.id === deal.statusId) ?? {
     id: deal.statusId,
@@ -122,40 +123,6 @@ export default async function DealPage({
   const activePartners = partners.filter(
     (p) => p.active && p.organizationId === deal.organizationId
   );
-
-  // Rattacher une fiche contact après coup (stabilisation, P1) : une affaire née d'un nom libre pouvait rester
-  // sans fiche pour toujours.
-  async function attachContact(formData: FormData) {
-    "use server";
-    const contactId = String(formData.get("contactId") ?? "").trim();
-    const back = `/affaires/${id}`;
-    if (!contactId) redirect(withError(back, (await getTranslations("errors"))("choisis_une_fiche_dans_la_liste")));
-    const saved = await updateDealDetailsAction(id, { contactId });
-    redirect(saved.ok ? back : withError(back, saved.error));
-  }
-
-  // UN seul formulaire pour l'étape et les détails (audit UI du 2026-09-14) : avant, « Déplacer » (étape) et
-  // « Enregistrer » (montant, probabilité…) étaient deux formulaires côte à côte — corriger le montant puis changer
-  // l'étape perdait la saisie sans prévenir. L'étape n'est écrite que si elle change (historique + journal).
-  async function saveDetails(formData: FormData) {
-    "use server";
-    const raw = (name: string) => String(formData.get(name) ?? "").trim();
-    const statusId = raw("statusId");
-    // Les actions rendent leur échec (stabilisation, E3) : ici, il revient sur la fiche en notification — jamais l'écran d'erreur.
-    if (statusId && statusId !== deal!.statusId) {
-      const moved = await moveDealStageAction(id, statusId);
-      if (!moved.ok) redirect(withError(`/affaires/${id}`, moved.error));
-    }
-    const saved = await updateDealDetailsAction(id, {
-      estimatedAmount: raw("estimatedAmount") || null,
-      probability: raw("probability") || null,
-      expectedCloseDate: raw("expectedCloseDate") || null,
-      ownerId: raw("ownerId") || null,
-      ...(formData.has("lossReasonId") ? { lossReasonId: raw("lossReasonId") || null } : {}),
-    });
-    if (!saved.ok) redirect(withError(`/affaires/${id}`, saved.error));
-    redirect(`/affaires/${id}`);
-  }
 
   async function revoke(formData: FormData) {
     "use server";
@@ -202,96 +169,101 @@ export default async function DealPage({
           <CardTitle>{tr("pipeline")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <form action={saveDetails} className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-end gap-2">
-              <Field label={tr("etape")} htmlFor="statusId">
-                <NativeSelect
-                  id="statusId"
-                  name="statusId"
-                  defaultValue={deal.statusId} className="w-full sm:w-auto sm:min-w-48"
-                >
-                  {pipelineStages.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.label}
-                      {s.outcome ? ` ${s.outcome === "won" ? tr("gagne") : tr("perdu")}` : ""}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </Field>
-              {"outcome" in currentDealStatus && currentDealStatus.outcome === "lost" && (
-                <p className="w-full text-xs text-muted-foreground">
-                  {tr("affaire_perdue", { value: deal.lossReasonId ? "" : tr("renseigne_le_motif_ci_dessous") })}
-                </p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label={tr("montant_estime", { currency: fmt.currency })} htmlFor="estimatedAmount">
-                <AmountInput id="estimatedAmount" name="estimatedAmount" defaultValue={deal.estimatedAmount} />
-              </Field>
-              <Field
-                label={tr("probabilite")}
-                htmlFor="probability"
-                hint={
-                  "outcome" in currentDealStatus && currentDealStatus.probability != null
-                    ? tr("vide_celle_de_l_etape", { formatPercent: (fmt.percent(currentDealStatus.probability)) ?? "" })
-                    : tr("vide_celle_de_l_etape_f17a")
-                }
-              >
-                <Input
-                  id="probability"
-                  name="probability"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                  defaultValue={deal.probability ? String(Number(deal.probability)) : ""}
-                />
-              </Field>
-              <Field label={tr("cloture_prevue")} htmlFor="expectedCloseDate">
-                <Input
-                  id="expectedCloseDate"
-                  name="expectedCloseDate"
-                  type="date"
-                  defaultValue={deal.expectedCloseDate ?? ""}
-                />
-              </Field>
-              <Field label={tr("responsable")} htmlFor="ownerId">
-                <NativeSelect
-                  id="ownerId"
-                  name="ownerId"
-                  defaultValue={deal.ownerId ?? ""} className="w-full"
-                >
-                  <option value="">{tr("personne")}</option>
-                  {orgUsers.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name || u.email}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </Field>
-            </div>
+          {/*
+            MODIFICATION EN PLACE (chantier « les fiches deviennent
+            modifiables ») : le formulaire d'ensemble a laissé la place au
+            composant partagé des quatre fiches. L'ÉTAPE reste à part dans
+            le fond — elle passe par le changement d'étape, qui écrit
+            l'historique et le journal — mais le geste, lui, est le même.
+          */}
+          <FicheVersion version={champ.version}>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <InlineField {...champ} label={tr("nom_de_l_affaire")} field="title" kind="texte" value={deal.title} required className="sm:col-span-2" />
+            <InlineField
+              {...champ}
+              label={tr("type_d_affaire")}
+              field="typeId"
+              kind="liste"
+              required
+              value={deal.typeId}
+              display={typeLabel}
+              options={types.map((type) => ({ value: type.id, label: type.label }))}
+            />
+            <InlineField
+              {...champ}
+              label={tr("etape")}
+              field="statusId"
+              kind="liste"
+              required
+              value={deal.statusId}
+              display={currentDealStatus.label}
+              options={pipelineStages.map((stage) => ({ value: stage.id, label: `${stage.label}${stage.outcome ? ` ${stage.outcome === "won" ? tr("gagne") : tr("perdu")}` : ""}` }))}
+            />
+            <InlineField
+              {...champ}
+              label={tr("montant_estime", { currency: fmt.currency })}
+              field="estimatedAmount"
+              kind="montant"
+              value={deal.estimatedAmount ?? ""}
+              display={fmt.money(deal.estimatedAmount) ?? ""}
+            />
+            <InlineField
+              {...champ}
+              label={tr("probabilite")}
+              field="probability"
+              kind="texte"
+              value={deal.probability ? String(Number(deal.probability)) : ""}
+              hint={
+                "outcome" in currentDealStatus && currentDealStatus.probability != null
+                  ? tr("vide_celle_de_l_etape", { formatPercent: fmt.percent(currentDealStatus.probability) ?? "" })
+                  : tr("vide_celle_de_l_etape_f17a")
+              }
+            />
+            <InlineField
+              {...champ}
+              label={tr("cloture_prevue")}
+              field="expectedCloseDate"
+              kind="date"
+              value={deal.expectedCloseDate ?? ""}
+              display={deal.expectedCloseDate ? fmt.date(new Date(`${deal.expectedCloseDate}T00:00:00`)) : ""}
+            />
+            <InlineField
+              {...champ}
+              label={tr("responsable")}
+              field="ownerId"
+              kind="liste"
+              value={deal.ownerId ?? ""}
+              display={orgUsers.find((u) => u.id === deal.ownerId)?.name || orgUsers.find((u) => u.id === deal.ownerId)?.email || ""}
+              options={orgUsers.map((u) => ({ value: u.id, label: u.name || u.email }))}
+            />
+            {/* Le client : une vraie fiche, choisie par recherche. Une affaire née d'un nom libre en reçoit une ici. */}
+            <InlineField
+              {...champ}
+              label={tr("client")}
+              field="contactId"
+              kind="rattachement"
+              search="contact"
+              value={deal.contactId ?? ""}
+              display={deal.clientName}
+            />
             {"outcome" in currentDealStatus && currentDealStatus.outcome === "lost" && (
-              <Field label={tr("motif_de_perte")} htmlFor="lossReasonId" hint={tr("la_liste_se_configure_dans_marque_d1d6")}>
-                <NativeSelect
-                  id="lossReasonId"
-                  name="lossReasonId"
-                  defaultValue={deal.lossReasonId ?? ""} className="w-full sm:w-auto sm:min-w-64"
-                >
-                  <option value="">{tr("sans_motif")}</option>
-                  {lossReasons.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.label}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </Field>
+              <InlineField
+                {...champ}
+                label={tr("motif_de_perte")}
+                field="lossReasonId"
+                kind="liste"
+                value={deal.lossReasonId ?? ""}
+                display={lossReasons.find((r) => r.id === deal.lossReasonId)?.label ?? ""}
+                options={lossReasons.map((r) => ({ value: r.id, label: r.label }))}
+                hint={tr("la_liste_se_configure_dans_marque_d1d6")}
+                className="sm:col-span-2"
+              />
             )}
-            {/* Un seul bouton primaire par carte, toujours le submit — le même poids que sur la fiche partenaire. */}
-            <Button type="submit" className="w-fit">
-              {tr("enregistrer")}
-            </Button>
-          </form>
+          </div>
+          </FicheVersion>
+          {"outcome" in currentDealStatus && currentDealStatus.outcome === "lost" && !deal.lossReasonId && (
+            <p className="text-xs text-muted-foreground">{tr("affaire_perdue", { value: tr("renseigne_le_motif_ci_dessous") })}</p>
+          )}
 
           {durations.length > 0 && (
             <div className="flex flex-col gap-2 border-t border-border pt-4">
@@ -345,15 +317,11 @@ export default async function DealPage({
             </p>
           )}
           {!deal.contactId ? (
-            <form action={attachContact} className="flex flex-col gap-2">
+            // Le rattachement se fait dans le champ « Client » de la carte du haut : un seul geste, un seul endroit.
+            <div className="flex flex-col gap-1">
               <p className="text-sm text-muted-foreground">{tr("sans_fiche_contact_aucun_lead_ne_fe08")}</p>
-              <div className="flex flex-wrap items-end gap-2">
-                <Field label={tr("rattacher_une_fiche_contact")} htmlFor="attachContact" className="min-w-64 flex-1">
-                  <ContactPicker inputId="attachContact" initialName="" initialContactId={null} placeholder={deal.clientName} required allowFreeText={false} />
-                </Field>
-                <Button type="submit" variant="outline">{tr("rattacher")}</Button>
-              </div>
-            </form>
+              <p className="text-sm">{tr("rattachez_dans_le_champ_client")}</p>
+            </div>
           ) : contactLeads.length === 0 ? (
             <p className="text-sm text-muted-foreground">{tr("ce_contact_n_a_recu_aucun_7e40")}</p>
           ) : (
@@ -419,6 +387,16 @@ export default async function DealPage({
                       )}
                       {commission.state === "confirmee" && (
                         <MarkCommissionSettledButton commissionId={commission.id} />
+                      )}
+                      {/*
+                        LE MONTANT A CHANGÉ, LA COMMISSION NON : aucun recalcul
+                        silencieux — ce qui a été convenu avec le confrère fait foi.
+                        La fiche montre les deux chiffres et dit lequel est lequel.
+                      */}
+                      {commissionOnOldAmount(commission, deal.estimatedAmount) && (
+                        <p className="w-full text-xs text-warning text-pretty">
+                          {tr("commission_sur_ancien_montant", { base: fmt.money(commission.baseAmount) ?? "", actuel: fmt.money(deal.estimatedAmount) ?? "" })}
+                        </p>
                       )}
                     </div>
                   )}

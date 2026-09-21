@@ -5,6 +5,8 @@ import { activities, contacts, dealEvents, deals, dealShares, dealStatuses, part
 import { assertOrgAccess, assertUserInOrg, orgScope } from "@/db/scope";
 import type { OrgScopeUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
+import { isStale, type InlinePatch } from "@/lib/fiches/inline";
+import { checkEmail, checkLength, checkPhone } from "@/lib/fiches/validate";
 import { MIN_OBSERVATIONS } from "@/lib/metrics/definitions";
 import { daysBetween } from "./deal-follow-up";
 import { readInput } from "@/lib/validation";
@@ -109,6 +111,33 @@ export async function updatePartner(user: OrgScopeUser, id: string, input: Updat
     .where(eq(partners.id, id))
     .returning();
   return updated;
+}
+
+/**
+ * LA MODIFICATION EN PLACE d'une fiche confrère (chantier « les fiches
+ * deviennent modifiables »). Mêmes gardes que partout : l'organisation
+ * (par `updatePartner`), la VERSION de la fiche telle que l'écran l'a
+ * chargée, la liste blanche des champs, puis la forme de la valeur.
+ *
+ * `active` n'est pas ici : ce n'est pas un champ qu'on corrige au clavier,
+ * c'est une décision qui a son geste et sa confirmation sur la fiche.
+ */
+const PARTNER_PATCH_FIELDS = ["name", "company", "profession", "email", "phone", "ownerId", "notes"] as const;
+
+export async function patchPartner(user: OrgScopeUser, id: string, patch: InlinePatch) {
+  const existing = await db.query.partners.findFirst({ where: eq(partners.id, id) });
+  if (!existing) throw new AppError("partenaire_introuvable", undefined, 404);
+  assertOrgAccess(user, existing.organizationId);
+  if (isStale(existing, patch.version)) throw new AppError("la_fiche_a_change_ailleurs", undefined, 409);
+  if (!(PARTNER_PATCH_FIELDS as readonly string[]).includes(patch.field)) throw new AppError("ce_champ_ne_se_modifie_pas_ici");
+
+  const value = patch.value.trim() || null;
+  if (patch.field === "name" && !value) throw new AppError("le_nom_est_obligatoire");
+  const problem =
+    patch.field === "email" ? checkEmail(value) : patch.field === "phone" ? checkPhone(value) : checkLength(value, patch.field === "notes" ? 5000 : 200);
+  if (problem) throw new AppError(problem);
+
+  return updatePartner(user, id, { [patch.field]: value });
 }
 
 // ---------------------------------------------------------------------------

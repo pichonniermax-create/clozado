@@ -4,6 +4,7 @@ import { confirmCommission, markCommissionSettled } from "@/db/queries/commissio
 import {
   changeDealStage,
   createDeal,
+  patchDeal,
   updateDealDetails,
   type CreateDealInput,
   type DealDetailsInput,
@@ -22,10 +23,13 @@ import { createDealShare, reissueDealShare, revokeDealShare } from "@/db/queries
 import type { CreateShareInput } from "@/lib/deal-shares/input";
 import {
   createPartner,
+  patchPartner,
   updatePartner,
   type CreatePartnerInput,
 } from "@/db/queries/partners";
-import { actionResult } from "@/lib/form-actions";
+import { actionResult, errorMessage } from "@/lib/form-actions";
+import { isAppError } from "@/lib/errors";
+import { versionOf, type InlinePatch, type InlineSaveResult } from "@/lib/fiches/inline";
 import { requireUser } from "@/lib/session";
 import { getTranslations } from "next-intl/server";
 
@@ -47,6 +51,36 @@ export async function updatePartnerAction(
 ) {
   const user = await requireUser();
   return updatePartner(user, id, input);
+}
+
+/**
+ * LA MODIFICATION EN PLACE, côté affaire et côté confrère (chantier « les
+ * fiches deviennent modifiables »). Elles ne redirigent pas : elles
+ * RENDENT leur verdict au champ, qui remet la valeur précédente et dit
+ * pourquoi en cas de refus. Toutes les gardes sont dans `patchDeal` /
+ * `patchPartner` — appeler l'action directement avec l'identifiant d'une
+ * fiche d'une autre organisation ne modifie rien.
+ */
+export async function patchDealFieldAction(id: string, patch: InlinePatch): Promise<InlineSaveResult> {
+  const user = await requireUser();
+  if (user.readOnly) return { ok: false, error: (await getTranslations("demo.banner"))("lecture_seule_notice") };
+  try {
+    const updated = await patchDeal(user, user.id, id, patch);
+    return { ok: true, version: versionOf(updated) };
+  } catch (error) {
+    return { ok: false, error: await errorMessage(error), stale: isAppError(error) && error.status === 409 };
+  }
+}
+
+export async function patchPartnerFieldAction(id: string, patch: InlinePatch): Promise<InlineSaveResult> {
+  const user = await requireUser();
+  if (user.readOnly) return { ok: false, error: (await getTranslations("demo.banner"))("lecture_seule_notice") };
+  try {
+    const updated = await patchPartner(user, id, patch);
+    return { ok: true, version: versionOf(updated) };
+  } catch (error) {
+    return { ok: false, error: await errorMessage(error), stale: isAppError(error) && error.status === 409 };
+  }
 }
 
 export async function createDealAction(input: CreateDealInput) {

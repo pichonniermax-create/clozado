@@ -21,6 +21,8 @@ import { latestLeadBefore } from "./acquisition";
 import { getDefaultDealStatus } from "./deal-statuses";
 import type { OrgScopeUser } from "@/lib/session";
 import { AppError } from "@/lib/errors";
+import { isStale, type InlinePatch } from "@/lib/fiches/inline";
+import { checkAmount, checkDate, checkLength, checkPercent } from "@/lib/fiches/validate";
 import { lastEntryCte } from "@/lib/metrics/losses";
 import { MIN_OBSERVATIONS } from "@/lib/metrics/definitions";
 import { readInput } from "@/lib/validation";
@@ -265,6 +267,72 @@ export const DEAL_DETAILS_SCHEMA = z.strictObject({
   contactId: z.uuid().nullable().optional(),
   lossReasonId: z.uuid().nullable().optional(),
 });
+
+/**
+ * LA MODIFICATION EN PLACE d'une affaire (chantier « les fiches deviennent
+ * modifiables »). Mêmes gardes que partout — organisation, VERSION de la
+ * fiche, liste blanche, forme de la valeur — et trois chemins d'écriture
+ * selon le champ, parce que trois choses différentes se passent :
+ *
+ * - l'ÉTAPE passe par `changeDealStage` : elle écrit l'historique et le
+ *   journal, et c'est ce qui fait les délais et le funnel. Une étape
+ *   changée en douce les fausserait ;
+ * - le TITRE, le TYPE et la DESCRIPTION s'écrivent ici (ils n'existaient
+ *   dans aucun chemin de modification jusqu'ici) ;
+ * - le reste passe par `updateDealDetails`, avec ses règles (le conseiller
+ *   de l'organisation, la fiche contact vivante dont le nom du client est
+ *   recopié, le motif de perte reporté sur le passage d'étape).
+ *
+ * LE MONTANT ET LA COMMISSION : changer le montant ne recalcule JAMAIS une
+ * commission déjà convenue. La base le garantit déjà (`commissions.
+ * computed_amount` est figé, `base_amount` garde le montant sur lequel on
+ * s'est entendu) ; la fiche, elle, le DIT désormais.
+ */
+const DEAL_PATCH_FIELDS = ["title", "description", "typeId", "statusId", "estimatedAmount", "probability", "expectedCloseDate", "ownerId", "contactId", "lossReasonId"] as const;
+
+export async function patchDeal(user: OrgScopeUser, actorUserId: string, dealId: string, patch: InlinePatch) {
+  const deal = await db.query.deals.findFirst({ where: eq(deals.id, dealId) });
+  if (!deal) throw new AppError("affaire_introuvable", undefined, 404);
+  assertOrgAccess(user, deal.organizationId);
+  if (isStale(deal, patch.version)) throw new AppError("la_fiche_a_change_ailleurs", undefined, 409);
+  if (!(DEAL_PATCH_FIELDS as readonly string[]).includes(patch.field)) throw new AppError("ce_champ_ne_se_modifie_pas_ici");
+
+  const value = patch.value.trim() || null;
+  if (patch.field === "title" && !value) throw new AppError("le_nom_est_obligatoire");
+  const problem =
+    patch.field === "estimatedAmount"
+      ? checkAmount(value)
+      : patch.field === "probability"
+        ? checkPercent(value)
+        : patch.field === "expectedCloseDate"
+          ? checkDate(value)
+          : patch.field === "title"
+            ? checkLength(value, 200)
+            : patch.field === "description"
+              ? checkLength(value, 5000)
+              : null;
+  if (problem) throw new AppError(problem);
+
+  if (patch.field === "statusId") {
+    if (!value) throw new AppError("l_etape_est_obligatoire");
+    await changeDealStage(user, actorUserId, dealId, value);
+  } else if (patch.field === "title" || patch.field === "description" || patch.field === "typeId") {
+    if (patch.field === "typeId") {
+      if (!value) throw new AppError("le_type_est_obligatoire");
+      const type = await db.query.dealTypes.findFirst({ where: eq(dealTypes.id, value) });
+      if (!type || type.organizationId !== deal.organizationId) throw new AppError("type_d_affaire_introuvable", undefined, 404);
+    }
+    await db
+      .update(deals)
+      .set({ ...(patch.field === "title" ? { title: value! } : patch.field === "typeId" ? { typeId: value! } : { description: value }), updatedAt: new Date() })
+      .where(eq(deals.id, dealId));
+  } else {
+    // Le montant s'écrit en nombre brut : « 1 234,50 » saisi devient « 1234.50 » en base.
+    const normalized = patch.field === "estimatedAmount" && value ? value.replace(/\s/g, "").replace(",", ".") : value;
+    await updateDealDetails(user, dealId, { [patch.field]: normalized });
+  }
+  return (await db.query.deals.findFirst({ where: eq(deals.id, dealId) }))!;
+}
 
 export async function updateDealDetails(user: OrgScopeUser, dealId: string, rawInput: DealDetailsInput) {
   const input = readInput(DEAL_DETAILS_SCHEMA, rawInput);

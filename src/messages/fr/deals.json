@@ -60,7 +60,12 @@
     "affaire_close_pas_de_partage": "Cette affaire est close : elle ne se partage plus. Ses partages passés restent au-dessus.",
     "partager_cette_affaire": "Partager cette affaire",
     "rattacher_une_fiche_contact": "Rattacher une fiche contact",
-    "rattacher": "Rattacher"
+    "rattacher": "Rattacher",
+    "nom_de_l_affaire": "Nom de l’affaire",
+    "type_d_affaire": "Type d’affaire",
+    "client": "Client",
+    "commission_sur_ancien_montant": "Commission convenue sur {base} ; le montant de l’affaire est aujourd’hui {actuel}. Elle n’a pas été recalculée — c’est ce qui a été convenu avec le confrère qui fait foi.",
+    "rattachez_dans_le_champ_client": "Rattachez-la dans le champ « Client », en haut de cette fiche."
   },
   "detailNotFound": {
     "cette_affaire_n_existe_pas": "Cette affaire n’existe pas.",
