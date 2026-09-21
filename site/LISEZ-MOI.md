@@ -60,6 +60,33 @@ fichier, ni build : un déploiement de l'un ne peut pas casser l'autre.
 - **Aucune adresse en dur.** `lib/site-config.ts` est le seul fichier à
   toucher quand une adresse change (l'application, la prise de rendez-vous).
 
+## Ce que l'export en fichiers interdit, et où c'est couvert
+
+`output: "export"` retire au site tout ce qui s'exécute à la requête. Rien
+de ce qui suit n'a été perdu : tout vivait déjà ailleurs, ou n'a jamais
+servi.
+
+| Ce que l'export interdit | Ce qui l'utilisait ici | Où c'est couvert |
+|---|---|---|
+| Revalidation (ISR) | `revalidate = 86400` sur les cinq routes du blog | Le contenu vient du dépôt : un article paraît au déploiement suivant. **Voir la réserve ci-dessous.** |
+| Redirections `next.config` | rien | `vercel.json` — 19 redirections, appliquées au bord, avec de vrais 301 (Next ne sait faire que des 308) |
+| En-têtes `next.config` | rien | `vercel.json` — sécurité, et le type du flux RSS |
+| Réécritures, proxy, middleware | rien | — |
+| Routes qui lisent la requête | rien | — |
+| Route Handlers dynamiques | le flux RSS | `dynamic = "force-static"` : écrit au build, posé comme un fichier |
+| `robots.txt`, `sitemap.xml` | les routes de métadonnées de Next | `dynamic = "force-static"` sur les deux |
+| Optimisation d'images | rien | Le site n'affiche aucune image |
+| Server Actions, mode brouillon | rien | — |
+| Page 404 | `app/global-not-found.tsx` | Exportée en `404.html`, que l'hébergeur statique sert |
+
+**LA RÉSERVE, et elle est réelle** : un contenu qui doit changer SANS
+déploiement n'a aujourd'hui aucun mécanisme. Tant que tout ce qui s'affiche
+vient du dépôt, la question ne se pose pas. Elle se posera le jour où une
+page affichera des données mises à jour toutes les nuits : il faudra alors
+choisir entre déclencher un déploiement à l'heure dite, ou charger ces
+données depuis la page. Ce choix n'est pas fait, et il ne se devine pas —
+il se décide.
+
 ## Les cinq garde-fous de la construction
 
 `npm run build` enchaîne quatre contrôles avant `next build`, et un
