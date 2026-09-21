@@ -1,0 +1,52 @@
+# LE RÉVEIL HORAIRE DES ENVOIS (chantier envoi, partie 4 — décision P4-1, option B).
+#
+# Le plan Vercel Hobby n'accepte que des crons QUOTIDIENS : un envoi interrompu, ou un départ
+# programmé à l'heure locale d'un destinataire, attendrait jusqu'à vingt-quatre heures. Ce workflow
+# planifié appelle `/api/cron/reveil` toutes les heures — gratuit, et hors de Vercel.
+#
+# Ce qu'il faut pour qu'il serve (à poser UNE fois par l'utilisateur, dans le dépôt) :
+#   - secret `CRON_SECRET` : la même valeur que la variable d'environnement de production ;
+#   - variable `PROD_URL` (facultative) : l'adresse de production, `https://app.clozado.fr` à défaut.
+# Sans le secret, le travail s'arrête proprement au lieu d'échouer toutes les heures.
+#
+# Deux limites, dites d'avance : GitHub ne garantit pas l'heure exacte (cinq à quinze minutes de
+# retard sont courants aux heures chargées), et il désactive les workflows planifiés d'un dépôt
+# resté soixante jours sans activité. Le journal ne montre QUE le code HTTP : celui d'un dépôt
+# public se lit par tout le monde.
+name: Réveil des envois
+
+on:
+  schedule:
+    # Toutes les heures, à la cinquième minute (les heures rondes sont les plus chargées chez GitHub).
+    - cron: "5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  # Jamais deux réveils à la fois : l'exécutant prend un bail, mais autant ne pas le bousculer.
+  group: reveil-envois
+  cancel-in-progress: false
+
+jobs:
+  reveil:
+    name: Reprendre les envois dont l'heure est venue
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Appeler le réveil
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          PROD_URL: ${{ vars.PROD_URL || 'https://app.clozado.fr' }}
+        run: |
+          set -u
+          if [ -z "${CRON_SECRET}" ]; then
+            echo "CRON_SECRET absent du dépôt : rien à faire (pose-le dans Settings → Secrets)."
+            exit 0
+          fi
+          code=$(curl -sS -o /tmp/reveil.json -w '%{http_code}' --max-time 300 \
+            -H "Authorization: Bearer ${CRON_SECRET}" "${PROD_URL}/api/cron/reveil")
+          echo "Réponse : ${code}"
+          # Le corps n'est PAS affiché : il porte des nombres, mais le journal est public — on n'y verse rien.
+          if [ "${code}" != "200" ]; then
+            echo "Le réveil a échoué (${code})."
+            exit 1
+          fi

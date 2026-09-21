@@ -532,9 +532,47 @@ sortir :
 | **B. Réveil horaire par GitHub Actions** (`schedule:` toutes les heures appelant `/api/cron/envois` avec `CRON_SECRET`) | même résultat, précision un peu moins bonne (les workflows planifiés de GitHub partent souvent avec cinq à quinze minutes de retard, et se désactivent après soixante jours sans activité du dépôt) | **gratuit** | un secret de dépôt à poser, et un réveil qui vit hors de Vercel |
 | **C. Ne pas offrir l'heure locale** | seuls « immédiat » et « date fixe » (à l'heure du prochain passage quotidien près) | gratuit | on ne promet que ce qu'on tient |
 
-**Décision attendue (P4-1)** : A, B ou C. Le cœur déterministe déjà écrit
-sert dans les trois cas ; c'est la suite (les colonnes, l'écran, la mise
-en file) qui en dépend.
+**Décision P4-1, prise le 2026-09-21 : l'option B**, le réveil horaire
+par GitHub Actions — gratuit, et il sert déjà avant tout départ
+programmé.
+
+Ce qui est construit :
+
+- **`/api/cron/reveil`** (nouvelle route) : elle reprend les envois en
+  file dont l'heure est venue, et RIEN d'autre. `/api/cron/envois`, elle,
+  fait deux choses — reprendre les envois PUIS évaluer les règles de
+  chaque organisation ; l'appeler toutes les heures changerait la cadence
+  des règles, qui est une décision de produit, pas l'effet de bord d'un
+  réveil. Mêmes gardes : `CRON_SECRET` obligatoire (sans la variable :
+  503), en-tête `Authorization: Bearer` (sinon : 401). La réponse ne
+  porte que des nombres — le journal d'un workflow de dépôt public se lit
+  par tout le monde.
+- **`.github/workflows/reveil.yml`** : toutes les heures à la cinquième
+  minute (les heures rondes sont les plus chargées chez GitHub), plus un
+  déclenchement à la main. Sans secret dans le dépôt, le travail s'arrête
+  proprement au lieu d'échouer toutes les heures. Le journal n'affiche
+  que le code HTTP.
+
+**Ce que ça apporte DÈS MAINTENANT, avant tout départ programmé** : un
+envoi interrompu — fonction coupée, quota du fournisseur atteint, panne
+— attendait le passage quotidien de 6 h ; il repart désormais dans
+l'heure.
+
+**À poser par l'utilisateur, une fois** : dans les réglages du dépôt, le
+secret `CRON_SECRET` (la même valeur qu'en production) et, si l'adresse
+n'est pas `https://app.clozado.fr`, la variable `PROD_URL`. Tant que le
+secret est absent, le réveil ne fait rien et ne casse rien.
+
+**Les deux limites, dites d'avance** : GitHub ne garantit pas l'heure
+exacte (cinq à quinze minutes de retard sont courants aux heures
+chargées) — l'écran annoncera donc « entre 9 h et 10 h », jamais « à 9 h
+pile » ; et GitHub désactive les workflows planifiés d'un dépôt resté
+soixante jours sans activité.
+
+**Preuve exécutée** (serveur de production local, base de production sans
+aucun envoi ouvert) : sans en-tête → 401 ; mauvais secret → 401 ; bon
+secret → 200 et `{"resumable":0,"outcomes":{},"elapsedMs":75}` ; serveur
+sans `CRON_SECRET` → 503. Le fichier de workflow est valide (analysé).
 
 ### A quinquies.4 Les garde-fous, inchangés
 
