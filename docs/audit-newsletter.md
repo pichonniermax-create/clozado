@@ -469,6 +469,137 @@ fournisseur, n'a jamais été appelé — la preuve s'arrête à la mise en
 file, qui n'écrit qu'en base.
 
 
+## A quinquies. L'horaire selon le destinataire — CONCEPTION (2026-09-21), migration NON appliquée
+
+Partie 4 du chantier envoi. **Rien n'est branché** : ce qui est construit
+ici est le cœur déterministe (`src/lib/email/schedule.ts`, 18 tests) ; le
+reste attend deux décisions, dont une qui conditionne tout — le
+déclencheur.
+
+### A quinquies.1 Le fuseau d'un contact — une échelle de quatre barreaux
+
+Du plus précis au plus général, et la réponse dit TOUJOURS d'où elle
+vient (l'écran l'affiche à côté de l'heure) :
+
+| Barreau | Provenance affichée | Source |
+|---|---|---|
+| 1 | « saisi sur la fiche » | `contacts.time_zone` (à créer) |
+| 2 | « d'après la ville » | correspondance ville/région → fuseau (pays à plusieurs fuseaux) |
+| 3 | « d'après le pays » | correspondance pays → fuseau |
+| 4 | « fuseau du cabinet » | `organizations.timezone` |
+
+Un barreau dont la valeur n'est pas un fuseau IANA connu du moteur est
+**ignoré** au lieu d'être cru : une saisie fautive ne décale pas un envoi,
+elle descend d'un cran. Les correspondances vivent en table, modifiables
+par le super_admin (doctrine : listes métier en tables, jamais en enums) ;
+`contacts.city` et `contacts.country` existent déjà et servent d'entrée.
+
+### A quinquies.2 Les trois modes
+
+- **Immédiat** — ce qui existe aujourd'hui.
+- **Date fixe**, choisie dans le fuseau de l'organisation : le MÊME
+  instant pour tout le monde.
+- **Heure locale du destinataire** : un instant par fuseau. Règle unique,
+  écrite dans le code et affichée à l'écran avant de lancer — *si l'heure
+  est déjà passée chez lui, c'est le lendemain* ; l'heure pile compte
+  comme passée (on ne part pas « maintenant » en croyant programmer).
+
+L'**heure recommandée par contact** n'est pas retenue (§J.3 : aucun
+historique, signal d'ouverture corrompu) — elle reste hors périmètre.
+
+Le changement d'heure est traité, pas subi : le décalage est relu à
+l'instant CANDIDAT et non à l'instant naïf. Une heure qui n'existe pas (le
+dimanche du passage à l'heure d'été, 2 h 30 à Paris) tombe juste après le
+saut, comme partout ailleurs ; c'est testé sur les deux passages de 2026.
+
+### A quinquies.3 Ce qui bloque : le déclencheur
+
+**C'est le point à trancher, et il ne dépend pas du code.** Programmer un
+départ suppose que quelque chose réveille le serveur à l'heure dite. Ce
+quelque chose, aujourd'hui, est un cron **quotidien** (`vercel.json` :
+`/api/cron/veille` à 5 h 30, `/api/cron/envois` à 6 h) — le plan Hobby
+n'accepte que des crons quotidiens, et leur déclenchement dérive dans
+l'heure (constat du chantier engagement, déjà consigné).
+
+Conséquence, dite sans détour : **en l'état, « 9 h chez le destinataire »
+serait un mensonge**. Une vague programmée partirait au prochain passage
+quotidien, jusqu'à vingt-quatre heures plus tard. Trois façons d'en
+sortir :
+
+| Option | Ce que ça donne | Coût | Ce que ça engage |
+|---|---|---|---|
+| **A. Cron horaire sur Vercel** (`0 * * * *`) | départ dans l'heure suivant l'heure voulue, à dire à l'écran (« entre 9 h et 10 h ») | **plan Pro, 20 $/mois** — dépense, donc validation | rien d'autre ; une ligne de `vercel.json` |
+| **B. Réveil horaire par GitHub Actions** (`schedule:` toutes les heures appelant `/api/cron/envois` avec `CRON_SECRET`) | même résultat, précision un peu moins bonne (les workflows planifiés de GitHub partent souvent avec cinq à quinze minutes de retard, et se désactivent après soixante jours sans activité du dépôt) | **gratuit** | un secret de dépôt à poser, et un réveil qui vit hors de Vercel |
+| **C. Ne pas offrir l'heure locale** | seuls « immédiat » et « date fixe » (à l'heure du prochain passage quotidien près) | gratuit | on ne promet que ce qu'on tient |
+
+**Décision attendue (P4-1)** : A, B ou C. Le cœur déterministe déjà écrit
+sert dans les trois cas ; c'est la suite (les colonnes, l'écran, la mise
+en file) qui en dépend.
+
+### A quinquies.4 Les garde-fous, inchangés
+
+Une vague programmée ne relâche rien de ce qui existe : **une seule
+validation humaine** (le départ programmé n'en redemande pas), les
+seuils, le quota du jour, l'échauffement et la pause automatique relus
+**avant chaque lot** (déjà le cas), l'autorisation par contact et la liste
+repoussoir de la plateforme appliquées à la mise en file. S'y ajoutent :
+l'**annulation de ce qui n'est pas encore parti** (les messages en file
+dont l'heure n'est pas venue), et le **suivi par fuseau** — combien
+partent, quand, où.
+
+### A quinquies.5 Ce que la base devra porter — SQL écrit, NON appliqué
+
+Rien de ceci n'est exécuté, et le schéma du code n'est pas touché : une
+colonne déclarée mais absente de la base casserait la production au
+premier `select`. Le fichier de migration sera généré après la décision
+P4-1, et appliqué seulement sur accord explicite.
+
+```sql
+-- Le fuseau saisi d'un contact (le barreau 1). NULL = non saisi : l'échelle descend.
+ALTER TABLE "contacts" ADD COLUMN "time_zone" text;
+
+-- Les correspondances (barreaux 2 et 3), modifiables par le super_admin.
+-- region = '' : le défaut du pays ; sinon une ville ou une région normalisée.
+CREATE TABLE "time_zone_mappings" (
+  "country" text NOT NULL,
+  "region" text NOT NULL DEFAULT '',
+  "time_zone" text NOT NULL,
+  "created_at" timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT "time_zone_mappings_pk" PRIMARY KEY ("country", "region")
+);
+
+-- La programmation d'une vague.
+ALTER TABLE "newsletter_sends" ADD COLUMN "schedule_mode" text NOT NULL DEFAULT 'immediat';
+ALTER TABLE "newsletter_sends" ADD COLUMN "scheduled_at" timestamptz;
+ALTER TABLE "newsletter_sends" ADD COLUMN "local_minutes" integer;
+ALTER TABLE "newsletter_sends" ADD CONSTRAINT "newsletter_sends_schedule_mode_check"
+  CHECK ("schedule_mode" IN ('immediat', 'date_fixe', 'heure_locale'));
+ALTER TABLE "newsletter_sends" ADD CONSTRAINT "newsletter_sends_schedule_pair_check"
+  CHECK (("schedule_mode" = 'date_fixe') = ("scheduled_at" IS NOT NULL)
+     AND ("schedule_mode" = 'heure_locale') = ("local_minutes" IS NOT NULL));
+
+-- Le départ propre à CHAQUE message (c'est là que le fuseau agit). NULL = tout de suite.
+ALTER TABLE "email_messages" ADD COLUMN "scheduled_at" timestamptz;
+CREATE INDEX "email_messages_send_scheduled_idx" ON "email_messages" ("send_id", "scheduled_at")
+  WHERE "status" = 'queued';
+```
+
+Ce que le code changera ensuite, en deux endroits seulement : la mise en
+file (`startNewsletterSend`) pose `scheduled_at` par message à partir du
+fuseau résolu, et l'exécutant (`nextQueuedMessages`, `runSend`) ne prend
+que les messages dont l'heure est venue — quand il n'en reste que des
+futurs, il met l'envoi en pause **jusqu'au plus proche** au lieu de le
+déclarer terminé (piège : la boucle actuelle conclut « fini » sur un lot
+vide).
+
+### A quinquies.6 La preuve prévue
+
+Celle du brief : deux contacts de test sur les alias de l'utilisateur,
+dans deux fuseaux éloignés, et les **heures de départ réelles lues dans
+les en-têtes** des messages reçus. Elle demande deux envois réels — donc
+l'accord de l'utilisateur, après la décision P4-1.
+
+
 ## B. Délivrabilité et réputation
 
 ### B.1 L'architecture d'aujourd'hui, et ce qu'elle mutualise
