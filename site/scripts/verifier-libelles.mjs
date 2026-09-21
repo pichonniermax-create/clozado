@@ -35,28 +35,55 @@ function chaines(source) {
   return trouvees;
 }
 
+/**
+ * LES ARTICLES SONT DU MARKDOWN, et le Markdown écrit ses liens entre
+ * crochets : `[le texte](l'adresse)`. Les lire tels quels aurait accusé
+ * chaque lien d'être une valeur à compléter — et c'est pour cette raison
+ * que `content/articles/` n'était pas contrôlé du tout. C'était un TROU :
+ * un « [à compléter] » dans un article passait en ligne sans que rien ne
+ * l'arrête, alors que le même mot dans un contenu `.ts` arrêtait la
+ * construction.
+ *
+ * On retire donc DEUX formes avant de chercher, et deux seulement :
+ *   — le lien `[texte](adresse)` ;
+ *   — l'appel de bloc `[!note]`, qui ouvre une note ou une citation.
+ * Tout le reste des crochets est suspect, comme ailleurs.
+ */
+function lignesDeMarkdown(source) {
+  return source.split("\n").map((ligne, rang) => ({
+    valeur: ligne.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\[!\w+\]/g, ""),
+    ligne: rang + 1,
+  }));
+}
+
 function fichiers(dossier) {
   return readdirSync(dossier).flatMap((entree) => {
     const chemin = join(dossier, entree);
     if (statSync(chemin).isDirectory()) return fichiers(chemin);
-    return chemin.endsWith(".ts") ? [chemin] : [];
+    return chemin.endsWith(".ts") || chemin.endsWith(".md") ? [chemin] : [];
   });
 }
 
 const fautes = [];
-let exemptes = 0;
+const exemptes = new Map();
 
 for (const chemin of fichiers(RACINE)) {
   const source = readFileSync(chemin, "utf8");
-  for (const { valeur, ligne } of chaines(source)) {
+  const aLire = chemin.endsWith(".md") ? lignesDeMarkdown(source) : chaines(source);
+  for (const { valeur, ligne } of aLire) {
     if (!MOTIF.test(valeur)) continue;
-    if (EXEMPTS.has(chemin)) exemptes += 1;
+    if (EXEMPTS.has(chemin)) exemptes.set(chemin, (exemptes.get(chemin) ?? 0) + 1);
     else fautes.push({ chemin, ligne, valeur: valeur.length > 70 ? valeur.slice(0, 70) + "…" : valeur });
   }
 }
 
-if (exemptes > 0) {
-  console.log(`libellés : ${exemptes} valeur(s) entre crochets dans les pages légales, exemptées et à fournir.`);
+if (exemptes.size > 0) {
+  // L'exemption est BRUYANTE : elle se compte fichier par fichier à chaque
+  // construction. Le jour où les valeurs sont fournies, on retire les deux
+  // lignes de EXEMPTS et le garde-fou couvre tout le site.
+  const total = [...exemptes.values()].reduce((a, b) => a + b, 0);
+  console.log(`libellés : ${total} valeur(s) entre crochets, exemptées et à fournir —`);
+  for (const [chemin, compte] of exemptes) console.log(`           ${compte} dans ${chemin}`);
 }
 
 if (fautes.length > 0) {
