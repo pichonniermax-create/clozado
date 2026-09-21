@@ -287,7 +287,7 @@ export function BrandLogoUploader({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={lightSrc} alt={organizationName} className="h-7 w-auto max-w-full self-start object-contain" />
                 ) : (
-                  <span className="truncate text-sm font-semibold text-primary-ink">{organizationName}</span>
+                  <span className="truncate text-sm font-semibold text-primary-ink" title={organizationName}>{organizationName}</span>
                 )}
                 <div className="h-2.5 w-24 rounded bg-foreground/80" />
                 <div className="h-2 w-40 max-w-full rounded bg-muted-foreground/30" />
@@ -337,7 +337,7 @@ export function BrandLogoUploader({
                   <span className="flex size-5 items-center justify-center rounded-sm bg-product text-[0.5rem] font-bold text-product-foreground">{t("c")}</span>
                 )}
               </span>
-              <span className="truncate text-xs text-muted-foreground">{t("tableau_de_bord", { organizationName })}</span>
+              <span className="truncate text-xs text-muted-foreground" title={t("tableau_de_bord", { organizationName })}>{t("tableau_de_bord", { organizationName })}</span>
             </div>
           </PreviewFrame>
         </div>

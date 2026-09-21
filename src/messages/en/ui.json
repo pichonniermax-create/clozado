@@ -21,7 +21,7 @@
     "titre": "Command palette",
     "ouvrir": "Search or jump to a screen",
     "rechercher": "Search…",
-    "rechercher_long": "Contacts, deals, partners, tasks, screens…",
+    "rechercher_long": "Contacts, deals, tasks…",
     "placeholder": "A contact, a deal, a partner, a task, a screen…",
     "placeholder_sans_organisation": "A screen…",
     "aucun_resultat": "Nothing matches.",

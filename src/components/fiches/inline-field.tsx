@@ -220,7 +220,10 @@ export function InlineField(props: InlineFieldProps) {
             empty && "text-muted-foreground"
           )}
         >
-          <span className={cn("min-w-0 flex-1", kind === "texte_long" ? "whitespace-pre-line" : "truncate")}>{empty ? t("vide") : shownDisplay}</span>
+          {/* La VALEUR est une donnée : coupée si la carte est étroite, entière au survol — et entière dans le DOM, donc lue par un lecteur d'écran. */}
+          <span className={cn("min-w-0 flex-1", kind === "texte_long" ? "whitespace-pre-line" : "truncate")} title={empty ? undefined : shownDisplay}>
+            {empty ? t("vide") : shownDisplay}
+          </span>
           {pending && <span className="shrink-0 text-xs text-muted-foreground">{t("enregistrement")}</span>}
         </button>
         {(error || blocked) && (

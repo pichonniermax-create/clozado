@@ -89,8 +89,8 @@ export function AccountMenu({
       <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="flex flex-col gap-0.5">
-            <span className="truncate text-sm font-medium text-foreground">{name ?? t("mon_compte")}</span>
-            {email && <span className="truncate text-xs font-normal">{email}</span>}
+            <span className="truncate text-sm font-medium text-foreground" title={name ?? undefined}>{name ?? t("mon_compte")}</span>
+            {email && <span className="truncate text-xs font-normal" title={email}>{email}</span>}
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

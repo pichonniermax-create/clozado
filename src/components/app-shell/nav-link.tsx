@@ -68,7 +68,8 @@ export function NavLink({
       >
         {icon}
       </span>
-      <span className="flex-1 truncate">{label}</span>
+      {/* Un nom de module ne se coupe JAMAIS : il passe sur deux lignes plutôt que de perdre sa fin. */}
+      <span className="flex-1 text-pretty">{label}</span>
       {badge !== undefined && badge > 0 && (
         <span
           className={cn(

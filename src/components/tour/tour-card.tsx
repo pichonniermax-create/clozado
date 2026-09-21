@@ -198,7 +198,7 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
       >
         <p className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
           <Compass className="size-4 shrink-0 text-muted-foreground" />
-          <span className="truncate">{t(`steps.${step.key}.titre`)}</span>
+          <span className="text-pretty">{t(`steps.${step.key}.titre`)}</span>
           <span className="shrink-0 text-xs text-muted-foreground">{t("carte.etape_sur", { n: state.step + 1, total })}</span>
         </p>
         <Button type="button" variant="ghost" size="sm" onClick={() => setCollapsed(false)}>

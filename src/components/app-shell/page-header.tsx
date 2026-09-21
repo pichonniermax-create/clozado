@@ -50,7 +50,12 @@ export function PageHeader({
           )}
         </div>
         {/* Sous sm, chaque action se partage la ligne (cibles pleine largeur au doigt) ; dès md, elles gardent leur largeur. */}
-        {actions && <div className="flex min-w-0 flex-wrap items-center gap-2 max-sm:[&>*]:flex-1 md:shrink-0 md:justify-end">{actions}</div>}
+        {/*
+          Sous sm, les BOUTONS et les LIENS se partagent la ligne — mais pas une
+          pastille : « flex-1 » sur tout écrasait le badge « Société » sous sa
+          propre largeur, et son texte y était coupé (balayage des libellés).
+        */}
+        {actions && <div className="flex min-w-0 flex-wrap items-center gap-2 max-sm:[&>a]:flex-1 max-sm:[&>button]:flex-1 max-sm:[&>form]:flex-1 md:shrink-0 md:justify-end">{actions}</div>}
       </div>
     </header>
   );

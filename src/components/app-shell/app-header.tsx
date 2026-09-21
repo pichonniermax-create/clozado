@@ -69,7 +69,8 @@ export function AppHeader({
     <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-border bg-background/95 px-3 backdrop-blur md:static md:z-auto md:gap-3 md:px-6">
       <MobileNav mark={mark} hasOrganization={hasOrganization} readOnly={readOnly} isSuperAdmin={isSuperAdmin} badges={badges} hrefs={hrefs} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">
+        {/* Le nom de l'organisation est une DONNÉE : coupé s'il le faut, entier au survol. */}
+        <p className="truncate text-sm font-medium" title={organizationName ?? undefined}>
           {organizationName ?? <span className="text-muted-foreground">{t("vue_globale")}</span>}
         </p>
       </div>

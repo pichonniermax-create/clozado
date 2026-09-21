@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { NAVIGATION, type NavBadge, type NavEntry } from "@/components/app-shell/navigation";
 import { setNavPinnedAction, toggleNavFavoriteAction } from "@/lib/display/actions";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 /**
  * LA BARRE FINE ET SON PANNEAU (lot 4) — la navigation tenait 256 px en
@@ -99,6 +100,8 @@ export function RailNav({
    * courant tant qu'on n'en choisit pas un autre.
    */
   const [opened, setOpened] = useState<{ key: string; at: string } | null>(null);
+  /** Le groupe atteint AU CLAVIER : lui seul montre son nom en bulle (le survol, lui, ouvre le panneau). */
+  const [clavier, setClavier] = useState<string | null>(null);
   const openKey = opened && opened.at === pathname ? opened.key : null;
   const setOpenKey = useCallback((key: string | null) => setOpened(key === null ? null : { key, at: pathname }), [pathname]);
   const shown = openKey ?? (pinned ? (activeSection?.key ?? sections[0]?.key ?? null) : null);
@@ -208,34 +211,57 @@ export function RailNav({
             const count = sectionBadge(section.entries, badges);
             const active = section.entries.some((entry) => isActive(entry.href));
             return (
-              <button
+              /*
+                L'info-bulle du groupe ne s'ouvre QU'AU FOCUS clavier : au survol,
+                c'est le panneau lui-même qui s'ouvre avec les noms entiers — deux
+                bulles superposées seraient du bruit. Au clavier, le focus n'ouvre
+                pas le panneau (voir plus bas) : sans elle, il ne resterait qu'une
+                icône.
+              */
+              <Tooltip
                 key={section.key}
-                type="button"
-                data-rail-group={section.key}
-                // Un seul arrêt de tabulation pour le rail : les flèches font le reste (motif « barre d'outils »).
-                tabIndex={index === 0 ? 0 : -1}
-                aria-expanded={open}
-                aria-controls={open ? panelId : undefined}
-                aria-current={active ? "true" : undefined}
-                onMouseEnter={() => hoverOpen(section.key)}
-                // Le FOCUS n'ouvre pas : sinon Entrée refermerait ce que le focus vient d'ouvrir, et Échap
-                // rouvrirait le panneau en rendant le focus au groupe. Entrée, Espace et flèche droite ouvrent.
-                onClick={() => setOpenKey(open ? null : section.key)}
-                onKeyDown={(e) => onRailKeyDown(e, index, section.key)}
-                title={tn(`sections.${section.key}`)}
-                className={cn(
-                  "relative flex size-10 items-center justify-center rounded-lg transition-colors",
-                  active || open ? "bg-sidebar-accent text-primary-ink" : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
-                )}
+                open={clavier === section.key}
+                onOpenChange={(next) => {
+                  if (!next) setClavier((courant) => (courant === section.key ? null : courant));
+                }}
               >
-                <Icon aria-hidden className="size-5" />
-                <span className="sr-only">{tn(`sections.${section.key}`)}</span>
-                {count > 0 && (
-                  <span className="absolute top-1 right-1 min-w-4 rounded-full bg-primary px-1 text-center text-[0.625rem] leading-4 font-semibold text-primary-foreground tabular-nums">
-                    {count}
-                  </span>
-                )}
-              </button>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      data-rail-group={section.key}
+                      // Le nom au FOCUS CLAVIER seulement : « :focus-visible » distingue la tabulation du clic.
+                      onFocus={(event) => {
+                        if (event.currentTarget.matches(":focus-visible")) setClavier(section.key);
+                      }}
+                      onBlur={() => setClavier((courant) => (courant === section.key ? null : courant))}
+                      // Un seul arrêt de tabulation pour le rail : les flèches font le reste (motif « barre d'outils »).
+                      tabIndex={index === 0 ? 0 : -1}
+                      aria-expanded={open}
+                      aria-controls={open ? panelId : undefined}
+                      aria-current={active ? "true" : undefined}
+                      onMouseEnter={() => hoverOpen(section.key)}
+                      // Le FOCUS n'ouvre pas : sinon Entrée refermerait ce que le focus vient d'ouvrir, et Échap
+                      // rouvrirait le panneau en rendant le focus au groupe. Entrée, Espace et flèche droite ouvrent.
+                      onClick={() => setOpenKey(open ? null : section.key)}
+                      onKeyDown={(e) => onRailKeyDown(e, index, section.key)}
+                      className={cn(
+                        "relative flex size-10 items-center justify-center rounded-lg transition-colors",
+                        active || open ? "bg-sidebar-accent text-primary-ink" : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
+                      )}
+                    />
+                  }
+                >
+                  <Icon aria-hidden className="size-5" />
+                  <span className="sr-only">{tn(`sections.${section.key}`)}</span>
+                  {count > 0 && (
+                    <span className="absolute top-1 right-1 min-w-4 rounded-full bg-primary px-1 text-center text-[0.625rem] leading-4 font-semibold text-primary-foreground tabular-nums">
+                      {count}
+                    </span>
+                  )}
+                </TooltipTrigger>
+                <TooltipContent side="right">{tn(`sections.${section.key}`)}</TooltipContent>
+              </Tooltip>
             );
           })}
         </nav>
@@ -295,7 +321,8 @@ export function RailNav({
                   <span className={cn("shrink-0 [&_svg]:size-4", active ? "text-primary-ink" : "")}>
                     <entry.icon />
                   </span>
-                  <span className="min-w-0 flex-1 truncate">{tn(`entries.${entry.key}`)}</span>
+                  {/* Le panneau est la barre DÉPLIÉE : le nom du module y est entier, sur deux lignes s'il le faut. */}
+                  <span className="min-w-0 flex-1 text-pretty">{tn(`entries.${entry.key}`)}</span>
                   {count > 0 && (
                     <span className={cn(
                       "min-w-5 rounded-full px-1.5 py-0.5 text-center text-[0.6875rem] leading-none font-semibold tabular-nums",
@@ -356,26 +383,36 @@ function RailLink({
   badge: number;
   onHover?: () => void;
 }) {
+  // BARRE REPLIÉE : l'icône seule, et le nom entier au survol COMME au focus clavier.
+  // Une info-bulle plutôt qu'un `title` : un attribut natif ne s'affiche pas au clavier,
+  // et le rail défile (`overflow-y`), donc une bulle en CSS y serait coupée — celle-ci
+  // sort par un portail.
   return (
-    <Link
-      href={href}
-      prefetch={false}
-      onMouseEnter={onHover}
-      onFocus={onHover}
-      aria-current={active ? "page" : undefined}
-      title={label}
-      className={cn(
-        "relative flex size-10 items-center justify-center rounded-lg transition-colors [&_svg]:size-5",
-        active ? "bg-sidebar-accent text-primary-ink" : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
-      )}
-    >
-      {icon}
-      <span className="sr-only">{label}</span>
-      {badge > 0 && (
-        <span className="absolute top-1 right-1 min-w-4 rounded-full bg-primary px-1 text-center text-[0.625rem] leading-4 font-semibold text-primary-foreground tabular-nums">
-          {badge}
-        </span>
-      )}
-    </Link>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Link
+            href={href}
+            prefetch={false}
+            onMouseEnter={onHover}
+            onFocus={onHover}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "relative flex size-10 items-center justify-center rounded-lg transition-colors [&_svg]:size-5",
+              active ? "bg-sidebar-accent text-primary-ink" : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
+            )}
+          />
+        }
+      >
+        {icon}
+        <span className="sr-only">{label}</span>
+        {badge > 0 && (
+          <span className="absolute top-1 right-1 min-w-4 rounded-full bg-primary px-1 text-center text-[0.625rem] leading-4 font-semibold text-primary-foreground tabular-nums">
+            {badge}
+          </span>
+        )}
+      </TooltipTrigger>
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
   );
 }

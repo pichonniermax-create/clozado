@@ -229,7 +229,7 @@ function NavRow({ icon, label, active, badge }: { icon: React.ReactNode; label: 
       )}
     >
       <span className={cn("shrink-0 [&_svg]:size-4", active ? "text-primary-ink" : "text-muted-foreground")}>{icon}</span>
-      <span className="flex-1 truncate">{label}</span>
+      <span className="flex-1 text-pretty">{label}</span>
       {badge !== undefined && (
         <span
           className={cn(

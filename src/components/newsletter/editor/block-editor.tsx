@@ -310,7 +310,7 @@ export function BlockEditor({
                 {block.items.map((item, i) => (
                   <li key={item.id} className="flex items-start justify-between gap-2 rounded-lg border border-border p-2 text-sm">
                     <span className="min-w-0 flex flex-col">
-                      <span className="truncate font-medium">{item.title}</span>
+                      <span className="truncate font-medium" title={item.title}>{item.title}</span>
                       <span className="text-xs text-muted-foreground">{[item.publisher, item.date].filter(Boolean).join(" · ")}</span>
                     </span>
                     <Button
@@ -332,7 +332,7 @@ export function BlockEditor({
                 {available.map((source) => (
                   <li key={source.id} className="flex items-start justify-between gap-2 rounded-lg border border-dashed border-border p-2 text-sm">
                     <span className="min-w-0 flex flex-col">
-                      <span className="truncate font-medium">{source.title}</span>
+                      <span className="truncate font-medium" title={source.title}>{source.title}</span>
                       <span className="text-xs text-muted-foreground">{[source.publisher, source.publishedAt ? fmt.date(source.publishedAt) : ""].filter(Boolean).join(" · ")}</span>
                     </span>
                     <Button

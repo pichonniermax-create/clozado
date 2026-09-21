@@ -291,8 +291,8 @@ export function CommandPalette({
                     className={cn("flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-sm", isActive ? "bg-accent text-accent-foreground" : "text-foreground")}
                   >
                     {Icon && <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />}
-                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                    {item.hint && <span className="hidden max-w-[40%] truncate text-xs text-muted-foreground sm:inline">{item.hint}</span>}
+                    <span className="min-w-0 flex-1 truncate" title={item.label}>{item.label}</span>
+                    {item.hint && <span className="hidden max-w-[40%] truncate text-xs text-muted-foreground sm:inline" title={item.hint}>{item.hint}</span>}
                     {isActive && <CornerDownLeft className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />}
                   </div>
                 </li>

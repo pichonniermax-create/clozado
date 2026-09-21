@@ -107,7 +107,7 @@ export function ViewsMenu({
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button type="button" variant="outline" size="sm" />}>
             <ListFilter />
-            <span className="max-w-40 truncate">{currentLabel}</span>
+            <span className="max-w-40 truncate" title={currentLabel}>{currentLabel}</span>
             {modified && <span className="text-muted-foreground">{t("modifiee_marque")}</span>}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-72">
@@ -119,7 +119,7 @@ export function ViewsMenu({
               </DropdownMenuItem>
               {views.map((view) => (
                 <DropdownMenuItem key={view.id} render={<Link href={href(view.id)} />}>
-                  <span className="min-w-0 flex-1 truncate">{label(view)}</span>
+                  <span className="min-w-0 flex-1 truncate" title={label(view)}>{label(view)}</span>
                   {view.shared && !view.mine && <Users className="size-3.5 shrink-0 text-muted-foreground" aria-label={t("vue_d_equipe")} />}
                   {/* La vue par défaut se voit d'un coup d'œil : le mot, pas seulement une icône (2026-09-18). */}
                   {view.id === defaultViewId && (

@@ -109,11 +109,11 @@ export default async function NewsletterPreviewPage(props: PageProps<"/newslette
           {/* L'en-tête tel qu'une messagerie l'affiche : de qui, à qui, quel objet, quel pré-en-tête. */}
           <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 rounded-lg border border-border px-3 py-2 text-sm">
             <dt className="text-muted-foreground">{t("entete.de")}</dt>
-            <dd className="min-w-0 truncate">{report.draft.from ?? t("entete.aucun_expediteur")}</dd>
+            <dd className="min-w-0 truncate" title={report.draft.from ?? undefined}>{report.draft.from ?? t("entete.aucun_expediteur")}</dd>
             <dt className="text-muted-foreground">{t("entete.reponse")}</dt>
-            <dd className="min-w-0 truncate">{report.draft.replyTo ?? t("entete.aucune_reponse")}</dd>
+            <dd className="min-w-0 truncate" title={report.draft.replyTo ?? undefined}>{report.draft.replyTo ?? t("entete.aucune_reponse")}</dd>
             <dt className="text-muted-foreground">{t("entete.a")}</dt>
-            <dd className="min-w-0 truncate">{chosen ? `${chosen.name}${chosen.email ? ` — ${chosen.email}` : ""}` : t("entete.personne")}</dd>
+            <dd className="min-w-0 truncate" title={chosen ? `${chosen.name}${chosen.email ? ` — ${chosen.email}` : ""}` : undefined}>{chosen ? `${chosen.name}${chosen.email ? ` — ${chosen.email}` : ""}` : t("entete.personne")}</dd>
             <dt className="text-muted-foreground">{t("entete.objet")}</dt>
             <dd className="min-w-0 font-medium text-pretty">{report.draft.subject || t("entete.objet_vide")}</dd>
             <dt className="text-muted-foreground">{t("entete.preheader")}</dt>

@@ -390,7 +390,7 @@ export function ImportWizard() {
                           ))}
                         </NativeSelect>
                       </td>
-                      <td className="max-w-48 truncate px-4 py-2 text-muted-foreground">
+                      <td className="max-w-48 truncate px-4 py-2 text-muted-foreground" title={parsed.rows[0]?.cells[i] ?? undefined}>
                         {parsed.rows[0]?.cells[i] ?? ""}
                       </td>
                     </tr>
@@ -428,7 +428,7 @@ export function ImportWizard() {
                       .map((r) => (
                         <tr key={r.line}>
                           {TARGETS.filter((value) => value && mapping.includes(value)).map((value) => (
-                            <td key={value} className="max-w-48 truncate px-4 py-2">
+                            <td key={value} className="max-w-48 truncate px-4 py-2" title={r.values[value as ImportField] ?? undefined}>
                               {r.values[value as ImportField] ?? ""}
                             </td>
                           ))}
