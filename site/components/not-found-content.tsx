@@ -18,7 +18,7 @@ export function NotFoundContent({ locale }: { locale: Locale }) {
 
   return (
     <Container className="flex flex-1 flex-col justify-center py-24 sm:py-24">
-      <div className="max-w-xl">
+      <div className="colonne-lecture-centree">
         <p className="font-mono text-sm tabular-nums text-muted-foreground">{common.introuvable.code}</p>
         <h1 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">{sansOrphelin(common.introuvable.titre)}</h1>
         <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">{common.introuvable.texte}</p>

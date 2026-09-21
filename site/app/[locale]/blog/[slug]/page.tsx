@@ -67,8 +67,8 @@ export default async function Article(props: PageProps<"/[locale]/blog/[slug]">)
 
       <section className="border-b border-border">
         <div className="editorial-conteneur py-12 sm:py-12 lg:py-12">
-          <div className="grid grid-cols-12 gap-x-6">
-            <div data-entree className="col-span-12 lg:col-start-4 lg:col-span-8">
+          <div>
+            <div data-entree className="colonne-lecture-centree">
               <FilAriane maillons={maillons} aide={blog.filAriane.aide} />
               <h1 className={`mt-6 ${classeTitre(article.titre)} text-foreground`}>{sansOrphelin(article.titre)}</h1>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{article.resume}</p>
@@ -93,19 +93,15 @@ export default async function Article(props: PageProps<"/[locale]/blog/[slug]">)
 
       <section className="py-12 sm:py-24 lg:py-24">
         <div className="editorial-conteneur">
-          <div className="grid grid-cols-12 gap-x-6 gap-y-12">
+          {/* Le sommaire est un aparté : il vient avant l'article sur un
+              grand écran, après lui sur un téléphone. */}
+          <div className={avecSommaire ? "avec-aparte" : "colonne-lecture"} data-aparte={avecSommaire ? "avant" : undefined}>
             {avecSommaire && (
-              <div className="order-2 col-span-12 lg:order-1 lg:col-start-1 lg:col-span-3">
+              <div className="order-2 lg:order-1">
                 <Sommaire titres={article.titres} titre={blog.article.sommaireTitre} aide={blog.article.sommaireAide} />
               </div>
             )}
-            <article
-              className={
-                avecSommaire
-                  ? "order-1 col-span-12 min-w-0 lg:order-2 lg:col-start-4 lg:col-span-8"
-                  : "col-span-12 min-w-0 lg:col-start-4 lg:col-span-8"
-              }
-            >
+            <article className={avecSommaire ? "order-1 lg:order-2" : undefined}>
               {article.demonstration && (
                 <aside className="mb-12 rounded-xl border border-border bg-muted px-6 py-6">
                   <p className="label">{blog.demonstration.titre}</p>

@@ -73,7 +73,6 @@ function Geste({
  * propre bouton. Aucun appel à l'action commun ne vient les brouiller.
  */
 /** La colonne unique de la page — la même pour toutes ses sections. */
-const COLONNE = "lg:col-start-4 lg:col-span-9";
 
 export default async function Demo(props: PageProps<"/[locale]/demo">) {
   const { locale } = await props.params;
@@ -90,14 +89,16 @@ export default async function Demo(props: PageProps<"/[locale]/demo">) {
 
       <section className="border-b border-border">
         <div className="editorial-conteneur py-12 sm:py-12 lg:py-12">
-          <div className="grid grid-cols-12 gap-x-6 gap-y-12">
-            <div data-entree className={`col-span-12 ${COLONNE}`}>
-              <h1 className={`${classeTitre(hero.titre)} text-foreground`}>{sansOrphelin(hero.titre)}</h1>
-              <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{hero.chapo}</p>
-            </div>
+          {/* La page Démonstration n'a pas d'écran de preuve : son premier
+              écran est entièrement centré. */}
+          <div data-entree className="colonne-lecture-centree">
+            <h1 className={`${classeTitre(hero.titre)} text-foreground`}>{sansOrphelin(hero.titre)}</h1>
+            <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{hero.chapo}</p>
+          </div>
 
+          <div className="corps-section mt-12">
             <div
-              className={`grille-cartes col-span-12 ${COLONNE}`}
+              className="grille-cartes"
               data-colonnes="2-lg"
               style={{ "--ecart": "1.5rem" } as React.CSSProperties}
             >
@@ -133,7 +134,7 @@ export default async function Demo(props: PageProps<"/[locale]/demo">) {
         </div>
       </section>
 
-      <SectionEditoriale intitule={demo.limites.intitule} titre={demo.limites.titre} largeurContenu={COLONNE}>
+      <SectionEditoriale intitule={demo.limites.intitule} titre={demo.limites.titre}>
         <ul className="flex flex-col gap-4">
           {demo.limites.elements.map((element, rang) => (
             <li key={element} data-entree data-rang={rang} className="flex gap-4 leading-relaxed">
@@ -148,7 +149,7 @@ export default async function Demo(props: PageProps<"/[locale]/demo">) {
           Sans prise de rendez-vous, elle n'a rien à dire — on ne la garde pas
           en la vidant de son sens. */}
       {RESERVATION_EN_LIGNE && (
-        <SectionEditoriale ton="doux" largeurContenu={COLONNE}>
+        <SectionEditoriale ton="doux">
           <div data-entree>
             <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(demo.final.titre)}</h2>
             <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{demo.final.texte}</p>

@@ -37,7 +37,6 @@ export async function generateMetadata(props: PageProps<"/[locale]/produit">): P
  * comme dans le déroulant de la barre.
  */
 /** La colonne unique de la page — la même pour toutes ses sections. */
-const COLONNE = "lg:col-start-4 lg:col-span-9";
 
 export default async function Produit(props: PageProps<"/[locale]/produit">) {
   const { locale } = await props.params;
@@ -101,10 +100,9 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
           intitule={etape.intitule}
           titre={etape.titre}
           ton={rang % 2 === 1 ? "doux" : "normal"}
-          largeurContenu={COLONNE}
         >
-          <div className="grid grid-cols-12 items-start gap-x-6 gap-y-6">
-            <div data-entree className="col-span-12 min-w-0 lg:col-span-5">
+          <div className="duo">
+            <div data-entree>
               <p className="mesure text-pretty leading-relaxed text-muted-foreground">{etape.texte}</p>
               {etape.liaison && (
                 <p className="mesure mt-6 border-l border-border pl-6 text-sm leading-relaxed text-foreground">
@@ -112,7 +110,7 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
                 </p>
               )}
             </div>
-            <div data-entree data-rang={1} className="col-span-12 min-w-0 lg:col-start-7 lg:col-span-6">
+            <div data-entree data-rang={1}>
               {ecranDe(etape.cle)}
               <p className="mesure mt-4 text-sm text-muted-foreground">{mentionEcrans}</p>
             </div>
@@ -124,7 +122,6 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
         intitule={produit.metiers.intitule}
         titre={produit.metiers.titre}
         chapo={produit.metiers.chapo}
-        largeurContenu={COLONNE}
       >
         <ul className="grille-cartes" data-colonnes="3">
           {sousEntrees("produit").map((cle, rang) => (
@@ -147,7 +144,6 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
         intitule={produit.perimetre.intitule}
         titre={produit.perimetre.titre}
         ton="doux"
-        largeurContenu={COLONNE}
       >
         <ul className="flex flex-col gap-4">
           {produit.perimetre.elements.map((element, rang) => (
@@ -161,15 +157,13 @@ export default async function Produit(props: PageProps<"/[locale]/produit">) {
 
       <section className="border-t border-border py-24 sm:py-24 lg:py-36">
         <div className="editorial-conteneur">
-          <div className="grid grid-cols-12 gap-x-6">
-            <div
-              data-entree
-              className="col-span-12 rounded-xl border border-border bg-card px-6 py-12 sm:px-12 lg:col-start-4 lg:col-span-9"
-            >
+          {/* La carte de clôture : pleine largeur du conteneur, texte centré. */}
+          <div data-entree className="rounded-xl border border-border bg-card px-6 py-12 sm:px-12">
+            <div className="colonne-lecture-centree">
               <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(produit.final.titre)}</h2>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{avecReservation(produit.final.texte, produit.final.texteReservation)}</p>
               <div className="mt-12">{appels}</div>
-            </div>
+          </div>
           </div>
         </div>
       </section>

@@ -14,7 +14,7 @@ export function References({ locale }: { locale: Locale }) {
   if (common.references.elements.length === 0) return null;
 
   return (
-    <SectionEditoriale titre={common.references.titre} largeurContenu="lg:col-start-4 lg:col-span-9">
+    <SectionEditoriale titre={common.references.titre}>
       <ul className="grille-cartes" data-colonnes="3">
         {common.references.elements.map((reference) => (
           <li key={reference.nom}>

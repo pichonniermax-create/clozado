@@ -31,9 +31,9 @@ export function BlogIndex({
   const toutes = categories();
 
   return (
-    <SectionEditoriale intitule={blog.liste.intitule} largeurContenu="lg:col-start-4 lg:col-span-9">
-      <div className="grid grid-cols-12 gap-x-6 gap-y-12">
-        <div data-entree className="col-span-12 min-w-0 lg:col-span-8">
+    <SectionEditoriale intitule={blog.liste.intitule}>
+      <div className="avec-aparte">
+        <div data-entree>
           {articlesDeLaPage.length === 0 ? (
             <div>
               <h2 className="text-titre-2 text-foreground">{blog.vide.titre}</h2>
@@ -67,7 +67,7 @@ export function BlogIndex({
         </div>
 
         {toutes.length > 0 && (
-          <aside data-entree data-rang={1} className="col-span-12 min-w-0 lg:col-start-10 lg:col-span-3">
+          <aside data-entree data-rang={1}>
             <p className="label">{blog.liste.categoriesTitre}</p>
             <ul className="mt-6 flex flex-col gap-3 border-l border-border">
               <li>

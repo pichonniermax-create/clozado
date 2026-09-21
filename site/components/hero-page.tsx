@@ -1,14 +1,21 @@
-import { cn } from "@/lib/cn";
 import { classeTitre, sansOrphelin } from "@/lib/titres";
 
 /**
- * LE PREMIER ÉCRAN D'UNE PAGE, dans la grille éditoriale : un surtitre en
- * petites capitales filetées, le titre, le propos, et les appels à
- * l'action. Sept colonnes sur douze — jamais centré.
+ * LE PREMIER ÉCRAN D'UNE PAGE — CENTRÉ (décision de l'éditeur, 2026-09-21).
  *
- * `aside` reçoit ce qui accompagne le propos quand il y a quelque chose à
- * montrer ; sans lui, le texte occupe neuf colonnes plutôt que sept, pour
- * qu'aucune moitié de page ne reste vide.
+ * Il tenait sur sept colonnes de douze, aligné à gauche, « jamais centré ».
+ * Ce n'est plus la composition du site, et aucune session ne doit y revenir.
+ *
+ * DEUX CAS, ET DEUX SEULEMENT :
+ *
+ * — SANS ÉCRAN DE PREUVE, tout est centré : sur-titre, titre, propos, appels
+ *   à l'action. C'est le cas des pages qui n'ont rien à montrer — conformité,
+ *   démonstration, blog, à propos, carrières, pages légales.
+ *
+ * — AVEC ÉCRAN DE PREUVE, deux colonnes DE LARGEUR ÉGALE (`.duo`), le bloc
+ *   entier centré puisque le conteneur l'est, et le texte aligné à gauche
+ *   dans sa colonne. Égales, et pas 7/5 : deux colonnes inégales rendent le
+ *   bloc désaxé, ce qu'on vient précisément de retirer.
  *
  * TOUT DOIT TENIR SANS DÉFILER en 1440 × 900, 1280 × 800 et 1512 × 860 :
  * sur-titre, titre, propos, deux boutons et écran de preuve. C'est une
@@ -33,24 +40,30 @@ export function HeroPage({
   note?: string;
   aside?: React.ReactNode;
 }) {
+  const propos = (
+    <div data-entree className={aside ? undefined : "colonne-lecture-centree"}>
+      <p className="label">{surtitre}</p>
+      <h1 className={`mt-6 text-foreground ${classeTitre(titre)}`}>{sansOrphelin(titre)}</h1>
+      <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{chapo}</p>
+      {precision && <p className="mesure mt-3 text-pretty text-chapo text-muted-foreground">{precision}</p>}
+      {appels && <div className="mt-6">{appels}</div>}
+      {note && <p className="mt-4 text-sm text-muted-foreground">{note}</p>}
+    </div>
+  );
+
   return (
     <section className="border-b border-border">
       <div className="editorial-conteneur py-12 sm:py-12 lg:py-12">
-        <div className="grid grid-cols-12 gap-x-6 gap-y-12">
-          <div data-entree className={cn("col-span-12 min-w-0", aside ? "lg:col-span-7" : "lg:col-span-9")}>
-            <p className="label">{surtitre}</p>
-            <h1 className={cn("mt-6 text-foreground", classeTitre(titre))}>{sansOrphelin(titre)}</h1>
-            <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{chapo}</p>
-            {precision && <p className="mesure mt-3 text-pretty text-chapo text-muted-foreground">{precision}</p>}
-            {appels && <div className="mt-6">{appels}</div>}
-            {note && <p className="mt-4 text-sm text-muted-foreground">{note}</p>}
-          </div>
-          {aside && (
-            <div data-entree data-rang={1} className="ecran-compact col-span-12 min-w-0 lg:col-start-8 lg:col-span-5">
+        {aside ? (
+          <div className="duo">
+            {propos}
+            <div data-entree data-rang={1} className="ecran-compact">
               {aside}
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          propos
+        )}
       </div>
     </section>
   );

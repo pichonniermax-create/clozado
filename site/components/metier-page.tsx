@@ -77,7 +77,6 @@ function SousTitre({ children }: { children: string }) {
  * Elles étaient centrées à quatre largeurs différentes, si bien que le
  * contenu commençait à quatre abscisses différentes selon la section.
  */
-const COLONNE = "lg:col-start-4 lg:col-span-9";
 
 export function PageMetier({
   locale,
@@ -133,13 +132,12 @@ export function PageMetier({
     <div className="editorial">
       <Mouvement />
 
-      {/* PREMIER ÉCRAN — le propos du métier à gauche, ce qui attend une
-          action à droite. Les colonnes s'alignent en haut : le titre est
-          très grand, l'aligner au milieu le ferait flotter au-dessus du vide. */}
+      {/* PREMIER ÉCRAN — le propos du métier et l'écran qui le prouve, DEUX
+          COLONNES DE LARGEUR ÉGALE, le bloc centré dans le conteneur. */}
       <section className="border-b border-border">
         <div className="editorial-conteneur py-12 sm:py-12 lg:py-12">
-          <div className="grid gap-12 lg:grid-cols-12 lg:gap-12">
-            <div data-entree className="min-w-0 lg:col-span-7">
+          <div className="duo">
+            <div data-entree>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 {contenu.hero.secteur}
               </p>
@@ -148,7 +146,7 @@ export function PageMetier({
               <p className="mesure mt-3 text-pretty text-chapo text-muted-foreground">{contenu.hero.precision}</p>
               <div className="mt-6">{appels}</div>
             </div>
-            <div data-entree data-rang={1} className="ecran-compact min-w-0 lg:col-span-5">
+            <div data-entree data-rang={1} className="ecran-compact">
               {ecranDuMetier}
               <p className="mesure mt-4 text-sm text-muted-foreground">{mentionEcrans}</p>
             </div>
@@ -156,7 +154,7 @@ export function PageMetier({
         </div>
       </section>
 
-      <SectionEditoriale intitule={contenu.coince.intitule} titre={contenu.coince.titre} largeurContenu={COLONNE}>
+      <SectionEditoriale intitule={contenu.coince.intitule} titre={contenu.coince.titre}>
         <ListeNumerotee elements={contenu.coince.elements} />
       </SectionEditoriale>
 
@@ -165,7 +163,6 @@ export function PageMetier({
         titre={contenu.reponse.titre}
         chapo={contenu.reponse.chapo}
         ton="doux"
-        largeurContenu={COLONNE}
       >
         <ListeNumerotee elements={contenu.reponse.elements} />
       </SectionEditoriale>
@@ -175,10 +172,9 @@ export function PageMetier({
         intitule={contenu.indicateurs.intitule}
         titre={contenu.indicateurs.titre}
         chapo={contenu.indicateurs.chapo}
-        largeurContenu={COLONNE}
       >
-        <div className="grid gap-12 lg:grid-cols-12 lg:gap-12">
-          <div data-entree className="min-w-0 lg:col-span-5">
+        <div className="duo">
+          <div data-entree>
             <ul className="grille-cartes" data-colonnes="1" style={{ "--ecart": "0.5rem" } as React.CSSProperties}>
               {contenu.indicateurs.elements.map((element) => (
                 <Pastille key={element}>{element}</Pastille>
@@ -186,7 +182,7 @@ export function PageMetier({
             </ul>
             <p className="mt-6 text-sm leading-relaxed text-muted-foreground">{contenu.indicateurs.note}</p>
           </div>
-          <div data-entree data-rang={1} className="min-w-0 lg:col-span-7">
+          <div data-entree data-rang={1}>
             <EcranTableauDeBord ecran={ecrans.tableauDeBord} />
           </div>
         </div>
@@ -198,10 +194,9 @@ export function PageMetier({
         titre={contenu.communication.titre}
         chapo={contenu.communication.chapo}
         ton="doux"
-        largeurContenu={COLONNE}
       >
-        <div className="grid gap-12 lg:grid-cols-12 lg:gap-12">
-          <div className="flex min-w-0 flex-col gap-12 lg:col-span-7">
+        <div className="duo">
+          <div className="flex flex-col gap-12">
             <div data-entree>
               <SousTitre>{contenu.communication.ciblesTitre}</SousTitre>
               <dl className="grille-cartes grille-large mt-6" data-colonnes="2">
@@ -236,7 +231,7 @@ export function PageMetier({
             </div>
           </div>
 
-          <div data-entree data-rang={1} className="min-w-0 lg:col-span-5">
+          <div data-entree data-rang={1}>
             <EcranRegles ecran={ecrans.regles} />
           </div>
         </div>
@@ -246,7 +241,6 @@ export function PageMetier({
         intitule={contenu.conformite.intitule}
         titre={contenu.conformite.titre}
         chapo={contenu.conformite.chapo}
-        largeurContenu={COLONNE}
       >
         <dl className="grille-cartes grille-large" data-colonnes="2">
           {contenu.conformite.elements.map((element, rang) => (
@@ -265,7 +259,7 @@ export function PageMetier({
         </p>
       </SectionEditoriale>
 
-      <SectionEditoriale intitule={contenu.perimetre.intitule} titre={contenu.perimetre.titre} ton="doux" largeurContenu={COLONNE}>
+      <SectionEditoriale intitule={contenu.perimetre.intitule} titre={contenu.perimetre.titre} ton="doux">
         <ul className="flex flex-col gap-4">
           {contenu.perimetre.elements.map((element, rang) => (
             <li key={element} data-entree data-rang={rang} className="flex gap-4 text-base leading-relaxed">
@@ -278,14 +272,15 @@ export function PageMetier({
 
       <section className="border-t border-border py-24 sm:py-24 lg:py-36">
         <div className="editorial-conteneur">
-          <div className="grid grid-cols-12 gap-x-6">
-            <div
-              data-entree
-              className="col-span-12 rounded-xl border border-border bg-card px-6 py-12 sm:px-12 lg:col-start-4 lg:col-span-9"
-            >
-            <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(contenu.final.titre)}</h2>
-            <p className="mt-6 text-pretty text-chapo text-muted-foreground">{avecReservation(contenu.final.texte, contenu.final.texteReservation)}</p>
-              <div className="mt-6">{appels}</div>
+          {/* La carte de clôture : pleine largeur du conteneur, et son
+              texte centré comme tout ce qui annonce. */}
+          <div data-entree className="rounded-xl border border-border bg-card px-6 py-12 sm:px-12">
+            <div className="colonne-lecture-centree">
+              <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(contenu.final.titre)}</h2>
+              <p className="mt-6 text-pretty text-chapo text-muted-foreground">
+                {avecReservation(contenu.final.texte, contenu.final.texteReservation)}
+              </p>
+              <div className="appels mt-6 flex">{appels}</div>
             </div>
           </div>
         </div>

@@ -29,7 +29,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
     <footer className="border-t border-border bg-muted/40">
       <Container className="py-12 sm:py-12">
         <div className="flex flex-col gap-12 lg:flex-row lg:justify-between">
-          <div className="max-w-sm">
+          <div className="mesure">
             <BrandMark href={path(locale, "accueil")} />
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{common.pied.presentation}</p>
           </div>

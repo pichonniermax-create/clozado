@@ -49,7 +49,6 @@ export default async function APropos(props: PageProps<"/[locale]/a-propos">) {
       <SectionEditoriale
         intitule={aPropos.pourquoi.intitule}
         titre={aPropos.pourquoi.titre}
-        largeurContenu="lg:col-start-4 lg:col-span-9"
       >
         {cartes(aPropos.pourquoi.elements)}
       </SectionEditoriale>
@@ -59,7 +58,6 @@ export default async function APropos(props: PageProps<"/[locale]/a-propos">) {
         titre={aPropos.pourQui.titre}
         chapo={aPropos.pourQui.chapo}
         ton="doux"
-        largeurContenu="lg:col-start-4 lg:col-span-9"
       >
         {cartes(aPropos.pourQui.elements)}
       </SectionEditoriale>
@@ -67,7 +65,6 @@ export default async function APropos(props: PageProps<"/[locale]/a-propos">) {
       <SectionEditoriale
         intitule={aPropos.comment.intitule}
         titre={aPropos.comment.titre}
-        largeurContenu="lg:col-start-4 lg:col-span-9"
       >
         <dl className="grille-cartes grille-large" data-colonnes="2">
           {aPropos.comment.elements.map((element, rang) => (
@@ -81,14 +78,12 @@ export default async function APropos(props: PageProps<"/[locale]/a-propos">) {
 
       <section className="border-t border-border py-24 sm:py-24 lg:py-36">
         <div className="editorial-conteneur">
-          <div className="grid grid-cols-12 gap-x-6">
-            <div
-              data-entree
-              className="col-span-12 rounded-xl border border-border bg-card px-6 py-12 sm:px-12 lg:col-start-4 lg:col-span-9"
-            >
+          {/* La carte de clôture : pleine largeur du conteneur, texte centré. */}
+          <div data-entree className="rounded-xl border border-border bg-card px-6 py-12 sm:px-12">
+            <div className="colonne-lecture-centree">
               <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(aPropos.final.titre)}</h2>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{aPropos.final.texte}</p>
-              <div className="mt-12 flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="appels mt-12 flex flex-col gap-4 sm:flex-row sm:items-center">
                 <ActionLink href={DEMO_URL} externe mentionNouvelOnglet={common.actions.nouvelOnglet}>
                   {common.actions.ouvrirLaDemo}
                 </ActionLink>
@@ -103,7 +98,7 @@ export default async function APropos(props: PageProps<"/[locale]/a-propos">) {
                   </ActionLink>
                 )}
               </div>
-            </div>
+          </div>
           </div>
         </div>
       </section>

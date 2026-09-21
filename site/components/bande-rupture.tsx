@@ -22,11 +22,11 @@ export function BandeRupture({
   return (
     <section className="border-y border-border bg-card py-24 sm:py-24 lg:py-36">
       <div className="editorial-conteneur">
-        <div className="grid grid-cols-12 gap-x-6">
-          <div className="col-span-12 lg:col-start-4 lg:col-span-9">
+        <div>
+          <div>
             <h2
               data-entree
-              className="max-w-5xl text-balance text-titre-2 text-foreground"
+              className="text-balance text-titre-2 text-foreground"
             >
               {sansOrphelin(titre)}
             </h2>

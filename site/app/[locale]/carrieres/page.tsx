@@ -39,7 +39,6 @@ export default async function Carrieres(props: PageProps<"/[locale]/carrieres">)
       <SectionEditoriale
         intitule={carrieres.activite.intitule}
         titre={carrieres.activite.titre}
-        largeurContenu="lg:col-start-4 lg:col-span-7"
       >
         <p data-entree className="mesure leading-relaxed text-muted-foreground">
           {carrieres.activite.texte}
@@ -50,7 +49,6 @@ export default async function Carrieres(props: PageProps<"/[locale]/carrieres">)
         intitule={carrieres.methode.intitule}
         titre={carrieres.methode.titre}
         ton="doux"
-        largeurContenu="lg:col-start-4 lg:col-span-9"
       >
         <ul className="grille-cartes" data-colonnes="2">
           {carrieres.methode.elements.map((element, rang) => (
@@ -68,7 +66,6 @@ export default async function Carrieres(props: PageProps<"/[locale]/carrieres">)
       <SectionEditoriale
         intitule={carrieres.candidature.intitule}
         titre={carrieres.candidature.titre}
-        largeurContenu="lg:col-start-4 lg:col-span-7"
       >
         <div data-entree>
           <p className="mesure leading-relaxed text-muted-foreground">{carrieres.candidature.texte}</p>

@@ -60,8 +60,8 @@ export function PageLegaleRendu({ contenu, page }: { contenu: PageLegale; page: 
     <div className="editorial">
       <section className="border-b border-border">
         <div className="editorial-conteneur py-12 sm:py-12 lg:py-12">
-          <div className="grid grid-cols-12 gap-x-6">
-            <div className="col-span-12 lg:col-start-4 lg:col-span-8">
+          <div>
+            <div className="colonne-lecture-centree">
               <h1 className={`${classeTitre(contenu.titre)} text-foreground`}>{sansOrphelin(contenu.titre)}</h1>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{contenu.chapo}</p>
               <p className="mt-3 text-sm text-muted-foreground">
@@ -74,8 +74,8 @@ export function PageLegaleRendu({ contenu, page }: { contenu: PageLegale; page: 
 
       <section className="py-24 sm:py-24 lg:py-36">
         <div className="editorial-conteneur">
-          <div className="grid grid-cols-12 gap-x-6">
-            <div className="col-span-12 flex flex-col gap-12 lg:col-start-4 lg:col-span-8">
+          <div>
+            <div className="colonne-lecture flex flex-col gap-12">
               {contenu.sections.map((section) => (
                 <section key={section.titre}>
                   <h2 className="text-titre-3 text-foreground">{sansOrphelin(section.titre)}</h2>

@@ -94,14 +94,14 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
     <div className="editorial">
       <Mouvement />
 
-      {/* PREMIER ÉCRAN — le propos sur sept colonnes, l'écran du produit sur
-          cinq, et qui ROMPT LA MARGE : il file vers le bord droit au lieu de
-          s'arrêter sur la gouttière. C'est ce débord qui sort la page de la
-          composition centrée dès la première ligne. */}
+      {/* PREMIER ÉCRAN — le propos et l'écran du produit, DEUX COLONNES DE
+          LARGEUR ÉGALE, le bloc centré dans le conteneur. Il tenait sur 7/5
+          et rompait la marge à droite : le contenu sortait de la barre de
+          navigation, et la marge gauche valait six fois la droite. */}
       <section className="border-b border-border">
         <div className="editorial-conteneur py-12 sm:py-12 lg:py-12">
-          <div className="grid grid-cols-12 gap-x-6 gap-y-12">
-            <div data-entree className="col-span-12 min-w-0 lg:col-span-7">
+          <div className="duo">
+            <div data-entree>
               <h1 className={`${classeTitre(accueil.hero.titre)} text-foreground`}>{sansOrphelin(accueil.hero.titre)}</h1>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{accueil.hero.chapo}</p>
               <p className="mesure mt-3 text-pretty text-chapo text-muted-foreground">{accueil.hero.precision}</p>
@@ -109,11 +109,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
               <p className="mt-4 text-sm text-muted-foreground">{accueil.hero.note}</p>
             </div>
 
-            <div
-              data-entree
-              data-rang={1}
-              className="ecran-compact col-span-12 min-w-0 lg:col-start-8 lg:col-span-5"
-            >
+            <div data-entree data-rang={1} className="ecran-compact">
               <EcransOnglets vues={vues} libelleListe={ecrans.onglets.libelleListe} />
               <p className="mesure mt-4 text-sm text-muted-foreground">{mentionEcrans}</p>
             </div>
@@ -124,7 +120,6 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
       <SectionEditoriale
         intitule={accueil.probleme.intitule}
         titre={accueil.probleme.titre}
-        largeurContenu="lg:col-start-4 lg:col-span-9"
       >
         <ul className="grille-cartes" data-colonnes="3">
           {accueil.probleme.elements.map((element, rang) => (
@@ -145,19 +140,14 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
         intitule={accueil.preuves.intitule}
         titre={accueil.preuves.titre}
         ton="doux"
-        largeurContenu="lg:col-start-4 lg:col-span-9"
       >
         <div className="flex flex-col gap-24 lg:gap-36">
           {accueil.preuves.elements.map((preuve, index) => (
-            <div key={preuve.cle} className="grid grid-cols-12 items-center gap-x-6 gap-y-6">
-              <div
-                data-entree
-                className={
-                  index % 2 === 1
-                    ? "col-span-12 min-w-0 lg:order-2 lg:col-start-9 lg:col-span-4"
-                    : "col-span-12 min-w-0 lg:col-span-4"
-                }
-              >
+            /* Le texte et l'écran qui le prouve : deux colonnes égales, et
+               l'écran passe devant une fois sur deux — c'est le seul rythme
+               que garde la page, et il ne décentre rien. */
+            <div key={preuve.cle} className="duo" data-ecran={index % 2 === 1 ? "avant" : undefined}>
+              <div data-entree>
                 <h3 className="text-balance text-titre-3 text-foreground">{sansOrphelin(preuve.titre)}</h3>
                 <p className="mesure mt-4 text-pretty leading-relaxed text-muted-foreground">{preuve.texte}</p>
                 <ul className="mt-6 flex flex-col gap-4">
@@ -169,15 +159,7 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
                   ))}
                 </ul>
               </div>
-              <div
-                data-entree
-                data-rang={1}
-                className={
-                  index % 2 === 1
-                    ? "col-span-12 min-w-0 lg:order-1 lg:col-span-7"
-                    : "col-span-12 min-w-0 lg:col-start-6 lg:col-span-7"
-                }
-              >
+              <div data-entree data-rang={1}>
                 {ecranDe(preuve.cle)}
               </div>
             </div>
@@ -190,7 +172,6 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
       <SectionEditoriale
         intitule={accueil.reste.intitule}
         titre={accueil.reste.titre}
-        largeurContenu="lg:col-start-4 lg:col-span-9"
       >
         <ul className="grille-cartes" data-colonnes="3">
           {accueil.reste.elements.map((element, rang) => (
@@ -209,7 +190,6 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
         titre={accueil.pourQui.titre}
         chapo={accueil.pourQui.chapo}
         ton="doux"
-        largeurContenu="lg:col-start-4 lg:col-span-9"
       >
         <ul className="grille-cartes" data-colonnes="3">
           {accueil.pourQui.elements.map((element, rang) => {
@@ -245,7 +225,6 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
         intitule={accueil.conformite.intitule}
         titre={accueil.conformite.titre}
         chapo={accueil.conformite.chapo}
-        largeurContenu="lg:col-start-4 lg:col-span-8"
       >
         <dl className="grille-cartes grille-large" data-colonnes="2">
           {accueil.conformite.elements.map((element, rang) => (
@@ -261,7 +240,6 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
         intitule={accueil.perimetre.intitule}
         titre={accueil.perimetre.titre}
         ton="doux"
-        largeurContenu="lg:col-start-4 lg:col-span-6"
       >
         <ul className="flex flex-col gap-4">
           {accueil.perimetre.elements.map((element, rang) => (
@@ -277,15 +255,13 @@ export default async function Accueil(props: PageProps<"/[locale]">) {
 
       <section className="border-t border-border py-24 sm:py-24 lg:py-36">
         <div className="editorial-conteneur">
-          <div className="grid grid-cols-12 gap-x-6">
-            <div
-              data-entree
-              className="col-span-12 rounded-xl border border-border bg-card px-6 py-12 sm:px-12 lg:col-start-4 lg:col-span-9"
-            >
+          {/* La carte de clôture : pleine largeur du conteneur, texte centré. */}
+          <div data-entree className="rounded-xl border border-border bg-card px-6 py-12 sm:px-12">
+            <div className="colonne-lecture-centree">
               <h2 className="text-balance text-titre-2 text-foreground">{sansOrphelin(accueil.final.titre)}</h2>
               <p className="mesure mt-6 text-pretty text-chapo text-muted-foreground">{avecReservation(accueil.final.texte, accueil.final.texteReservation)}</p>
               <div className="mt-6">{appels}</div>
-            </div>
+          </div>
           </div>
         </div>
       </section>

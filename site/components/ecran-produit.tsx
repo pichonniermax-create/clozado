@@ -295,8 +295,11 @@ export function EcranFunnel({
       {/* Un tableau, pas un entonnoir dessiné : sur sept pas, la dernière
           forme ferait un pixel et mentirait. La seule barre est celle du TAUX
           DE PASSAGE, qui dit exactement ce que le nombre à côté d'elle dit. */}
+      {/* 28rem, et pas 30 : depuis que la composition est centrée, l'écran
+          tient dans une demi-colonne de 472 px, et un tableau de 480 s'y
+          mettait à défiler sur un écran de bureau. */}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[30rem] border-collapse text-left">
+        <table className="w-full min-w-[28rem] border-collapse text-left">
           <thead>
             <tr className="border-b border-border">
               <th scope="col" className="ecran-col">

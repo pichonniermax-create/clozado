@@ -59,8 +59,8 @@ export default async function Categorie(props: PageProps<"/[locale]/blog/categor
 
       <section className="border-b border-border">
         <div className="editorial-conteneur py-12 sm:py-12 lg:py-12">
-          <div className="grid grid-cols-12 gap-x-6">
-            <div data-entree className="col-span-12 lg:col-start-4 lg:col-span-9">
+          <div>
+            <div data-entree className="colonne-lecture-centree">
               <FilAriane maillons={maillons} aide={blog.filAriane.aide} />
               <h1 className={`mt-6 ${classeTitre(trouvee.nom)} text-foreground`}>{sansOrphelin(trouvee.nom)}</h1>
               <p className="tabulaire mt-4 text-sm text-muted-foreground">

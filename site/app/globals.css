@@ -129,6 +129,27 @@
   :root {
     /* La gouttière extérieure du site, identique des deux côtés. */
     --gouttiere: 1.25rem;
+
+    /*
+     * LA LARGEUR DU SITE — une seule, déclarée ICI et nulle part ailleurs.
+     *
+     * La barre de navigation et le contenu la partagent, si bien que leurs
+     * marges sont égales AU PIXEL. Avant le 2026-09-21 il y en avait deux :
+     * la barre à 70rem, le contenu à 96rem, donc un contenu plus large que
+     * la barre de 80 px de chaque côté à 1280, et de 160 px à 1440. On
+     * voyait le texte dépasser la barre, et c'était vrai.
+     *
+     * `scripts/verifier-composition.mjs` fait échouer la construction si
+     * une seconde largeur apparaît quelque part.
+     */
+    --largeur-site: 70rem;
+
+    /*
+     * LA LIGNE D'UN TITRE CENTRÉ. Un titre qui s'étale d'un bord à l'autre
+     * du conteneur ne se lit plus : l'œil perd la ligne suivante. Les
+     * titres, sur-titres et chapôs centrés tiennent dans cette largeur.
+     */
+    --mesure-titre: 46rem;
   }
   @media (min-width: 768px) {
     :root {
@@ -475,7 +496,7 @@
   }
   .editorial-conteneur {
     width: 100%;
-    max-width: 96rem;
+    max-width: var(--largeur-site);
     margin-inline: auto;
   }
 
@@ -843,4 +864,160 @@
   border-left-color: var(--primary);
   color: var(--foreground);
   font-weight: 500;
+}
+
+
+/*
+ * LA COMPOSITION DU SITE — CENTRÉE (décision de l'éditeur, 2026-09-21).
+ *
+ * Elle remplace la composition désaxée en douze colonnes, où le propos
+ * commençait à la quatrième et où les titres s'alignaient à gauche. Cette
+ * page-là avait sa cohérence, mais elle produisait ce qu'on a mesuré en
+ * production : un contenu plus large que la barre de navigation, une marge
+ * gauche six fois la marge droite sur le premier écran, et pas un seul titre
+ * centré.
+ *
+ * TROIS RÈGLES, ET ELLES SUFFISENT :
+ *
+ * 1. UNE SEULE LARGEUR (`--largeur-site`), partagée par la barre et par le
+ *    conteneur. Aucune section ne pose la sienne.
+ * 2. CE QUI ANNONCE EST CENTRÉ : sur-titre, titre, chapô — dans une largeur
+ *    de ligne bornée (`--mesure-titre`), jamais d'un bord à l'autre.
+ * 3. CE QUI SE LIT EST À GAUCHE : texte courant, listes, cartes, écrans de
+ *    preuve. Un paragraphe centré se lit mal ; un titre centré s'annonce.
+ *
+ * Une section qui montre un écran de preuve pose DEUX COLONNES DE LARGEUR
+ * ÉGALE (`.duo`), et le bloc entier est centré puisque le conteneur l'est.
+ *
+ * `scripts/verifier-composition.mjs` interdit à toute page de reposer une
+ * largeur maximale ou un décalage de colonne : la composition ne peut plus
+ * se défaire page par page.
+ */
+@layer components {
+  /* La largeur unique, pour la barre et le pied comme pour le contenu. */
+  .largeur-site {
+    max-width: var(--largeur-site);
+  }
+
+  /* CE QUI ANNONCE : centré, et borné. */
+  .entete-section {
+    max-width: var(--mesure-titre);
+    margin-inline: auto;
+    text-align: center;
+  }
+  .entete-section .label {
+    justify-content: center;
+  }
+  .entete-section .mesure {
+    margin-inline: auto;
+  }
+
+  /* CE QUI SE LIT : à gauche, dans toute la largeur du conteneur. */
+  .corps-section {
+    text-align: left;
+  }
+
+  /*
+   * DEUX COLONNES DE LARGEUR ÉGALE — le texte et l'écran qui le prouve.
+   * Égales, et pas 7/5 : deux colonnes inégales rendent le bloc désaxé, ce
+   * qui est exactement ce qu'on vient de retirer.
+   */
+  .duo {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 48px;
+    align-items: center;
+    text-align: left;
+  }
+  @media (min-width: 1024px) {
+    .duo {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  .duo > * {
+    min-width: 0;
+  }
+  /* L'écran passe devant quand la section l'annonce. */
+  @media (min-width: 1024px) {
+    .duo[data-ecran="avant"] > :first-child {
+      order: 2;
+    }
+  }
+
+  /*
+   * UNE COLONNE DE LECTURE CENTRÉE — les pages qui n'ont rien à montrer :
+   * conformité, démonstration, blog, à propos, carrières, pages légales.
+   */
+  .colonne-lecture {
+    max-width: var(--mesure-titre);
+    margin-inline: auto;
+  }
+  .colonne-lecture-centree {
+    max-width: var(--mesure-titre);
+    margin-inline: auto;
+    text-align: center;
+  }
+  .colonne-lecture-centree .label {
+    justify-content: center;
+  }
+  .colonne-lecture-centree .mesure {
+    margin-inline: auto;
+  }
+  /*
+   * UN CORPS ET SON APARTÉ — l'index du blog et ses catégories, un article
+   * et son sommaire. Deux colonnes inégales, mais déclarées ICI et une
+   * seule fois : aucune page ne pose la sienne.
+   */
+  .avec-aparte {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 48px;
+    align-items: start;
+    text-align: left;
+  }
+  @media (min-width: 1024px) {
+    .avec-aparte {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+    }
+    .avec-aparte[data-aparte="avant"] {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+    }
+  }
+  .avec-aparte > * {
+    min-width: 0;
+  }
+
+  /*
+   * LA BARRE PASSE EN REPLI TANT QU'ELLE NE TIENT PAS.
+   *
+   * Elle basculait à 768 px, le palier `md` de Tailwind. Mais ses six
+   * entrées, la marque, « Se connecter » et le bouton mesurent 971 px de
+   * texte, plus deux gouttières : il lui faut 1 051 px pour tenir sur une
+   * ligne. Entre 768 et 1 051 elle débordait donc de la fenêtre — de 170 px
+   * à 768, mesuré. Avant qu'on interdise le pli, elle se repliait en deux
+   * lignes dans une rangée haute de 64 px, ce qui ne valait pas mieux.
+   *
+   * Le palier est donc MESURÉ, pas choisi dans une liste : 1 060 px, la
+   * largeur au-delà de laquelle elle tient, plus une marge de neuf pixels.
+   */
+  .nav-bureau {
+    display: none;
+  }
+  .nav-repli {
+    display: block;
+  }
+  @media (min-width: 1060px) {
+    .nav-bureau {
+      display: block;
+    }
+    .nav-repli {
+      display: none;
+    }
+  }
+
+  /* Les appels à l'action suivent le texte qui les annonce. */
+  .colonne-lecture-centree .appels,
+  .entete-section .appels {
+    justify-content: center;
+  }
 }

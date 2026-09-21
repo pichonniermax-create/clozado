@@ -37,7 +37,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
         <BrandMark href={path(locale, "accueil")} />
 
         {entrees.length > 0 && (
-          <nav aria-label={common.coquille.navigationPrincipale} className="hidden md:block">
+          <nav aria-label={common.coquille.navigationPrincipale} className="nav-bureau">
             <ul className="flex items-center gap-1">
               {entrees.map((cle) => {
                 const filles = sousEntrees(cle);
@@ -95,7 +95,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           </div>
 
           {entrees.length > 0 && (
-            <details className="group relative md:hidden">
+            <details className="nav-repli group relative">
               <summary className="inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-lg border border-border px-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
                 {common.coquille.ouvrirLeMenu}
               </summary>
