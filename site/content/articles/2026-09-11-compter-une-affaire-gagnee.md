@@ -3,18 +3,16 @@ titre: Compter une affaire gagnée, et s’y tenir
 resume: Trois écrans, trois chiffres, et personne pour trancher. Ce qu’une définition d’indicateur doit fixer pour qu’un cabinet arrête d’en débattre.
 categorie: Mesure
 publie: 2026-09-11
-misAJour: 2026-09-18
-demonstration: oui
+misAJour: 2026-09-21
 ---
 
-Dans la plupart des cabinets que nous rencontrons, la question « combien d’affaires avons-nous gagnées le mois dernier ? » reçoit deux ou trois réponses différentes selon l’écran qu’on ouvre. Ce n’est pas un problème d’outil : c’est un problème de définition.
+Dans un cabinet qui tient plusieurs écrans, la question « combien d’affaires avons-nous gagnées le mois dernier ? » reçoit souvent deux ou trois réponses différentes selon celui qu’on ouvre. Ce n’est pas un problème d’outil : c’est un problème de définition.
 
 ## Trois écrans, trois chiffres
 
 Le tableau de bord compte les affaires dont le statut est « gagnée » aujourd’hui. L’export CSV compte celles dont la date de signature tombe dans le mois. Le tableur du directeur compte celles qui ont été facturées. Les trois ont raison, et aucun ne parle de la même chose.
 
-> Le jour où trois personnes défendent trois chiffres, ce n’est plus l’outil qu’il faut changer : c’est la phrase qui manque.
-> — Un associé de cabinet, lors d’une mise en service
+Le jour où trois personnes défendent trois chiffres, ce n’est plus l’outil qu’il faut changer : c’est la phrase qui manque.
 
 ## Ce qu’une définition doit fixer
 

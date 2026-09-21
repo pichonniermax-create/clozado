@@ -4,7 +4,6 @@ import { SectionEditoriale } from "@/components/section-editoriale";
 import { type Article, categories, dateLongue, slugCategorie } from "@/lib/articles";
 import { getDictionary, type Locale } from "@/lib/i18n";
 import { path } from "@/lib/routes";
-import { cn } from "@/lib/cn";
 
 /**
  * LA LISTE D'ARTICLES — la même pour l'index, ses pages suivantes et les
@@ -72,32 +71,22 @@ export function BlogIndex({
             <p className="label">{blog.liste.categoriesTitre}</p>
             <ul className="mt-6 flex flex-col gap-3 border-l border-border">
               <li>
-                <a
-                  href={base}
-                  aria-current={categorieCourante ? undefined : "true"}
-                  className={cn(
-                    "-ml-px flex min-h-6 items-center border-l pl-4 text-sm transition-colors duration-200 ease-out",
-                    categorieCourante
-                      ? "border-transparent text-muted-foreground hover:text-foreground"
-                      : "border-primary font-medium text-foreground"
-                  )}
-                >
+                <a href={base} aria-current={categorieCourante ? undefined : "true"} className="lien-sommaire">
                   {blog.liste.toutes}
                 </a>
               </li>
               {toutes.map((categorie) => (
                 <li key={categorie.slug}>
+                  {/* `gap-2` et non une espace entre les deux : l'élément est
+                      une boîte flexible, et un nœud de texte qui ne contient
+                      qu'une espace y disparaît — le compte se collait au nom
+                      de la catégorie (« Mesure1 »). */}
                   <a
                     href={`${base}/categorie/${categorie.slug}`}
                     aria-current={categorieCourante === categorie.slug ? "true" : undefined}
-                    className={cn(
-                      "-ml-px flex min-h-6 items-center border-l pl-4 text-sm transition-colors duration-200 ease-out",
-                      categorieCourante === categorie.slug
-                        ? "border-primary font-medium text-foreground"
-                        : "border-transparent text-muted-foreground hover:text-foreground"
-                    )}
+                    className="lien-sommaire gap-2"
                   >
-                    {categorie.nom}{" "}
+                    {categorie.nom}
                     <span className="tabulaire text-detail text-muted-foreground">{categorie.compte}</span>
                   </a>
                 </li>

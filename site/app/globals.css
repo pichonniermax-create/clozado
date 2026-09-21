@@ -799,6 +799,12 @@
  * L'apparence de base du lien de sommaire, elle, reste EN COUCHE : la
  * variante de niveau 3 ajoute `pl-7`, un utilitaire, et il doit pouvoir
  * gagner contre le retrait par défaut.
+ *
+ * `.lien-sommaire` sert À DEUX ENDROITS : le sommaire d'un article et la
+ * liste des catégories du blog. Les deux sont la même chose — une colonne
+ * d'entrées le long d'un filet, dont une est courante —, et elles étaient
+ * écrites deux fois, en utilitaires, avec deux jeux de classes à tenir
+ * d'accord.
  */
 @layer components {
   .lien-sommaire {
