@@ -20,19 +20,29 @@ function writeCookie(state: TourState) {
 }
 
 /**
- * La carte se pose AVANT d'être visible : tant que l'élément à éclairer
- * n'est pas mesuré, elle reste invisible (elle occupe déjà sa place, donc
- * sa hauteur est connue). Avant, elle apparaissait en bas à droite puis
- * sautait sous l'élément dès que l'écran finissait d'arriver — un
- * mouvement que personne n'a demandé, sur un écran qu'on découvre.
+ * LE TEMPS, ET CE QU'IL FAUT EN FAIRE.
  *
- * Passé ce délai, l'élément n'arrivera plus (écran sans repère, contenu en
- * erreur) : la carte se montre en bas, et n'essaie plus de s'ancrer — elle
- * ne bougera pas non plus.
+ * La carte se pose AVANT d'être visible : tant que l'élément à éclairer n'est
+ * pas mesuré, la PREMIÈRE apparition attend (elle occupe déjà sa place, donc
+ * sa hauteur est connue). Ensuite, elle ne disparaît plus jamais : pendant
+ * qu'un écran arrive, elle GARDE la place qu'elle occupe et éteint son halo,
+ * puis elle se pose sur le nouveau repère d'un seul mouvement.
+ *
+ * Le repli en bas à droite est le dernier recours, quand l'écran n'a pas de
+ * repère (écran en erreur, liste vide, fenêtre trop étroite). Il ne se
+ * déclenche qu'après un SILENCE : le compte repart à chaque changement de
+ * l'écran et se prolonge tant qu'un squelette de chargement est à l'écran.
+ * Compté depuis le clic, il renonçait au bout de 2,5 s sur tout écran plus
+ * lent que ça — c'est-à-dire souvent — et la carte finissait le reste de la
+ * visite dans le coin, sans rien éclairer, par-dessus le tableau.
  */
 const SETTLE_MS = 2500;
+/** Le plafond : un écran qui ne se tait jamais (compteur, flux, animation qui insère) ne retient pas la carte pour autant. */
+const SETTLE_MAX_MS = 15000;
 /** La hauteur de repli, le temps que la carte existe pour être mesurée. */
 const CARD_HEIGHT_FALLBACK = 232;
+/** Le squelette d'un écran qui arrive (`PageSkeleton`) porte `aria-busy` — c'est notre « ça charge encore ». */
+const CHARGEMENT = "[aria-busy]";
 
 /** `useLayoutEffect` pose la carte dans la passe de mise en page, avant la peinture ; le serveur, lui, ne peint rien. */
 const useBeforePaint = typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -56,16 +66,19 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
   const forced = params.get(TOUR_PARAM) === "1";
   const [state, setState] = useState<TourState>(() => (forced || !initialState ? { step: 0, status: "en_cours" } : initialState));
   const [spot, setSpot] = useState<Placement | null>(null);
-  /** Tant que c'est faux, la carte existe (donc se mesure) mais ne se voit pas. */
+  /** Le repère de l'écran COURANT est mesuré (ou cet écran n'en a pas) : le halo peut s'allumer. */
   const [placed, setPlaced] = useState(false);
+  /** La carte s'est déjà posée une fois : à partir de là elle ne disparaît plus, elle garde sa place. */
+  const [everPlaced, setEverPlaced] = useState(false);
+  const everPlacedRef = useRef(false);
   const cardRef = useRef<HTMLElement | null>(null);
   // Sur un téléphone, la carte fixe masquait le tiers bas de l'écran sans pouvoir se réduire (audit UI du 2026-09-14) :
   // repliée, il ne reste qu'une ligne au-dessus de la barre d'onglets. Un changement d'étape la redéplie.
   const [collapsed, setCollapsed] = useState(false);
-  // L'écran vers lequel « Suivant » / « Précédent » emmène, tant qu'on n'y est pas : la carte reste invisible pendant le
-  // trajet. Sans ça, elle se décrochait de son repère pour filer dans le coin de l'ANCIEN écran, avant de disparaître et
-  // de se reposer sur le nouveau — deux mouvements pour un seul clic (mesuré : 268,522 → 1032,666 → 268,487).
-  const [goingTo, setGoingTo] = useState<string | null>(null);
+  // L'écran D'OÙ « Suivant » / « Précédent » part, tant qu'on ne l'a pas quitté : pendant ce trajet, la carte ne
+  // propose pas « Voir cet écran » — on y va déjà. Le trajet est fini dès que le chemin change, qu'on soit arrivé
+  // à destination ou ailleurs (redirection, écran refusé).
+  const [goingFrom, setGoingFrom] = useState<string | null>(null);
   const scrolledFor = useRef<string | null>(null);
 
   // L'état de départ (première visite) s'écrit une fois, pour survivre à la navigation.
@@ -93,29 +106,33 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
     const next = new URLSearchParams(params.toString());
     next.delete(TOUR_PARAM);
     const query = next.toString();
-    window.history.replaceState(window.history.state, "", `${pathname}${query ? `?${query}` : ""}${window.location.hash}`);
+    // `null`, et surtout PAS `window.history.state` : Next remplace `replaceState` pour tenir `usePathname` /
+    // `useSearchParams` à jour, et ce remplaçant SORT PAR LE HAUT quand l'état porte sa propre marque
+    // (`__NA`, node_modules/next/dist/client/components/app-router.js). L'adresse se nettoyait donc dans la barre
+    // sans que le routeur le sache : `visite=1` restait vrai à jamais, et « Visite guidée » cliqué depuis le
+    // tableau de bord ne relançait plus rien (mesuré le 2026-09-22). Avec `null`, Next recopie son propre état.
+    window.history.replaceState(null, "", `${pathname}${query ? `?${query}` : ""}${window.location.hash}`);
   }, [forced, params, pathname]);
 
-  if (goingTo && pathname === goingTo) setGoingTo(null);
-  // Un trajet qui n'arrive jamais (redirection, écran refusé) ne doit pas effacer la carte pour toujours.
+  if (goingFrom !== null && pathname !== goingFrom) setGoingFrom(null);
+  // Un trajet qui ne part jamais (lien mort, navigation avalée) ne doit pas retenir « Voir cet écran » pour toujours.
   useEffect(() => {
-    if (!goingTo) return;
-    const timer = window.setTimeout(() => setGoingTo(null), SETTLE_MS);
+    if (goingFrom === null) return;
+    const timer = window.setTimeout(() => setGoingFrom(null), SETTLE_MAX_MS);
     return () => clearTimeout(timer);
-  }, [goingTo]);
+  }, [goingFrom]);
 
   const step = TOUR_STEPS[state.step];
   const running = state.status === "en_cours";
   const onScreen = pathname === step.href;
   const target = running && onScreen ? step.target : undefined;
 
-  // L'ancrage. Une clé par écran ET par repère : elle change, la carte redevient invisible et se repose de zéro —
-  // jamais une carte posée pour l'écran précédent qui glisse vers le nouveau.
+  // L'ancrage. Une clé par écran ET par repère : elle change, le halo s'éteint et la carte cherche son nouveau repère.
+  // `spot` n'est PAS effacé ici — c'est lui qui tient la carte en place pendant que l'écran suivant arrive.
   const anchorKey = `${pathname}:${target ?? ""}`;
   const [lastKey, setLastKey] = useState(anchorKey);
   if (anchorKey !== lastKey) {
     setLastKey(anchorKey);
-    setSpot(null);
     setPlaced(false);
   }
 
@@ -124,48 +141,86 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
   // encore quand la carte se monte. Une seule frame en attente à la fois.
   useBeforePaint(() => {
     let frame = 0;
-    let anchored = false;
-    let abandoned = false;
-    const place = () => {
+    let repli = 0;
+    let plafond = 0;
+    /** « attente » tant que le repère n'est pas mesuré ; ensuite la carte est ancrée, ou repliée en bas. */
+    let issue: "attente" | "ancree" | "repli" = "attente";
+
+    const poser = (place: Placement | null) => {
+      setSpot(place);
+      setPlaced(true);
+      everPlacedRef.current = true;
+      setEverPlaced(true);
+    };
+    const replier = () => {
+      issue = "repli";
+      window.clearTimeout(repli);
+      poser(null);
+    };
+
+    const mesurer = () => {
       const viewport = { width: window.innerWidth, height: window.innerHeight };
-      if (!target || collapsed || !canAnchor(viewport)) {
-        setSpot(null);
-        setPlaced(true);
+      if (collapsed || !canAnchor(viewport)) {
+        replier();
+        return;
+      }
+      if (!target) {
+        // On n'est pas sur l'écran de l'étape (en route, ou parti ailleurs) : la carte reste où elle est.
+        // Sauf si elle ne s'est jamais montrée — il lui faut bien une première place.
+        if (!everPlacedRef.current) replier();
         return;
       }
       const element = document.querySelector<HTMLElement>(`[data-tour="${target}"]`);
       const rect = element?.getBoundingClientRect();
-      if (!element || !rect || rect.width === 0 || rect.height === 0) return; // l'écran n'est pas arrivé : on attend, invisible
-      if (abandoned) return; // le repère est arrivé trop tard : la carte est déjà posée en bas, elle y reste
+      if (!element || !rect || rect.width === 0 || rect.height === 0) return; // l'écran n'est pas arrivé : on attend
       if (scrolledFor.current !== anchorKey) {
         scrolledFor.current = anchorKey;
-        // Sans transition : le défilement a lieu pendant que la carte est invisible, il ne se voit donc pas — et la
-        // géométrie est définitive quand on la lit juste après. `smooth` la faisait se poser sur une place périmée.
+        // Sans transition : la géométrie est définitive quand on la lit juste après. `smooth` posait la carte sur
+        // une place périmée.
         element.scrollIntoView({ block: "center", behavior: "auto" });
       }
       const posee = element.getBoundingClientRect();
-      anchored = true;
-      setSpot(placeCard({ top: posee.top, left: posee.left, width: posee.width, height: posee.height }, viewport, cardRef.current?.offsetHeight ?? CARD_HEIGHT_FALLBACK));
-      setPlaced(true);
+      issue = "ancree";
+      window.clearTimeout(repli);
+      window.clearTimeout(plafond);
+      poser(placeCard({ top: posee.top, left: posee.left, width: posee.width, height: posee.height }, viewport, cardRef.current?.offsetHeight ?? CARD_HEIGHT_FALLBACK));
     };
+
+    /** Le compte du SILENCE : il repart à chaque changement de l'écran, et se prolonge tant qu'un squelette est là. */
+    const compter = () => {
+      if (issue !== "attente") return;
+      window.clearTimeout(repli);
+      repli = window.setTimeout(() => {
+        if (issue !== "attente") return;
+        if (document.querySelector(CHARGEMENT)) {
+          compter();
+          return;
+        }
+        replier();
+      }, SETTLE_MS);
+    };
+
     const schedule = () => {
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(place);
+      frame = requestAnimationFrame(mesurer);
+      compter();
     };
-    place();
+
+    mesurer();
+    if (target) {
+      compter();
+      plafond = window.setTimeout(() => {
+        if (issue === "attente") replier();
+      }, SETTLE_MAX_MS);
+    }
     const observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true });
     window.addEventListener("resize", schedule);
     window.addEventListener("scroll", schedule, true);
-    // Le délai ne concerne QUE la première pose : une carte déjà ancrée continue de suivre son élément au défilement.
-    const timer = window.setTimeout(() => {
-      if (anchored) return;
-      abandoned = true;
-      setPlaced(true);
-    }, SETTLE_MS);
     return () => {
       cancelAnimationFrame(frame);
-      clearTimeout(timer);
+      window.clearTimeout(repli);
+      window.clearTimeout(plafond);
       observer.disconnect();
       window.removeEventListener("resize", schedule);
       window.removeEventListener("scroll", schedule, true);
@@ -178,14 +233,17 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
     writeCookie(next);
     if (next.status === "termine") toast.add({ type: "success", description: t("carte.terminee"), timeout: 6000 });
     if (navigateTo && navigateTo !== pathname) {
-      setGoingTo(navigateTo);
+      setGoingFrom(pathname);
       router.push(navigateTo);
     }
   }
 
   if (!running) return null;
-  /** Se voir, c'est être posée ET être arrivée : pendant un trajet, la carte existe sans se montrer. */
-  const shown = placed && !goingTo;
+  /** Se voir : la première fois, une fois posée ; ensuite, toujours — elle garde sa place le temps qu'un écran arrive. */
+  const shown = placed || everPlaced;
+  /** Le halo n'éclaire QUE le repère de l'écran courant : pendant qu'un écran arrive, il s'éteint. */
+  const eclaire = placed && spot !== null;
+  const enRoute = goingFrom !== null;
   const total = TOUR_STEPS.length;
   const last = state.step === total - 1;
 
@@ -211,7 +269,7 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
 
   return (
     <>
-      {spot && shown && (
+      {eclaire && (
         <div
           aria-hidden
           data-tour-halo
@@ -223,11 +281,14 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
         ref={cardRef}
         role="complementary"
         aria-label={t("carte.visite_guidee")}
-        data-tour-card={shown ? (spot ? spot.side : "coin") : "attente"}
+        data-tour-card={placed ? (spot ? spot.side : "coin") : "attente"}
         className={cn(
           "fixed z-40 border-border bg-card p-4 text-card-foreground shadow-lg",
-          spot ? "w-96 rounded-xl border" : "inset-x-0 bottom-14 border-t md:inset-x-auto md:right-6 md:bottom-6 md:w-96 md:rounded-xl md:border",
-          // Posée avant d'être visible : tant qu'elle attend son repère, elle occupe sa place (donc se mesure) sans se voir.
+          // Ancrée : elle glisse jusqu'à son nouveau repère, du même mouvement que le halo — jamais un saut.
+          spot
+            ? "w-96 rounded-xl border transition-[top,left] duration-200 motion-reduce:transition-none"
+            : "inset-x-0 bottom-14 border-t md:inset-x-auto md:right-6 md:bottom-6 md:w-96 md:rounded-xl md:border",
+          // La PREMIÈRE apparition se fait posée : tant qu'elle attend son repère, elle occupe sa place sans se voir.
           !shown && "invisible"
         )}
         style={spot ? { top: spot.card.top, left: spot.card.left } : undefined}
@@ -254,7 +315,7 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
         <h2 className="mt-3 text-base font-semibold">{t(`steps.${step.key}.titre`)}</h2>
         <p className="mt-1 text-sm text-muted-foreground text-pretty">{t(`steps.${step.key}.texte`)}</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          {!onScreen && (
+          {!onScreen && !enRoute && (
             <Link href={step.href} className={buttonVariants({ variant: "outline", size: "sm" })}>
               {t("carte.voir_cet_ecran")}
             </Link>
