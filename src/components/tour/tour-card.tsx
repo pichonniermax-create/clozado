@@ -273,7 +273,11 @@ export function TourCard({ initialState }: { initialState: TourState | null }) {
         <div
           aria-hidden
           data-tour-halo
-          className="pointer-events-none fixed z-30 rounded-xl ring-2 ring-primary/70 shadow-[0_0_0_9999px_rgba(15,23,42,0.32)] transition-[top,left,width,height] duration-200"
+          // `z-40`, pas 30 : la barre du haut est enveloppée dans un `div` `md:sticky md:top-0 z-40`
+          // (src/app/(app)/layout.tsx), et le voile s'arrêtait donc net sous elle — une bande claire en haut
+          // d'un écran assombri. À égalité de plan, c'est l'ordre du document qui tranche : le halo est rendu
+          // après la coquille, la carte après le halo.
+          className="pointer-events-none fixed z-40 rounded-xl ring-2 ring-primary/70 shadow-[0_0_0_9999px_rgba(15,23,42,0.32)] transition-[top,left,width,height] duration-200"
           style={{ top: spot.halo.top, left: spot.halo.left, width: spot.halo.width, height: spot.halo.height }}
         />
       )}
